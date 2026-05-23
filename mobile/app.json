@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "KA Bijoux",
+    "slug": "ka-bijoux",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FF4D6D"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kabijoux.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FF4D6D"
+      },
+      "package": "com.kabijoux.app",
+      "versionCode": 1,
+      "permissions": ["NOTIFICATIONS", "INTERNET"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#FF4D6D"
+        }
+      ]
+    ],
+    "scheme": "kabijoux",
+    "extra": {
+      "router": { "origin": false },
+      "eas": { "projectId": "your-eas-project-id" }
+    }
+  }
+}
