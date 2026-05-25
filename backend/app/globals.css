@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
   --pink-primary: #FF4D6D;
@@ -25,6 +25,239 @@ body {
   background-color: var(--gray-soft);
   color: var(--text-main);
   -webkit-font-smoothing: antialiased;
+}
+
+/* ─── KA Bijoux — Keyframes ─────────────────────────────────────────────── */
+
+@keyframes ka-fade-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ka-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes ka-scale-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes ka-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-14px); }
+}
+@keyframes ka-float-delayed {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%       { transform: translateY(-10px) rotate(5deg); }
+}
+@keyframes ka-pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 77, 109, 0.5); }
+  50%       { box-shadow: 0 0 0 18px rgba(255, 77, 109, 0); }
+}
+@keyframes ka-ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes ka-gradient-x {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+@keyframes ka-spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes ka-bounce-subtle {
+  0%, 100% { transform: translateY(0) scale(1); }
+  40%       { transform: translateY(-6px) scale(1.03); }
+  60%       { transform: translateY(-3px) scale(1.01); }
+}
+@keyframes ka-slide-in-left {
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes ka-slide-in-right {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ─── Utility Classes ────────────────────────────────────────────────────── */
+
+.ka-fade-up        { animation: ka-fade-up 0.65s ease-out both; }
+.ka-fade-in        { animation: ka-fade-in 0.5s ease-out both; }
+.ka-scale-in       { animation: ka-scale-in 0.55s ease-out both; }
+.ka-float          { animation: ka-float 4s ease-in-out infinite; }
+.ka-float-delayed  { animation: ka-float-delayed 5s ease-in-out infinite; }
+.ka-pulse-glow     { animation: ka-pulse-glow 2.5s ease-in-out infinite; }
+.ka-ticker         { animation: ka-ticker 28s linear infinite; }
+.ka-gradient-x     { animation: ka-gradient-x 5s ease-in-out infinite; background-size: 200% 200%; }
+.ka-spin-slow      { animation: ka-spin-slow 15s linear infinite; }
+.ka-bounce         { animation: ka-bounce-subtle 2.2s ease-in-out infinite; }
+.ka-slide-left     { animation: ka-slide-in-left 0.7s ease-out both; }
+.ka-slide-right    { animation: ka-slide-in-right 0.7s ease-out both; }
+
+.delay-100  { animation-delay: 100ms; }
+.delay-200  { animation-delay: 200ms; }
+.delay-300  { animation-delay: 300ms; }
+.delay-400  { animation-delay: 400ms; }
+.delay-500  { animation-delay: 500ms; }
+.delay-600  { animation-delay: 600ms; }
+.delay-700  { animation-delay: 700ms; }
+.delay-800  { animation-delay: 800ms; }
+.delay-1000 { animation-delay: 1000ms; }
+
+/* Scroll reveal (via JS Intersection Observer) */
+.ka-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.75s ease, transform 0.75s ease;
+}
+.ka-reveal.ka-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.ka-reveal-left {
+  opacity: 0;
+  transform: translateX(-30px);
+  transition: opacity 0.75s ease, transform 0.75s ease;
+}
+.ka-reveal-left.ka-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+.ka-reveal-right {
+  opacity: 0;
+  transform: translateX(30px);
+  transition: opacity 0.75s ease, transform 0.75s ease;
+}
+.ka-reveal-right.ka-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+.ka-reveal-scale {
+  opacity: 0;
+  transform: scale(0.93);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+.ka-reveal-scale.ka-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ─── Product Card ────────────────────────────────────────────────────────── */
+
+.ka-product-card {
+  transition: transform 0.32s ease, box-shadow 0.32s ease;
+}
+.ka-product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 48px rgba(255, 77, 109, 0.18);
+}
+.ka-product-card .ka-product-img {
+  transition: transform 0.5s ease;
+}
+.ka-product-card:hover .ka-product-img {
+  transform: scale(1.08);
+}
+
+/* ─── Button ─────────────────────────────────────────────────────────────── */
+
+.ka-btn {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.ka-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.ka-btn:hover::after      { opacity: 1; }
+.ka-btn:hover             { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(255, 77, 109, 0.38); }
+.ka-btn:active            { transform: translateY(0) scale(0.98); }
+
+/* ─── Category Card ──────────────────────────────────────────────────────── */
+
+.ka-category-card {
+  transition: all 0.3s ease;
+}
+.ka-category-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 14px 36px rgba(255, 77, 109, 0.14);
+  border-color: #FF4D6D;
+}
+
+/* ─── Image Zoom Container ────────────────────────────────────────────────── */
+
+.ka-zoom {
+  overflow: hidden;
+}
+.ka-zoom img,
+.ka-zoom video {
+  transition: transform 0.55s ease;
+}
+.ka-zoom:hover img,
+.ka-zoom:hover video {
+  transform: scale(1.06);
+}
+
+/* ─── Gallery Item ────────────────────────────────────────────────────────── */
+
+.ka-gallery-item {
+  overflow: hidden;
+  position: relative;
+}
+.ka-gallery-item img {
+  transition: transform 0.55s ease;
+}
+.ka-gallery-item:hover img {
+  transform: scale(1.1);
+}
+.ka-gallery-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(255, 77, 109, 0.6) 0%, transparent 55%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  display: flex;
+  align-items: flex-end;
+  padding: 16px;
+}
+.ka-gallery-item:hover .ka-gallery-overlay {
+  opacity: 1;
+}
+
+/* ─── Gradient Text ────────────────────────────────────────────────────────── */
+
+.ka-gradient-text {
+  background: linear-gradient(135deg, #FF4D6D 0%, #FF8FAB 50%, #C8274A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Glass Card ──────────────────────────────────────────────────────────── */
+
+.ka-glass {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* ─── Serif Font ──────────────────────────────────────────────────────────── */
+
+.font-playfair {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* ─── Section Divider ─────────────────────────────────────────────────────── */
+
+.ka-divider {
+  width: 48px;
+  height: 3px;
+  background: linear-gradient(90deg, #FF4D6D, #FFB6C1);
+  border-radius: 999px;
 }
 
 @layer components {
