@@ -4,8 +4,6 @@ import AnnouncementBar from "@/components/loja/AnnouncementBar";
 import HeroSection from "@/components/loja/HeroSection";
 import CategoryGrid from "@/components/loja/CategoryGrid";
 import ProductCard from "@/components/loja/ProductCard";
-import VideoSection from "@/components/loja/VideoSection";
-import GallerySection from "@/components/loja/GallerySection";
 import ReelsSection from "@/components/loja/ReelsSection";
 import AnimatedSection from "@/components/loja/AnimatedSection";
 
@@ -232,12 +230,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Vídeo da KA Bijoux ─────────────────────────────── */}
-      <VideoSection />
-
-      {/* ── Galeria de Fotos ───────────────────────────────── */}
-      <GallerySection />
-
       {/* ── Reels ─────────────────────────────────────────── */}
       <ReelsSection />
 
@@ -303,7 +295,7 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto px-6">
           <AnimatedSection className="text-center mb-12">
             <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-3 block">
-              Curadoria
+              Seleção especial
             </span>
             <h2 className="font-playfair text-4xl font-bold text-gray-900 mb-4">
               Escolhidos para você 💕

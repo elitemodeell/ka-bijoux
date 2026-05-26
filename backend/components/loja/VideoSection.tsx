@@ -80,7 +80,7 @@ export default function VideoSection() {
             <div className="grid grid-cols-3 gap-4 mt-6">
               {[
                 { n: "5 anos", l: "de experiência" },
-                { n: "100%", l: "curadoria" },
+                { n: "100%", l: "seleção especial" },
                 { n: "Envio", l: "para todo Brasil" },
               ].map(({ n, l }) => (
                 <div key={n} className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">

@@ -13,7 +13,7 @@ interface GalleryImage {
 const GALLERY: GalleryImage[] = [
   { src: "/imagens/produto-02.jpg", alt: "Cliente com sacolas KA Bijoux", label: "Clientes e estilo KA", span: "tall" },
   { src: "/imagens/foto-05.jpeg", alt: "Porta-joias com acessórios KA Bijoux", label: "Por dentro da loja", span: "normal" },
-  { src: "/imagens/foto-06.jpeg", alt: "Conjunto de bijuterias douradas", label: "Curadoria", span: "normal" },
+  { src: "/imagens/foto-06.jpeg", alt: "Conjunto de bijuterias douradas", label: "Seleção especial", span: "normal" },
   { src: "/imagens/foto-01.jpeg", alt: "Promoção de mix de acessórios KA Bijoux", label: "Promo R$6 cada peça", span: "wide" },
   { src: "/imagens/foto-02.jpeg", alt: "Promoção de acessórios KA Bijoux", label: "Promo R$6 cada peça", span: "normal" },
   { src: "/imagens/foto-04.jpeg", alt: "Promoção de acessórios KA Bijoux", label: "Promo R$6 cada peça", span: "normal" },
