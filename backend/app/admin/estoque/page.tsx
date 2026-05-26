@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { prisma } from "@/lib/prisma";
 import Header from "@/components/admin/Header";
 import Link from "next/link";

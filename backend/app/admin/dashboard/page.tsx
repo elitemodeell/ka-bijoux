@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import StatCard from "@/components/admin/StatCard";
 import OrderStatusBadge from "@/components/admin/OrderStatusBadge";
 import Header from "@/components/admin/Header";
