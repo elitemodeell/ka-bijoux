@@ -18,11 +18,9 @@ export default function VideoSection() {
   };
 
   return (
-    <section className="py-24 bg-[#1A0A0F] overflow-hidden">
+    <section className="py-20 md:py-24 bg-[#1A0A0F] overflow-hidden">
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-
-          {/* Text side */}
           <AnimatedSection direction="left" className="text-white order-2 lg:order-1">
             <span className="inline-block text-pink-400 text-sm font-semibold tracking-widest uppercase mb-4">
               Nossa Essência
@@ -37,30 +35,18 @@ export default function VideoSection() {
             </p>
             <p className="text-gray-400 leading-relaxed mb-10">
               Cada peça é escolhida com carinho para combinar com o seu estilo e iluminar
-              o seu dia a dia — do casual ao sofisticado.
+              o seu dia a dia, do casual ao sofisticado.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <a
-                href="/produtos"
-                className="ka-btn inline-flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-pink-400 text-white font-semibold px-7 py-3.5 rounded-2xl"
-              >
-                Explorar coleção →
-              </a>
-              <a
-                href="https://wa.me/5537999999999"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 border border-white/20 text-white/80 hover:text-white hover:border-white/50 font-medium px-7 py-3.5 rounded-2xl transition-all duration-300"
-              >
-                Falar no WhatsApp
-              </a>
-            </div>
+            <a
+              href="/produtos"
+              className="ka-btn inline-flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-pink-400 text-white font-semibold px-7 py-3.5 rounded-2xl"
+            >
+              Explorar coleção →
+            </a>
           </AnimatedSection>
 
-          {/* Video side */}
           <AnimatedSection direction="right" className="order-1 lg:order-2">
             <div className="relative rounded-3xl overflow-hidden shadow-[0_30px_80px_rgba(255,77,109,0.25)] ka-zoom">
-
               <video
                 ref={videoRef}
                 src="/videos/video-ka-bijoux.mp4"
@@ -68,14 +54,13 @@ export default function VideoSection() {
                 muted
                 loop
                 playsInline
+                controls
                 className="w-full h-auto max-h-[560px] object-cover"
                 style={{ borderRadius: "1.5rem" }}
               />
 
-              {/* Overlay gradient */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
 
-              {/* Play/Pause button */}
               <button
                 onClick={togglePlay}
                 className="absolute bottom-4 right-4 w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/40 transition-all duration-300 flex items-center justify-center border border-white/30"
@@ -84,7 +69,6 @@ export default function VideoSection() {
                 {playing ? <PauseIcon /> : <PlayIcon />}
               </button>
 
-              {/* KA Bijoux watermark */}
               <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
                 <svg className="w-3 h-3 text-pink-400" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2l2.09 6.26H21l-5.47 3.97 2.09 6.26L12 14.52l-5.62 3.97 2.09-6.26L3 8.26h6.91L12 2z"/>
@@ -93,12 +77,11 @@ export default function VideoSection() {
               </div>
             </div>
 
-            {/* Stats row below video */}
             <div className="grid grid-cols-3 gap-4 mt-6">
               {[
                 { n: "5 anos", l: "de experiência" },
-                { n: "100%",   l: "original" },
-                { n: "⚡ Rápido", l: "envio para todo Brasil" },
+                { n: "100%", l: "curadoria" },
+                { n: "Envio", l: "para todo Brasil" },
               ].map(({ n, l }) => (
                 <div key={n} className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
                   <p className="text-white font-bold text-sm mb-0.5">{n}</p>

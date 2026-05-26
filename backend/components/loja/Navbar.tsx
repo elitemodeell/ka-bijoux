@@ -23,19 +23,19 @@ export default function Navbar() {
 
   return (
     <header
-      className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
+      className={`fixed top-12 md:top-0 inset-x-0 z-40 md:z-50 transition-all duration-300 ${
         scrolled
           ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-pink-50"
-          : "bg-transparent"
+          : "bg-white/85 backdrop-blur-md border-b border-pink-50 md:bg-transparent md:backdrop-blur-0 md:border-transparent"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-5 h-[70px] flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 md:px-5 h-[66px] md:h-[70px] flex items-center justify-between">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-1.5 group" aria-label="KA Bijoux">
+        <Link href="/" className="flex items-center gap-1.5 group shrink-0" aria-label="KA Bijoux">
           <StarIcon className="w-5 h-5 text-pink-500 group-hover:rotate-12 transition-transform duration-300" />
-          <span className="text-[22px] font-black text-pink-500 leading-none tracking-tight">KA</span>
-          <span className="text-[22px] font-light text-gray-700 leading-none tracking-wide">Bijoux</span>
+          <span className="text-xl md:text-[22px] font-black text-pink-500 leading-none tracking-tight">KA</span>
+          <span className="text-xl md:text-[22px] font-light text-gray-700 leading-none tracking-wide">Bijoux</span>
         </Link>
 
         {/* Desktop Nav */}
@@ -53,7 +53,7 @@ export default function Navbar() {
         </nav>
 
         {/* Actions */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 self-center">
           <button
             className="p-2.5 rounded-xl hover:bg-pink-50 transition-colors group"
             aria-label="Buscar"

@@ -31,7 +31,7 @@ const DEMO_PRODUCTS = [
     price: 89.90,
     promo: null,
     badge: "Destaque",
-    image: "/imagens/banner-01.jpg",
+    image: "/imagens/foto-01.jpeg",
   },
   {
     id: "3",
@@ -55,7 +55,7 @@ const DEMO_PRODUCTS = [
     price: 54.90,
     promo: 44.90,
     badge: "Destaque",
-    image: null,
+    image: "/imagens/foto-02.jpeg",
   },
   {
     id: "6",
@@ -63,7 +63,7 @@ const DEMO_PRODUCTS = [
     price: 24.90,
     promo: null,
     badge: "Novo",
-    image: null,
+    image: "/imagens/foto-03.jpeg",
   },
   {
     id: "7",
@@ -71,7 +71,7 @@ const DEMO_PRODUCTS = [
     price: 69.90,
     promo: 54.90,
     badge: null,
-    image: null,
+    image: "/imagens/foto-04.jpeg",
   },
   {
     id: "8",
@@ -79,7 +79,39 @@ const DEMO_PRODUCTS = [
     price: 119.90,
     promo: 99.90,
     badge: "Destaque",
-    image: null,
+    image: "/imagens/foto-05.jpeg",
+  },
+  {
+    id: "9",
+    name: "Mix de Acessórios Delicados",
+    price: 59.90,
+    promo: 49.90,
+    badge: "Novo",
+    image: "/imagens/foto-10.jpeg",
+  },
+  {
+    id: "10",
+    name: "Brilho Essencial KA Bijoux",
+    price: 39.90,
+    promo: null,
+    badge: null,
+    image: "/imagens/foto-11.jpeg",
+  },
+  {
+    id: "11",
+    name: "Coleção Feminina Charm",
+    price: 74.90,
+    promo: 64.90,
+    badge: "Destaque",
+    image: "/imagens/foto-12.jpeg",
+  },
+  {
+    id: "12",
+    name: "Detalhe Rosé Premium",
+    price: 44.90,
+    promo: null,
+    badge: "Novo",
+    image: "/imagens/foto-13.jpeg",
   },
 ];
 
@@ -360,21 +392,13 @@ export default async function HomePage() {
             <p className="text-gray-400 text-lg mb-10">
               Explore nossa coleção completa e encontre o acessório perfeito para cada momento.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex items-center justify-center">
               <Link
                 href="/produtos"
                 className="ka-btn ka-pulse-glow bg-gradient-to-r from-pink-500 to-pink-400 text-white font-bold px-10 py-4 rounded-2xl text-base"
               >
                 Explorar Tudo ✨
               </Link>
-              <a
-                href="https://wa.me/5537999999999?text=Olá! Quero conhecer os produtos da KA Bijoux!"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="border border-white/20 text-white/80 hover:text-white hover:border-white/50 font-semibold px-10 py-4 rounded-2xl transition-all duration-300 text-base"
-              >
-                Fale conosco →
-              </a>
             </div>
           </AnimatedSection>
         </div>

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/loja/Navbar";
 import Footer from "@/components/loja/Footer";
-import WhatsAppButton from "@/components/loja/WhatsAppButton";
 
 export const metadata: Metadata = {
   title: {
@@ -16,7 +15,6 @@ export default function LojaLayout({ children }: { children: React.ReactNode }) 
       <Navbar />
       <div className="min-h-screen">{children}</div>
       <Footer />
-      <WhatsAppButton />
     </>
   );
 }
