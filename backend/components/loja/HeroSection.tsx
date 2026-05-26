@@ -13,7 +13,7 @@ export default function HeroSection() {
   return (
     <section className="relative min-h-[640px] md:min-h-screen flex items-center justify-center overflow-hidden bg-ka-hero">
       <img
-        src="/imagens/banner-01.jpg"
+        src="/imagens/produto-02.jpg"
         alt=""
         className="absolute inset-0 w-full h-full object-cover opacity-30"
         aria-hidden="true"

@@ -11,14 +11,14 @@ interface GalleryImage {
 }
 
 const GALLERY: GalleryImage[] = [
-  { src: "/imagens/banner-01.jpg", alt: "KA Bijoux - acessórios premium", label: "Lifestyle", span: "tall" },
-  { src: "/imagens/foto-06.jpeg", alt: "Acessórios KA Bijoux", label: "Novidades", span: "normal" },
-  { src: "/imagens/foto-07.jpeg", alt: "Coleção atual KA Bijoux", label: "Coleção atual", span: "normal" },
-  { src: "/imagens/foto-08.jpeg", alt: "Detalhes de acessórios KA Bijoux", label: "Detalhes", span: "wide" },
-  { src: "/imagens/produto-01.jpg", alt: "Produto em destaque KA Bijoux", label: "Em destaque", span: "normal" },
-  { src: "/imagens/foto-09.jpeg", alt: "Bijuterias KA Bijoux", label: "Bijuterias", span: "normal" },
-  { src: "/imagens/produto-02.jpg", alt: "Produto KA Bijoux", label: "Favoritos", span: "normal" },
-  { src: "/imagens/produto-03.jpg", alt: "Beleza e estilo KA Bijoux", label: "Beleza & Estilo", span: "wide" },
+  { src: "/imagens/produto-02.jpg", alt: "Cliente com sacolas KA Bijoux", label: "Clientes e estilo KA", span: "tall" },
+  { src: "/imagens/foto-05.jpeg", alt: "Porta-joias com acessórios KA Bijoux", label: "Por dentro da loja", span: "normal" },
+  { src: "/imagens/foto-06.jpeg", alt: "Conjunto de bijuterias douradas", label: "Curadoria", span: "normal" },
+  { src: "/imagens/foto-01.jpeg", alt: "Promoção de mix de acessórios KA Bijoux", label: "Promo R$6 cada peça", span: "wide" },
+  { src: "/imagens/foto-02.jpeg", alt: "Promoção de acessórios KA Bijoux", label: "Promo R$6 cada peça", span: "normal" },
+  { src: "/imagens/foto-04.jpeg", alt: "Promoção de acessórios KA Bijoux", label: "Promo R$6 cada peça", span: "normal" },
+  { src: "/imagens/foto-09.jpeg", alt: "Promoção de bijuterias KA Bijoux", label: "Promo R$6 cada peça", span: "normal" },
+  { src: "/imagens/produto-03.jpg", alt: "Óculos e pulseiras KA Bijoux", label: "Beleza & Estilo", span: "wide" },
 ];
 
 export default function GallerySection() {
@@ -27,10 +27,10 @@ export default function GallerySection() {
       <div className="max-w-7xl mx-auto px-6">
         <AnimatedSection className="text-center mb-12 md:mb-14">
           <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-3 block">
-            Galeria
+            Momentos
           </span>
           <h2 className="font-playfair text-4xl font-bold text-gray-900 mb-4">
-            Veja nossos produtos
+            Momentos KA Bijoux
           </h2>
           <div className="ka-divider mx-auto" />
         </AnimatedSection>
