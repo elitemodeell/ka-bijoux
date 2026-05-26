@@ -5,6 +5,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Fallback para build sem DATABASE_URL (Vercel build-time)
+  env: {
+    DATABASE_URL: process.env.DATABASE_URL ?? "postgresql://placeholder:placeholder@localhost:5432/placeholder",
+  },
   images: {
     remotePatterns: [
       { hostname: "placehold.co" },

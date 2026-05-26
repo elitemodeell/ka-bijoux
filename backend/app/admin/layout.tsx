@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import Sidebar from "@/components/admin/Sidebar";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
