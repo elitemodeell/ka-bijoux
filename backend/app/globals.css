@@ -145,11 +145,26 @@ body {
 /* ─── Product Card ────────────────────────────────────────────────────────── */
 
 .ka-product-card {
-  transition: transform 0.32s ease, box-shadow 0.32s ease;
+  --ka-card-reveal-y: 0px;
+  --ka-card-hover-y: 0px;
+  transform: translate3d(0, calc(var(--ka-card-reveal-y) + var(--ka-card-hover-y)), 0);
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.32s ease;
+  will-change: opacity, transform;
 }
 .ka-product-card:hover {
-  transform: translateY(-8px);
+  --ka-card-hover-y: -8px;
   box-shadow: 0 20px 48px rgba(255, 77, 109, 0.18);
+}
+.ka-product-reveal {
+  --ka-card-reveal-y: 22px;
+  opacity: 0;
+}
+.ka-product-reveal.ka-visible {
+  --ka-card-reveal-y: 0px;
+  opacity: 1;
 }
 .ka-product-card .ka-product-img {
   transition: transform 0.5s ease;

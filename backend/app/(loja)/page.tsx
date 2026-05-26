@@ -180,9 +180,7 @@ export default async function HomePage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
             {products.map((product: typeof DEMO_PRODUCTS[0], i: number) => (
-              <AnimatedSection key={product.id} delay={i * 70}>
-                <ProductCard product={product} />
-              </AnimatedSection>
+              <ProductCard key={product.id} product={product} revealDelay={i * 70} />
             ))}
           </div>
 
@@ -265,9 +263,11 @@ export default async function HomePage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
             {products.slice(4, 8).map((product: typeof DEMO_PRODUCTS[0], i: number) => (
-              <AnimatedSection key={`best-${product.id}`} delay={i * 70}>
-                <ProductCard product={{ ...product, badge: "Destaque" }} />
-              </AnimatedSection>
+              <ProductCard
+                key={`best-${product.id}`}
+                product={{ ...product, badge: "Destaque" }}
+                revealDelay={i * 70}
+              />
             ))}
           </div>
         </div>
@@ -288,9 +288,11 @@ export default async function HomePage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
             {products.slice(0, 4).map((product: typeof DEMO_PRODUCTS[0], i: number) => (
-              <AnimatedSection key={`new-${product.id}`} delay={i * 80}>
-                <ProductCard product={{ ...product, badge: "Novo" }} />
-              </AnimatedSection>
+              <ProductCard
+                key={`new-${product.id}`}
+                product={{ ...product, badge: "Novo" }}
+                revealDelay={i * 80}
+              />
             ))}
           </div>
         </div>
@@ -311,9 +313,11 @@ export default async function HomePage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
             {products.slice(2, 6).map((product: typeof DEMO_PRODUCTS[0], i: number) => (
-              <AnimatedSection key={`pick-${product.id}`} delay={i * 80}>
-                <ProductCard product={product} />
-              </AnimatedSection>
+              <ProductCard
+                key={`pick-${product.id}`}
+                product={product}
+                revealDelay={i * 80}
+              />
             ))}
           </div>
         </div>
@@ -341,9 +345,11 @@ export default async function HomePage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
             {[...products].reverse().slice(0, 4).map((product: typeof DEMO_PRODUCTS[0], i: number) => (
-              <AnimatedSection key={`detail-${product.id}`} delay={i * 90}>
-                <ProductCard product={{ ...product, badge: product.badge ?? "Novo" }} />
-              </AnimatedSection>
+              <ProductCard
+                key={`detail-${product.id}`}
+                product={{ ...product, badge: product.badge ?? "Novo" }}
+                revealDelay={i * 90}
+              />
             ))}
           </div>
         </div>

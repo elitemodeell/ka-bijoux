@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 interface Product {
@@ -15,9 +15,11 @@ interface Product {
 
 interface Props {
   product: Product;
+  revealDelay?: number;
 }
 
-export default function ProductCard({ product }: Props) {
+export default function ProductCard({ product, revealDelay = 0 }: Props) {
+  const cardRef = useRef<HTMLDivElement>(null);
   const [imgError, setImgError] = useState(false);
   const { id, name, price, promo, badge, image, slug } = product;
 
@@ -27,8 +29,36 @@ export default function ProductCard({ product }: Props) {
   const fmt = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+
+    if (!("IntersectionObserver" in window)) {
+      el.classList.add("ka-visible");
+      return;
+    }
+
+    el.style.transitionDelay = `${Math.min(revealDelay, 260)}ms`;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          el.classList.add("ka-visible");
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -24px 0px" }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [revealDelay]);
+
   return (
-    <div className="ka-product-card group bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden flex flex-col">
+    <div
+      ref={cardRef}
+      className="ka-product-card ka-product-reveal group bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden flex flex-col"
+    >
 
       {/* Image */}
       <Link href={href} className="ka-zoom relative block aspect-square bg-[#FFF5F7] overflow-hidden">
