@@ -32,10 +32,15 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 md:px-5 h-[66px] md:h-[70px] flex items-center justify-between">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-1.5 group shrink-0" aria-label="KA Bijoux">
-          <StarIcon className="w-5 h-5 text-pink-500 group-hover:rotate-12 transition-transform duration-300" />
-          <span className="text-xl md:text-[22px] font-black text-pink-500 leading-none tracking-tight">KA</span>
-          <span className="text-xl md:text-[22px] font-light text-gray-700 leading-none tracking-wide">Bijoux</span>
+        <Link href="/" className="flex items-center shrink-0" aria-label="KA Bijoux">
+          <picture>
+            <source srcSet="/images/brand/ka-bijoux-logo-header-640.webp" type="image/webp" />
+            <img
+              src="/images/brand/ka-bijoux-logo-header-320.png"
+              alt="KA Bijoux"
+              className="h-11 w-auto max-w-[150px] object-contain md:h-12 md:max-w-[170px]"
+            />
+          </picture>
         </Link>
 
         {/* Desktop Nav */}
@@ -108,14 +113,6 @@ export default function Navbar() {
         </div>
       </div>
     </header>
-  );
-}
-
-function StarIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2l2.09 6.26H21l-5.47 3.97 2.09 6.26L12 14.52l-5.62 3.97 2.09-6.26L3 8.26h6.91L12 2z" />
-    </svg>
   );
 }
 

@@ -195,6 +195,166 @@ async function main() {
   }
   console.log("✅ Produtos criados:", products.length);
 
+  const storySeeds = [
+    {
+      id: "story-novidades",
+      title: "Novidades",
+      coverImageUrl: "/images/stories/novidades-cover.jpg",
+      sortOrder: 1,
+      items: [
+        {
+          type: "IMAGE" as const,
+          mediaUrl: "/images/stories/novidades-cover.jpg",
+          duration: 5,
+          text: "Novidades fresquinhas chegaram na KA Bijoux",
+          buttonText: "Ver agora",
+          linkUrl: "/produtos?new=true",
+          sortOrder: 1,
+        },
+        {
+          type: "VIDEO" as const,
+          mediaUrl: "/videos/stories/novidade-1.mp4",
+          duration: 8,
+          text: "Veja os detalhes de perto",
+          buttonText: "Comprar agora",
+          linkUrl: "/produtos",
+          sortOrder: 2,
+        },
+      ],
+    },
+    {
+      id: "story-promocoes",
+      title: "Promoções",
+      coverImageUrl: "/images/stories/promocoes-cover.jpg",
+      sortOrder: 2,
+      items: [
+        {
+          type: "IMAGE" as const,
+          mediaUrl: "/images/stories/promocoes-cover.jpg",
+          duration: 5,
+          text: "Achadinhos especiais por tempo limitado",
+          buttonText: "Aproveitar",
+          linkUrl: "/promocoes",
+          sortOrder: 1,
+        },
+      ],
+    },
+    {
+      id: "story-lancamentos",
+      title: "Lançamentos",
+      coverImageUrl: "/images/stories/lancamentos-cover.jpg",
+      sortOrder: 3,
+      items: [
+        {
+          type: "IMAGE" as const,
+          mediaUrl: "/images/stories/lancamentos-cover.jpg",
+          duration: 6,
+          text: "Peças novas para iluminar o look",
+          buttonText: "Conhecer",
+          linkUrl: "/produtos",
+          sortOrder: 1,
+        },
+      ],
+    },
+    {
+      id: "story-brincos",
+      title: "Brincos",
+      coverImageUrl: "/images/stories/brincos-cover.jpg",
+      sortOrder: 4,
+      items: [
+        {
+          type: "IMAGE" as const,
+          mediaUrl: "/images/stories/brincos-cover.jpg",
+          duration: 5,
+          text: "Brincos delicados para todos os dias",
+          buttonText: "Ver brincos",
+          linkUrl: "/categoria/brincos",
+          sortOrder: 1,
+        },
+      ],
+    },
+    {
+      id: "story-pulseiras",
+      title: "Pulseiras",
+      coverImageUrl: "/images/stories/pulseiras-cover.jpg",
+      sortOrder: 5,
+      items: [
+        {
+          type: "IMAGE" as const,
+          mediaUrl: "/images/stories/pulseiras-cover.jpg",
+          duration: 5,
+          text: "Combine pulseiras e crie seu mix favorito",
+          buttonText: "Ver pulseiras",
+          linkUrl: "/categoria/pulseiras",
+          sortOrder: 1,
+        },
+      ],
+    },
+    {
+      id: "story-clientes",
+      title: "Clientes",
+      coverImageUrl: "/images/stories/clientes-cover.jpg",
+      sortOrder: 6,
+      items: [
+        {
+          type: "IMAGE" as const,
+          mediaUrl: "/images/stories/clientes-cover.jpg",
+          duration: 5,
+          text: "Looks reais de clientes KA Bijoux",
+          buttonText: "Ver produtos",
+          linkUrl: "/produtos",
+          sortOrder: 1,
+        },
+      ],
+    },
+    {
+      id: "story-bastidores",
+      title: "Bastidores",
+      coverImageUrl: "/images/stories/bastidores-cover.jpg",
+      sortOrder: 7,
+      items: [
+        {
+          type: "VIDEO" as const,
+          mediaUrl: "/videos/stories/novidade-1.mp4",
+          duration: 8,
+          text: "Um pouquinho dos bastidores da loja",
+          buttonText: "Conhecer loja",
+          linkUrl: "/produtos",
+          sortOrder: 1,
+        },
+      ],
+    },
+  ];
+
+  for (const story of storySeeds) {
+    await prisma.storyGroup.upsert({
+      where: { id: story.id },
+      update: {
+        title: story.title,
+        coverImageUrl: story.coverImageUrl,
+        isActive: true,
+        sortOrder: story.sortOrder,
+      },
+      create: {
+        id: story.id,
+        title: story.title,
+        coverImageUrl: story.coverImageUrl,
+        isActive: true,
+        sortOrder: story.sortOrder,
+      },
+    });
+
+    await prisma.storyItem.deleteMany({ where: { storyGroupId: story.id } });
+    await prisma.storyItem.createMany({
+      data: story.items.map((item) => ({
+        storyGroupId: story.id,
+        ...item,
+        isActive: true,
+      })),
+    });
+  }
+  console.log("✅ Stories criados:", storySeeds.length);
+
   // Cliente de teste
   const customerPassword = await bcrypt.hash("cliente123", 12);
   await prisma.customer.upsert({

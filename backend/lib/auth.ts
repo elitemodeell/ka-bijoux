@@ -56,8 +56,11 @@ export async function getAdminFromRequest(
 ): Promise<AdminPayload | null> {
   try {
     const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) return null;
-    const token = authHeader.substring(7);
+    const cookieToken = req.cookies.get("ka-admin-token")?.value;
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.substring(7)
+      : cookieToken;
+    if (!token) return null;
     return verifyAdminToken(token);
   } catch {
     return null;

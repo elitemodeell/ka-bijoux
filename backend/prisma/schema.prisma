@@ -401,3 +401,45 @@ model StoreSettings {
 
   @@map("store_settings")
 }
+
+// Stories da home
+
+model StoryGroup {
+  id            String      @id @default(cuid())
+  title         String
+  coverImageUrl String?
+  isActive      Boolean     @default(true)
+  sortOrder     Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  items StoryItem[]
+
+  @@index([isActive, sortOrder])
+  @@map("story_groups")
+}
+
+model StoryItem {
+  id           String        @id @default(cuid())
+  type         StoryItemType
+  mediaUrl     String
+  duration     Int           @default(5)
+  text         String?
+  buttonText   String?
+  linkUrl      String?
+  isActive     Boolean       @default(true)
+  sortOrder    Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  storyGroup   StoryGroup @relation(fields: [storyGroupId], references: [id], onDelete: Cascade)
+  storyGroupId String
+
+  @@index([storyGroupId, isActive, sortOrder])
+  @@map("story_items")
+}
+
+enum StoryItemType {
+  IMAGE
+  VIDEO
+}
