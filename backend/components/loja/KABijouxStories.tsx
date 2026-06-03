@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DEFAULT_STORY_COVER, type StoryGroup } from "@/types/stories";
+import { DEFAULT_STORY_COVER, type StoryGroup, type StoryItem } from "@/types/stories";
 
 const seenStorageKey = "ka-bijoux-seen-stories";
 const storyLogo = "/images/brand/ka-bijoux-logo-story-icon.png";
@@ -116,7 +116,7 @@ export default function KABijouxStories() {
   const [groups, setGroups] = useState<StoryGroup[]>(fallbackGroups);
   const [loading, setLoading] = useState(true);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
-  const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null);
+  const [activeStoryGroup, setActiveStoryGroup] = useState<StoryGroup | null>(null);
   const [activeItemIndex, setActiveItemIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [mediaError, setMediaError] = useState(false);
@@ -127,7 +127,11 @@ export default function KABijouxStories() {
     () => groups.filter((group) => group.items.length > 0),
     [groups]
   );
-  const activeGroup = activeGroupIndex !== null ? visibleGroups[activeGroupIndex] : null;
+  const allStoriesItems = useMemo<StoryItem[]>(
+    () => visibleGroups.flatMap((group) => group.items),
+    [visibleGroups]
+  );
+  const activeGroup = activeStoryGroup;
   const activeItem = activeGroup?.items[activeItemIndex] ?? null;
   const allStoriesSeen =
     visibleGroups.length > 0 && visibleGroups.every((group) => seenIds.has(group.id));
@@ -181,15 +185,30 @@ export default function KABijouxStories() {
       const group = visibleGroups[index];
       if (!group) return;
 
-      setActiveGroupIndex(index);
+      setActiveStoryGroup(group);
       setActiveItemIndex(0);
       markSeen(group.id);
     },
     [markSeen, visibleGroups]
   );
 
+  const openAllStories = useCallback(() => {
+    if (allStoriesItems.length === 0) return;
+
+    setActiveStoryGroup({
+      id: "all-demo-stories",
+      title: "KA Bijoux",
+      cover: storyLogo,
+      isActive: true,
+      sortOrder: 0,
+      items: allStoriesItems,
+    });
+    setActiveItemIndex(0);
+    visibleGroups.forEach((group) => markSeen(group.id));
+  }, [allStoriesItems, markSeen, visibleGroups]);
+
   const closeViewer = useCallback(() => {
-    setActiveGroupIndex(null);
+    setActiveStoryGroup(null);
     setActiveItemIndex(0);
     setProgress(0);
     setMediaError(false);
@@ -201,18 +220,10 @@ export default function KABijouxStories() {
     setActiveItemIndex((itemIndex) => {
       if (!activeGroup) return itemIndex;
       if (itemIndex < activeGroup.items.length - 1) return itemIndex + 1;
-
-      setActiveGroupIndex((groupIndex) => {
-        if (groupIndex === null) return null;
-        const nextGroupIndex = groupIndex + 1;
-        if (nextGroupIndex >= visibleGroups.length) return null;
-        markSeen(visibleGroups[nextGroupIndex].id);
-        return nextGroupIndex;
-      });
-
+      setActiveStoryGroup(null);
       return 0;
     });
-  }, [activeGroup, markSeen, visibleGroups]);
+  }, [activeGroup]);
 
   const goPrevious = useCallback(() => {
     setProgress(0);
@@ -220,17 +231,9 @@ export default function KABijouxStories() {
     setActiveItemIndex((itemIndex) => {
       if (itemIndex > 0) return itemIndex - 1;
 
-      setActiveGroupIndex((groupIndex) => {
-        if (groupIndex === null || groupIndex === 0) return groupIndex;
-        const previousGroupIndex = groupIndex - 1;
-        const previousGroup = visibleGroups[previousGroupIndex];
-        setActiveItemIndex(Math.max(previousGroup.items.length - 1, 0));
-        return previousGroupIndex;
-      });
-
       return itemIndex;
     });
-  }, [visibleGroups]);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -243,7 +246,7 @@ export default function KABijouxStories() {
     setProgress(0);
     setMediaError(false);
     if (errorSkipTimeoutRef.current) window.clearTimeout(errorSkipTimeoutRef.current);
-  }, [activeGroupIndex, activeItemIndex]);
+  }, [activeStoryGroup, activeItemIndex]);
 
   useEffect(() => {
     if (!activeItem || (activeItem.type === "video" && !mediaError)) return;
@@ -297,8 +300,8 @@ export default function KABijouxStories() {
       <div className="mx-auto max-w-7xl px-4 pb-6 pt-4 text-center sm:pb-8 sm:pt-6">
         <button
           type="button"
-          onClick={() => openGroup(0)}
-          disabled={loading || visibleGroups.length === 0}
+          onClick={openAllStories}
+          disabled={loading || allStoriesItems.length === 0}
           className="group mx-auto block text-center outline-none disabled:cursor-default"
           aria-label="Abrir Stories KA Bijoux"
         >
