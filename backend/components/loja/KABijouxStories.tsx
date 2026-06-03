@@ -4,7 +4,117 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_STORY_COVER, type StoryGroup } from "@/types/stories";
 
 const seenStorageKey = "ka-bijoux-seen-stories";
-const fallbackGroups: StoryGroup[] = [];
+
+const fallbackGroups: StoryGroup[] = [
+  {
+    id: "demo-novidades",
+    title: "Novidades",
+    cover: "/images/stories/novidades-cover.jpg",
+    isActive: true,
+    sortOrder: 1,
+    items: [
+      {
+        id: "demo-novidades-1",
+        type: "video",
+        src: "/videos/stories/novidade-1.mp4",
+        mediaUrl: "/videos/stories/novidade-1.mp4",
+        text: "Novidades escolhidas com carinho para voce.",
+        isActive: true,
+        sortOrder: 1,
+      },
+    ],
+  },
+  {
+    id: "demo-promocoes",
+    title: "Promoções",
+    cover: "/images/stories/promocoes-cover.jpg",
+    isActive: true,
+    sortOrder: 2,
+    items: [
+      {
+        id: "demo-promocoes-1",
+        type: "video",
+        src: "/videos/stories/promocao-1.mp4",
+        mediaUrl: "/videos/stories/promocao-1.mp4",
+        text: "Achadinhos especiais da KA Bijoux.",
+        isActive: true,
+        sortOrder: 1,
+      },
+      {
+        id: "demo-promocoes-2",
+        type: "video",
+        src: "/videos/stories/promocao-2.mp4",
+        mediaUrl: "/videos/stories/promocao-2.mp4",
+        text: "Promoções para renovar o visual.",
+        isActive: true,
+        sortOrder: 2,
+      },
+    ],
+  },
+  {
+    id: "demo-lancamentos",
+    title: "Lançamentos",
+    cover: "/images/stories/lancamentos-cover.jpg",
+    isActive: true,
+    sortOrder: 3,
+    items: [
+      {
+        id: "demo-lancamentos-1",
+        type: "video",
+        src: "/videos/stories/lancamento-1.mp4",
+        mediaUrl: "/videos/stories/lancamento-1.mp4",
+        text: "Peças novas chegando na vitrine.",
+        isActive: true,
+        sortOrder: 1,
+      },
+    ],
+  },
+  {
+    id: "demo-clientes",
+    title: "Clientes",
+    cover: "/images/stories/clientes-cover.jpg",
+    isActive: true,
+    sortOrder: 4,
+    items: [
+      {
+        id: "demo-clientes-1",
+        type: "video",
+        src: "/videos/stories/cliente-1.mp4",
+        mediaUrl: "/videos/stories/cliente-1.mp4",
+        text: "Momentos de quem ama KA Bijoux.",
+        isActive: true,
+        sortOrder: 1,
+      },
+    ],
+  },
+];
+
+function normalizeGroups(data: unknown): StoryGroup[] {
+  if (!Array.isArray(data)) return [];
+
+  return data
+    .map((group) => {
+      if (!group || typeof group !== "object") return null;
+
+      const storyGroup = group as StoryGroup;
+      const items = Array.isArray(storyGroup.items)
+        ? storyGroup.items
+            .map((item) => ({
+              ...item,
+              src: item.src || item.mediaUrl,
+              mediaUrl: item.mediaUrl || item.src,
+            }))
+            .filter((item) => Boolean(item.src || item.mediaUrl))
+        : [];
+
+      return {
+        ...storyGroup,
+        cover: storyGroup.cover || storyGroup.coverImageUrl || DEFAULT_STORY_COVER,
+        items,
+      };
+    })
+    .filter((group): group is StoryGroup => Boolean(group && group.items.length > 0));
+}
 
 export default function KABijouxStories() {
   const [groups, setGroups] = useState<StoryGroup[]>(fallbackGroups);
@@ -15,8 +125,13 @@ export default function KABijouxStories() {
   const [progress, setProgress] = useState(0);
   const [mediaError, setMediaError] = useState(false);
   const timerRef = useRef<number | null>(null);
+  const errorSkipTimeoutRef = useRef<number | null>(null);
 
-  const activeGroup = activeGroupIndex !== null ? groups[activeGroupIndex] : null;
+  const visibleGroups = useMemo(
+    () => groups.filter((group) => group.items.length > 0),
+    [groups]
+  );
+  const activeGroup = activeGroupIndex !== null ? visibleGroups[activeGroupIndex] : null;
   const activeItem = activeGroup?.items[activeItemIndex] ?? null;
 
   useEffect(() => {
@@ -38,10 +153,11 @@ export default function KABijouxStories() {
         const res = await fetch("/api/stories", { cache: "no-store" });
         const json = await res.json();
         if (alive && res.ok) {
-          setGroups(Array.isArray(json.data) ? json.data : []);
+          const apiGroups = normalizeGroups(json.data);
+          setGroups(apiGroups.length > 0 ? apiGroups : fallbackGroups);
         }
       } catch {
-        if (alive) setGroups([]);
+        if (alive) setGroups(fallbackGroups);
       } finally {
         if (alive) setLoading(false);
       }
@@ -79,16 +195,14 @@ export default function KABijouxStories() {
       setActiveGroupIndex((groupIndex) => {
         if (groupIndex === null) return null;
         const nextGroupIndex = groupIndex + 1;
-        if (nextGroupIndex >= groups.length) {
-          return null;
-        }
-        markSeen(groups[nextGroupIndex].id);
+        if (nextGroupIndex >= visibleGroups.length) return null;
+        markSeen(visibleGroups[nextGroupIndex].id);
         return nextGroupIndex;
       });
 
       return 0;
     });
-  }, [activeGroup, groups, markSeen]);
+  }, [activeGroup, markSeen, visibleGroups]);
 
   const goPrevious = useCallback(() => {
     setProgress(0);
@@ -99,24 +213,26 @@ export default function KABijouxStories() {
       setActiveGroupIndex((groupIndex) => {
         if (groupIndex === null || groupIndex === 0) return groupIndex;
         const previousGroupIndex = groupIndex - 1;
-        const previousGroup = groups[previousGroupIndex];
+        const previousGroup = visibleGroups[previousGroupIndex];
         setActiveItemIndex(Math.max(previousGroup.items.length - 1, 0));
         return previousGroupIndex;
       });
 
       return itemIndex;
     });
-  }, [groups]);
+  }, [visibleGroups]);
 
   useEffect(() => {
     return () => {
       if (timerRef.current) window.cancelAnimationFrame(timerRef.current);
+      if (errorSkipTimeoutRef.current) window.clearTimeout(errorSkipTimeoutRef.current);
     };
   }, []);
 
   useEffect(() => {
     setProgress(0);
     setMediaError(false);
+    if (errorSkipTimeoutRef.current) window.clearTimeout(errorSkipTimeoutRef.current);
   }, [activeGroupIndex, activeItemIndex]);
 
   useEffect(() => {
@@ -142,6 +258,18 @@ export default function KABijouxStories() {
   }, [activeItem, mediaError, goNext]);
 
   useEffect(() => {
+    if (!mediaError || !activeItem) return;
+
+    errorSkipTimeoutRef.current = window.setTimeout(() => {
+      goNext();
+    }, 1100);
+
+    return () => {
+      if (errorSkipTimeoutRef.current) window.clearTimeout(errorSkipTimeoutRef.current);
+    };
+  }, [activeItem, goNext, mediaError]);
+
+  useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") closeViewer();
       if (event.key === "ArrowRight") goNext();
@@ -152,20 +280,15 @@ export default function KABijouxStories() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activeGroup, closeViewer, goNext, goPrevious]);
 
-  const visibleGroups = useMemo(
-    () => groups.filter((group) => group.items.length > 0),
-    [groups]
-  );
-
   if (!loading && visibleGroups.length === 0) return null;
 
   return (
-    <section className="bg-white border-y border-pink-50">
-      <div className="mx-auto max-w-7xl px-0 py-4 sm:px-6">
+    <section className="bg-white">
+      <div className="mx-auto max-w-7xl px-0 pb-5 pt-2 sm:px-6 sm:pb-7 sm:pt-3">
         <div className="overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex min-w-max items-start gap-4 sm:justify-center sm:gap-5">
+          <div className="flex min-w-max items-start gap-4 sm:justify-center sm:gap-6">
             {loading
-              ? Array.from({ length: 7 }).map((_, index) => (
+              ? Array.from({ length: 4 }).map((_, index) => (
                   <div key={index} className="w-[74px] shrink-0 animate-pulse">
                     <div className="mx-auto h-16 w-16 rounded-full bg-pink-100" />
                     <div className="mx-auto mt-2 h-2.5 w-12 rounded-full bg-pink-50" />
@@ -182,14 +305,14 @@ export default function KABijouxStories() {
                         setActiveItemIndex(0);
                         markSeen(group.id);
                       }}
-                      className="w-[74px] shrink-0 text-center outline-none group"
+                      className="group w-[74px] shrink-0 text-center outline-none"
                       aria-label={`Abrir story ${group.title}`}
                     >
                       <span
                         className={`mx-auto flex h-[68px] w-[68px] items-center justify-center rounded-full p-[3px] transition-transform duration-200 group-hover:scale-[1.04] ${
                           seen
                             ? "bg-gray-200"
-                            : "bg-gradient-to-tr from-pink-500 via-pink-300 to-purple-600 shadow-[0_8px_24px_rgba(255,77,109,0.20)]"
+                            : "bg-gradient-to-tr from-pink-500 via-fuchsia-400 to-purple-600 shadow-[0_8px_24px_rgba(255,77,109,0.20)]"
                         }`}
                       >
                         <span className="block h-full w-full overflow-hidden rounded-full border-2 border-white bg-pink-50">
@@ -246,7 +369,7 @@ export default function KABijouxStories() {
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-2xl leading-none text-white backdrop-blur transition-colors hover:bg-white/20"
                 aria-label="Fechar story"
               >
-                ×
+                x
               </button>
             </div>
           </div>
@@ -261,7 +384,7 @@ export default function KABijouxStories() {
             type="button"
             onClick={goNext}
             className="absolute right-0 top-0 z-10 h-full w-1/2"
-            aria-label="Próximo story"
+            aria-label="Proximo story"
           />
 
           <div className="relative z-0 flex h-full w-full items-center justify-center">
