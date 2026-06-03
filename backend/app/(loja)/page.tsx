@@ -139,16 +139,6 @@ export default async function HomePage() {
       <AnnouncementBar />
 
       <section className="bg-white pt-24 md:pt-24">
-        <div className="mx-auto max-w-7xl px-6 pb-3 text-center">
-          <picture>
-            <source srcSet="/images/brand/ka-bijoux-logo-header-640.webp" type="image/webp" />
-            <img
-              src="/images/brand/ka-bijoux-logo-header-640.png"
-              alt="KA Bijoux"
-              className="mx-auto h-auto max-h-[150px] w-[min(78vw,360px)] object-contain md:max-h-[172px] md:w-[380px]"
-            />
-          </picture>
-        </div>
         <KABijouxStories />
       </section>
 

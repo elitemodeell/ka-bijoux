@@ -4,90 +4,86 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_STORY_COVER, type StoryGroup } from "@/types/stories";
 
 const seenStorageKey = "ka-bijoux-seen-stories";
+const storyLogo = "/images/brand/ka-bijoux-logo-story-icon.png";
+const storyHeaderLogo = "/images/brand/ka-bijoux-logo-header-640.png";
 
 const fallbackGroups: StoryGroup[] = [
   {
     id: "demo-novidades",
     title: "Novidades",
-    cover: "/images/stories/novidades-cover.jpg",
+    cover: storyLogo,
     isActive: true,
     sortOrder: 1,
     items: [
-      {
-        id: "demo-novidades-1",
-        type: "video",
-        src: "/videos/stories/novidade-1.mp4",
-        mediaUrl: "/videos/stories/novidade-1.mp4",
-        text: "Novidades escolhidas com carinho para voce.",
-        isActive: true,
-        sortOrder: 1,
-      },
+      createStoryImage("demo-novidades-1", "/images/stories/demo-ka-bijoux/story-whatsapp-image-01.jpeg", 1),
+      createStoryVideo("demo-novidades-2", "/videos/stories/demo-ka-bijoux/story-whatsapp-video-01.mp4", 2),
     ],
   },
   {
     id: "demo-promocoes",
     title: "Promoções",
-    cover: "/images/stories/promocoes-cover.jpg",
+    cover: storyLogo,
     isActive: true,
     sortOrder: 2,
     items: [
-      {
-        id: "demo-promocoes-1",
-        type: "video",
-        src: "/videos/stories/promocao-1.mp4",
-        mediaUrl: "/videos/stories/promocao-1.mp4",
-        text: "Achadinhos especiais da KA Bijoux.",
-        isActive: true,
-        sortOrder: 1,
-      },
-      {
-        id: "demo-promocoes-2",
-        type: "video",
-        src: "/videos/stories/promocao-2.mp4",
-        mediaUrl: "/videos/stories/promocao-2.mp4",
-        text: "Promoções para renovar o visual.",
-        isActive: true,
-        sortOrder: 2,
-      },
+      createStoryImage("demo-promocoes-1", "/images/stories/demo-ka-bijoux/story-whatsapp-image-02.jpeg", 1),
+      createStoryVideo("demo-promocoes-2", "/videos/stories/demo-ka-bijoux/story-whatsapp-video-02.mp4", 2),
     ],
   },
   {
     id: "demo-lancamentos",
     title: "Lançamentos",
-    cover: "/images/stories/lancamentos-cover.jpg",
+    cover: storyLogo,
     isActive: true,
     sortOrder: 3,
     items: [
-      {
-        id: "demo-lancamentos-1",
-        type: "video",
-        src: "/videos/stories/lancamento-1.mp4",
-        mediaUrl: "/videos/stories/lancamento-1.mp4",
-        text: "Peças novas chegando na vitrine.",
-        isActive: true,
-        sortOrder: 1,
-      },
+      createStoryVideo("demo-lancamentos-1", "/videos/stories/demo-ka-bijoux/story-whatsapp-video-03.mp4", 1),
     ],
   },
   {
     id: "demo-clientes",
     title: "Clientes",
-    cover: "/images/stories/clientes-cover.jpg",
+    cover: storyLogo,
     isActive: true,
     sortOrder: 4,
     items: [
-      {
-        id: "demo-clientes-1",
-        type: "video",
-        src: "/videos/stories/cliente-1.mp4",
-        mediaUrl: "/videos/stories/cliente-1.mp4",
-        text: "Momentos de quem ama KA Bijoux.",
-        isActive: true,
-        sortOrder: 1,
-      },
+      createStoryVideo("demo-clientes-1", "/videos/stories/demo-ka-bijoux/story-whatsapp-video-04.mp4", 1),
+    ],
+  },
+  {
+    id: "demo-ofertas",
+    title: "Ofertas",
+    cover: storyLogo,
+    isActive: true,
+    sortOrder: 5,
+    items: [
+      createStoryVideo("demo-ofertas-1", "/videos/stories/demo-ka-bijoux/story-whatsapp-video-05.mp4", 1),
     ],
   },
 ];
+
+function createStoryImage(id: string, src: string, sortOrder: number) {
+  return {
+    id,
+    type: "image" as const,
+    src,
+    mediaUrl: src,
+    duration: 5,
+    isActive: true,
+    sortOrder,
+  };
+}
+
+function createStoryVideo(id: string, src: string, sortOrder: number) {
+  return {
+    id,
+    type: "video" as const,
+    src,
+    mediaUrl: src,
+    isActive: true,
+    sortOrder,
+  };
+}
 
 function normalizeGroups(data: unknown): StoryGroup[] {
   if (!Array.isArray(data)) return [];
@@ -109,7 +105,7 @@ function normalizeGroups(data: unknown): StoryGroup[] {
 
       return {
         ...storyGroup,
-        cover: storyGroup.cover || storyGroup.coverImageUrl || DEFAULT_STORY_COVER,
+        cover: storyGroup.cover || storyGroup.coverImageUrl || storyLogo,
         items,
       };
     })
@@ -133,6 +129,8 @@ export default function KABijouxStories() {
   );
   const activeGroup = activeGroupIndex !== null ? visibleGroups[activeGroupIndex] : null;
   const activeItem = activeGroup?.items[activeItemIndex] ?? null;
+  const allStoriesSeen =
+    visibleGroups.length > 0 && visibleGroups.every((group) => seenIds.has(group.id));
 
   useEffect(() => {
     const stored = window.localStorage.getItem(seenStorageKey);
@@ -177,6 +175,18 @@ export default function KABijouxStories() {
       return next;
     });
   }, []);
+
+  const openGroup = useCallback(
+    (index: number) => {
+      const group = visibleGroups[index];
+      if (!group) return;
+
+      setActiveGroupIndex(index);
+      setActiveItemIndex(0);
+      markSeen(group.id);
+    },
+    [markSeen, visibleGroups]
+  );
 
   const closeViewer = useCallback(() => {
     setActiveGroupIndex(null);
@@ -284,11 +294,44 @@ export default function KABijouxStories() {
 
   return (
     <section className="bg-white">
-      <div className="mx-auto max-w-7xl px-0 pb-5 pt-2 sm:px-6 sm:pb-7 sm:pt-3">
-        <div className="overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex min-w-max items-start gap-4 sm:justify-center sm:gap-6">
+      <div className="mx-auto max-w-7xl px-4 pb-6 pt-4 text-center sm:pb-8 sm:pt-6">
+        <button
+          type="button"
+          onClick={() => openGroup(0)}
+          disabled={loading || visibleGroups.length === 0}
+          className="group mx-auto block text-center outline-none disabled:cursor-default"
+          aria-label="Abrir Stories KA Bijoux"
+        >
+          <span
+            className={`mx-auto flex h-[178px] w-[178px] items-center justify-center rounded-full p-1.5 transition-transform duration-200 group-hover:scale-[1.02] sm:h-[210px] sm:w-[210px] ${
+              allStoriesSeen
+                ? "bg-gray-200"
+                : "bg-gradient-to-tr from-pink-500 via-fuchsia-500 to-orange-400 shadow-[0_18px_50px_rgba(236,72,153,0.22)]"
+            }`}
+          >
+            <span className="flex h-full w-full items-center justify-center rounded-full border-[6px] border-white bg-white p-5 shadow-inner">
+              <picture>
+                <source srcSet="/images/brand/ka-bijoux-logo-header-640.webp" type="image/webp" />
+                <img
+                  src={storyHeaderLogo}
+                  alt="KA Bijoux"
+                  className="h-auto w-full max-w-[150px] object-contain sm:max-w-[178px]"
+                />
+              </picture>
+            </span>
+          </span>
+          <span className="mt-3 block text-sm font-semibold text-pink-500">
+            Ver Stories
+          </span>
+          <span className="mt-1 block text-xs font-medium text-gray-500">
+            Toque para ver nossas novidades
+          </span>
+        </button>
+
+        <div className="mt-5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex min-w-max items-start gap-4 px-1 sm:justify-center sm:gap-6">
             {loading
-              ? Array.from({ length: 4 }).map((_, index) => (
+              ? Array.from({ length: 5 }).map((_, index) => (
                   <div key={index} className="w-[74px] shrink-0 animate-pulse">
                     <div className="mx-auto h-16 w-16 rounded-full bg-pink-100" />
                     <div className="mx-auto mt-2 h-2.5 w-12 rounded-full bg-pink-50" />
@@ -300,11 +343,7 @@ export default function KABijouxStories() {
                     <button
                       key={group.id}
                       type="button"
-                      onClick={() => {
-                        setActiveGroupIndex(index);
-                        setActiveItemIndex(0);
-                        markSeen(group.id);
-                      }}
+                      onClick={() => openGroup(index)}
                       className="group w-[74px] shrink-0 text-center outline-none"
                       aria-label={`Abrir story ${group.title}`}
                     >
@@ -312,11 +351,11 @@ export default function KABijouxStories() {
                         className={`mx-auto flex h-[68px] w-[68px] items-center justify-center rounded-full p-[3px] transition-transform duration-200 group-hover:scale-[1.04] ${
                           seen
                             ? "bg-gray-200"
-                            : "bg-gradient-to-tr from-pink-500 via-fuchsia-400 to-purple-600 shadow-[0_8px_24px_rgba(255,77,109,0.20)]"
+                            : "bg-gradient-to-tr from-pink-500 via-fuchsia-500 to-orange-400 shadow-[0_8px_24px_rgba(255,77,109,0.20)]"
                         }`}
                       >
-                        <span className="block h-full w-full overflow-hidden rounded-full border-2 border-white bg-pink-50">
-                          <StoryCover src={group.cover || DEFAULT_STORY_COVER} title={group.title} />
+                        <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white p-2">
+                          <StoryCover src={storyLogo} title={group.title} />
                         </span>
                       </span>
                       <span
@@ -357,9 +396,9 @@ export default function KABijouxStories() {
             <div className="mt-3 flex items-center justify-between">
               <div className="flex min-w-0 items-center gap-2">
                 <img
-                  src={activeGroup.cover || DEFAULT_STORY_COVER}
+                  src={storyLogo}
                   alt=""
-                  className="h-8 w-8 rounded-full border border-white/40 object-cover"
+                  className="h-8 w-8 rounded-full border border-white/40 bg-white object-contain p-1"
                 />
                 <span className="truncate text-sm font-semibold">{activeGroup.title}</span>
               </div>
@@ -390,7 +429,7 @@ export default function KABijouxStories() {
           <div className="relative z-0 flex h-full w-full items-center justify-center">
             <div className="relative h-full w-full overflow-hidden bg-[#10070c] sm:h-[86vh] sm:max-h-[780px] sm:w-[430px] sm:rounded-[28px] sm:border sm:border-white/10">
               {mediaError || !activeItem.src ? (
-                <StoryFallback title={activeGroup.title} text={activeItem.text} />
+                <StoryFallback title={activeGroup.title} />
               ) : activeItem.type === "video" ? (
                 <video
                   key={activeItem.id}
@@ -410,32 +449,12 @@ export default function KABijouxStories() {
                 <img
                   key={activeItem.id}
                   src={activeItem.src}
-                  alt={activeItem.text || activeGroup.title}
+                  alt={activeGroup.title}
                   className="h-full w-full object-cover"
                   loading="eager"
                   onError={() => setMediaError(true)}
                 />
               )}
-
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent px-6 pb-8 pt-28">
-                {(activeItem.text || activeItem.linkUrl) && (
-                  <div className="pointer-events-auto mx-auto max-w-sm text-center">
-                    {activeItem.text && (
-                      <p className="mb-4 text-xl font-semibold leading-snug text-white drop-shadow-sm">
-                        {activeItem.text}
-                      </p>
-                    )}
-                    {activeItem.linkUrl && (
-                      <a
-                        href={activeItem.linkUrl}
-                        className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-bold text-pink-600 shadow-[0_14px_36px_rgba(0,0,0,0.28)] transition-transform hover:scale-[1.03]"
-                      >
-                        {activeItem.buttonText || "Ver agora"}
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         </div>
@@ -452,23 +471,23 @@ function StoryCover({ src, title }: { src: string; title: string }) {
       src={failed ? DEFAULT_STORY_COVER : src}
       alt={title}
       loading="lazy"
-      className="h-full w-full object-cover"
+      className="h-full w-full object-contain"
       onError={() => setFailed(true)}
     />
   );
 }
 
-function StoryFallback({ title, text }: { title: string; text?: string | null }) {
+function StoryFallback({ title }: { title: string }) {
   return (
     <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-[#1d0710] via-[#351029] to-[#120710] px-8 text-center">
       <img
-        src={DEFAULT_STORY_COVER}
+        src={storyLogo}
         alt=""
-        className="mb-6 h-28 w-28 rounded-full border border-white/15 object-contain p-3"
+        className="mb-6 h-28 w-28 rounded-full border border-white/15 bg-white object-contain p-3"
       />
       <p className="text-2xl font-bold text-white">{title}</p>
       <p className="mt-3 text-sm leading-relaxed text-white/70">
-        {text || "Conteúdo em preparação. Volte em instantes para ver a novidade."}
+        Conteúdo indisponível. Pulando para o próximo story.
       </p>
     </div>
   );
