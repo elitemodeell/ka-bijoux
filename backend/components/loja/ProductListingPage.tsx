@@ -103,8 +103,8 @@ export default async function ProductListingPage({
                   <span>Trocar categoria</span>
                   <span className="transition-transform duration-200 group-open:rotate-180">v</span>
                 </summary>
-                <div className="ka-category-drawer mt-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  <div className="flex w-max gap-2">
+                <div className="ka-category-drawer mt-3">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2">
                     <CategoryChip href={buildHref("/produtos", searchParams, { price: undefined })} active={!categorySlug}>
                       Todos
                     </CategoryChip>
@@ -146,7 +146,7 @@ export default async function ProductListingPage({
               {category?.subcategories?.length ? (
                 <div className="mt-3 border-t border-gray-100 pt-3">
                   <p className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">Refinar em {categoryLabel}</p>
-                  <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
                     <CategoryChip href={buildHref(`/categoria/${category.slug}`, searchParams, { price: undefined })} active={!subcategorySlug}>
                       Todas
                     </CategoryChip>
@@ -234,7 +234,7 @@ function CategoryChip({ href, active, children }: { href: string; active: boolea
   return (
     <Link
       href={href}
-      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors sm:px-4 sm:py-2 ${
+      className={`flex min-h-9 min-w-0 items-center justify-center rounded-full border px-3 py-1.5 text-center text-xs font-bold leading-tight transition-colors sm:px-4 sm:py-2 ${
         active
           ? "border-pink-500 bg-pink-500 text-white"
           : "border-pink-100 bg-white text-gray-700 hover:bg-pink-50 hover:text-pink-500"
