@@ -43,7 +43,6 @@ const heroSlides = [
     title: video.title,
     href: "/produtos?campanha=dia-dos-namorados",
     video: video.src,
-    poster: video.poster,
     imagePosition: "center",
     variant: "video" as const,
   })),
@@ -594,6 +593,7 @@ export default function KABijouxStories() {
 
 function MainHeroCarousel() {
   const [activeSlide, setActiveSlide] = useState(0);
+  const [readyHeroVideos, setReadyHeroVideos] = useState<Set<string>>(() => new Set());
   const touchStartX = useRef<number | null>(null);
   const touchDeltaX = useRef(0);
 
@@ -607,6 +607,16 @@ function MainHeroCarousel() {
 
   const goPreviousSlide = useCallback(() => {
     setActiveSlide((current) => (current - 1 + heroSlides.length) % heroSlides.length);
+  }, []);
+
+  const markHeroVideoReady = useCallback((src: string) => {
+    setReadyHeroVideos((current) => {
+      if (current.has(src)) return current;
+
+      const next = new Set(current);
+      next.add(src);
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -676,36 +686,33 @@ function MainHeroCarousel() {
               </>
             ) : slide.variant === "video" ? (
               <>
-                <img
-                  src={slide.poster}
-                  alt=""
-                  className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70 blur-xl"
-                  style={{ objectPosition: slide.imagePosition }}
-                  loading="eager"
-                  aria-hidden="true"
-                />
-                <span className="absolute inset-0 bg-gradient-to-r from-pink-950/10 via-pink-100/20 to-pink-950/10" />
+                <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.82),rgba(251,207,232,0.82)_38%,rgba(244,114,182,0.42)_100%)]" />
+                <span className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-pink-950/18 to-transparent" />
                 {index === activeSlide ? (
-                  <video
-                    key={slide.video}
-                    src={slide.video}
-                    poster={slide.poster}
-                    muted
-                    autoPlay
-                    loop
-                    playsInline
-                    preload="metadata"
-                    className="relative z-10 mx-auto h-full w-full object-contain"
-                    aria-label={slide.title}
-                  />
+                  <>
+                    {!readyHeroVideos.has(slide.video) && (
+                      <span className="absolute inset-0 z-10 flex items-center justify-center" aria-hidden="true">
+                        <span className="h-12 w-12 animate-pulse rounded-full bg-white/80 shadow-[0_12px_34px_rgba(236,72,153,0.28)]" />
+                      </span>
+                    )}
+                    <video
+                      key={slide.video}
+                      src={slide.video}
+                      muted
+                      autoPlay
+                      loop
+                      playsInline
+                      preload="auto"
+                      className={`relative z-10 mx-auto h-full w-full object-contain transition-opacity duration-300 ${
+                        readyHeroVideos.has(slide.video) ? "opacity-100" : "opacity-0"
+                      }`}
+                      aria-label={slide.title}
+                      onLoadedData={() => markHeroVideoReady(slide.video)}
+                      onCanPlay={() => markHeroVideoReady(slide.video)}
+                    />
+                  </>
                 ) : (
-                  <img
-                    src={slide.poster}
-                    alt={slide.title}
-                    className="relative z-10 mx-auto h-full w-full object-contain"
-                    style={{ objectPosition: slide.imagePosition }}
-                    loading="lazy"
-                  />
+                  <span className="relative z-10 block h-full w-full" aria-hidden="true" />
                 )}
                 <span className="absolute left-4 top-4 z-20 rounded-full bg-white/85 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-pink-500 shadow-sm backdrop-blur">
                   Especial Dia dos Namorados

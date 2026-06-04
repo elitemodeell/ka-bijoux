@@ -6,7 +6,6 @@ import { ensureCatalogCategories } from "@/lib/catalog-db";
 import {
   CATALOG_CATEGORIES,
   MOCK_PRODUCTS,
-  PRICE_PRESETS,
   getCategoryBySlug,
   getPublicCategoryName,
 } from "@/lib/catalog";
@@ -45,6 +44,10 @@ export default async function ProductListingPage({
   const onlyNew = getParam(searchParams.new) === "true";
   const query = getParam(searchParams.q);
   const category = categorySlug ? getCategoryBySlug(categorySlug) : null;
+  const selectedSubcategory = category?.subcategories?.find((item) => item.slug === subcategorySlug) ?? null;
+  const categoryLabel = category ? getPublicCategoryName(category) : "Todos os produtos";
+  const currentCategoryLabel = selectedSubcategory ? `${categoryLabel} / ${selectedSubcategory.name}` : categoryLabel;
+  const productListKey = `${categorySlug ?? "todos"}-${subcategorySlug ?? "todas"}-${promo ? "promo" : onlyNew ? "new" : "all"}-${sort}-${query ?? ""}`;
 
   const liveProducts = await getLiveProducts({ categorySlug, subcategorySlug, selectedPrice, sort, promo, onlyNew, query });
   const products = liveProducts.length > 0
@@ -65,71 +68,106 @@ export default async function ProductListingPage({
           )}
         </div>
 
-        <div className="mt-6 grid gap-4 lg:grid-cols-[260px_1fr]">
-          <aside className="space-y-4">
-            <FilterPanel title="Preços únicos">
-              <FilterLink href={buildHref(basePath, searchParams, { price: undefined, promo: undefined, new: undefined })} active={!selectedPrice && !promo && !onlyNew}>
-                Todos
-              </FilterLink>
-              {PRICE_PRESETS.map((price) => (
-                <FilterLink key={price} href={buildHref(basePath, searchParams, { price: String(price), promo: undefined })} active={selectedPrice === String(price)}>
-                  R${price}
-                </FilterLink>
-              ))}
-              <FilterLink href={buildHref(basePath, searchParams, { promo: "true", price: undefined, new: undefined })} active={promo}>
-                Promoções
-              </FilterLink>
-              <FilterLink href={buildHref(basePath, searchParams, { new: "true", price: undefined, promo: undefined })} active={onlyNew}>
-                Novidades
-              </FilterLink>
-            </FilterPanel>
-
-            {category?.subcategories?.length ? (
-              <FilterPanel title="Subcategorias">
-                <FilterLink href={`/categoria/${category.slug}`} active={!subcategorySlug}>
-                  Todas
-                </FilterLink>
-                {category.subcategories.map((subcategory) => (
+        <div className="mt-6 space-y-5">
+          <div className="rounded-[24px] border border-pink-100 bg-white/95 p-3 shadow-[0_14px_40px_rgba(236,72,153,0.08)] sm:p-5">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-400">Filtros</p>
+                <div className="mt-3 grid grid-cols-3 rounded-2xl bg-pink-50 p-1">
                   <FilterLink
-                    key={subcategory.slug}
-                    href={`/categoria/${category.slug}/${subcategory.pathSlug}`}
-                    active={subcategorySlug === subcategory.slug}
+                    href={buildHref(basePath, searchParams, { price: undefined, promo: undefined, new: undefined })}
+                    active={!promo && !onlyNew}
+                    className="flex min-h-9 items-center justify-center text-center"
                   >
-                    {subcategory.name}
+                    Todos
                   </FilterLink>
-                ))}
-              </FilterPanel>
-            ) : (
-              <FilterPanel title="Categorias">
-                {CATALOG_CATEGORIES.map((item) => (
-                  <FilterLink key={item.slug} href={`/categoria/${item.slug}`} active={categorySlug === item.slug}>
-                    {getPublicCategoryName(item)}
+                  <FilterLink
+                    href={buildHref(basePath, searchParams, { promo: "true", price: undefined, new: undefined })}
+                    active={promo}
+                    className="flex min-h-9 items-center justify-center text-center"
+                  >
+                    Promoções
                   </FilterLink>
-                ))}
-              </FilterPanel>
-            )}
-          </aside>
-
-          <div>
-            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm font-semibold text-gray-600">
-                {products.length > 0 ? `${products.length} produto(s) encontrados` : "Categoria preparada"}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <FilterLink href={buildHref(basePath, searchParams, { sort: undefined })} active={sort === "createdAt"}>
-                  Mais recentes
-                </FilterLink>
-                <FilterLink href={buildHref(basePath, searchParams, { sort: "price_asc" })} active={sort === "price_asc"}>
-                  Menor preço
-                </FilterLink>
-                <FilterLink href={buildHref(basePath, searchParams, { sort: "price_desc" })} active={sort === "price_desc"}>
-                  Maior preço
-                </FilterLink>
+                  <FilterLink
+                    href={buildHref(basePath, searchParams, { new: "true", price: undefined, promo: undefined })}
+                    active={onlyNew}
+                    className="flex min-h-9 items-center justify-center text-center"
+                  >
+                    Novidades
+                  </FilterLink>
+                </div>
               </div>
+
+              <details className="group rounded-2xl border border-pink-100 bg-pink-50/55 p-2.5 lg:min-w-[280px]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-black text-pink-500 [&::-webkit-details-marker]:hidden">
+                  <span>Trocar categoria</span>
+                  <span className="transition-transform duration-200 group-open:rotate-180">v</span>
+                </summary>
+                <div className="ka-category-drawer mt-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="flex w-max gap-2">
+                    <CategoryChip href={buildHref("/produtos", searchParams, { price: undefined })} active={!categorySlug}>
+                      Todos
+                    </CategoryChip>
+                    {CATALOG_CATEGORIES.map((item) => (
+                      <CategoryChip
+                        key={item.slug}
+                        href={buildHref(`/categoria/${item.slug}`, searchParams, { price: undefined })}
+                        active={categorySlug === item.slug}
+                      >
+                        {getPublicCategoryName(item)}
+                      </CategoryChip>
+                    ))}
+                  </div>
+                </div>
+              </details>
             </div>
 
+            <div className="mt-3 rounded-2xl border border-gray-100 bg-white px-3 py-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center rounded-full bg-pink-500 px-3.5 py-2 text-xs font-black text-white">
+                    Categoria: {currentCategoryLabel}
+                  </span>
+                  {category && (
+                    <Link
+                      href={buildHref("/produtos", searchParams, { price: undefined })}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-pink-100 text-xs font-bold text-pink-500 transition-colors hover:bg-pink-50"
+                      aria-label="Limpar categoria selecionada"
+                    >
+                      x
+                    </Link>
+                  )}
+                </div>
+                <p className="text-xs font-semibold text-gray-600 sm:text-sm">
+                  {products.length > 0 ? `${products.length} produto(s) encontrados` : "Categoria preparada"}
+                </p>
+              </div>
+
+              {category?.subcategories?.length ? (
+                <div className="mt-3 border-t border-gray-100 pt-3">
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">Refinar em {categoryLabel}</p>
+                  <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <CategoryChip href={buildHref(`/categoria/${category.slug}`, searchParams, { price: undefined })} active={!subcategorySlug}>
+                      Todas
+                    </CategoryChip>
+                    {category.subcategories.map((subcategory) => (
+                      <CategoryChip
+                        key={subcategory.slug}
+                        href={buildHref(`/categoria/${category.slug}/${subcategory.pathSlug}`, searchParams, { price: undefined })}
+                        active={subcategorySlug === subcategory.slug}
+                      >
+                        {subcategory.name}
+                      </CategoryChip>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div>
             {products.length > 0 ? (
-              <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
+              <div key={productListKey} className="grid animate-[kaProductsFade_260ms_ease-out] grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
                 {products.map((product, index) => (
                   <ProductCard key={product.id} product={product} revealDelay={index * 70} />
                 ))}
@@ -148,26 +186,60 @@ export default async function ProductListingPage({
           </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes kaProductsFade {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes kaCategoryDrawer {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        details[open] .ka-category-drawer {
+          animation: kaCategoryDrawer 180ms ease-out both;
+        }
+      `}</style>
     </section>
   );
 }
 
-function FilterPanel({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-      <p className="mb-3 text-xs font-black uppercase tracking-wide text-gray-400">{title}</p>
-      <div className="flex flex-wrap gap-2 lg:flex-col">{children}</div>
-    </div>
-  );
-}
-
-function FilterLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+function FilterLink({
+  href,
+  active,
+  children,
+  className = "",
+}: {
+  href: string;
+  active: boolean;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <Link
       href={href}
-      className={`rounded-full px-3 py-2 text-xs font-bold transition-colors ${
+      className={`rounded-full px-2.5 py-1.5 text-xs font-bold transition-colors sm:px-3 sm:py-2 ${
         active ? "bg-pink-500 text-white" : "bg-pink-50 text-pink-500 hover:bg-pink-100"
+      } ${className}`}
+      aria-current={active ? "page" : undefined}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function CategoryChip({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors sm:px-4 sm:py-2 ${
+        active
+          ? "border-pink-500 bg-pink-500 text-white"
+          : "border-pink-100 bg-white text-gray-700 hover:bg-pink-50 hover:text-pink-500"
       }`}
+      aria-current={active ? "page" : undefined}
     >
       {children}
     </Link>

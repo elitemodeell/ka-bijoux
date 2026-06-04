@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Produtos",
-  description: "Vitrine completa da KA Bijoux com filtros por categoria, preco e promocoes.",
+  description: "Vitrine completa da KA Bijoux com filtros simples por categoria, promocoes e novidades.",
 };
 
 export default function ProdutosPage({
@@ -16,7 +16,7 @@ export default function ProdutosPage({
   return (
     <ProductListingPage
       title="Produtos KA Bijoux"
-      description="Veja todas as categorias da loja, filtre pelos precos unicos e abra a compra rapida sem sair da pagina."
+      description="Veja os produtos da loja, escolha uma categoria e navegue por promocoes e novidades com poucos toques."
       basePath="/produtos"
       searchParams={searchParams}
     />
