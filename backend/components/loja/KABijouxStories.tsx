@@ -15,8 +15,23 @@ const storyHighlightCovers = {
   ofertas: "/images/stories/highlights/ofertas.jpg",
 } as const;
 const storyHighlightCoverEntries = Object.entries(storyHighlightCovers);
+const camisasSelecaoHref = "/categoria/camisas-selecao-brasileira";
 
 const heroSlides = [
+  {
+    title: "Camisas da selecao brasileira",
+    href: camisasSelecaoHref,
+    image: "/banners/ChatGPT%20Image%204%20de%20jun.%20de%202026,%2012_15_33.png",
+    imagePosition: "18% center",
+    variant: "artwork" as const,
+  },
+  {
+    title: "Especial Dia dos Namorados",
+    href: "/produtos?new=true",
+    image: "/banners/ChatGPT%20Image%204%20de%20jun.%20de%202026,%2012_21_17.png",
+    imagePosition: "center",
+    variant: "artwork" as const,
+  },
   {
     title: "Novidades da semana",
     subtitle: "Acessorios femininos selecionados para renovar sua vitrine.",
@@ -622,32 +637,55 @@ function MainHeroCarousel() {
             className="relative block h-full min-w-full overflow-hidden bg-pink-100 text-left"
             aria-label={slide.title}
           >
-            <img
-              src={slide.image}
-              alt={slide.title}
-              className="absolute inset-0 h-full w-full object-cover"
-              style={{ objectPosition: slide.imagePosition }}
-              loading="eager"
-            />
-            <span className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/68 to-white/10" />
-            <span className="absolute inset-0 bg-gradient-to-t from-pink-950/12 via-transparent to-white/12" />
-            <span className="absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-pink-300/25 blur-3xl" />
-            <span className="absolute -right-10 top-8 h-36 w-36 rounded-full bg-white/35 blur-3xl" />
+            {slide.variant === "artwork" ? (
+              <>
+                <img
+                  src={slide.image}
+                  alt=""
+                  className="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-xl"
+                  style={{ objectPosition: slide.imagePosition }}
+                  loading="eager"
+                  aria-hidden="true"
+                />
+                <span className="absolute inset-0 bg-gradient-to-r from-pink-50/55 via-white/15 to-pink-100/45" />
+                <img
+                  src={slide.image}
+                  alt={slide.title}
+                  className="relative z-10 h-full w-full object-cover"
+                  style={{ objectPosition: slide.imagePosition }}
+                  loading="eager"
+                />
+              </>
+            ) : (
+              <>
+                <img
+                  src={slide.image}
+                  alt={slide.title}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  style={{ objectPosition: slide.imagePosition }}
+                  loading="eager"
+                />
+                <span className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/68 to-white/10" />
+                <span className="absolute inset-0 bg-gradient-to-t from-pink-950/12 via-transparent to-white/12" />
+                <span className="absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-pink-300/25 blur-3xl" />
+                <span className="absolute -right-10 top-8 h-36 w-36 rounded-full bg-white/35 blur-3xl" />
 
-            <span className="relative z-10 flex h-full max-w-[72%] flex-col justify-center px-5 py-8 sm:max-w-xl sm:px-10 lg:px-16">
-              <span className="w-fit rounded-full bg-white/80 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-pink-500 shadow-sm backdrop-blur">
-                KA Bijoux
-              </span>
-              <span className="mt-3 block font-playfair text-[32px] font-bold leading-[1.05] text-gray-950 sm:text-5xl">
-                {slide.title}
-              </span>
-              <span className="mt-3 block max-w-sm text-sm font-medium leading-relaxed text-gray-700 sm:text-base">
-                {slide.subtitle}
-              </span>
-              <span className="mt-5 inline-flex w-fit rounded-full bg-pink-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_26px_rgba(236,72,153,0.28)]">
-                {slide.label}
-              </span>
-            </span>
+                <span className="relative z-10 flex h-full max-w-[72%] flex-col justify-center px-5 py-8 sm:max-w-xl sm:px-10 lg:px-16">
+                  <span className="w-fit rounded-full bg-white/80 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-pink-500 shadow-sm backdrop-blur">
+                    KA Bijoux
+                  </span>
+                  <span className="mt-3 block font-playfair text-[32px] font-bold leading-[1.05] text-gray-950 sm:text-5xl">
+                    {slide.title}
+                  </span>
+                  <span className="mt-3 block max-w-sm text-sm font-medium leading-relaxed text-gray-700 sm:text-base">
+                    {slide.subtitle}
+                  </span>
+                  <span className="mt-5 inline-flex w-fit rounded-full bg-pink-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_26px_rgba(236,72,153,0.28)]">
+                    {slide.label}
+                  </span>
+                </span>
+              </>
+            )}
           </Link>
         ))}
       </div>
