@@ -146,6 +146,7 @@ export default async function HomePage() {
 
       {/* ── Hero ──────────────────────────────────────────── */}
       <HeroSection />
+      <ReelsSection />
 
       {/* ── Categorias ────────────────────────────────────── */}
       <section className="bg-white py-12 sm:py-16 md:py-20">
@@ -233,9 +234,6 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* ── Reels ─────────────────────────────────────────── */}
-      <ReelsSection />
 
       {/* ── Mais Vendidos ─────────────────────────────────── */}
       <section className="py-20 bg-white">

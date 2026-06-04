@@ -4,9 +4,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TouchEvent } from "react";
 import Link from "next/link";
 import { DEFAULT_STORY_COVER, type StoryGroup, type StoryItem } from "@/types/stories";
+import {
+  copaBannerHref,
+  copaBannerImage,
+  valentinesCampaignBanner,
+  valentinesCampaignVideos,
+} from "@/lib/campaign-media";
 
 const seenStorageKey = "ka-bijoux-seen-stories";
 const storyLogo = "/images/brand/ka-bijoux-logo-story-icon.png";
+const HERO_IMAGE_DURATION = 4300;
+const HERO_VIDEO_TEASER_DURATION = 5000;
 const storyHighlightCovers = {
   novidades: "/images/stories/highlights/novidades.jpg",
   promocoes: "/images/stories/highlights/promocoes.jpg",
@@ -15,23 +23,30 @@ const storyHighlightCovers = {
   ofertas: "/images/stories/highlights/ofertas.jpg",
 } as const;
 const storyHighlightCoverEntries = Object.entries(storyHighlightCovers);
-const camisasSelecaoHref = "/categoria/camisas-selecao-brasileira";
 
 const heroSlides = [
   {
     title: "Camisas da selecao brasileira",
-    href: camisasSelecaoHref,
-    image: "/banners/ChatGPT%20Image%204%20de%20jun.%20de%202026,%2012_15_33.png",
+    href: copaBannerHref,
+    image: copaBannerImage,
     imagePosition: "18% center",
     variant: "artwork" as const,
   },
   {
     title: "Especial Dia dos Namorados",
-    href: "/produtos?new=true",
-    image: "/banners/ChatGPT%20Image%204%20de%20jun.%20de%202026,%2012_21_17.png",
+    href: "/produtos?campanha=dia-dos-namorados",
+    image: valentinesCampaignBanner,
     imagePosition: "center",
     variant: "artwork" as const,
   },
+  ...valentinesCampaignVideos.slice(0, 4).map((video) => ({
+    title: video.title,
+    href: "/produtos?campanha=dia-dos-namorados",
+    video: video.src,
+    poster: video.poster,
+    imagePosition: "center",
+    variant: "video" as const,
+  })),
   {
     title: "Novidades da semana",
     subtitle: "Acessorios femininos selecionados para renovar sua vitrine.",
@@ -595,9 +610,12 @@ function MainHeroCarousel() {
   }, []);
 
   useEffect(() => {
-    const interval = window.setInterval(goNextSlide, 4300);
-    return () => window.clearInterval(interval);
-  }, [goNextSlide]);
+    const activeHeroSlide = heroSlides[activeSlide];
+    const duration = activeHeroSlide?.variant === "video" ? HERO_VIDEO_TEASER_DURATION : HERO_IMAGE_DURATION;
+    const timeout = window.setTimeout(goNextSlide, duration);
+
+    return () => window.clearTimeout(timeout);
+  }, [activeSlide, goNextSlide]);
 
   function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
     touchStartX.current = event.touches[0]?.clientX ?? null;
@@ -630,7 +648,7 @@ function MainHeroCarousel() {
         className="flex h-[260px] transition-transform duration-700 ease-out sm:h-[300px] lg:h-[340px]"
         style={{ transform: `translateX(-${activeSlide * 100}%)` }}
       >
-        {heroSlides.map((slide) => (
+        {heroSlides.map((slide, index) => (
           <Link
             key={slide.title}
             href={slide.href}
@@ -655,6 +673,43 @@ function MainHeroCarousel() {
                   style={{ objectPosition: slide.imagePosition }}
                   loading="eager"
                 />
+              </>
+            ) : slide.variant === "video" ? (
+              <>
+                <img
+                  src={slide.poster}
+                  alt=""
+                  className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70 blur-xl"
+                  style={{ objectPosition: slide.imagePosition }}
+                  loading="eager"
+                  aria-hidden="true"
+                />
+                <span className="absolute inset-0 bg-gradient-to-r from-pink-950/10 via-pink-100/20 to-pink-950/10" />
+                {index === activeSlide ? (
+                  <video
+                    key={slide.video}
+                    src={slide.video}
+                    poster={slide.poster}
+                    muted
+                    autoPlay
+                    loop
+                    playsInline
+                    preload="metadata"
+                    className="relative z-10 mx-auto h-full w-full object-contain"
+                    aria-label={slide.title}
+                  />
+                ) : (
+                  <img
+                    src={slide.poster}
+                    alt={slide.title}
+                    className="relative z-10 mx-auto h-full w-full object-contain"
+                    style={{ objectPosition: slide.imagePosition }}
+                    loading="lazy"
+                  />
+                )}
+                <span className="absolute left-4 top-4 z-20 rounded-full bg-white/85 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-pink-500 shadow-sm backdrop-blur">
+                  Especial Dia dos Namorados
+                </span>
               </>
             ) : (
               <>
