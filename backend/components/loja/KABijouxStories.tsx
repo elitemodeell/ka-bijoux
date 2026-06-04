@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { TouchEvent } from "react";
+import Link from "next/link";
 import { DEFAULT_STORY_COVER, type StoryGroup, type StoryItem } from "@/types/stories";
 
 const seenStorageKey = "ka-bijoux-seen-stories";
 const storyLogo = "/images/brand/ka-bijoux-logo-story-icon.png";
-const storyHeaderLogo = "/images/brand/ka-bijoux-logo-header-640.png";
 const storyHighlightCovers = {
   novidades: "/images/stories/highlights/novidades.jpg",
   promocoes: "/images/stories/highlights/promocoes.jpg",
@@ -14,13 +15,48 @@ const storyHighlightCovers = {
   ofertas: "/images/stories/highlights/ofertas.jpg",
 } as const;
 const storyHighlightCoverEntries = Object.entries(storyHighlightCovers);
-const storyHeroSlides = [
-  { src: "/images/home/ka-bijoux-hero-banner.jpg", alt: "Acessorios femininos KA Bijoux" },
-  { src: "/images/categories/bijuterias.jpg", alt: "Bijuterias delicadas" },
-  { src: "/images/categories/capinhas-acessorios-celular.jpg", alt: "Capinhas estilosas" },
-  { src: "/images/categories/oculos.jpg", alt: "Oculos de sol" },
-  { src: "/images/categories/bolsas-necessaires.jpg", alt: "Bolsas e necessaires" },
-  { src: "/images/stories/highlights/novidades.jpg", alt: "Novidades KA Bijoux" },
+
+const heroSlides = [
+  {
+    title: "Novidades da semana",
+    subtitle: "Acessorios femininos selecionados para renovar sua vitrine.",
+    label: "Ver novidades",
+    href: "/produtos?new=true",
+    image: "/images/stories/highlights/novidades.jpg",
+    imagePosition: "center",
+  },
+  {
+    title: "Capinhas estilosas",
+    subtitle: "Modelos para deixar o celular protegido e com a sua cara.",
+    label: "Ver capinhas",
+    href: "/categoria/capinhas-acessorios-celular",
+    image: "/images/categories/capinhas-acessorios-celular.jpg",
+    imagePosition: "center",
+  },
+  {
+    title: "Bijuterias delicadas",
+    subtitle: "Brincos, colares e detalhes para brilhar no dia a dia.",
+    label: "Ver bijuterias",
+    href: "/categoria/bijuterias",
+    image: "/images/categories/bijuterias.jpg",
+    imagePosition: "center",
+  },
+  {
+    title: "Oculos com charme",
+    subtitle: "Estilo leve para completar o look com personalidade.",
+    label: "Ver oculos",
+    href: "/categoria/oculos",
+    image: "/images/categories/oculos.jpg",
+    imagePosition: "center",
+  },
+  {
+    title: "Produtos em destaque",
+    subtitle: "Uma selecao bonita de presentes, bolsas e acessorios KA.",
+    label: "Ver produtos",
+    href: "/produtos",
+    image: "/images/home/ka-bijoux-hero-banner.jpg",
+    imagePosition: "center",
+  },
 ];
 
 const fallbackGroups: StoryGroup[] = [
@@ -227,10 +263,6 @@ export default function KABijouxStories() {
     () => groups.filter((group) => group.items.length > 0),
     [groups]
   );
-  const allStoriesItems = useMemo<StoryItem[]>(
-    () => visibleGroups.flatMap((group) => group.items),
-    [visibleGroups]
-  );
   const activeGroup = activeStoryGroup;
   const activeItem = activeGroup?.items[activeItemIndex] ?? null;
   useEffect(() => {
@@ -288,21 +320,6 @@ export default function KABijouxStories() {
     },
     [markSeen, visibleGroups]
   );
-
-  const openAllStories = useCallback(() => {
-    if (allStoriesItems.length === 0) return;
-
-    setActiveStoryGroup({
-      id: "all-demo-stories",
-      title: "KA Bijoux",
-      cover: storyLogo,
-      isActive: true,
-      sortOrder: 0,
-      items: allStoriesItems,
-    });
-    setActiveItemIndex(0);
-    visibleGroups.forEach((group) => markSeen(group.id));
-  }, [allStoriesItems, markSeen, visibleGroups]);
 
   const closeViewer = useCallback(() => {
     setActiveStoryGroup(null);
@@ -417,13 +434,10 @@ export default function KABijouxStories() {
         />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 pb-6 pt-4 text-center sm:pb-8 sm:pt-6">
-        <StoryHeroMotionBanner
-          disabled={loading || allStoriesItems.length === 0}
-          onOpen={openAllStories}
-        />
+      <div className="relative z-10 pb-6 pt-0 text-center sm:pb-8 sm:pt-3">
+        <MainHeroCarousel />
 
-        <div className="mt-5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mx-auto mt-5 max-w-7xl overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex min-w-max items-start gap-4 px-1 sm:justify-center sm:gap-6">
             {loading
               ? Array.from({ length: 5 }).map((_, index) => (
@@ -548,58 +562,111 @@ export default function KABijouxStories() {
   );
 }
 
-function StoryHeroMotionBanner({ disabled, onOpen }: { disabled: boolean; onOpen: () => void }) {
-  const loopSlides = [...storyHeroSlides, ...storyHeroSlides];
+function MainHeroCarousel() {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchDeltaX = useRef(0);
+
+  const goToSlide = useCallback((index: number) => {
+    setActiveSlide((index + heroSlides.length) % heroSlides.length);
+  }, []);
+
+  const goNextSlide = useCallback(() => {
+    setActiveSlide((current) => (current + 1) % heroSlides.length);
+  }, []);
+
+  const goPreviousSlide = useCallback(() => {
+    setActiveSlide((current) => (current - 1 + heroSlides.length) % heroSlides.length);
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(goNextSlide, 4300);
+    return () => window.clearInterval(interval);
+  }, [goNextSlide]);
+
+  function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
+    touchStartX.current = event.touches[0]?.clientX ?? null;
+    touchDeltaX.current = 0;
+  }
+
+  function handleTouchMove(event: TouchEvent<HTMLDivElement>) {
+    if (touchStartX.current === null) return;
+    touchDeltaX.current = (event.touches[0]?.clientX ?? touchStartX.current) - touchStartX.current;
+  }
+
+  function handleTouchEnd() {
+    if (Math.abs(touchDeltaX.current) > 42) {
+      if (touchDeltaX.current < 0) goNextSlide();
+      else goPreviousSlide();
+    }
+
+    touchStartX.current = null;
+    touchDeltaX.current = 0;
+  }
 
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      disabled={disabled}
-      className="group relative mx-auto block h-[220px] w-full max-w-4xl overflow-hidden rounded-[30px] border border-pink-100 bg-pink-50 text-left shadow-[0_22px_70px_rgba(236,72,153,0.16)] outline-none transition-transform duration-300 hover:scale-[1.01] disabled:cursor-default sm:h-[260px]"
-      aria-label="Abrir Stories KA Bijoux"
+    <div
+      className="relative w-full overflow-hidden bg-pink-50"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-pink-50 via-white to-pink-100" />
-      <div className="ka-story-hero-track absolute inset-y-0 left-0 flex min-w-max gap-3 p-3" aria-hidden="true">
-        {loopSlides.map((slide, index) => (
-          <span
-            key={`${slide.src}-${index}`}
-            className="relative h-full w-[150px] overflow-hidden rounded-[22px] bg-white shadow-[0_14px_35px_rgba(236,72,153,0.12)] sm:w-[205px]"
+      <div
+        className="flex h-[260px] transition-transform duration-700 ease-out sm:h-[300px] lg:h-[340px]"
+        style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+      >
+        {heroSlides.map((slide) => (
+          <Link
+            key={slide.title}
+            href={slide.href}
+            className="relative block h-full min-w-full overflow-hidden bg-pink-100 text-left"
+            aria-label={slide.title}
           >
             <img
-              src={slide.src}
-              alt=""
-              loading="lazy"
-              className="h-full w-full object-cover"
+              src={slide.image}
+              alt={slide.title}
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{ objectPosition: slide.imagePosition }}
+              loading="eager"
             />
-            <span className="absolute inset-0 bg-gradient-to-t from-pink-950/18 via-transparent to-white/10" />
-          </span>
+            <span className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/68 to-white/10" />
+            <span className="absolute inset-0 bg-gradient-to-t from-pink-950/12 via-transparent to-white/12" />
+            <span className="absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-pink-300/25 blur-3xl" />
+            <span className="absolute -right-10 top-8 h-36 w-36 rounded-full bg-white/35 blur-3xl" />
+
+            <span className="relative z-10 flex h-full max-w-[72%] flex-col justify-center px-5 py-8 sm:max-w-xl sm:px-10 lg:px-16">
+              <span className="w-fit rounded-full bg-white/80 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-pink-500 shadow-sm backdrop-blur">
+                KA Bijoux
+              </span>
+              <span className="mt-3 block font-playfair text-[32px] font-bold leading-[1.05] text-gray-950 sm:text-5xl">
+                {slide.title}
+              </span>
+              <span className="mt-3 block max-w-sm text-sm font-medium leading-relaxed text-gray-700 sm:text-base">
+                {slide.subtitle}
+              </span>
+              <span className="mt-5 inline-flex w-fit rounded-full bg-pink-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_26px_rgba(236,72,153,0.28)]">
+                {slide.label}
+              </span>
+            </span>
+          </Link>
         ))}
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/74 to-pink-100/35" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_22%,rgba(255,255,255,0.72),transparent_30%),radial-gradient(circle_at_20%_80%,rgba(236,72,153,0.18),transparent_28%)]" />
-
-      <div className="relative z-10 flex h-full flex-col justify-center px-5 py-6 text-center sm:px-10">
-        <picture className="mx-auto">
-          <source srcSet="/images/brand/ka-bijoux-logo-header-640.webp" type="image/webp" />
-          <img
-            src={storyHeaderLogo}
-            alt="KA Bijoux"
-            className="mx-auto h-auto w-[118px] object-contain sm:w-[150px]"
+      <div className="absolute bottom-3 left-0 right-0 z-20 flex items-center justify-center gap-2">
+        {heroSlides.map((slide, index) => (
+          <button
+            key={slide.title}
+            type="button"
+            onClick={() => goToSlide(index)}
+            className={`h-2 rounded-full transition-all ${
+              activeSlide === index ? "w-7 bg-pink-500" : "w-2 bg-white/80 shadow-sm"
+            }`}
+            aria-label={`Ir para banner ${index + 1}`}
+            aria-current={activeSlide === index ? "true" : undefined}
           />
-        </picture>
-        <span className="mt-4 block font-playfair text-3xl font-bold leading-tight text-gray-950 sm:text-4xl">
-          Sua beleza em movimento
-        </span>
-        <span className="mx-auto mt-2 block max-w-md text-sm leading-relaxed text-gray-600">
-          Bijuterias, capinhas, oculos e acessorios femininos com o brilho da KA.
-        </span>
-        <span className="mx-auto mt-4 inline-flex rounded-full bg-pink-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.28)]">
-          Ver Stories
-        </span>
+        ))}
       </div>
-    </button>
+    </div>
   );
 }
 

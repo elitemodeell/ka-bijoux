@@ -57,10 +57,6 @@ body {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
-@keyframes ka-story-hero-pan {
-  0%   { transform: translate3d(0, 0, 0); }
-  100% { transform: translate3d(-50%, 0, 0); }
-}
 @keyframes ka-gradient-x {
   0%, 100% { background-position: 0% 50%; }
   50%       { background-position: 100% 50%; }
@@ -156,7 +152,6 @@ body {
 .ka-pulse-glow     { animation: ka-pulse-glow 2.5s ease-in-out infinite; }
 .ka-ticker         { animation: ka-ticker 28s linear infinite; }
 .ka-announcement-ticker { animation-duration: 42s; }
-.ka-story-hero-track { animation: ka-story-hero-pan 36s linear infinite; will-change: transform; }
 .ka-gradient-x     { animation: ka-gradient-x 5s ease-in-out infinite; background-size: 200% 200%; }
 .ka-spin-slow      { animation: ka-spin-slow 15s linear infinite; }
 .ka-bounce         { animation: ka-bounce-subtle 2.2s ease-in-out infinite; }
@@ -297,7 +292,6 @@ body {
   .ka-logo-sparkle-wrap::after,
   .ka-logo-twinkle,
   .ka-mobile-drawer,
-  .ka-story-hero-track,
   .ka-free-shipping-card,
   .ka-free-shipping-card::after,
   .ka-trust-seal {
