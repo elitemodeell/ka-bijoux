@@ -87,8 +87,14 @@ model Category {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  products Product[]
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  parentId String?
+  children Category[] @relation("CategoryHierarchy")
 
+  products            Product[] @relation("ProductCategory")
+  subcategoryProducts Product[] @relation("ProductSubcategory")
+
+  @@index([parentId, active, order])
   @@map("categories")
 }
 
@@ -111,11 +117,14 @@ model Product {
   featured         Boolean  @default(false)
   isNew            Boolean  @default(true)
   soldCount        Int      @default(0)
+  sku              String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  category   Category @relation(fields: [categoryId], references: [id])
+  category   Category @relation("ProductCategory", fields: [categoryId], references: [id])
   categoryId String
+  subcategory   Category? @relation("ProductSubcategory", fields: [subcategoryId], references: [id])
+  subcategoryId String?
 
   images      ProductImage[]
   variations  ProductVariation[]

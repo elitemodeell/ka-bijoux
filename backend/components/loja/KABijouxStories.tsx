@@ -85,6 +85,58 @@ function createStoryVideo(id: string, src: string, sortOrder: number) {
   };
 }
 
+type StoryCoverMedia = {
+  type: StoryItem["type"];
+  src: string;
+  poster?: string | null;
+  fallbackSrc: string;
+};
+
+type StoryItemWithCoverMeta = StoryItem & {
+  poster?: string | null;
+  posterUrl?: string | null;
+  thumbnail?: string | null;
+  thumbnailUrl?: string | null;
+};
+
+function getStoryItemSrc(item: StoryItem) {
+  return item.src || item.mediaUrl || "";
+}
+
+function getStoryItemPoster(item: StoryItem) {
+  const media = item as StoryItemWithCoverMeta;
+  return media.posterUrl || media.poster || media.thumbnailUrl || media.thumbnail || null;
+}
+
+function isLogoCover(src: string) {
+  return src === storyLogo || src === DEFAULT_STORY_COVER;
+}
+
+function storyCoverImageClassName(src: string) {
+  return `h-full w-full ${isLogoCover(src) ? "object-contain p-2" : "object-cover"}`;
+}
+
+function getStoryCoverMedia(group: StoryGroup): StoryCoverMedia {
+  const fallbackSrc = group.cover || group.coverImageUrl || DEFAULT_STORY_COVER;
+  const validItems = group.items.filter((item) => Boolean(getStoryItemSrc(item)));
+  const lastItem = validItems[validItems.length - 1];
+
+  if (!lastItem) {
+    return {
+      type: "image",
+      src: fallbackSrc,
+      fallbackSrc: DEFAULT_STORY_COVER,
+    };
+  }
+
+  return {
+    type: lastItem.type,
+    src: getStoryItemSrc(lastItem),
+    poster: getStoryItemPoster(lastItem),
+    fallbackSrc,
+  };
+}
+
 function normalizeGroups(data: unknown): StoryGroup[] {
   if (!Array.isArray(data)) return [];
 
@@ -296,8 +348,19 @@ export default function KABijouxStories() {
   if (!loading && visibleGroups.length === 0) return null;
 
   return (
-    <section className="bg-white">
-      <div className="mx-auto max-w-7xl px-4 pb-6 pt-4 text-center sm:pb-8 sm:pt-6">
+    <section className="relative overflow-hidden bg-white">
+      <div className="pointer-events-none absolute inset-x-0 top-10 z-0 mx-auto h-56 max-w-[440px]" aria-hidden="true">
+        <span
+          className="ka-header-sparkle"
+          style={{ left: "13%", top: "28%", animationDelay: "1.1s", animationDuration: "6.4s" }}
+        />
+        <span
+          className="ka-header-sparkle"
+          style={{ left: "83%", top: "38%", animationDelay: "3.4s", animationDuration: "7s" }}
+        />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-7xl px-4 pb-6 pt-4 text-center sm:pb-8 sm:pt-6">
         <button
           type="button"
           onClick={openAllStories}
@@ -342,6 +405,7 @@ export default function KABijouxStories() {
                 ))
               : visibleGroups.map((group, index) => {
                   const seen = seenIds.has(group.id);
+                  const coverMedia = getStoryCoverMedia(group);
                   return (
                     <button
                       key={group.id}
@@ -355,10 +419,10 @@ export default function KABijouxStories() {
                           seen
                             ? "bg-gray-200"
                             : "bg-gradient-to-tr from-pink-500 via-fuchsia-500 to-orange-400 shadow-[0_8px_24px_rgba(255,77,109,0.20)]"
-                        }`}
+                          }`}
                       >
-                        <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white p-2">
-                          <StoryCover src={storyLogo} title={group.title} />
+                        <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white">
+                          <StoryCover media={coverMedia} title={group.title} />
                         </span>
                       </span>
                       <span
@@ -466,17 +530,86 @@ export default function KABijouxStories() {
   );
 }
 
-function StoryCover({ src, title }: { src: string; title: string }) {
+function StoryCover({ media, title }: { media: StoryCoverMedia; title: string }) {
   const [failed, setFailed] = useState(false);
+  const [posterFailed, setPosterFailed] = useState(false);
+  const [videoReady, setVideoReady] = useState(media.type !== "video");
+
+  useEffect(() => {
+    setFailed(false);
+    setPosterFailed(false);
+    setVideoReady(media.type !== "video");
+  }, [media.poster, media.src, media.type]);
+
+  if (failed) {
+    const fallbackSrc = media.fallbackSrc || DEFAULT_STORY_COVER;
+
+    return (
+      <img
+        src={fallbackSrc}
+        alt={title}
+        loading="lazy"
+        className={storyCoverImageClassName(fallbackSrc)}
+        onError={() => {
+          if (fallbackSrc !== DEFAULT_STORY_COVER) setFailed(true);
+        }}
+      />
+    );
+  }
+
+  if (media.type === "image" || (media.poster && !posterFailed)) {
+    const coverSrc = media.type === "video" ? media.poster || media.src : media.src;
+
+    return (
+      <img
+        src={coverSrc}
+        alt={title}
+        loading="lazy"
+        className={storyCoverImageClassName(coverSrc)}
+        onError={() => {
+          if (media.type === "video" && media.poster) {
+            setPosterFailed(true);
+            return;
+          }
+          setFailed(true);
+        }}
+      />
+    );
+  }
+
+  const fallbackSrc = media.fallbackSrc || DEFAULT_STORY_COVER;
 
   return (
-    <img
-      src={failed ? DEFAULT_STORY_COVER : src}
-      alt={title}
-      loading="lazy"
-      className="h-full w-full object-contain"
-      onError={() => setFailed(true)}
-    />
+    <span className="relative block h-full w-full overflow-hidden rounded-full bg-pink-50">
+      <img
+        src={fallbackSrc}
+        alt=""
+        loading="lazy"
+        className={`absolute inset-0 transition-opacity duration-300 ${storyCoverImageClassName(fallbackSrc)} ${
+          videoReady ? "opacity-0" : "opacity-100"
+        }`}
+        onError={() => setFailed(true)}
+      />
+      <video
+        src={media.src}
+        muted
+        playsInline
+        preload="metadata"
+        aria-hidden="true"
+        className={`h-full w-full object-cover transition-opacity duration-300 ${videoReady ? "opacity-100" : "opacity-0"}`}
+        onLoadedMetadata={(event) => {
+          const video = event.currentTarget;
+          try {
+            if (video.duration > 0 && video.currentTime < 0.05) video.currentTime = 0.05;
+          } catch {
+            setVideoReady(true);
+          }
+        }}
+        onLoadedData={() => setVideoReady(true)}
+        onSeeked={() => setVideoReady(true)}
+        onError={() => setFailed(true)}
+      />
+    </span>
   );
 }
 

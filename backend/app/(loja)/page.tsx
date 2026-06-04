@@ -7,6 +7,7 @@ import ProductCard from "@/components/loja/ProductCard";
 import ReelsSection from "@/components/loja/ReelsSection";
 import AnimatedSection from "@/components/loja/AnimatedSection";
 import KABijouxStories from "@/components/loja/KABijouxStories";
+import { MOCK_PRODUCTS } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "KA Bijoux — Bijuterias, Óculos e Acessórios Femininos",
@@ -119,6 +120,7 @@ async function getFeaturedProducts() {
     const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
     const res = await fetch(`${base}/api/products?featured=true&pageSize=8`, {
       next: { revalidate: 60 },
+      signal: AbortSignal.timeout(2500),
     });
     if (!res.ok) return null;
     const json = await res.json();
@@ -130,7 +132,7 @@ async function getFeaturedProducts() {
 
 export default async function HomePage() {
   const liveProducts = await getFeaturedProducts();
-  const products = liveProducts ?? DEMO_PRODUCTS;
+  const products = liveProducts ?? MOCK_PRODUCTS;
 
   return (
     <main className="overflow-x-hidden">

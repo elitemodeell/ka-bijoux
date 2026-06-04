@@ -6,7 +6,7 @@ import Image from "next/image";
 
 async function getProducts() {
   return prisma.product.findMany({
-    include: { category: true, images: { orderBy: { order: "asc" }, take: 1 } },
+    include: { category: true, subcategory: true, images: { orderBy: { order: "asc" }, take: 1 } },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -61,11 +61,14 @@ export default async function ProdutosPage() {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{product.name}</p>
-                        <p className="text-xs text-gray-400">{product.slug}</p>
+                        <p className="text-xs text-gray-400">{product.sku || product.slug}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-gray-600">{product.category.name}</td>
+                  <td className="py-3 px-4 text-gray-600">
+                    <p>{product.category.name}</p>
+                    {product.subcategory && <p className="text-xs text-gray-400">{product.subcategory.name}</p>}
+                  </td>
                   <td className="py-3 px-4">
                     {product.promotionalPrice ? (
                       <div>

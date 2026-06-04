@@ -78,6 +78,69 @@ body {
   from { opacity: 0; transform: translateX(40px); }
   to   { opacity: 1; transform: translateX(0); }
 }
+@keyframes ka-sparkle-rise {
+  0%, 100% {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale(0.5) rotate(0deg);
+  }
+  22% {
+    opacity: 0.75;
+  }
+  54% {
+    opacity: 0.95;
+    transform: translate3d(6px, -3px, 0) scale(1) rotate(45deg);
+  }
+  82% {
+    opacity: 0.16;
+  }
+  100% {
+    transform: translate3d(10px, -22px, 0) scale(0.72) rotate(90deg);
+  }
+}
+@keyframes ka-shimmer-sweep {
+  0%, 22% {
+    opacity: 0;
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  42%, 58% {
+    opacity: 0.34;
+  }
+  86%, 100% {
+    opacity: 0;
+    transform: translateX(190%) skewX(-18deg);
+  }
+}
+@keyframes ka-glint-twinkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.58) rotate(0deg);
+  }
+  45%, 60% {
+    opacity: 0.78;
+    transform: scale(1) rotate(45deg);
+  }
+}
+@keyframes ka-free-shipping-shine {
+  0%, 18% {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  52% {
+    transform: translateX(145%) skewX(-18deg);
+  }
+  100% {
+    transform: translateX(145%) skewX(-18deg);
+  }
+}
+@keyframes ka-soft-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
 /* ─── Utility Classes ────────────────────────────────────────────────────── */
 
@@ -93,6 +156,102 @@ body {
 .ka-bounce         { animation: ka-bounce-subtle 2.2s ease-in-out infinite; }
 .ka-slide-left     { animation: ka-slide-in-left 0.7s ease-out both; }
 .ka-slide-right    { animation: ka-slide-in-right 0.7s ease-out both; }
+
+.ka-header-sparkle {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.98) 0%, rgba(255, 214, 226, 0.92) 38%, rgba(255, 143, 171, 0) 72%);
+  box-shadow:
+    0 0 7px rgba(255, 255, 255, 0.82),
+    0 0 14px rgba(255, 143, 171, 0.42);
+  animation: ka-sparkle-rise 6.6s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+.ka-header-sparkle::before,
+.ka-header-sparkle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 13px;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+  transform: translate(-50%, -50%);
+}
+.ka-header-sparkle::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+.ka-header-glint {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(255, 236, 198, 0.72) 35%, rgba(255, 236, 198, 0) 72%);
+  animation: ka-glint-twinkle 7.4s ease-in-out infinite;
+  box-shadow: 0 0 16px rgba(255, 206, 132, 0.32);
+  will-change: opacity, transform;
+}
+.ka-header-glint::before,
+.ka-header-glint::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+  transform: translate(-50%, -50%);
+}
+.ka-header-glint::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+.ka-header-shimmer {
+  position: absolute;
+  inset-block: 0;
+  left: 8%;
+  width: 92px;
+  background: linear-gradient(90deg, transparent, rgba(255, 214, 226, 0.08), rgba(255, 255, 255, 0.28), rgba(255, 206, 214, 0.08), transparent);
+  animation: ka-shimmer-sweep 8.5s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+.ka-free-shipping-card {
+  position: relative;
+  overflow: hidden;
+  animation: ka-soft-pop 0.45s ease-out both;
+}
+.ka-free-shipping-card::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 82px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+  animation: ka-free-shipping-shine 4.8s ease-in-out infinite;
+}
+.ka-trust-seal {
+  animation: ka-soft-pop 0.42s ease-out both;
+}
+.ka-quick-buy-button {
+  transform-origin: center;
+}
+.ka-quick-buy-button:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ka-header-sparkle,
+  .ka-header-glint,
+  .ka-header-shimmer,
+  .ka-free-shipping-card,
+  .ka-free-shipping-card::after,
+  .ka-trust-seal {
+    animation: none;
+  }
+}
 
 .delay-100  { animation-delay: 100ms; }
 .delay-200  { animation-delay: 200ms; }

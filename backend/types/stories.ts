@@ -8,6 +8,10 @@ export type StoryItem = {
   buttonText?: string | null;
   link?: string | null;
   linkUrl?: string | null;
+  poster?: string | null;
+  posterUrl?: string | null;
+  thumbnail?: string | null;
+  thumbnailUrl?: string | null;
   isActive: boolean;
   sortOrder: number;
   createdAt?: string;

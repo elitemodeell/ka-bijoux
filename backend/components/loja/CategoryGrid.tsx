@@ -1,35 +1,44 @@
 import Link from "next/link";
+import { getHomeCategories, getPublicCategoryName } from "@/lib/catalog";
 import AnimatedSection from "./AnimatedSection";
 
-const CATEGORIES = [
-  { name: "Bijuterias",    slug: "bijuterias", emoji: "💍", desc: "Anéis, brincos, colares",   bg: "#FFF0F5" },
-  { name: "Óculos de Sol", slug: "oculos",     emoji: "🕶️", desc: "Estilos e proteção",         bg: "#FFF5F0" },
-  { name: "Capinhas",      slug: "capinhas",   emoji: "📱", desc: "Para todos os modelos",      bg: "#F5F0FF" },
-  { name: "Bolsas",        slug: "bolsas",     emoji: "👜", desc: "Elegantes e práticas",       bg: "#F0F5FF" },
-  { name: "Cabelos",       slug: "cabelos",    emoji: "✨", desc: "Tiaras, presilhas e mais",   bg: "#F0FFF5" },
-  { name: "Perfumes",      slug: "perfumes",   emoji: "🌸", desc: "Fragrâncias delicadas",      bg: "#FFF0F8" },
-];
+const accentColors = ["#FFF0F5", "#FFF5F0", "#F5F0FF", "#F0F5FF", "#F0FFF5", "#FFF0F8"];
 
 export default function CategoryGrid() {
+  const categories = getHomeCategories();
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-      {CATEGORIES.map((cat, i) => (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-7">
+      {categories.map((cat, i) => (
         <AnimatedSection key={cat.slug} delay={i * 80}>
           <Link
-            href={`/produtos?cat=${cat.slug}`}
-            className="ka-category-card group flex flex-col items-center text-center p-5 bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-glow-lg cursor-pointer"
+            href={`/categoria/${cat.slug}`}
+            className="ka-category-card group flex h-full flex-col items-center rounded-2xl border border-gray-100 bg-white p-5 text-center shadow-card hover:shadow-glow-lg"
           >
             <div
-              className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform duration-300"
-              style={{ backgroundColor: cat.bg }}
+              className="mb-3 flex h-14 w-14 items-center justify-center rounded-xl text-sm font-black text-pink-500 transition-transform duration-300 group-hover:scale-110"
+              style={{ backgroundColor: accentColors[i % accentColors.length] }}
             >
-              {cat.emoji}
+              {cat.icon}
             </div>
-            <p className="text-sm font-semibold text-gray-800 mb-0.5">{cat.name}</p>
-            <p className="text-xs text-gray-400">{cat.desc}</p>
+            <p className="mb-0.5 text-sm font-semibold text-gray-800">{getPublicCategoryName(cat)}</p>
+            <p className="line-clamp-2 text-xs text-gray-400">{cat.description}</p>
           </Link>
         </AnimatedSection>
       ))}
+
+      <AnimatedSection delay={categories.length * 80}>
+        <Link
+          href="/produtos"
+          className="ka-category-card group flex h-full flex-col items-center rounded-2xl border border-pink-100 bg-pink-50 p-5 text-center shadow-card hover:shadow-glow-lg"
+        >
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-white text-sm font-black text-pink-500 transition-transform duration-300 group-hover:scale-110">
+            ALL
+          </div>
+          <p className="mb-0.5 text-sm font-semibold text-gray-800">Ver todas</p>
+          <p className="text-xs text-gray-400">Todas as categorias da KA</p>
+        </Link>
+      </AnimatedSection>
     </div>
   );
 }

@@ -6,27 +6,23 @@ import { apiSuccess, apiError } from "@/lib/utils";
 
 const productInclude = {
   category: true,
+  subcategory: true,
   images: { orderBy: { order: "asc" as const } },
   variations: { where: { active: true } },
 };
 
-// GET /api/products/:id
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const product = await prisma.product.findFirst({
       where: { OR: [{ id: params.id }, { slug: params.id }], active: true },
-      include: {
-        ...productInclude,
-        category: true,
-      },
+      include: productInclude,
     });
 
-    if (!product) return apiError("Produto não encontrado.", 404);
+    if (!product) return apiError("Produto nao encontrado.", 404);
 
-    // Produtos relacionados (mesma categoria)
     const related = await prisma.product.findMany({
       where: { categoryId: product.categoryId, active: true, id: { not: product.id } },
-      include: { images: { orderBy: { order: "asc" }, take: 1 }, category: true },
+      include: { images: { orderBy: { order: "asc" }, take: 1 }, category: true, subcategory: true },
       take: 6,
     });
 
@@ -38,7 +34,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 const updateSchema = z.object({
   name: z.string().min(2).optional(),
-  description: z.string().min(10).optional(),
+  description: z.string().min(3).optional(),
   price: z.number().positive().optional(),
   promotionalPrice: z.number().positive().optional().nullable(),
   stock: z.number().int().min(0).optional(),
@@ -48,12 +44,13 @@ const updateSchema = z.object({
   width: z.number().positive().optional(),
   length: z.number().positive().optional(),
   categoryId: z.string().optional(),
+  subcategoryId: z.string().optional().nullable(),
+  sku: z.string().trim().optional().nullable(),
   featured: z.boolean().optional(),
   isNew: z.boolean().optional(),
   active: z.boolean().optional(),
 });
 
-// PATCH /api/products/:id — Admin atualiza produto
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     await requireAdmin(req);
@@ -73,7 +70,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-// DELETE /api/products/:id — Admin remove produto
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     await requireAdmin(req);

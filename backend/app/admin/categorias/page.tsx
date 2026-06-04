@@ -3,12 +3,20 @@
 import { useEffect, useState } from "react";
 import Header from "@/components/admin/Header";
 
-interface Category { id: string; name: string; slug: string; active: boolean; order: number; _count?: { products: number } }
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  active: boolean;
+  order: number;
+  children?: Category[];
+  _count?: { products: number; subcategoryProducts?: number };
+}
 
 export default function CategoriasPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: "", order: "0", active: true });
+  const [form, setForm] = useState({ name: "", parentId: "", order: "0", active: true });
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
@@ -27,9 +35,9 @@ export default function CategoriasPage() {
     await fetch("/api/categories", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: form.name, order: parseInt(form.order), active: form.active }),
+      body: JSON.stringify({ name: form.name, parentId: form.parentId || null, order: parseInt(form.order), active: form.active }),
     });
-    setForm({ name: "", order: "0", active: true });
+    setForm({ name: "", parentId: "", order: "0", active: true });
     setShowForm(false);
     await fetchCategories();
     setCreating(false);
@@ -50,13 +58,26 @@ export default function CategoriasPage() {
       {showForm && (
         <form onSubmit={handleCreate} className="card mb-5">
           <h3 className="font-semibold text-gray-900 mb-4">Nova Categoria</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Nome *</label>
               <input
                 value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                 required placeholder="Ex: Bijuterias" className="input-field"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Categoria pai</label>
+              <select
+                value={form.parentId}
+                onChange={(e) => setForm((p) => ({ ...p, parentId: e.target.value }))}
+                className="input-field"
+              >
+                <option value="">Categoria principal</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Ordem</label>
@@ -96,7 +117,14 @@ export default function CategoriasPage() {
           <tbody>
             {categories.map((cat) => (
               <tr key={cat.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                <td className="py-3 px-4 font-medium text-gray-900">{cat.name}</td>
+                <td className="py-3 px-4 font-medium text-gray-900">
+                  <p>{cat.name}</p>
+                  {cat.children?.length ? (
+                    <p className="mt-1 text-xs font-normal text-pink-500">
+                      Subcategorias: {cat.children.map((child) => child.name).join(", ")}
+                    </p>
+                  ) : null}
+                </td>
                 <td className="py-3 px-4 text-gray-400 font-mono text-xs">{cat.slug}</td>
                 <td className="py-3 px-4 text-gray-600">{cat._count?.products ?? 0}</td>
                 <td className="py-3 px-4 text-gray-600">{cat.order}</td>

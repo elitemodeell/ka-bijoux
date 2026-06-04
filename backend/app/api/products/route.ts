@@ -1,5 +1,7 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
+
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
@@ -7,45 +9,56 @@ import { apiSuccess, apiError, paginate, slugify } from "@/lib/utils";
 
 const productInclude = {
   category: true,
+  subcategory: true,
   images: { orderBy: { order: "asc" as const } },
   variations: { where: { active: true } },
 };
 
-// GET /api/products — Vitrine pública
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const page = Number(searchParams.get("page") ?? 1);
     const pageSize = Number(searchParams.get("pageSize") ?? 20);
-    const category = searchParams.get("category");
+    const category = searchParams.get("category") ?? searchParams.get("cat");
+    const subcategory = searchParams.get("subcategory");
     const search = searchParams.get("q");
     const featured = searchParams.get("featured") === "true";
     const isNew = searchParams.get("new") === "true";
-    const sort = searchParams.get("sort") ?? "createdAt";
+    const promo = searchParams.get("promo") === "true";
+    const sort = searchParams.get("sort") ?? searchParams.get("ordem") ?? "createdAt";
+    const exactPrice = searchParams.get("price");
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
 
-    const where: Record<string, unknown> = { active: true };
+    const where: Prisma.ProductWhereInput = { active: true };
     if (category) where.category = { slug: category };
+    if (subcategory) where.subcategory = { slug: subcategory };
     if (featured) where.featured = true;
     if (isNew) where.isNew = true;
+    if (promo) where.promotionalPrice = { not: null };
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
+        { sku: { contains: search, mode: "insensitive" } },
       ];
     }
-    if (minPrice || maxPrice) {
+    if (exactPrice && exactPrice !== "all") {
+      where.price = { equals: Number(exactPrice) };
+    } else if (minPrice || maxPrice) {
       where.price = {};
-      if (minPrice) (where.price as Record<string, unknown>).gte = parseFloat(minPrice);
-      if (maxPrice) (where.price as Record<string, unknown>).lte = parseFloat(maxPrice);
+      if (minPrice) where.price.gte = Number(minPrice);
+      if (maxPrice) where.price.lte = Number(maxPrice);
     }
 
-    const orderBy: Record<string, string> =
-      sort === "price_asc" ? { price: "asc" }
-      : sort === "price_desc" ? { price: "desc" }
-      : sort === "best_sellers" ? { soldCount: "desc" }
-      : { createdAt: "desc" };
+    const orderBy: Prisma.ProductOrderByWithRelationInput =
+      sort === "price_asc" || sort === "menor-preco"
+        ? { price: "asc" }
+        : sort === "price_desc" || sort === "maior-preco"
+          ? { price: "desc" }
+          : sort === "best_sellers" || sort === "mais-vendidos"
+            ? { soldCount: "desc" }
+            : { createdAt: "desc" };
 
     const { skip, take } = paginate(page, pageSize);
 
@@ -66,10 +79,23 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/products — Admin cria produto
+const imageSchema = z.object({
+  url: z.string().min(1),
+  alt: z.string().optional().nullable(),
+  order: z.number().int().optional(),
+});
+
+const variationSchema = z.object({
+  name: z.string().min(1),
+  value: z.string().min(1),
+  stock: z.number().int().min(0).default(0),
+  priceModifier: z.number().default(0),
+  active: z.boolean().default(true),
+});
+
 const createSchema = z.object({
   name: z.string().min(2),
-  description: z.string().min(10),
+  description: z.string().min(3),
   price: z.number().positive(),
   promotionalPrice: z.number().positive().optional().nullable(),
   stock: z.number().int().min(0),
@@ -79,9 +105,13 @@ const createSchema = z.object({
   width: z.number().positive(),
   length: z.number().positive(),
   categoryId: z.string(),
+  subcategoryId: z.string().optional().nullable(),
+  sku: z.string().trim().optional().nullable(),
   featured: z.boolean().default(false),
   isNew: z.boolean().default(true),
   active: z.boolean().default(true),
+  images: z.array(imageSchema).default([]),
+  variations: z.array(variationSchema).default([]),
 });
 
 export async function POST(req: NextRequest) {
@@ -95,7 +125,45 @@ export async function POST(req: NextRequest) {
     const finalSlug = existing ? `${slug}-${Date.now()}` : slug;
 
     const product = await prisma.product.create({
-      data: { ...data, slug: finalSlug },
+      data: {
+        name: data.name,
+        slug: finalSlug,
+        description: data.description,
+        price: data.price,
+        promotionalPrice: data.promotionalPrice,
+        stock: data.stock,
+        minStock: data.minStock,
+        weight: data.weight,
+        height: data.height,
+        width: data.width,
+        length: data.length,
+        categoryId: data.categoryId,
+        subcategoryId: data.subcategoryId || null,
+        sku: data.sku || null,
+        featured: data.featured,
+        isNew: data.isNew,
+        active: data.active,
+        images: data.images.length
+          ? {
+              create: data.images.map((image, index) => ({
+                url: image.url,
+                alt: image.alt || data.name,
+                order: image.order ?? index,
+              })),
+            }
+          : undefined,
+        variations: data.variations.length
+          ? {
+              create: data.variations.map((variation) => ({
+                name: variation.name,
+                value: variation.value,
+                stock: variation.stock,
+                priceModifier: variation.priceModifier,
+                active: variation.active,
+              })),
+            }
+          : undefined,
+      },
       include: productInclude,
     });
 

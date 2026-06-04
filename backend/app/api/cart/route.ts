@@ -12,6 +12,7 @@ const cartInclude = {
         include: {
           images: { orderBy: { order: "asc" as const }, take: 1 },
           category: true,
+          subcategory: true,
         },
       },
       variation: true,
