@@ -13,6 +13,7 @@ export type CatalogCategory = {
   slug: string;
   description: string;
   icon: string;
+  image?: string;
   group: string;
   order: number;
   homeFeatured?: boolean;
@@ -68,6 +69,7 @@ export const CATALOG_CATEGORIES: CatalogCategory[] = [
     slug: "capinhas-acessorios-celular",
     description: "Capinhas, suportes e acessórios para deixar o celular mais bonito e protegido.",
     icon: "CEL",
+    image: "/images/categories/capinhas-acessorios-celular.jpg",
     group: "Celular e acessórios",
     order: 2,
     homeFeatured: true,
@@ -77,6 +79,7 @@ export const CATALOG_CATEGORIES: CatalogCategory[] = [
     slug: "bijuterias",
     description: "Brincos, anéis, colares e peças delicadas para o dia a dia.",
     icon: "BJU",
+    image: "/images/categories/bijuterias.jpg",
     group: "Moda e beleza",
     order: 3,
     homeFeatured: true,
@@ -86,6 +89,7 @@ export const CATALOG_CATEGORIES: CatalogCategory[] = [
     slug: "bolsas-necessaires",
     description: "Bolsas, necessaires e organizadores femininos para todos os momentos.",
     icon: "BOL",
+    image: "/images/categories/bolsas-necessaires.jpg",
     group: "Moda e beleza",
     order: 4,
     homeFeatured: true,
@@ -103,6 +107,7 @@ export const CATALOG_CATEGORIES: CatalogCategory[] = [
     slug: "maquiagem",
     description: "Produtos de beleza para realcar sua rotina com praticidade.",
     icon: "MK",
+    image: "/images/categories/maquiagem.jpg",
     group: "Moda e beleza",
     order: 6,
     homeFeatured: true,
@@ -136,6 +141,7 @@ export const CATALOG_CATEGORIES: CatalogCategory[] = [
     slug: "oculos",
     description: "Óculos adultos e infantis para completar o visual com estilo.",
     icon: "OCL",
+    image: "/images/categories/oculos.jpg",
     group: "Moda e beleza",
     order: 10,
     homeFeatured: true,

@@ -157,6 +157,48 @@ body {
 .ka-slide-left     { animation: ka-slide-in-left 0.7s ease-out both; }
 .ka-slide-right    { animation: ka-slide-in-right 0.7s ease-out both; }
 
+.ka-logo-sparkle-wrap {
+  isolation: isolate;
+}
+.ka-logo-sparkle-wrap::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  z-index: -1;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 214, 226, 0.32), rgba(255, 214, 226, 0) 68%);
+  opacity: 0.68;
+  animation: ka-glint-twinkle 7s ease-in-out infinite;
+}
+.ka-logo-twinkle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255,255,255,0.96), rgba(255,143,171,0.72) 42%, rgba(255,143,171,0) 72%);
+  box-shadow: 0 0 12px rgba(255, 143, 171, 0.55);
+  animation: ka-glint-twinkle 5.8s ease-in-out infinite;
+  pointer-events: none;
+}
+.ka-logo-twinkle::before,
+.ka-logo-twinkle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+  transform: translate(-50%, -50%);
+}
+.ka-logo-twinkle::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+.ka-mobile-drawer {
+  animation: ka-slide-in-right 0.28s ease-out both;
+}
+
 .ka-header-sparkle {
   position: absolute;
   width: 7px;
@@ -246,6 +288,9 @@ body {
   .ka-header-sparkle,
   .ka-header-glint,
   .ka-header-shimmer,
+  .ka-logo-sparkle-wrap::after,
+  .ka-logo-twinkle,
+  .ka-mobile-drawer,
   .ka-free-shipping-card,
   .ka-free-shipping-card::after,
   .ka-trust-seal {

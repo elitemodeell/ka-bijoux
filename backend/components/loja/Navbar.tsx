@@ -12,6 +12,26 @@ const FEATURED_LINKS = [
   { label: "Capinhas", href: "/categoria/capinhas-acessorios-celular" },
 ];
 
+const MENU_LINKS = [
+  { label: "Início", href: "/" },
+  { label: "Novidades", href: "/produtos?new=true" },
+  { label: "Promoções", href: "/produtos?promo=true" },
+  { label: "Lançamentos", href: "/produtos?new=true" },
+  { label: "Todos os produtos", href: "/produtos" },
+  { label: "Carrinho", href: "/carrinho" },
+];
+
+const SEARCH_SUGGESTIONS = [
+  "óculos",
+  "capinhas",
+  "bijuterias",
+  "maquiagem",
+  "bolsas",
+  "necessaires",
+  "perfume",
+  "brincos",
+];
+
 const groups = getCategoryGroups();
 
 export default function Navbar() {
@@ -39,33 +59,58 @@ export default function Navbar() {
     const value = search.trim();
     setMenuOpen(false);
     setMegaOpen(false);
-    router.push(value ? `/produtos?q=${encodeURIComponent(value)}` : "/produtos");
+    router.push(value ? getSearchHref(value) : "/produtos");
   }
 
   return (
     <header
       className={`fixed inset-x-0 top-12 z-40 transition-all duration-300 md:top-0 md:z-50 ${
         scrolled
-          ? "border-b border-pink-50 bg-white/95 shadow-sm backdrop-blur-md"
-          : "border-b border-pink-50 bg-white/85 backdrop-blur-md md:border-transparent md:bg-transparent md:backdrop-blur-0"
+          ? "border-b border-pink-50 bg-white/96 shadow-sm backdrop-blur-md"
+          : "border-b border-pink-50 bg-white/90 backdrop-blur-md md:bg-white/82"
       }`}
       onMouseLeave={() => setMegaOpen(false)}
     >
-      <div className="relative isolate mx-auto flex h-[66px] max-w-7xl items-center justify-between overflow-hidden px-4 md:h-[70px] md:px-5">
+      <div className="relative isolate mx-auto flex h-[72px] max-w-7xl items-center gap-2 px-3 sm:gap-3 sm:px-4 md:h-[74px] md:px-5">
         <HeaderSparkles />
 
-        <Link href="/" className="relative z-10 flex shrink-0 items-center" aria-label="KA Bijoux">
+        <Link href="/" className="ka-logo-sparkle-wrap relative z-20 flex shrink-0 items-center" aria-label="KA Bijoux">
           <picture>
             <source srcSet="/images/brand/ka-bijoux-logo-header-640.webp" type="image/webp" />
             <img
               src="/images/brand/ka-bijoux-logo-header-320.png"
               alt="KA Bijoux"
-              className="h-11 w-auto max-w-[150px] object-contain md:h-12 md:max-w-[170px]"
+              className="h-10 w-auto max-w-[72px] object-contain sm:h-11 sm:max-w-[88px] md:h-12 md:max-w-[150px]"
             />
           </picture>
+          <span className="ka-logo-twinkle" style={{ left: "72%", top: "10%", animationDelay: "0.4s" }} />
+          <span className="ka-logo-twinkle" style={{ left: "6%", top: "72%", animationDelay: "2.6s" }} />
         </Link>
 
-        <nav className="relative z-10 hidden items-center gap-6 md:flex">
+        <form onSubmit={submitSearch} className="relative z-20 min-w-0 flex-1 md:max-w-md lg:max-w-lg">
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-pink-400" />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="O que você procura?"
+            list="ka-search-suggestions"
+            className="h-10 w-full rounded-2xl border border-pink-100 bg-white/88 pl-9 pr-10 text-[13px] font-medium text-gray-700 shadow-[0_8px_24px_rgba(236,72,153,0.06)] outline-none transition focus:border-pink-300 focus:bg-white focus:ring-2 focus:ring-pink-100 sm:h-11 sm:text-sm"
+          />
+          <button
+            type="submit"
+            className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-xl bg-pink-500 text-white transition-colors hover:bg-pink-600 sm:h-8 sm:w-8"
+            aria-label="Buscar"
+          >
+            <SearchIcon className="h-3.5 w-3.5" />
+          </button>
+          <datalist id="ka-search-suggestions">
+            {SEARCH_SUGGESTIONS.map((suggestion) => (
+              <option key={suggestion} value={suggestion} />
+            ))}
+          </datalist>
+        </form>
+
+        <nav className="relative z-10 hidden items-center gap-5 xl:flex">
           {FEATURED_LINKS.map(({ label, href }) => (
             <Link
               key={href}
@@ -80,22 +125,13 @@ export default function Navbar() {
             type="button"
             onClick={() => setMegaOpen((current) => !current)}
             onMouseEnter={() => setMegaOpen(true)}
-            className="rounded-full border border-pink-100 bg-white/75 px-4 py-2 text-sm font-semibold text-pink-500 shadow-sm backdrop-blur transition-colors hover:bg-pink-50"
+            className="rounded-full border border-pink-100 bg-white/80 px-4 py-2 text-sm font-semibold text-pink-500 shadow-sm backdrop-blur transition-colors hover:bg-pink-50"
           >
             Categorias
           </button>
         </nav>
 
-        <div className="relative z-10 flex items-center gap-1 self-center">
-          <button
-            type="button"
-            onClick={() => router.push("/produtos")}
-            className="rounded-xl p-2.5 transition-colors hover:bg-pink-50 group"
-            aria-label="Buscar"
-          >
-            <SearchIcon className="h-[18px] w-[18px] text-gray-500 transition-colors group-hover:text-pink-500" />
-          </button>
-
+        <div className="relative z-20 flex shrink-0 items-center gap-0.5 self-center">
           <Link href="/carrinho" className="rounded-xl p-2.5 transition-colors hover:bg-pink-50 group" aria-label="Carrinho">
             <BagIcon className="h-[18px] w-[18px] text-gray-500 transition-colors group-hover:text-pink-500" />
           </Link>
@@ -103,7 +139,7 @@ export default function Navbar() {
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            className="rounded-xl p-2.5 transition-colors hover:bg-pink-50 md:hidden"
+            className="rounded-xl p-2.5 text-gray-600 transition-colors hover:bg-pink-50 md:hidden"
             aria-label="Menu"
           >
             <HamburgerIcon />
@@ -112,13 +148,13 @@ export default function Navbar() {
       </div>
 
       {megaOpen && (
-        <div className="absolute inset-x-0 top-full hidden border-y border-pink-50 bg-white/97 shadow-[0_24px_70px_rgba(255,77,109,0.14)] backdrop-blur-xl md:block">
+        <div className="absolute inset-x-0 top-full hidden border-y border-pink-50 bg-white/97 shadow-[0_24px_70px_rgba(255,77,109,0.14)] backdrop-blur-xl xl:block">
           <div className="mx-auto grid max-w-7xl grid-cols-[1.1fr_2.4fr] gap-8 px-6 py-7">
             <div className="rounded-[24px] bg-gradient-to-br from-pink-50 to-white p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-pink-400">Categorias KA</p>
               <h2 className="mt-2 text-2xl font-black text-gray-900">Tudo organizado para encontrar rápido.</h2>
               <p className="mt-3 text-sm leading-relaxed text-gray-500">
-                Navegue pelas linhas da loja, filtre por preço único e abra a compra rápida sem sair da home.
+                Navegue pelas linhas da loja, filtre por preço e abra a compra rápida sem sair da vitrine.
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <Link href="/produtos" onClick={() => setMegaOpen(false)} className="rounded-full bg-pink-500 px-4 py-2 text-xs font-bold text-white">
@@ -126,6 +162,9 @@ export default function Navbar() {
                 </Link>
                 <Link href="/produtos?promo=true" onClick={() => setMegaOpen(false)} className="rounded-full bg-white px-4 py-2 text-xs font-bold text-pink-500 shadow-sm">
                   Promoções
+                </Link>
+                <Link href="/produtos?new=true" onClick={() => setMegaOpen(false)} className="rounded-full bg-white px-4 py-2 text-xs font-bold text-pink-500 shadow-sm">
+                  Novidades
                 </Link>
               </div>
             </div>
@@ -159,32 +198,37 @@ export default function Navbar() {
       {menuOpen && (
         <div className="fixed inset-0 z-[80] md:hidden">
           <button type="button" className="absolute inset-0 bg-black/35 backdrop-blur-sm" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} />
-          <aside className="absolute right-0 top-0 flex h-full w-[88vw] max-w-sm flex-col overflow-hidden rounded-l-[28px] bg-white shadow-2xl">
+          <aside className="ka-mobile-drawer absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden rounded-l-[28px] bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-pink-50 px-5 py-4">
               <img src="/images/brand/ka-bijoux-logo-header-320.png" alt="KA Bijoux" className="h-11 w-auto object-contain" />
-              <button type="button" onClick={() => setMenuOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-pink-50 text-xl text-pink-500">
+              <button type="button" onClick={() => setMenuOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-pink-50 text-xl leading-none text-pink-500" aria-label="Fechar menu">
                 x
               </button>
             </div>
 
             <div className="overflow-y-auto px-5 py-5">
               <form onSubmit={submitSearch} className="relative">
-                <SearchIcon className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-pink-400" />
+                <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-pink-400" />
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Buscar produtos"
+                  placeholder="O que você procura?"
+                  list="ka-search-suggestions"
                   className="w-full rounded-2xl border border-pink-100 bg-pink-50 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-pink-300 focus:bg-white"
                 />
               </form>
 
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <Link href="/produtos" onClick={() => setMenuOpen(false)} className="rounded-2xl bg-pink-500 px-4 py-3 text-center text-sm font-bold text-white">
-                  Ver tudo
-                </Link>
-                <Link href="/produtos?promo=true" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-pink-100 bg-white px-4 py-3 text-center text-sm font-bold text-pink-500">
-                  Promoções
-                </Link>
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                {MENU_LINKS.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMenuOpen(false)}
+                    className="rounded-2xl border border-pink-100 bg-white px-3 py-3 text-center text-sm font-bold text-gray-800 shadow-sm transition-colors hover:bg-pink-50 hover:text-pink-500"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
               </div>
 
               <div className="mt-6 space-y-5">
@@ -212,15 +256,6 @@ export default function Navbar() {
                   </div>
                 ))}
               </div>
-
-              <a
-                href="https://wa.me/5537999999999"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-6 flex items-center justify-center rounded-2xl bg-green-500 px-5 py-3 text-sm font-bold text-white"
-              >
-                Falar no WhatsApp
-              </a>
             </div>
           </aside>
         </div>
@@ -231,16 +266,44 @@ export default function Navbar() {
 
 function HeaderSparkles() {
   return (
-    <div className="pointer-events-none absolute inset-y-0 left-[34%] right-[104px] z-0 overflow-hidden sm:left-[26%] sm:right-[128px] md:left-[185px] md:right-[148px]" aria-hidden="true">
+    <div className="pointer-events-none absolute inset-y-0 left-[90px] right-[88px] z-0 overflow-hidden sm:left-[112px] sm:right-[102px] md:left-[158px] md:right-[120px]" aria-hidden="true">
       <span className="ka-header-shimmer" />
       <span className="ka-header-sparkle" style={{ left: "8%", top: "58%", animationDelay: "0s", animationDuration: "6.2s" }} />
-      <span className="ka-header-sparkle" style={{ left: "24%", top: "38%", animationDelay: "1.6s", animationDuration: "7s" }} />
-      <span className="ka-header-sparkle" style={{ left: "46%", top: "62%", animationDelay: "3.1s", animationDuration: "6.8s" }} />
-      <span className="ka-header-sparkle" style={{ left: "68%", top: "32%", animationDelay: "2.2s", animationDuration: "7.6s" }} />
-      <span className="ka-header-sparkle" style={{ left: "86%", top: "52%", animationDelay: "4s", animationDuration: "6.5s" }} />
-      <span className="ka-header-glint" style={{ left: "36%", top: "24%", animationDelay: "2.8s" }} />
+      <span className="ka-header-sparkle" style={{ left: "28%", top: "34%", animationDelay: "1.6s", animationDuration: "7s" }} />
+      <span className="ka-header-sparkle" style={{ left: "54%", top: "64%", animationDelay: "3.1s", animationDuration: "6.8s" }} />
+      <span className="ka-header-sparkle" style={{ left: "78%", top: "32%", animationDelay: "2.2s", animationDuration: "7.6s" }} />
+      <span className="ka-header-glint" style={{ left: "40%", top: "24%", animationDelay: "2.8s" }} />
     </div>
   );
+}
+
+function normalizeSearchKey(value: string | undefined) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function getSearchHref(value: string) {
+  const queryKey = normalizeSearchKey(value);
+  if (queryKey.length < 3) return `/produtos?q=${encodeURIComponent(value)}`;
+
+  const categories = groups.flatMap((group) => group.categories);
+  const matchedCategory = categories.find((category) => {
+    const terms = [
+      category.name,
+      category.publicName,
+      category.slug,
+      getPublicCategoryName(category),
+    ].map(normalizeSearchKey).filter(Boolean);
+
+    return terms.some((term) => term.includes(queryKey) || queryKey.includes(term));
+  });
+
+  return matchedCategory
+    ? `/categoria/${matchedCategory.slug}`
+    : `/produtos?q=${encodeURIComponent(value)}`;
 }
 
 function SearchIcon({ className }: { className?: string }) {

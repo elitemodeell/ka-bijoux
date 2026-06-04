@@ -225,9 +225,6 @@ export default function KABijouxStories() {
   );
   const activeGroup = activeStoryGroup;
   const activeItem = activeGroup?.items[activeItemIndex] ?? null;
-  const allStoriesSeen =
-    visibleGroups.length > 0 && visibleGroups.every((group) => seenIds.has(group.id));
-
   useEffect(() => {
     const stored = window.localStorage.getItem(seenStorageKey);
     if (stored) {
@@ -396,6 +393,18 @@ export default function KABijouxStories() {
         />
         <span
           className="ka-header-sparkle"
+          style={{ left: "24%", top: "70%", animationDelay: "2.3s", animationDuration: "7.1s" }}
+        />
+        <span
+          className="ka-header-glint"
+          style={{ left: "50%", top: "18%", animationDelay: "1.9s", animationDuration: "7.4s" }}
+        />
+        <span
+          className="ka-header-sparkle"
+          style={{ left: "67%", top: "74%", animationDelay: "4.2s", animationDuration: "6.9s" }}
+        />
+        <span
+          className="ka-header-sparkle"
           style={{ left: "83%", top: "38%", animationDelay: "3.4s", animationDuration: "7s" }}
         />
       </div>
@@ -408,13 +417,7 @@ export default function KABijouxStories() {
           className="group mx-auto block text-center outline-none disabled:cursor-default"
           aria-label="Abrir Stories KA Bijoux"
         >
-          <span
-            className={`mx-auto flex h-[178px] w-[178px] items-center justify-center rounded-full p-1.5 transition-transform duration-200 group-hover:scale-[1.02] sm:h-[210px] sm:w-[210px] ${
-              allStoriesSeen
-                ? "bg-gray-200"
-                : "bg-gradient-to-tr from-pink-500 via-fuchsia-500 to-orange-400 shadow-[0_18px_50px_rgba(236,72,153,0.22)]"
-            }`}
-          >
+          <span className="mx-auto flex h-[178px] w-[178px] items-center justify-center rounded-full bg-[conic-gradient(from_210deg,#ec4899,#d946ef,#fb7185,#fb923c,#ec4899)] p-1.5 shadow-[0_18px_50px_rgba(236,72,153,0.22)] transition-transform duration-200 group-hover:scale-[1.02] sm:h-[210px] sm:w-[210px]">
             <span className="flex h-full w-full items-center justify-center rounded-full border-[6px] border-white bg-white p-5 shadow-inner">
               <picture>
                 <source srcSet="/images/brand/ka-bijoux-logo-header-640.webp" type="image/webp" />
@@ -444,7 +447,6 @@ export default function KABijouxStories() {
                   </div>
                 ))
               : visibleGroups.map((group, index) => {
-                  const seen = seenIds.has(group.id);
                   const coverMedia = getStoryCoverMedia(group);
                   return (
                     <button
@@ -454,22 +456,12 @@ export default function KABijouxStories() {
                       className="group w-[74px] shrink-0 text-center outline-none"
                       aria-label={`Abrir story ${group.title}`}
                     >
-                      <span
-                        className={`mx-auto flex h-[68px] w-[68px] items-center justify-center rounded-full p-[3px] transition-transform duration-200 group-hover:scale-[1.04] ${
-                          seen
-                            ? "bg-gray-200"
-                            : "bg-gradient-to-tr from-pink-500 via-fuchsia-500 to-orange-400 shadow-[0_8px_24px_rgba(255,77,109,0.20)]"
-                          }`}
-                      >
+                      <span className="mx-auto flex h-[68px] w-[68px] items-center justify-center rounded-full bg-[conic-gradient(from_210deg,#ec4899,#d946ef,#fb7185,#fb923c,#ec4899)] p-[3px] shadow-[0_8px_24px_rgba(255,77,109,0.20)] transition-transform duration-200 group-hover:scale-[1.04]">
                         <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white">
                           <StoryCover media={coverMedia} title={group.title} />
                         </span>
                       </span>
-                      <span
-                        className={`mt-2 block truncate text-[11px] font-semibold leading-tight ${
-                          seen ? "text-gray-400" : "text-gray-700"
-                        }`}
-                      >
+                      <span className="mt-2 block truncate text-[11px] font-semibold leading-tight text-gray-700">
                         {group.title}
                       </span>
                     </button>

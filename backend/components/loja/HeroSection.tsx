@@ -2,15 +2,15 @@ import Link from "next/link";
 
 export default function HeroSection() {
   return (
-    <section className="bg-white px-4 pb-16 pt-8 sm:pt-10 md:pb-20">
-      <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[28px] border border-pink-100 bg-pink-50 shadow-[0_22px_70px_rgba(236,72,153,0.12)]">
+    <section className="bg-white pb-12 pt-4 sm:px-4 sm:pt-8 md:pb-20">
+      <div className="relative mx-auto max-w-7xl overflow-hidden bg-pink-50 shadow-[0_18px_55px_rgba(236,72,153,0.10)] sm:rounded-[28px] sm:border sm:border-pink-100">
         <img
           src="/images/home/ka-bijoux-hero-banner.jpg"
           alt=""
           className="absolute inset-0 h-full w-full object-cover object-center"
           aria-hidden="true"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/88 via-white/62 to-pink-50/34 md:bg-gradient-to-r md:from-white/86 md:via-white/58 md:to-white/20" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/64 to-pink-50/28 md:bg-gradient-to-r md:from-white/84 md:via-white/56 md:to-white/18" />
 
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
           <span
@@ -23,8 +23,8 @@ export default function HeroSection() {
           />
         </div>
 
-        <div className="relative z-10 mx-auto flex min-h-[520px] max-w-3xl flex-col items-center justify-center px-6 py-16 text-center sm:min-h-[560px] sm:px-8 md:min-h-[540px] md:py-20">
-          <h1 className="font-playfair text-5xl font-bold leading-[1.02] text-gray-900 sm:text-6xl md:text-7xl lg:text-8xl">
+        <div className="relative z-10 mx-auto flex min-h-[500px] max-w-3xl flex-col items-center justify-center px-5 py-14 text-center sm:min-h-[560px] sm:px-8 md:min-h-[540px] md:py-20">
+          <h1 className="font-playfair text-5xl font-bold leading-[1.02] text-gray-950 drop-shadow-[0_10px_24px_rgba(255,255,255,0.58)] sm:text-6xl md:text-7xl lg:text-8xl">
             Sua beleza,
             <br />
             <span className="ka-gradient-text">nossa paixão</span>

@@ -41,7 +41,7 @@ export default function VideoSection() {
               href="/produtos"
               className="ka-btn inline-flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-pink-400 text-white font-semibold px-7 py-3.5 rounded-2xl"
             >
-              Explorar coleção →
+              Ver coleção →
             </a>
           </AnimatedSection>
 

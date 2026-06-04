@@ -16,7 +16,7 @@ export default function ProdutosPage({
   return (
     <ProductListingPage
       title="Produtos KA Bijoux"
-      description="Explore todas as categorias da loja, filtre pelos precos unicos e abra a compra rapida sem sair da pagina."
+      description="Veja todas as categorias da loja, filtre pelos precos unicos e abra a compra rapida sem sair da pagina."
       basePath="/produtos"
       searchParams={searchParams}
     />

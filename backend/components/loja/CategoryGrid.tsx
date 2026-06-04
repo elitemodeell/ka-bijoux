@@ -2,27 +2,36 @@ import Link from "next/link";
 import { getHomeCategories, getPublicCategoryName } from "@/lib/catalog";
 import AnimatedSection from "./AnimatedSection";
 
-const accentColors = ["#FFF0F5", "#FFF5F0", "#F5F0FF", "#F0F5FF", "#F0FFF5", "#FFF0F8"];
-
 export default function CategoryGrid() {
   const categories = getHomeCategories();
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-7">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {categories.map((cat, i) => (
         <AnimatedSection key={cat.slug} delay={i * 80}>
           <Link
             href={`/categoria/${cat.slug}`}
-            className="ka-category-card group flex h-full flex-col items-center rounded-2xl border border-gray-100 bg-white p-5 text-center shadow-card hover:shadow-glow-lg"
+            className="ka-category-card group flex h-full min-h-[214px] flex-col overflow-hidden rounded-[22px] border border-pink-50 bg-white text-left shadow-[0_12px_34px_rgba(236,72,153,0.08)] hover:shadow-glow-lg"
           >
-            <div
-              className="mb-3 flex h-14 w-14 items-center justify-center rounded-xl text-sm font-black text-pink-500 transition-transform duration-300 group-hover:scale-110"
-              style={{ backgroundColor: accentColors[i % accentColors.length] }}
-            >
-              {cat.icon}
+            <div className="relative aspect-[1.08] overflow-hidden bg-pink-50">
+              {cat.image ? (
+                <img
+                  src={cat.image}
+                  alt={getPublicCategoryName(cat)}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-pink-50 to-white text-sm font-black text-pink-500">
+                  {cat.icon}
+                </div>
+              )}
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-pink-950/18 via-transparent to-white/8" />
             </div>
-            <p className="mb-0.5 text-sm font-semibold text-gray-800">{getPublicCategoryName(cat)}</p>
-            <p className="line-clamp-2 text-xs text-gray-400">{cat.description}</p>
+            <div className="flex flex-1 flex-col px-3.5 py-3">
+              <p className="text-sm font-bold leading-snug text-gray-900">{getPublicCategoryName(cat)}</p>
+              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-500">{cat.description}</p>
+            </div>
           </Link>
         </AnimatedSection>
       ))}
@@ -30,13 +39,21 @@ export default function CategoryGrid() {
       <AnimatedSection delay={categories.length * 80}>
         <Link
           href="/produtos"
-          className="ka-category-card group flex h-full flex-col items-center rounded-2xl border border-pink-100 bg-pink-50 p-5 text-center shadow-card hover:shadow-glow-lg"
+          className="ka-category-card group flex h-full min-h-[214px] flex-col overflow-hidden rounded-[22px] border border-pink-100 bg-pink-50 text-left shadow-[0_12px_34px_rgba(236,72,153,0.10)] hover:shadow-glow-lg"
         >
-          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-white text-sm font-black text-pink-500 transition-transform duration-300 group-hover:scale-110">
-            ALL
+          <div className="relative aspect-[1.08] overflow-hidden bg-pink-100">
+            <img
+              src="/images/home/ka-bijoux-hero-banner.jpg"
+              alt=""
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+              loading="lazy"
+            />
+            <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-pink-600/35 via-pink-200/10 to-white/30" />
           </div>
-          <p className="mb-0.5 text-sm font-semibold text-gray-800">Ver todas</p>
-          <p className="text-xs text-gray-400">Todas as categorias da KA</p>
+          <div className="flex flex-1 flex-col px-3.5 py-3">
+            <p className="text-sm font-bold leading-snug text-gray-900">Ver todas</p>
+            <p className="mt-1 text-xs leading-relaxed text-gray-500">Todas as categorias da KA</p>
+          </div>
         </Link>
       </AnimatedSection>
     </div>

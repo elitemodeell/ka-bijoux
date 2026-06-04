@@ -359,9 +359,9 @@ export default function QuickShopModal() {
             <div className="rounded-[24px] bg-[#1A0A0F] px-5 py-5 text-white">
               <p className="text-sm font-bold">Siga a KA Bijoux</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {["Instagram", "WhatsApp", "Facebook", "TikTok"].map((social) => (
-                  <a key={social} href={social === "WhatsApp" ? `https://wa.me/${WA_NUMBER}` : "#"} className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white/85 transition-colors hover:bg-pink-500">
-                    {social}
+                {[{ label: "WhatsApp", href: `https://wa.me/${WA_NUMBER}` }].map((social) => (
+                  <a key={social.label} href={social.href} target="_blank" rel="noopener noreferrer" className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white/85 transition-colors hover:bg-pink-500">
+                    {social.label}
                   </a>
                 ))}
               </div>

@@ -148,12 +148,9 @@ export default async function HomePage() {
       <HeroSection />
 
       {/* ── Categorias ────────────────────────────────────── */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <AnimatedSection className="text-center mb-12">
-            <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-3 block">
-              Explore
-            </span>
+      <section className="bg-white py-12 sm:py-16 md:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <AnimatedSection className="mb-8 text-center sm:mb-12">
             <h2 className="font-playfair text-4xl font-bold text-gray-900 mb-4">
               O que você procura?
             </h2>
@@ -207,24 +204,24 @@ export default async function HomePage() {
             <div className="flex items-center gap-3 text-center sm:text-left">
               <span className="text-3xl">🎁</span>
               <div>
-                <p className="font-bold text-lg">Frete Grátis</p>
-                <p className="text-white/80 text-sm">Em pedidos acima de R$ 150,00</p>
+                <p className="font-bold text-lg">Envio e retirada</p>
+                <p className="text-white/80 text-sm">Escolha a melhor forma na finalização</p>
               </div>
             </div>
             <div className="h-px sm:h-10 w-full sm:w-px bg-white/20" />
             <div className="flex items-center gap-3 text-center sm:text-left">
               <span className="text-3xl">💳</span>
               <div>
-                <p className="font-bold text-lg">5% no Pix</p>
-                <p className="text-white/80 text-sm">Desconto na hora</p>
+                <p className="font-bold text-lg">Pix e cartão</p>
+                <p className="text-white/80 text-sm">Formas de pagamento disponíveis</p>
               </div>
             </div>
             <div className="h-px sm:h-10 w-full sm:w-px bg-white/20" />
             <div className="flex items-center gap-3 text-center sm:text-left">
               <span className="text-3xl">🚀</span>
               <div>
-                <p className="font-bold text-lg">Envio Rápido</p>
-                <p className="text-white/80 text-sm">Para todo o Brasil</p>
+                <p className="font-bold text-lg">Compra segura</p>
+                <p className="text-white/80 text-sm">Pedido acompanhado com cuidado</p>
               </div>
             </div>
             <Link
@@ -395,14 +392,14 @@ export default async function HomePage() {
               <span className="ka-gradient-text">ainda mais linda?</span>
             </h2>
             <p className="text-gray-400 text-lg mb-10">
-              Explore nossa coleção completa e encontre o acessório perfeito para cada momento.
+              Veja nossa coleção completa e encontre o acessório perfeito para cada momento.
             </p>
             <div className="flex items-center justify-center">
               <Link
                 href="/produtos"
                 className="ka-btn ka-pulse-glow bg-gradient-to-r from-pink-500 to-pink-400 text-white font-bold px-10 py-4 rounded-2xl text-base"
               >
-                Explorar Tudo ✨
+                Ver coleção ✨
               </Link>
             </div>
           </AnimatedSection>

@@ -42,13 +42,14 @@ export default async function ProductListingPage({
   const selectedPrice = getParam(searchParams.price);
   const sort = getParam(searchParams.sort) ?? "createdAt";
   const promo = getParam(searchParams.promo) === "true";
+  const onlyNew = getParam(searchParams.new) === "true";
   const query = getParam(searchParams.q);
   const category = categorySlug ? getCategoryBySlug(categorySlug) : null;
 
-  const liveProducts = await getLiveProducts({ categorySlug, subcategorySlug, selectedPrice, sort, promo, query });
+  const liveProducts = await getLiveProducts({ categorySlug, subcategorySlug, selectedPrice, sort, promo, onlyNew, query });
   const products = liveProducts.length > 0
     ? liveProducts
-    : getMockProducts({ categorySlug, subcategorySlug, selectedPrice, promo, query });
+    : getMockProducts({ categorySlug, subcategorySlug, selectedPrice, promo, onlyNew, query });
 
   return (
     <section className="bg-white pt-28 md:pt-28">
@@ -67,7 +68,7 @@ export default async function ProductListingPage({
         <div className="mt-6 grid gap-4 lg:grid-cols-[260px_1fr]">
           <aside className="space-y-4">
             <FilterPanel title="Preços únicos">
-              <FilterLink href={buildHref(basePath, searchParams, { price: undefined, promo: undefined })} active={!selectedPrice && !promo}>
+              <FilterLink href={buildHref(basePath, searchParams, { price: undefined, promo: undefined, new: undefined })} active={!selectedPrice && !promo && !onlyNew}>
                 Todos
               </FilterLink>
               {PRICE_PRESETS.map((price) => (
@@ -75,8 +76,11 @@ export default async function ProductListingPage({
                   R${price}
                 </FilterLink>
               ))}
-              <FilterLink href={buildHref(basePath, searchParams, { promo: "true", price: undefined })} active={promo}>
+              <FilterLink href={buildHref(basePath, searchParams, { promo: "true", price: undefined, new: undefined })} active={promo}>
                 Promoções
+              </FilterLink>
+              <FilterLink href={buildHref(basePath, searchParams, { new: "true", price: undefined, promo: undefined })} active={onlyNew}>
+                Novidades
               </FilterLink>
             </FilterPanel>
 
@@ -97,7 +101,7 @@ export default async function ProductListingPage({
               </FilterPanel>
             ) : (
               <FilterPanel title="Categorias">
-                {CATALOG_CATEGORIES.slice(0, 8).map((item) => (
+                {CATALOG_CATEGORIES.map((item) => (
                   <FilterLink key={item.slug} href={`/categoria/${item.slug}`} active={categorySlug === item.slug}>
                     {getPublicCategoryName(item)}
                   </FilterLink>
@@ -176,6 +180,7 @@ async function getLiveProducts({
   selectedPrice,
   sort,
   promo,
+  onlyNew,
   query,
 }: {
   categorySlug?: string;
@@ -183,6 +188,7 @@ async function getLiveProducts({
   selectedPrice?: string;
   sort: string;
   promo: boolean;
+  onlyNew: boolean;
   query?: string;
 }) {
   try {
@@ -195,11 +201,15 @@ async function getLiveProducts({
         if (subcategorySlug) where.subcategory = { slug: subcategorySlug };
         if (selectedPrice) where.price = { equals: Number(selectedPrice) };
         if (promo) where.promotionalPrice = { not: null };
+        if (onlyNew) where.isNew = true;
         if (query) {
+          const searchMatches = getSearchMatches(query);
           where.OR = [
             { name: { contains: query, mode: "insensitive" } },
             { description: { contains: query, mode: "insensitive" } },
             { sku: { contains: query, mode: "insensitive" } },
+            ...searchMatches.categorySlugs.map((slug) => ({ category: { slug } })),
+            ...searchMatches.subcategorySlugs.map((slug) => ({ subcategory: { slug } })),
           ];
         }
 
@@ -246,27 +256,104 @@ function getMockProducts({
   subcategorySlug,
   selectedPrice,
   promo,
+  onlyNew,
   query,
 }: {
   categorySlug?: string;
   subcategorySlug?: string;
   selectedPrice?: string;
   promo: boolean;
+  onlyNew: boolean;
   query?: string;
 }) {
   if (promo) return [];
+
+  const searchMatches = getSearchMatches(query);
 
   return MOCK_PRODUCTS.filter((product) => {
     if (categorySlug && product.category.slug !== categorySlug) return false;
     if (subcategorySlug && product.subcategory?.slug !== subcategorySlug) return false;
     if (selectedPrice && product.price !== Number(selectedPrice)) return false;
-    if (query && !product.name.toLowerCase().includes(query.toLowerCase())) return false;
+    if (onlyNew && product.badge !== "Novo") return false;
+    if (query && !matchesProductSearch(product, query, searchMatches)) return false;
     return true;
   });
 }
 
 function getParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function normalizeSearch(value: string | null | undefined) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function getSearchMatches(query?: string) {
+  const normalizedQuery = normalizeSearch(query);
+  if (!normalizedQuery) return { categorySlugs: [] as string[], subcategorySlugs: [] as string[] };
+
+  const categorySlugs: string[] = [];
+  const subcategorySlugs: string[] = [];
+
+  CATALOG_CATEGORIES.forEach((category) => {
+    const categoryTerms = [
+      category.name,
+      category.publicName,
+      category.slug,
+      category.description,
+      category.group,
+    ].map(normalizeSearch).filter(Boolean);
+
+    if (categoryTerms.some((term) => term.includes(normalizedQuery) || normalizedQuery.includes(term))) {
+      categorySlugs.push(category.slug);
+    }
+
+    category.subcategories?.forEach((subcategory) => {
+      const subcategoryTerms = [
+        subcategory.name,
+        subcategory.slug,
+        subcategory.pathSlug,
+        subcategory.description,
+      ].map(normalizeSearch).filter(Boolean);
+
+      if (subcategoryTerms.some((term) => term.includes(normalizedQuery) || normalizedQuery.includes(term))) {
+        subcategorySlugs.push(subcategory.slug);
+        categorySlugs.push(category.slug);
+      }
+    });
+  });
+
+  return {
+    categorySlugs: Array.from(new Set(categorySlugs)),
+    subcategorySlugs: Array.from(new Set(subcategorySlugs)),
+  };
+}
+
+function matchesProductSearch(
+  product: (typeof MOCK_PRODUCTS)[number],
+  query: string,
+  matches = getSearchMatches(query)
+) {
+  const normalizedQuery = normalizeSearch(query);
+  const fields = [
+    product.name,
+    product.description,
+    product.slug,
+    product.category.name,
+    product.category.slug,
+    product.subcategory?.name,
+    product.subcategory?.slug,
+  ].map(normalizeSearch);
+
+  return (
+    fields.some((field) => field.includes(normalizedQuery)) ||
+    matches.categorySlugs.includes(product.category.slug) ||
+    Boolean(product.subcategory?.slug && matches.subcategorySlugs.includes(product.subcategory.slug))
+  );
 }
 
 function buildHref(basePath: string, current: SearchParams, updates: Record<string, string | undefined>) {
