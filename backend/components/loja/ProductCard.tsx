@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent } from "react";
+import { addCartItem } from "@/lib/client-cart";
 
 type ProductMedia = { url: string; alt?: string | null };
 
@@ -29,6 +31,7 @@ interface Props {
 export default function ProductCard({ product, revealDelay = 0 }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [imgError, setImgError] = useState(false);
+  const [cartAdded, setCartAdded] = useState(false);
   const normalized = useMemo(() => normalizeProduct(product), [product]);
   const { name, price, promo, badge, image } = normalized;
 
@@ -66,31 +69,40 @@ export default function ProductCard({ product, revealDelay = 0 }: Props) {
     window.dispatchEvent(new CustomEvent("ka:quick-shop", { detail: normalized }));
   }
 
+  function handleAddToCart(event?: MouseEvent<HTMLButtonElement>) {
+    event?.stopPropagation();
+    addCartItem(normalized, 1);
+    setCartAdded(true);
+    window.setTimeout(() => setCartAdded(false), 1500);
+  }
+
   return (
     <div
       ref={cardRef}
       className="ka-product-card ka-product-reveal group flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-card"
     >
-      <button
-        type="button"
-        onClick={openQuickShop}
-        className="ka-zoom relative block aspect-square overflow-hidden bg-[#FFF5F7] text-left"
-        aria-label={`Comprar ${name}`}
-      >
-        {image && !imgError ? (
-          <img
-            src={image}
-            alt={name}
-            className="ka-product-img h-full w-full object-cover"
-            onError={() => setImgError(true)}
-            loading="lazy"
-          />
-        ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-pink-100">
-            <span className="mb-2 text-4xl text-pink-300">KA</span>
-            <span className="text-xs font-medium text-pink-300">KA Bijoux</span>
-          </div>
-        )}
+      <div className="ka-zoom relative aspect-square overflow-hidden bg-[#FFF5F7]">
+        <button
+          type="button"
+          onClick={openQuickShop}
+          className="block h-full w-full text-left"
+          aria-label={`Abrir compra rapida de ${name}`}
+        >
+          {image && !imgError ? (
+            <img
+              src={image}
+              alt={name}
+              className="ka-product-img h-full w-full object-cover"
+              onError={() => setImgError(true)}
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-pink-100">
+              <span className="mb-2 text-4xl text-pink-300">KA</span>
+              <span className="text-xs font-medium text-pink-300">KA Bijoux</span>
+            </div>
+          )}
+        </button>
 
         <div className="absolute left-2.5 top-2.5 flex flex-col gap-1.5">
           {badge && (
@@ -105,12 +117,29 @@ export default function ProductCard({ product, revealDelay = 0 }: Props) {
           )}
         </div>
 
-        <div className="absolute inset-0 flex items-end justify-center bg-black/0 pb-4 opacity-0 transition-all duration-300 group-hover:bg-black/5 group-hover:opacity-100">
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          className={`absolute right-2.5 top-2.5 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/80 bg-white/92 text-pink-500 shadow-[0_10px_26px_rgba(236,72,153,0.22)] backdrop-blur transition-all hover:scale-105 hover:bg-pink-500 hover:text-white ${
+            cartAdded ? "bg-pink-500 text-white" : ""
+          }`}
+          aria-label={`Adicionar ${name} ao carrinho`}
+          title="Adicionar ao carrinho"
+        >
+          {cartAdded ? <CheckIcon /> : <CartIcon />}
+        </button>
+
+        <button
+          type="button"
+          onClick={openQuickShop}
+          className="absolute inset-0 flex items-end justify-center bg-black/0 pb-4 opacity-0 transition-all duration-300 group-hover:bg-black/5 group-hover:opacity-100"
+          aria-label={`Comprar ${name}`}
+        >
           <span className="rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-gray-700 shadow-sm backdrop-blur-sm">
             Compra rapida
           </span>
-        </div>
-      </button>
+        </button>
+      </div>
 
       <div className="flex flex-1 flex-col p-4">
         <button type="button" onClick={openQuickShop} className="text-left">
@@ -131,14 +160,26 @@ export default function ProductCard({ product, revealDelay = 0 }: Props) {
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={openQuickShop}
-            className="ka-btn ka-pulse-glow flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-pink-400 py-2.5 text-sm font-semibold text-white"
-          >
-            <CartIcon />
-            Comprar
-          </button>
+          <div className="grid grid-cols-[1fr_42px] gap-2">
+            <button
+              type="button"
+              onClick={openQuickShop}
+              className="ka-btn ka-pulse-glow flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-pink-500 to-pink-400 py-2.5 text-sm font-semibold text-white"
+            >
+              Comprar
+            </button>
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              className={`flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-pink-100 bg-pink-50 text-pink-500 transition-colors hover:bg-pink-500 hover:text-white ${
+                cartAdded ? "bg-pink-500 text-white" : ""
+              }`}
+              aria-label={`Adicionar ${name} ao carrinho`}
+              title="Adicionar ao carrinho"
+            >
+              {cartAdded ? <CheckIcon /> : <CartIcon />}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -171,6 +212,14 @@ function CartIcon() {
       <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
       <line x1="3" y1="6" x2="21" y2="6" />
       <path d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m20 6-11 11-5-5" />
     </svg>
   );
 }

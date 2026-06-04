@@ -14,6 +14,14 @@ const storyHighlightCovers = {
   ofertas: "/images/stories/highlights/ofertas.jpg",
 } as const;
 const storyHighlightCoverEntries = Object.entries(storyHighlightCovers);
+const storyHeroSlides = [
+  { src: "/images/home/ka-bijoux-hero-banner.jpg", alt: "Acessorios femininos KA Bijoux" },
+  { src: "/images/categories/bijuterias.jpg", alt: "Bijuterias delicadas" },
+  { src: "/images/categories/capinhas-acessorios-celular.jpg", alt: "Capinhas estilosas" },
+  { src: "/images/categories/oculos.jpg", alt: "Oculos de sol" },
+  { src: "/images/categories/bolsas-necessaires.jpg", alt: "Bolsas e necessaires" },
+  { src: "/images/stories/highlights/novidades.jpg", alt: "Novidades KA Bijoux" },
+];
 
 const fallbackGroups: StoryGroup[] = [
   {
@@ -410,32 +418,10 @@ export default function KABijouxStories() {
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 pb-6 pt-4 text-center sm:pb-8 sm:pt-6">
-        <button
-          type="button"
-          onClick={openAllStories}
+        <StoryHeroMotionBanner
           disabled={loading || allStoriesItems.length === 0}
-          className="group mx-auto block text-center outline-none disabled:cursor-default"
-          aria-label="Abrir Stories KA Bijoux"
-        >
-          <span className="mx-auto flex h-[178px] w-[178px] items-center justify-center rounded-full bg-[conic-gradient(from_210deg,#ec4899,#d946ef,#fb7185,#fb923c,#ec4899)] p-1.5 shadow-[0_18px_50px_rgba(236,72,153,0.22)] transition-transform duration-200 group-hover:scale-[1.02] sm:h-[210px] sm:w-[210px]">
-            <span className="flex h-full w-full items-center justify-center rounded-full border-[6px] border-white bg-white p-5 shadow-inner">
-              <picture>
-                <source srcSet="/images/brand/ka-bijoux-logo-header-640.webp" type="image/webp" />
-                <img
-                  src={storyHeaderLogo}
-                  alt="KA Bijoux"
-                  className="h-auto w-full max-w-[150px] object-contain sm:max-w-[178px]"
-                />
-              </picture>
-            </span>
-          </span>
-          <span className="mt-3 block text-sm font-semibold text-pink-500">
-            Ver Stories
-          </span>
-          <span className="mt-1 block text-xs font-medium text-gray-500">
-            Toque para ver nossas novidades
-          </span>
-        </button>
+          onOpen={openAllStories}
+        />
 
         <div className="mt-5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex min-w-max items-start gap-4 px-1 sm:justify-center sm:gap-6">
@@ -559,6 +545,61 @@ export default function KABijouxStories() {
         </div>
       )}
     </section>
+  );
+}
+
+function StoryHeroMotionBanner({ disabled, onOpen }: { disabled: boolean; onOpen: () => void }) {
+  const loopSlides = [...storyHeroSlides, ...storyHeroSlides];
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      disabled={disabled}
+      className="group relative mx-auto block h-[220px] w-full max-w-4xl overflow-hidden rounded-[30px] border border-pink-100 bg-pink-50 text-left shadow-[0_22px_70px_rgba(236,72,153,0.16)] outline-none transition-transform duration-300 hover:scale-[1.01] disabled:cursor-default sm:h-[260px]"
+      aria-label="Abrir Stories KA Bijoux"
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-pink-50 via-white to-pink-100" />
+      <div className="ka-story-hero-track absolute inset-y-0 left-0 flex min-w-max gap-3 p-3" aria-hidden="true">
+        {loopSlides.map((slide, index) => (
+          <span
+            key={`${slide.src}-${index}`}
+            className="relative h-full w-[150px] overflow-hidden rounded-[22px] bg-white shadow-[0_14px_35px_rgba(236,72,153,0.12)] sm:w-[205px]"
+          >
+            <img
+              src={slide.src}
+              alt=""
+              loading="lazy"
+              className="h-full w-full object-cover"
+            />
+            <span className="absolute inset-0 bg-gradient-to-t from-pink-950/18 via-transparent to-white/10" />
+          </span>
+        ))}
+      </div>
+
+      <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/74 to-pink-100/35" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_22%,rgba(255,255,255,0.72),transparent_30%),radial-gradient(circle_at_20%_80%,rgba(236,72,153,0.18),transparent_28%)]" />
+
+      <div className="relative z-10 flex h-full flex-col justify-center px-5 py-6 text-center sm:px-10">
+        <picture className="mx-auto">
+          <source srcSet="/images/brand/ka-bijoux-logo-header-640.webp" type="image/webp" />
+          <img
+            src={storyHeaderLogo}
+            alt="KA Bijoux"
+            className="mx-auto h-auto w-[118px] object-contain sm:w-[150px]"
+          />
+        </picture>
+        <span className="mt-4 block font-playfair text-3xl font-bold leading-tight text-gray-950 sm:text-4xl">
+          Sua beleza em movimento
+        </span>
+        <span className="mx-auto mt-2 block max-w-md text-sm leading-relaxed text-gray-600">
+          Bijuterias, capinhas, oculos e acessorios femininos com o brilho da KA.
+        </span>
+        <span className="mx-auto mt-4 inline-flex rounded-full bg-pink-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(236,72,153,0.28)]">
+          Ver Stories
+        </span>
+      </div>
+    </button>
   );
 }
 

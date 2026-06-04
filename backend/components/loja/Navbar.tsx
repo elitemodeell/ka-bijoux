@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getCategoryGroups, getPublicCategoryName } from "@/lib/catalog";
+import { getCartCount, subscribeCart } from "@/lib/client-cart";
 
 const FEATURED_LINKS = [
   { label: "Início", href: "/" },
@@ -40,6 +41,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -53,6 +55,11 @@ export default function Navbar() {
       document.body.style.overflow = "";
     };
   }, [menuOpen]);
+
+  useEffect(() => {
+    setCartCount(getCartCount());
+    return subscribeCart((items) => setCartCount(getCartCount(items)));
+  }, []);
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -132,8 +139,13 @@ export default function Navbar() {
         </nav>
 
         <div className="relative z-20 flex shrink-0 items-center gap-0.5 self-center">
-          <Link href="/carrinho" className="rounded-xl p-2.5 transition-colors hover:bg-pink-50 group" aria-label="Carrinho">
+          <Link href="/carrinho" className="group relative rounded-xl p-2.5 transition-colors hover:bg-pink-50" aria-label={`Carrinho com ${cartCount} itens`}>
             <BagIcon className="h-[18px] w-[18px] text-gray-500 transition-colors group-hover:text-pink-500" />
+            {cartCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-black leading-none text-white shadow-[0_6px_14px_rgba(236,72,153,0.35)]">
+                {cartCount > 99 ? "99+" : cartCount}
+              </span>
+            )}
           </Link>
 
           <button

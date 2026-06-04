@@ -1,38 +1,34 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { MOCK_PRODUCTS } from "@/lib/catalog";
+import { addCartItem, normalizeCartProduct, type ClientCartProduct } from "@/lib/client-cart";
 
-const WA_NUMBER = "5537999999999";
-
-type QuickShopProduct = {
-  id: string;
-  name: string;
-  description?: string | null;
-  price: number;
-  promo?: number | null;
-  image?: string | null;
-  images?: Array<{ url: string; alt?: string | null }>;
-  stock?: number;
-  sku?: string | null;
-  category?: { name: string; slug?: string } | null;
-  subcategory?: { name: string; slug?: string } | null;
+type QuickShopProduct = ClientCartProduct & {
+  badge?: string | null;
+  slug?: string;
 };
 
-type SelectedTogether = {
-  current: boolean;
-  recommended: boolean;
-  extra: boolean;
+type TogetherKey = "current" | "recommended" | "extra";
+
+type SelectedTogether = Record<TogetherKey, boolean>;
+
+type TogetherItem = {
+  key: TogetherKey;
+  product: QuickShopProduct;
+  locked: boolean;
 };
 
 export default function QuickShopModal() {
+  const router = useRouter();
   const [product, setProduct] = useState<QuickShopProduct | null>(null);
   const [activeMedia, setActiveMedia] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [zoomed, setZoomed] = useState(false);
   const [message, setMessage] = useState("");
-  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [comboPreview, setComboPreview] = useState<QuickShopProduct | null>(null);
   const [selectedTogether, setSelectedTogether] = useState<SelectedTogether>({
     current: true,
     recommended: true,
@@ -42,12 +38,13 @@ export default function QuickShopModal() {
   useEffect(() => {
     function open(event: Event) {
       const detail = (event as CustomEvent<QuickShopProduct>).detail;
-      setProduct(detail);
+      setProduct(normalizeCartProduct(detail));
       setActiveMedia(0);
       setQuantity(1);
       setZoomed(false);
       setMessage("");
-      setSummaryOpen(false);
+      setDetailsOpen(false);
+      setComboPreview(null);
       setSelectedTogether({ current: true, recommended: true, extra: false });
     }
 
@@ -62,7 +59,13 @@ export default function QuickShopModal() {
     document.body.style.overflow = "hidden";
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") close();
+      if (event.key === "Escape") {
+        if (comboPreview) {
+          setComboPreview(null);
+          return;
+        }
+        close();
+      }
     }
 
     window.addEventListener("keydown", onKeyDown);
@@ -70,82 +73,106 @@ export default function QuickShopModal() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [product]);
+  }, [comboPreview, product]);
 
   const recommendations = useMemo(() => {
     if (!product) return [];
-    return MOCK_PRODUCTS.filter((item) => item.id !== product.id).slice(0, 2).map((item) => ({
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      image: item.image,
-    }));
+
+    return MOCK_PRODUCTS.filter((item) => item.id !== product.id)
+      .slice(0, 2)
+      .map((item) => normalizeCartProduct(item));
   }, [product]);
 
   if (!product) return null;
 
-  const price = product.promo ?? product.price;
+  const price = getUnitPrice(product);
   const gallery = getGallery(product);
   const currentMedia = gallery[activeMedia] ?? gallery[0];
-  const availableStock = product.stock ?? 1;
-  const togetherItems = [
-    { key: "current" as const, name: product.name, price, image: product.image, locked: true },
+  const availableStock = product.stock ?? 99;
+  const togetherItems: TogetherItem[] = [
+    { key: "current", product, locked: true },
     {
-      key: "recommended" as const,
-      name: recommendations[0]?.name ?? "Brinco delicado",
-      price: recommendations[0]?.price ?? 12,
-      image: recommendations[0]?.image,
+      key: "recommended",
+      product:
+        recommendations[0] ??
+        normalizeCartProduct({
+          id: "mock-brinco-delicado-extra",
+          name: "Brinco delicado",
+          description: "Brinco feminino leve para combinar com o look.",
+          price: 12,
+          image: "/imagens/foto-03.jpeg",
+          category: { name: "Bijuterias", slug: "bijuterias" },
+        }),
       locked: false,
     },
     {
-      key: "extra" as const,
-      name: recommendations[1]?.name ?? "Necessaire rosa",
-      price: recommendations[1]?.price ?? 48,
-      image: recommendations[1]?.image,
+      key: "extra",
+      product:
+        recommendations[1] ??
+        normalizeCartProduct({
+          id: "mock-necessaire-rosa-extra",
+          name: "Necessaire rosa",
+          description: "Necessaire pratica para organizar acessorios femininos.",
+          price: 48,
+          image: "/imagens/foto-05.jpeg",
+          category: { name: "Bolsas e Necessaires", slug: "bolsas-necessaires" },
+        }),
       locked: false,
     },
   ];
   const togetherTotal = togetherItems.reduce((sum, item) => {
-    return selectedTogether[item.key] ? sum + item.price : sum;
+    if (!selectedTogether[item.key]) return sum;
+    return sum + getUnitPrice(item.product) * getTogetherQuantity(item.key, quantity);
   }, 0);
-  const whatsappHref = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(
-    `Olá! Tenho interesse neste produto: ${product.name} - ${formatCurrency(price)}`
-  )}`;
 
   function close() {
     setProduct(null);
+    setComboPreview(null);
   }
 
   function updateQuantity(next: number) {
     setQuantity(Math.max(1, Math.min(next, Math.max(availableStock, 1))));
   }
 
-  async function addCurrentToCart(action: "cart" | "buy") {
+  function addCurrentToCart(action: "cart" | "buy") {
     if (!product) return;
-    const added = await tryAddToCart(product.id, quantity);
-    setMessage(
-      added
-        ? "Produto adicionado ao carrinho."
-        : "Produto separado para compra rápida. Finalize pelo WhatsApp ou faça login para usar o carrinho."
-    );
-    if (action === "buy") setSummaryOpen(true);
+
+    addCartItem(product, quantity);
+
+    if (action === "buy") {
+      close();
+      router.push("/carrinho");
+      return;
+    }
+
+    setMessage("Produto adicionado ao carrinho.");
   }
 
-  async function buyTogether() {
-    if (!product) return;
-    if (selectedTogether.current) await tryAddToCart(product.id, quantity);
-    setMessage("Seleção de produtos preparada. Confira o total e finalize pelo WhatsApp.");
-    setSummaryOpen(true);
+  function buyTogether() {
+    togetherItems.forEach((item) => {
+      if (selectedTogether[item.key]) {
+        addCartItem(item.product, getTogetherQuantity(item.key, quantity));
+      }
+    });
+
+    close();
+    router.push("/carrinho");
+  }
+
+  function addPreviewToCart(previewProduct: QuickShopProduct) {
+    addCartItem(previewProduct, 1);
+    setComboPreview(null);
+    setMessage("Produto do combo adicionado ao carrinho.");
   }
 
   return (
     <div className="fixed inset-0 z-[95] bg-black/45 backdrop-blur-sm md:flex md:justify-end" role="dialog" aria-modal="true">
-      <button type="button" className="absolute inset-0 hidden cursor-default md:block" aria-label="Fechar compra rápida" onClick={close} />
+      <button type="button" className="absolute inset-0 hidden cursor-default md:block" aria-label="Fechar compra rapida" onClick={close} />
 
       <div className="relative flex h-full w-full flex-col overflow-hidden bg-white shadow-2xl md:max-w-5xl md:rounded-l-[28px]">
         <div className="flex items-center justify-between border-b border-pink-50 px-4 py-3 md:px-6">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-pink-400">Compra rápida</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-pink-400">Compra rapida</p>
             <p className="text-sm font-semibold text-gray-900">KA Bijoux</p>
           </div>
           <button
@@ -196,6 +223,7 @@ export default function QuickShopModal() {
                       className={`h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 ${
                         activeMedia === index ? "border-pink-500" : "border-pink-100"
                       }`}
+                      aria-label={`Ver midia ${index + 1}`}
                     >
                       {isVideo(item.url) ? (
                         <span className="flex h-full w-full items-center justify-center bg-[#1A0A0F] text-[10px] font-bold text-white">
@@ -217,10 +245,6 @@ export default function QuickShopModal() {
                   {product.subcategory?.name ? ` / ${product.subcategory.name}` : ""}
                 </p>
                 <h2 className="mt-1 text-2xl font-bold leading-tight text-gray-950">{product.name}</h2>
-                <div className="mt-2 flex items-center gap-2 text-sm text-yellow-400">
-                  <span>★★★★★</span>
-                  <span className="text-xs font-medium text-gray-400">(12 avaliações)</span>
-                </div>
               </div>
 
               <div className="flex items-end gap-2">
@@ -230,19 +254,18 @@ export default function QuickShopModal() {
 
               <p className="text-sm leading-relaxed text-gray-600">{product.description}</p>
 
-              <div className="ka-free-shipping-card rounded-2xl border border-pink-100 bg-pink-50 px-4 py-3">
-                <p className="text-sm font-bold text-pink-600">Frete grátis acima de R$ 150</p>
-                <p className="mt-1 text-xs text-pink-500/80">Brilho especial para lembrar a melhor condição de entrega.</p>
+              <div className="rounded-2xl border border-pink-100 bg-pink-50 px-4 py-3">
+                <p className="text-sm font-bold text-pink-600">Envio para todo o Brasil</p>
+                <p className="mt-1 text-xs text-pink-500/80">As opcoes de entrega aparecem na finalizacao da compra.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                {[
-                  "Embalagem para presente",
-                  "Compra segura",
-                  "Pix e cartão",
-                  "Produto selecionado",
-                ].map((seal, index) => (
-                  <div key={seal} className="ka-trust-seal rounded-2xl border border-pink-50 bg-white px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm" style={{ animationDelay: `${index * 80}ms` }}>
+                {["Compra segura", "Produto selecionado", "Pix e cartao", "Carrinho atualizado"].map((seal, index) => (
+                  <div
+                    key={seal}
+                    className="ka-trust-seal rounded-2xl border border-pink-50 bg-white px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm"
+                    style={{ animationDelay: `${index * 80}ms` }}
+                  >
                     {seal}
                   </div>
                 ))}
@@ -254,9 +277,13 @@ export default function QuickShopModal() {
                   <p className="text-xs text-gray-400">{availableStock > 0 ? `${availableStock} em estoque` : "Consulte disponibilidade"}</p>
                 </div>
                 <div className="flex items-center rounded-full border border-pink-100 bg-pink-50 p-1">
-                  <button type="button" onClick={() => updateQuantity(quantity - 1)} className="h-8 w-8 rounded-full bg-white text-lg font-bold text-pink-500 shadow-sm">-</button>
+                  <button type="button" onClick={() => updateQuantity(quantity - 1)} className="h-8 w-8 rounded-full bg-white text-lg font-bold text-pink-500 shadow-sm" aria-label="Diminuir quantidade">
+                    -
+                  </button>
                   <span className="w-10 text-center text-sm font-bold text-gray-800">{quantity}</span>
-                  <button type="button" onClick={() => updateQuantity(quantity + 1)} className="h-8 w-8 rounded-full bg-pink-500 text-lg font-bold text-white shadow-sm">+</button>
+                  <button type="button" onClick={() => updateQuantity(quantity + 1)} className="h-8 w-8 rounded-full bg-pink-500 text-lg font-bold text-white shadow-sm" aria-label="Aumentar quantidade">
+                    +
+                  </button>
                 </div>
               </div>
 
@@ -275,15 +302,43 @@ export default function QuickShopModal() {
                 >
                   Adicionar ao carrinho
                 </button>
-                <a
-                  href={whatsappHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex w-full items-center justify-center rounded-2xl bg-green-500 py-3 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-green-400"
+                <button
+                  type="button"
+                  onClick={() => setDetailsOpen((current) => !current)}
+                  className="w-full rounded-2xl border border-gray-100 bg-gray-50 py-3 text-sm font-bold uppercase tracking-wide text-gray-700 transition-colors hover:bg-pink-50 hover:text-pink-500"
                 >
-                  Tirar dúvida no WhatsApp
-                </a>
+                  Ver detalhes do produto
+                </button>
               </div>
+
+              {detailsOpen && (
+                <div className="rounded-2xl border border-pink-100 bg-white px-4 py-4 text-sm text-gray-600 shadow-sm">
+                  <p className="font-bold text-gray-900">Detalhes do produto</p>
+                  <dl className="mt-3 space-y-2">
+                    <div className="flex justify-between gap-4">
+                      <dt>Categoria</dt>
+                      <dd className="text-right font-semibold text-gray-800">{product.category?.name ?? "KA Bijoux"}</dd>
+                    </div>
+                    {product.subcategory?.name && (
+                      <div className="flex justify-between gap-4">
+                        <dt>Linha</dt>
+                        <dd className="text-right font-semibold text-gray-800">{product.subcategory.name}</dd>
+                      </div>
+                    )}
+                    {product.sku && (
+                      <div className="flex justify-between gap-4">
+                        <dt>Codigo</dt>
+                        <dd className="text-right font-semibold text-gray-800">{product.sku}</dd>
+                      </div>
+                    )}
+                    <div className="flex justify-between gap-4">
+                      <dt>Disponibilidade</dt>
+                      <dd className="text-right font-semibold text-gray-800">{availableStock > 0 ? "Em estoque" : "Consulte"}</dd>
+                    </div>
+                  </dl>
+                  <p className="mt-3 leading-relaxed">{product.description}</p>
+                </div>
+              )}
 
               {message && (
                 <div className="rounded-2xl border border-pink-100 bg-pink-50 px-4 py-3 text-sm font-medium text-pink-600">
@@ -304,23 +359,33 @@ export default function QuickShopModal() {
 
             <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
               {togetherItems.map((item, index) => (
-                <div key={item.key} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
-                  <input
-                    type="checkbox"
-                    checked={selectedTogether[item.key]}
-                    disabled={item.locked}
-                    onChange={(event) => setSelectedTogether((current) => ({ ...current, [item.key]: event.target.checked }))}
-                    className="h-4 w-4 accent-pink-500"
-                  />
-                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-pink-50">
-                    {item.image ? <img src={item.image} alt="" className="h-full w-full object-cover" /> : null}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-gray-800">{item.name}</p>
-                    <p className="text-sm font-bold text-pink-500">{formatCurrency(item.price)}</p>
+                <Fragment key={item.key}>
+                  <div className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
+                    <input
+                      type="checkbox"
+                      checked={selectedTogether[item.key]}
+                      disabled={item.locked}
+                      onChange={(event) => setSelectedTogether((current) => ({ ...current, [item.key]: event.target.checked }))}
+                      className="h-4 w-4 shrink-0 accent-pink-500"
+                      aria-label={`Selecionar ${item.product.name}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setComboPreview(item.product)}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      aria-label={`Ver detalhes de ${item.product.name}`}
+                    >
+                      <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-pink-50">
+                        {item.product.image ? <img src={item.product.image} alt="" className="h-full w-full object-cover" /> : null}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-gray-800">{item.product.name}</p>
+                        <p className="text-sm font-bold text-pink-500">{formatCurrency(getUnitPrice(item.product))}</p>
+                      </div>
+                    </button>
                   </div>
                   {index < togetherItems.length - 1 && <span className="hidden text-xl font-black text-pink-300 md:block">+</span>}
-                </div>
+                </Fragment>
               ))}
             </div>
 
@@ -334,37 +399,12 @@ export default function QuickShopModal() {
             </div>
           </section>
 
-          {summaryOpen && (
-            <section className="mt-5 rounded-[24px] border border-pink-100 bg-white p-4 shadow-card">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-pink-400">Resumo do pedido</p>
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-bold text-gray-900">{product.name}</p>
-                  <p className="text-sm text-gray-500">Quantidade: {quantity}</p>
-                </div>
-                <p className="font-black text-pink-500">{formatCurrency(price * quantity)}</p>
-              </div>
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="flex-1 rounded-2xl bg-green-500 px-5 py-3 text-center text-sm font-bold text-white">
-                  Finalizar pelo WhatsApp
-                </a>
-                <Link href="/carrinho" className="flex-1 rounded-2xl border border-pink-200 px-5 py-3 text-center text-sm font-bold text-pink-500">
-                  Ir para carrinho
-                </Link>
-              </div>
-            </section>
-          )}
-
           <section className="mt-5 pb-28 md:pb-8">
             <div className="rounded-[24px] bg-[#1A0A0F] px-5 py-5 text-white">
-              <p className="text-sm font-bold">Siga a KA Bijoux</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {[{ label: "WhatsApp", href: `https://wa.me/${WA_NUMBER}` }].map((social) => (
-                  <a key={social.label} href={social.href} target="_blank" rel="noopener noreferrer" className="rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white/85 transition-colors hover:bg-pink-500">
-                    {social.label}
-                  </a>
-                ))}
-              </div>
+              <p className="text-sm font-bold">Compra pelo site</p>
+              <p className="mt-2 text-sm leading-relaxed text-white/70">
+                Adicione os produtos ao carrinho, revise quantidades e finalize a compra com Pix ou cartao.
+              </p>
             </div>
           </section>
         </div>
@@ -384,25 +424,69 @@ export default function QuickShopModal() {
             </button>
           </div>
         </div>
+
+        {comboPreview && <ComboPreview product={comboPreview} onAdd={addPreviewToCart} onBack={() => setComboPreview(null)} />}
       </div>
     </div>
   );
 }
 
-async function tryAddToCart(productId: string, quantity: number) {
-  if (productId.startsWith("mock-")) return false;
+function ComboPreview({
+  product,
+  onAdd,
+  onBack,
+}: {
+  product: QuickShopProduct;
+  onAdd: (product: QuickShopProduct) => void;
+  onBack: () => void;
+}) {
+  const image = getGallery(product)[0];
 
-  try {
-    const res = await fetch("/api/cart", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId, quantity }),
-    });
+  return (
+    <div className="fixed inset-0 z-[115] flex items-end bg-black/45 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4">
+      <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-[28px] bg-white p-5 shadow-2xl sm:max-w-md sm:rounded-[28px]">
+        <div className="aspect-square overflow-hidden rounded-[24px] bg-pink-50">
+          {isVideo(image.url) ? (
+            <video src={image.url} controls playsInline className="h-full w-full object-cover" />
+          ) : (
+            <img src={image.url} alt={image.alt ?? product.name} className="h-full w-full object-cover" />
+          )}
+        </div>
 
-    return res.ok;
-  } catch {
-    return false;
-  }
+        <div className="mt-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-400">{product.category?.name ?? "KA Bijoux"}</p>
+          <h3 className="mt-1 text-2xl font-black leading-tight text-gray-950">{product.name}</h3>
+          <p className="mt-2 text-2xl font-black text-pink-500">{formatCurrency(getUnitPrice(product))}</p>
+          <p className="mt-3 text-sm leading-relaxed text-gray-600">{product.description}</p>
+        </div>
+
+        <div className="mt-5 grid gap-2">
+          <button
+            type="button"
+            onClick={() => onAdd(product)}
+            className="rounded-2xl bg-gradient-to-r from-pink-600 to-pink-400 px-5 py-3 text-sm font-black uppercase tracking-wide text-white shadow-[0_14px_30px_rgba(255,77,109,0.26)]"
+          >
+            Adicionar ao carrinho
+          </button>
+          <button
+            type="button"
+            onClick={onBack}
+            className="rounded-2xl border border-pink-100 bg-white px-5 py-3 text-sm font-bold uppercase tracking-wide text-pink-500"
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getTogetherQuantity(key: TogetherKey, quantity: number) {
+  return key === "current" ? quantity : 1;
+}
+
+function getUnitPrice(product: QuickShopProduct) {
+  return product.promo ?? product.price;
 }
 
 function getGallery(product: QuickShopProduct) {
