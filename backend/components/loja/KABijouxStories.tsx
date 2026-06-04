@@ -6,12 +6,20 @@ import { DEFAULT_STORY_COVER, type StoryGroup, type StoryItem } from "@/types/st
 const seenStorageKey = "ka-bijoux-seen-stories";
 const storyLogo = "/images/brand/ka-bijoux-logo-story-icon.png";
 const storyHeaderLogo = "/images/brand/ka-bijoux-logo-header-640.png";
+const storyHighlightCovers = {
+  novidades: "/images/stories/highlights/novidades.jpg",
+  promocoes: "/images/stories/highlights/promocoes.jpg",
+  lancamentos: "/images/stories/highlights/lancamentos.jpg",
+  clientes: "/images/stories/highlights/clientes.jpg",
+  ofertas: "/images/stories/highlights/ofertas.jpg",
+} as const;
+const storyHighlightCoverEntries = Object.entries(storyHighlightCovers);
 
 const fallbackGroups: StoryGroup[] = [
   {
     id: "demo-novidades",
     title: "Novidades",
-    cover: storyLogo,
+    cover: storyHighlightCovers.novidades,
     isActive: true,
     sortOrder: 1,
     items: [
@@ -22,7 +30,7 @@ const fallbackGroups: StoryGroup[] = [
   {
     id: "demo-promocoes",
     title: "Promoções",
-    cover: storyLogo,
+    cover: storyHighlightCovers.promocoes,
     isActive: true,
     sortOrder: 2,
     items: [
@@ -33,7 +41,7 @@ const fallbackGroups: StoryGroup[] = [
   {
     id: "demo-lancamentos",
     title: "Lançamentos",
-    cover: storyLogo,
+    cover: storyHighlightCovers.lancamentos,
     isActive: true,
     sortOrder: 3,
     items: [
@@ -43,7 +51,7 @@ const fallbackGroups: StoryGroup[] = [
   {
     id: "demo-clientes",
     title: "Clientes",
-    cover: storyLogo,
+    cover: storyHighlightCovers.clientes,
     isActive: true,
     sortOrder: 4,
     items: [
@@ -53,7 +61,7 @@ const fallbackGroups: StoryGroup[] = [
   {
     id: "demo-ofertas",
     title: "Ofertas",
-    cover: storyLogo,
+    cover: storyHighlightCovers.ofertas,
     isActive: true,
     sortOrder: 5,
     items: [
@@ -99,6 +107,24 @@ type StoryItemWithCoverMeta = StoryItem & {
   thumbnailUrl?: string | null;
 };
 
+function normalizeStoryKey(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function getStoryHighlightCover(group: Pick<StoryGroup, "id" | "title">) {
+  const titleKey = normalizeStoryKey(group.title);
+  const idKey = normalizeStoryKey(group.id);
+  const match = storyHighlightCoverEntries.find(
+    ([key]) => titleKey.includes(key) || idKey.includes(key)
+  );
+
+  return match?.[1] ?? null;
+}
+
 function getStoryItemSrc(item: StoryItem) {
   return item.src || item.mediaUrl || "";
 }
@@ -117,6 +143,16 @@ function storyCoverImageClassName(src: string) {
 }
 
 function getStoryCoverMedia(group: StoryGroup): StoryCoverMedia {
+  const highlightCover = getStoryHighlightCover(group);
+
+  if (highlightCover) {
+    return {
+      type: "image",
+      src: highlightCover,
+      fallbackSrc: DEFAULT_STORY_COVER,
+    };
+  }
+
   const fallbackSrc = group.cover || group.coverImageUrl || DEFAULT_STORY_COVER;
   const validItems = group.items.filter((item) => Boolean(getStoryItemSrc(item)));
   const lastItem = validItems[validItems.length - 1];
@@ -157,7 +193,11 @@ function normalizeGroups(data: unknown): StoryGroup[] {
 
       return {
         ...storyGroup,
-        cover: storyGroup.cover || storyGroup.coverImageUrl || storyLogo,
+        cover:
+          getStoryHighlightCover(storyGroup) ||
+          storyGroup.cover ||
+          storyGroup.coverImageUrl ||
+          storyLogo,
         items,
       };
     })
