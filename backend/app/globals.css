@@ -74,6 +74,10 @@ body {
   from { opacity: 0; transform: translateX(-40px); }
   to   { opacity: 1; transform: translateX(0); }
 }
+@keyframes ka-progress {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
 @keyframes ka-slide-in-right {
   from { opacity: 0; transform: translateX(40px); }
   to   { opacity: 1; transform: translateX(0); }

@@ -23,64 +23,40 @@ const storyHighlightCoverEntries = Object.entries(storyHighlightCovers);
 
 const heroSlides = [
   {
-    title: "Copa do Prazer 2026 — Promoções Campeãs!",
-    href: "/categoria/sex-shop",
-    image: "/banners/banner-copa-do-prazer-2026.jpg",
-    imagePosition: "center",
-    variant: "artwork" as const,
-  },
-  {
-    title: "KA Bijoux — Novidades",
+    title: "Novidades KA Bijoux",
+    subtitle: "Os acessórios que estão conquistando Itaúna.",
+    cta: "Ver Novidades",
     href: "/produtos?new=true",
     image: "/banners/banner-ka-bijoux-novidades.png",
-    imagePosition: "center",
-    variant: "artwork" as const,
+    objectFit: "cover" as const,
+    objectPosition: "center",
   },
   {
-    title: "Oferta Especial — Creme Adstringente Sexy R$12",
-    href: "/categoria/sex-shop/geis-e-cremes",
-    image: "/banners/banner-close-love-oferta.png",
-    imagePosition: "center",
-    variant: "artwork" as const,
-  },
-  {
-    title: "Lingeries que despertam Desejos",
+    title: "Lançamentos Lingerie",
+    subtitle: "Lingeries que despertam desejos.",
+    cta: "Ver Lingerie",
     href: "/categoria/lingerie",
     image: "/banners/banner-lingeries-desejos.png",
-    imagePosition: "center",
-    variant: "artwork" as const,
+    objectFit: "cover" as const,
+    objectPosition: "center",
   },
   {
-    title: "Capinhas estilosas",
-    subtitle: "Modelos para deixar o celular protegido e com a sua cara.",
-    label: "Ver capinhas",
-    href: "/categoria/capinhas-acessorios-celular",
-    image: "/images/categories/capinhas-acessorios-celular.jpg",
-    imagePosition: "center",
+    title: "Promoções Especiais",
+    subtitle: "Ofertas imperdíveis para você aproveitar agora.",
+    cta: "Ver Promoções",
+    href: "/categoria/sex-shop/geis-e-cremes",
+    image: "/banners/banner-close-love-oferta.png",
+    objectFit: "cover" as const,
+    objectPosition: "center",
   },
   {
-    title: "Bijuterias delicadas",
-    subtitle: "Brincos, colares e detalhes para brilhar no dia a dia.",
-    label: "Ver bijuterias",
-    href: "/categoria/bijuterias",
-    image: "/images/categories/bijuterias.jpg",
-    imagePosition: "center",
-  },
-  {
-    title: "Oculos com charme",
-    subtitle: "Estilo leve para completar o look com personalidade.",
-    label: "Ver oculos",
-    href: "/categoria/oculos",
-    image: "/images/categories/oculos.jpg",
-    imagePosition: "center",
-  },
-  {
-    title: "Produtos em destaque",
-    subtitle: "Uma selecao bonita de presentes, bolsas e acessorios KA.",
-    label: "Ver produtos",
-    href: "/produtos",
-    image: "/images/home/ka-bijoux-hero-banner.jpg",
-    imagePosition: "center",
+    title: "Copa do Prazer",
+    subtitle: "5 cores disponíveis. Discricão total garantida.",
+    cta: "Ver Mais Vendidos",
+    href: "/categoria/sex-shop",
+    image: "/banners/banner-copa-do-prazer-1.png",
+    objectFit: "cover" as const,
+    objectPosition: "center",
   },
 ];
 
@@ -569,21 +545,6 @@ type StorySpotlightProps = {
   seenIds: Set<string>;
 };
 
-const copaProducts = [
-  "Lubrificante íntimo",
-  "Gel corporal",
-  "Desodorante íntimo",
-  "Cápsulas vibratórias",
-  "Bullet vibratório",
-];
-
-const copaBenefits = [
-  { icon: "🚚", title: "Frete grátis", text: "acima de R$150" },
-  { icon: "🎁", title: "Mimos", text: "em todos os presentes" },
-  { icon: "📦", title: "Embalagem", text: "100% discreta" },
-  { icon: "🔒", title: "Compra", text: "100% segura" },
-];
-
 function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotlightProps) {
   return (
     <section className="mx-auto mt-4 max-w-7xl px-4 sm:mt-6 sm:px-6" aria-label="Stories KA Bijoux">
@@ -653,90 +614,16 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
 function CopaDoPrazerBanner() {
   return (
     <section className="mx-auto mt-6 max-w-7xl px-4 sm:mt-8 sm:px-6" aria-label="Copa do Prazer">
-      <Link
-        href={copaBannerHref}
-        className="group block"
-        aria-label="Copa do Prazer. Quero aproveitar produtos selecionados."
-      >
-        <article className="ka-copa-banner relative min-h-[650px] overflow-hidden rounded-[28px] bg-[#031408] shadow-[0_24px_70px_rgba(236,72,153,0.20)] sm:min-h-[590px] lg:aspect-[1680/825] lg:min-h-0">
+      <Link href={copaBannerHref} className="group block" aria-label="Copa do Prazer — Quero aproveitar">
+        <div className="overflow-hidden rounded-[28px] shadow-[0_24px_70px_rgba(236,72,153,0.20)] transition-transform duration-300 group-hover:scale-[1.005]">
           <img
             src={copaBannerImage}
-            alt=""
-            aria-hidden="true"
+            alt="Copa do Prazer — Produtos selecionados com frete grátis acima de R$150"
             loading="eager"
             decoding="async"
-            className="absolute inset-0 h-full w-full origin-top scale-[1.15] object-cover object-[42%_top] opacity-45 lg:scale-100 lg:object-[center_top] lg:opacity-100"
+            className="w-full object-cover"
           />
-          <span className="absolute inset-0 bg-[radial-gradient(circle_at_28%_12%,rgba(255,255,255,0.24),transparent_22%),linear-gradient(135deg,rgba(1,20,7,0.48),rgba(1,20,7,0.12)_44%,rgba(224,0,104,0.48))] lg:hidden" aria-hidden="true" />
-          <span className="absolute inset-0 rounded-[28px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16),inset_0_0_42px_rgba(255,0,128,0.24)]" aria-hidden="true" />
-          <span className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#031408] via-[#031408]/86 to-transparent lg:hidden" aria-hidden="true" />
-
-          <div className="relative z-10 flex min-h-[650px] flex-col justify-between p-5 text-white sm:min-h-[590px] sm:p-7 lg:hidden">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-yellow-200/35 bg-white/12 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-yellow-100 backdrop-blur">
-                🇧🇷 Entrou em campo
-              </span>
-              <h2 className="mt-4 max-w-[300px] text-5xl font-black uppercase leading-[0.9] tracking-normal text-white drop-shadow-[0_8px_20px_rgba(0,0,0,0.34)]">
-                Copa do prazer!
-              </h2>
-              <p className="mt-3 max-w-[260px] text-sm font-semibold leading-relaxed text-white/86">
-                Produtos que vão elevar a sua experiência.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <div className="rounded-[22px] border border-white/14 bg-white/12 p-3 shadow-[0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-md">
-                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-yellow-100">
-                  Produtos em destaque
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {copaProducts.map((product) => (
-                    <span key={product} className="rounded-full bg-white/88 px-3 py-1.5 text-[11px] font-bold text-pink-700">
-                      {product}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {copaBenefits.map((benefit) => (
-                  <span
-                    key={benefit.title}
-                    className="flex items-center gap-3 rounded-2xl border border-white/14 bg-white/88 px-3 py-2.5 text-left text-gray-950 shadow-[0_12px_28px_rgba(0,0,0,0.16)] backdrop-blur"
-                  >
-                    <span className="text-2xl leading-none" aria-hidden="true">{benefit.icon}</span>
-                    <span>
-                      <span className="block text-[12px] font-black uppercase text-pink-600">{benefit.title}</span>
-                      <span className="block text-[12px] font-semibold leading-tight text-gray-800">{benefit.text}</span>
-                    </span>
-                  </span>
-                ))}
-              </div>
-
-              <span className="ka-btn flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-pink-600 via-pink-500 to-pink-400 px-6 py-4 text-sm font-black uppercase tracking-wide text-white shadow-[0_18px_38px_rgba(236,72,153,0.36)]">
-                QUERO APROVEITAR
-                <span className="text-xl leading-none transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true">→</span>
-              </span>
-            </div>
-          </div>
-
-          <div className="pointer-events-none absolute left-[6.2%] bottom-[17%] z-10 hidden w-[37%] rounded-2xl border border-white/14 bg-[#041b0c]/88 p-3 text-white shadow-[0_16px_36px_rgba(0,0,0,0.26)] backdrop-blur-md lg:block">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-yellow-100">
-              Produtos em destaque
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {copaProducts.map((product) => (
-                <span key={product} className="rounded-full bg-white/92 px-3 py-1.5 text-[11px] font-bold text-pink-700">
-                  {product}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <span className="sr-only">
-            Frete grátis acima de R$150. Mimos em todos os presentes. Embalagem 100% discreta. Compra 100% segura.
-          </span>
-        </article>
+        </div>
       </Link>
     </section>
   );
@@ -773,8 +660,13 @@ function CopaPromoStrip() {
 
 function MainHeroCarousel() {
   const [activeSlide, setActiveSlide] = useState(0);
+  const [paused, setPaused] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const touchDeltaX = useRef(0);
+
+  const goToSlide = useCallback((index: number) => {
+    setActiveSlide((index + heroSlides.length) % heroSlides.length);
+  }, []);
 
   const goNextSlide = useCallback(() => {
     setActiveSlide((current) => (current + 1) % heroSlides.length);
@@ -785,15 +677,15 @@ function MainHeroCarousel() {
   }, []);
 
   useEffect(() => {
-    const duration = HERO_IMAGE_DURATION;
-    const timeout = window.setTimeout(goNextSlide, duration);
-
+    if (paused) return;
+    const timeout = window.setTimeout(goNextSlide, HERO_IMAGE_DURATION);
     return () => window.clearTimeout(timeout);
-  }, [activeSlide, goNextSlide]);
+  }, [activeSlide, goNextSlide, paused]);
 
   function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
     touchStartX.current = event.touches[0]?.clientX ?? null;
     touchDeltaX.current = 0;
+    setPaused(true);
   }
 
   function handleTouchMove(event: TouchEvent<HTMLDivElement>) {
@@ -802,88 +694,105 @@ function MainHeroCarousel() {
   }
 
   function handleTouchEnd() {
-    if (Math.abs(touchDeltaX.current) > 42) {
+    if (Math.abs(touchDeltaX.current) > 40) {
       if (touchDeltaX.current < 0) goNextSlide();
       else goPreviousSlide();
     }
-
     touchStartX.current = null;
     touchDeltaX.current = 0;
+    setTimeout(() => setPaused(false), 1000);
   }
 
   return (
-    <div
-      className="relative w-full overflow-hidden bg-pink-50"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
+    <div className="px-2 pt-2 pb-0 sm:px-4">
       <div
-        className="flex h-[260px] transition-transform duration-700 ease-out sm:h-[300px] lg:h-[340px]"
-        style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+        className="relative overflow-hidden rounded-[24px] shadow-[0_8px_32px_rgba(236,72,153,0.18)]"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
-        {heroSlides.map((slide, index) => (
-          <Link
-            key={slide.title}
-            href={slide.href}
-            className="relative block h-full min-w-full overflow-hidden bg-pink-100 text-left"
-            aria-label={slide.title}
-          >
-            {"variant" in slide && slide.variant === "artwork" ? (
-              <>
-                <img
-                  src={slide.image}
-                  alt=""
-                  className="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-xl"
-                  style={{ objectPosition: slide.imagePosition }}
-                  loading={index === 0 ? "eager" : "lazy"}
-                  decoding="async"
-                  aria-hidden="true"
-                />
-                <span className="absolute inset-0 bg-gradient-to-r from-pink-50/55 via-white/15 to-pink-100/45" />
-                <img
-                  src={slide.image}
-                  alt={slide.title}
-                  className="relative z-10 h-full w-full object-contain"
-                  loading={index === 0 ? "eager" : "lazy"}
-                  decoding="async"
-                />
-              </>
-            ) : (
-              <>
-                <img
-                  src={slide.image}
-                  alt={slide.title}
-                  className="absolute inset-0 h-full w-full object-cover"
-                  style={{ objectPosition: slide.imagePosition }}
-                  loading={index === 0 ? "eager" : "lazy"}
-                  decoding="async"
-                />
-                <span className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/68 to-white/10" />
-                <span className="absolute inset-0 bg-gradient-to-t from-pink-950/12 via-transparent to-white/12" />
-                <span className="absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-pink-300/25 blur-3xl" />
-                <span className="absolute -right-10 top-8 h-36 w-36 rounded-full bg-white/35 blur-3xl" />
+        {/* slides track */}
+        <div
+          className="flex h-[360px] transition-transform duration-500 ease-in-out sm:h-[420px] lg:h-[480px]"
+          style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+        >
+          {heroSlides.map((slide, index) => (
+            <Link
+              key={slide.title}
+              href={slide.href}
+              className="relative block h-full min-w-full overflow-hidden bg-[#1a0010] text-left"
+              aria-label={slide.title}
+              tabIndex={index === activeSlide ? 0 : -1}
+            >
+              {/* background blur */}
+              <img
+                src={slide.image}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl"
+                style={{ objectPosition: slide.objectPosition }}
+                loading={index === 0 ? "eager" : "lazy"}
+                decoding="async"
+              />
 
-                <span className="relative z-10 flex h-full max-w-[72%] flex-col justify-center px-5 py-8 sm:max-w-xl sm:px-10 lg:px-16">
-                  <span className="w-fit rounded-full bg-white/80 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-pink-500 shadow-sm backdrop-blur">
-                    KA Bijoux
-                  </span>
-                  <span className="mt-3 block font-playfair text-[32px] font-bold leading-[1.05] text-gray-950 sm:text-5xl">
+              {/* main image */}
+              <img
+                src={slide.image}
+                alt={slide.title}
+                className="relative z-10 h-full w-full"
+                style={{ objectFit: slide.objectFit, objectPosition: slide.objectPosition }}
+                loading={index === 0 ? "eager" : "lazy"}
+                decoding="async"
+              />
+
+              {/* gradient overlay for CTA legibility */}
+              <span className="absolute inset-x-0 bottom-0 z-20 h-36 bg-gradient-to-t from-black/70 via-black/30 to-transparent" aria-hidden="true" />
+
+              {/* CTA overlay */}
+              <span className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-between gap-3 px-4 pb-4 sm:px-5 sm:pb-5">
+                <span className="flex flex-col gap-1">
+                  <span className="text-sm font-black text-white drop-shadow-md sm:text-base line-clamp-1">
                     {slide.title}
                   </span>
-                  <span className="mt-3 block max-w-sm text-sm font-medium leading-relaxed text-gray-700 sm:text-base">
-                    {slide.subtitle}
-                  </span>
-                  <span className="mt-5 inline-flex w-fit rounded-full bg-pink-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_26px_rgba(236,72,153,0.28)]">
-                    {slide.label}
-                  </span>
+                  {slide.subtitle && (
+                    <span className="text-[11px] font-medium text-white/80 drop-shadow line-clamp-1 sm:text-xs">
+                      {slide.subtitle}
+                    </span>
+                  )}
                 </span>
-              </>
-            )}
-          </Link>
-        ))}
-      </div>
+                <span className="shrink-0 rounded-full bg-gradient-to-r from-pink-600 to-pink-400 px-4 py-2 text-[11px] font-black uppercase tracking-wide text-white shadow-[0_6px_20px_rgba(236,72,153,0.45)] sm:px-5 sm:text-xs">
+                  {slide.cta}
+                </span>
+              </span>
+            </Link>
+          ))}
+        </div>
 
+        {/* dot indicators */}
+        <div className="absolute inset-x-0 bottom-[52px] z-40 flex items-center justify-center gap-1.5" aria-hidden="true">
+          {heroSlides.map((_, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={(e) => { e.preventDefault(); goToSlide(index); }}
+              className={`transition-all duration-300 rounded-full ${
+                index === activeSlide
+                  ? "w-5 h-2 bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.6)]"
+                  : "w-2 h-2 bg-white/50"
+              }`}
+              aria-label={`Ir para slide ${index + 1}`}
+            />
+          ))}
+        </div>
+
+        {/* progress bar */}
+        <span
+          key={`progress-${activeSlide}`}
+          className="absolute inset-x-0 top-0 z-40 h-[3px] origin-left bg-gradient-to-r from-pink-500 to-pink-300"
+          style={{ animation: paused ? "none" : `ka-progress ${HERO_IMAGE_DURATION}ms linear forwards` }}
+          aria-hidden="true"
+        />
+      </div>
     </div>
   );
 }
