@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Sex shop catalog (77 produtos com imagens em /uploads/products/) ──
-  for (const product of STATIC_SEX_SHOP_CATALOG.values()) {
+  for (const product of Array.from(STATIC_SEX_SHOP_CATALOG.values())) {
     const subcatId = catMap.get(product.subcategorySlug) ?? null;
     const imageUrl = `/uploads/products/${product.imageFile}`;
     const description = [product.longDescription, product.shortDescription]

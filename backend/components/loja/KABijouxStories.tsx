@@ -28,7 +28,7 @@ const heroSlides = [
     cta: "Ver Novidades",
     href: "/produtos?new=true",
     image: "/banners/banner-ka-bijoux-novidades.png",
-    objectFit: "cover" as const,
+    mobileImage: "/banners/mobile/banner-ka-bijoux-novidades-mobile.png",
     objectPosition: "center",
   },
   {
@@ -37,7 +37,7 @@ const heroSlides = [
     cta: "Ver Lingerie",
     href: "/categoria/lingerie",
     image: "/banners/banner-lingeries-desejos.png",
-    objectFit: "cover" as const,
+    mobileImage: "/banners/mobile/banner-lingeries-desejos-mobile.jpg",
     objectPosition: "center",
   },
   {
@@ -46,7 +46,7 @@ const heroSlides = [
     cta: "Ver Promoções",
     href: "/categoria/sex-shop/geis-e-cremes",
     image: "/banners/banner-close-love-oferta.png",
-    objectFit: "cover" as const,
+    mobileImage: "/banners/mobile/banner-close-love-oferta-mobile.png",
     objectPosition: "center",
   },
   {
@@ -55,7 +55,7 @@ const heroSlides = [
     cta: "Quero Aproveitar",
     href: "/categoria/sex-shop",
     image: "/banners/banner-copa-do-prazer-2.png",
-    objectFit: "cover" as const,
+    mobileImage: "/banners/banner-copa-do-prazer-2026-vertical.jpg",
     objectPosition: "center",
   },
 ];
@@ -712,44 +712,33 @@ function MainHeroCarousel() {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* slides track */}
         <div
-          className="flex h-[300px] transition-transform duration-500 ease-in-out sm:h-[380px] lg:h-[460px]"
+          className="flex aspect-[4/5] transition-transform duration-500 ease-out sm:aspect-[16/7] lg:aspect-[16/6]"
           style={{ transform: `translateX(-${activeSlide * 100}%)` }}
         >
           {heroSlides.map((slide, index) => (
             <Link
               key={slide.title}
               href={slide.href}
-              className="relative block h-full min-w-full overflow-hidden bg-[#1a0010] text-left"
+              className="relative block h-full min-w-full overflow-hidden bg-pink-50 text-left"
               aria-label={slide.title}
               tabIndex={index === activeSlide ? 0 : -1}
             >
-              {/* background blur — fills letterbox areas */}
-              <img
-                src={slide.image}
-                alt=""
-                aria-hidden="true"
-                className="absolute inset-0 h-full w-full scale-110 object-cover opacity-50 blur-xl"
-                loading={index === 0 ? "eager" : "lazy"}
-                decoding="async"
-              />
+              <picture className="block h-full w-full">
+                <source media="(max-width: 639px)" srcSet={slide.mobileImage} />
+                <img
+                  src={slide.image}
+                  alt={slide.title}
+                  className="h-full w-full object-cover"
+                  style={{ objectPosition: slide.objectPosition }}
+                  loading={index === 0 ? "eager" : "lazy"}
+                  decoding="async"
+                />
+              </picture>
 
-              {/* main image — contain on mobile so nothing is cropped, cover on desktop */}
-              <img
-                src={slide.image}
-                alt={slide.title}
-                className="relative z-10 h-full w-full object-contain sm:object-cover"
-                style={{ objectPosition: slide.objectPosition }}
-                loading={index === 0 ? "eager" : "lazy"}
-                decoding="async"
-              />
+              <span className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-24 bg-gradient-to-t from-black/45 via-black/12 to-transparent sm:h-28" aria-hidden="true" />
 
-              {/* gradient overlay for CTA legibility */}
-              <span className="absolute inset-x-0 bottom-0 z-20 h-28 bg-gradient-to-t from-black/75 via-black/35 to-transparent" aria-hidden="true" />
-
-              {/* CTA overlay */}
-              <span className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-between gap-2 px-4 pb-3 sm:px-5 sm:pb-4">
+              <span className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-between gap-2 px-4 pb-4 sm:px-5 sm:pb-4">
                 <span className="flex flex-col gap-0.5">
                   <span className="text-xs font-black text-white drop-shadow-md sm:text-sm line-clamp-1">
                     {slide.title}
@@ -777,8 +766,8 @@ function MainHeroCarousel() {
               onClick={(e) => { e.preventDefault(); goToSlide(index); }}
               className={`transition-all duration-300 rounded-full ${
                 index === activeSlide
-                  ? "w-5 h-1.5 bg-pink-500 shadow-[0_0_6px_rgba(236,72,153,0.7)]"
-                  : "w-1.5 h-1.5 bg-white/55 hover:bg-white/80"
+                  ? "h-1.5 w-5 bg-pink-500 shadow-[0_0_6px_rgba(236,72,153,0.7)]"
+                  : "h-1.5 w-1.5 bg-white/70 hover:bg-white"
               }`}
               aria-label={`Ir para slide ${index + 1}`}
             />
