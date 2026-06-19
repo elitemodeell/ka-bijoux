@@ -13,6 +13,8 @@ const FEATURED_LINKS = [
   { label: "Capinhas", href: "/categoria/capinhas-acessorios-celular" },
 ];
 
+const ADULT_LINK = { label: "🔞 Linha Adulto", href: "/categoria/sex-shop" };
+
 const MENU_LINKS = [
   { label: "Início", href: "/" },
   { label: "Novidades", href: "/produtos?new=true" },
@@ -20,6 +22,7 @@ const MENU_LINKS = [
   { label: "Lançamentos", href: "/produtos?new=true" },
   { label: "Todos os produtos", href: "/produtos" },
   { label: "Carrinho", href: "/carrinho" },
+  { label: "🔞 Linha Adulto", href: "/categoria/sex-shop" },
 ];
 
 const SEARCH_SUGGESTIONS = [
@@ -128,6 +131,12 @@ export default function Navbar() {
               <span className="absolute -bottom-0.5 left-0 h-[2px] w-0 rounded-full bg-pink-400 transition-all duration-300 group-hover:w-full" />
             </Link>
           ))}
+          <Link
+            href={ADULT_LINK.href}
+            className="rounded-full border border-purple-200 bg-gradient-to-r from-purple-900/90 to-pink-900/90 px-4 py-2 text-xs font-bold tracking-wide text-pink-200 shadow-sm transition-all hover:from-purple-800 hover:to-pink-800 hover:text-white"
+          >
+            {ADULT_LINK.label}
+          </Link>
           <button
             type="button"
             onClick={() => setMegaOpen((current) => !current)}

@@ -20,6 +20,7 @@ type Props = {
   categorySlug?: string;
   subcategorySlug?: string;
   adultNotice?: boolean;
+  embedded?: boolean;
 };
 
 const productInclude = {
@@ -37,6 +38,7 @@ export default async function ProductListingPage({
   categorySlug,
   subcategorySlug,
   adultNotice,
+  embedded,
 }: Props) {
   const selectedPrice = getParam(searchParams.price);
   const sort = getParam(searchParams.sort) ?? "createdAt";
@@ -55,18 +57,20 @@ export default async function ProductListingPage({
     : getMockProducts({ categorySlug, subcategorySlug, selectedPrice, promo, onlyNew, query });
 
   return (
-    <section className="bg-white pt-28 md:pt-28">
-      <div className="mx-auto max-w-7xl px-4 pb-16">
-        <div className="rounded-[28px] bg-gradient-to-br from-pink-50 via-white to-white px-5 py-8 sm:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-pink-400">KA Bijoux</p>
-          <h1 className="mt-2 font-playfair text-4xl font-bold text-gray-950">{title}</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-500">{description}</p>
-          {adultNotice && (
-            <p className="mt-4 inline-flex rounded-full border border-pink-100 bg-white px-4 py-2 text-xs font-semibold text-gray-500">
-              Produtos destinados ao público adulto.
-            </p>
-          )}
-        </div>
+    <section className={embedded ? "" : "bg-white pt-28 md:pt-28"}>
+      <div className={embedded ? "" : "mx-auto max-w-7xl px-4 pb-16"}>
+        {!embedded && (
+          <div className="rounded-[28px] bg-gradient-to-br from-pink-50 via-white to-white px-5 py-8 sm:px-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-pink-400">KA Bijoux</p>
+            <h1 className="mt-2 font-playfair text-4xl font-bold text-gray-950">{title}</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-500">{description}</p>
+            {adultNotice && (
+              <p className="mt-4 inline-flex rounded-full border border-pink-100 bg-white px-4 py-2 text-xs font-semibold text-gray-500">
+                Produtos destinados ao público adulto.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="mt-6 space-y-5">
           <div className="rounded-[24px] border border-pink-100 bg-white/95 p-3 shadow-[0_14px_40px_rgba(236,72,153,0.08)] sm:p-5">

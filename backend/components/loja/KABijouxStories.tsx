@@ -7,14 +7,12 @@ import { DEFAULT_STORY_COVER, type StoryGroup, type StoryItem } from "@/types/st
 import {
   copaBannerHref,
   copaBannerImage,
-  valentinesCampaignBanner,
-  valentinesCampaignVideos,
 } from "@/lib/campaign-media";
 
 const seenStorageKey = "ka-bijoux-seen-stories";
 const storyLogo = "/images/brand/ka-bijoux-logo-story-icon.png";
-const HERO_IMAGE_DURATION = 4300;
-const HERO_VIDEO_TEASER_DURATION = 5000;
+const HERO_IMAGE_DURATION = 2500;
+const HERO_VIDEO_TEASER_DURATION = 3000;
 const storyHighlightCovers = {
   novidades: "/images/stories/highlights/novidades.jpg",
   promocoes: "/images/stories/highlights/promocoes.jpg",
@@ -26,33 +24,39 @@ const storyHighlightCoverEntries = Object.entries(storyHighlightCovers);
 
 const heroSlides = [
   {
-    title: "Camisas da selecao brasileira",
+    title: "Copa do Prazer — Entrou em Campo!",
     href: copaBannerHref,
     image: copaBannerImage,
-    imagePosition: "18% center",
-    variant: "artwork" as const,
-  },
-  {
-    title: "Especial Dia dos Namorados",
-    href: "/produtos?campanha=dia-dos-namorados",
-    image: valentinesCampaignBanner,
     imagePosition: "center",
     variant: "artwork" as const,
   },
-  ...valentinesCampaignVideos.slice(0, 4).map((video) => ({
-    title: video.title,
-    href: "/produtos?campanha=dia-dos-namorados",
-    video: video.src,
-    imagePosition: "center",
-    variant: "video" as const,
-  })),
   {
-    title: "Novidades da semana",
-    subtitle: "Acessorios femininos selecionados para renovar sua vitrine.",
-    label: "Ver novidades",
+    title: "Copa do Prazer — 5 Cores Disponíveis",
+    href: "/categoria/sex-shop",
+    image: "/banners/banner-copa-do-prazer-1.png",
+    imagePosition: "center",
+    variant: "artwork" as const,
+  },
+  {
+    title: "KA Bijoux — Novidades",
     href: "/produtos?new=true",
-    image: "/images/stories/highlights/novidades.jpg",
+    image: "/banners/banner-ka-bijoux-novidades.png",
     imagePosition: "center",
+    variant: "artwork" as const,
+  },
+  {
+    title: "Oferta Especial — Creme Adstringente Sexy R$12",
+    href: "/categoria/sex-shop/geis-e-cremes",
+    image: "/banners/banner-close-love-oferta.png",
+    imagePosition: "center",
+    variant: "artwork" as const,
+  },
+  {
+    title: "Lingeries que despertam Desejos",
+    href: "/categoria/lingerie",
+    image: "/banners/banner-lingeries-desejos.png",
+    imagePosition: "center",
+    variant: "artwork" as const,
   },
   {
     title: "Capinhas estilosas",
@@ -715,7 +719,7 @@ function MainHeroCarousel() {
                   <span className="relative z-10 block h-full w-full" aria-hidden="true" />
                 )}
                 <span className="absolute left-4 top-4 z-20 rounded-full bg-white/85 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-pink-500 shadow-sm backdrop-blur">
-                  Especial Dia dos Namorados
+                  Copa do Prazer
                 </span>
               </>
             ) : (
