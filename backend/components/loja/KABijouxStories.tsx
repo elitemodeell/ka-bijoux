@@ -49,15 +49,6 @@ const heroSlides = [
     objectFit: "cover" as const,
     objectPosition: "center",
   },
-  {
-    title: "Copa do Prazer",
-    subtitle: "5 cores disponíveis. Discricão total garantida.",
-    cta: "Ver Mais Vendidos",
-    href: "/categoria/sex-shop",
-    image: "/banners/banner-copa-do-prazer-1.png",
-    objectFit: "cover" as const,
-    objectPosition: "center",
-  },
 ];
 
 const fallbackGroups: StoryGroup[] = [
