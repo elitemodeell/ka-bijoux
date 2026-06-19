@@ -11,7 +11,7 @@ import {
 
 const seenStorageKey = "ka-bijoux-seen-stories";
 const storyLogo = "/images/brand/ka-bijoux-logo-story-icon.png";
-const HERO_IMAGE_DURATION = 2500;
+const HERO_IMAGE_DURATION = 3000;
 const storyHighlightCovers = {
   novidades: "/images/stories/highlights/novidades.jpg",
   promocoes: "/images/stories/highlights/promocoes.jpg",
@@ -713,7 +713,7 @@ function MainHeroCarousel() {
       >
         {/* slides track */}
         <div
-          className="flex h-[360px] transition-transform duration-500 ease-in-out sm:h-[420px] lg:h-[480px]"
+          className="flex h-[300px] transition-transform duration-500 ease-in-out sm:h-[380px] lg:h-[460px]"
           style={{ transform: `translateX(-${activeSlide * 100}%)` }}
         >
           {heroSlides.map((slide, index) => (
@@ -724,43 +724,42 @@ function MainHeroCarousel() {
               aria-label={slide.title}
               tabIndex={index === activeSlide ? 0 : -1}
             >
-              {/* background blur */}
+              {/* background blur — fills letterbox areas */}
               <img
                 src={slide.image}
                 alt=""
                 aria-hidden="true"
-                className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl"
+                className="absolute inset-0 h-full w-full scale-110 object-cover opacity-50 blur-xl"
+                loading={index === 0 ? "eager" : "lazy"}
+                decoding="async"
+              />
+
+              {/* main image — contain on mobile so nothing is cropped, cover on desktop */}
+              <img
+                src={slide.image}
+                alt={slide.title}
+                className="relative z-10 h-full w-full object-contain sm:object-cover"
                 style={{ objectPosition: slide.objectPosition }}
                 loading={index === 0 ? "eager" : "lazy"}
                 decoding="async"
               />
 
-              {/* main image */}
-              <img
-                src={slide.image}
-                alt={slide.title}
-                className="relative z-10 h-full w-full"
-                style={{ objectFit: slide.objectFit, objectPosition: slide.objectPosition }}
-                loading={index === 0 ? "eager" : "lazy"}
-                decoding="async"
-              />
-
               {/* gradient overlay for CTA legibility */}
-              <span className="absolute inset-x-0 bottom-0 z-20 h-36 bg-gradient-to-t from-black/70 via-black/30 to-transparent" aria-hidden="true" />
+              <span className="absolute inset-x-0 bottom-0 z-20 h-28 bg-gradient-to-t from-black/75 via-black/35 to-transparent" aria-hidden="true" />
 
               {/* CTA overlay */}
-              <span className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-between gap-3 px-4 pb-4 sm:px-5 sm:pb-5">
-                <span className="flex flex-col gap-1">
-                  <span className="text-sm font-black text-white drop-shadow-md sm:text-base line-clamp-1">
+              <span className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-between gap-2 px-4 pb-3 sm:px-5 sm:pb-4">
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-xs font-black text-white drop-shadow-md sm:text-sm line-clamp-1">
                     {slide.title}
                   </span>
                   {slide.subtitle && (
-                    <span className="text-[11px] font-medium text-white/80 drop-shadow line-clamp-1 sm:text-xs">
+                    <span className="hidden text-[11px] font-medium text-white/80 drop-shadow sm:block sm:text-xs line-clamp-1">
                       {slide.subtitle}
                     </span>
                   )}
                 </span>
-                <span className="shrink-0 rounded-full bg-gradient-to-r from-pink-600 to-pink-400 px-4 py-2 text-[11px] font-black uppercase tracking-wide text-white shadow-[0_6px_20px_rgba(236,72,153,0.45)] sm:px-5 sm:text-xs">
+                <span className="shrink-0 rounded-full bg-gradient-to-r from-pink-600 to-pink-400 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white shadow-[0_4px_16px_rgba(236,72,153,0.5)] sm:px-5 sm:py-2 sm:text-xs">
                   {slide.cta}
                 </span>
               </span>
@@ -769,7 +768,7 @@ function MainHeroCarousel() {
         </div>
 
         {/* dot indicators */}
-        <div className="absolute inset-x-0 bottom-[52px] z-40 flex items-center justify-center gap-1.5" aria-hidden="true">
+        <div className="absolute inset-x-0 bottom-2.5 z-40 flex items-center justify-center gap-1.5">
           {heroSlides.map((_, index) => (
             <button
               key={index}
@@ -777,21 +776,13 @@ function MainHeroCarousel() {
               onClick={(e) => { e.preventDefault(); goToSlide(index); }}
               className={`transition-all duration-300 rounded-full ${
                 index === activeSlide
-                  ? "w-5 h-2 bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.6)]"
-                  : "w-2 h-2 bg-white/50"
+                  ? "w-5 h-1.5 bg-pink-500 shadow-[0_0_6px_rgba(236,72,153,0.7)]"
+                  : "w-1.5 h-1.5 bg-white/55 hover:bg-white/80"
               }`}
               aria-label={`Ir para slide ${index + 1}`}
             />
           ))}
         </div>
-
-        {/* progress bar */}
-        <span
-          key={`progress-${activeSlide}`}
-          className="absolute inset-x-0 top-0 z-40 h-[3px] origin-left bg-gradient-to-r from-pink-500 to-pink-300"
-          style={{ animation: paused ? "none" : `ka-progress ${HERO_IMAGE_DURATION}ms linear forwards` }}
-          aria-hidden="true"
-        />
       </div>
     </div>
   );
