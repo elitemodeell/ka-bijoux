@@ -90,8 +90,8 @@ async function main() {
   for (const row of products) {
     const normalizedRow = normalizeBlingRow(row);
     const imageMatch = findImageForProduct(normalizedRow, imageIndex);
-    const imageUrl = imageMatch ? materializeImage(imageMatch, normalizedRow) : null;
-    const category = inferCategory(normalizedRow.nome);
+    const imageUrl = normalizedRow.imageUrl || (imageMatch ? materializeImage(imageMatch, normalizedRow) : null);
+    const category = inferCategory(normalizedRow.nome, normalizedRow.categoria);
     const categoryId = categoryIndex.bySlug.get(category.categorySlug) ?? categoryIndex.fallbackId;
     const subcategoryId = category.subcategorySlug
       ? categoryIndex.bySlug.get(category.subcategorySlug) ?? null
@@ -177,7 +177,7 @@ async function main() {
       semDescricao: !hasDescription,
       status: publicationStatus,
       ativo: active,
-      origemImagem: imageMatch?.reason ?? null,
+      origemImagem: normalizedRow.imageUrl ? "bling_image" : imageMatch?.reason ?? null,
     });
   }
 
@@ -365,7 +365,38 @@ function normalizeBlingRow(row) {
     situacao: String(row.situacao ?? "").trim() || "I",
     estoque: Math.max(0, Number.parseInt(String(row.estoque ?? "0"), 10) || 0),
     categoria: String(row.categoria ?? "").trim(),
+    imageUrl: extractBlingImageUrl(row),
   };
+}
+
+function extractBlingImageUrl(row) {
+  const keys = [
+    "imagem",
+    "imagens",
+    "image",
+    "images",
+    "imageUrl",
+    "urlImagem",
+    "url_imagem",
+    "foto",
+    "fotos",
+    "midia",
+    "media",
+    "mediaUrl",
+    "anexo",
+    "anexos",
+  ];
+
+  for (const key of keys) {
+    const value = String(row[key] ?? row[key.toLowerCase()] ?? "").trim();
+    if (!value) continue;
+    const first = value.split(/[|,]/).map((item) => item.trim()).find(Boolean);
+    if (!first) continue;
+    if (/^https?:\/\//i.test(first) || first.startsWith("/")) return first;
+    if (/\.(png|jpe?g|webp)$/i.test(first)) return `/uploads/products/${first}`;
+  }
+
+  return "";
 }
 
 function buildImageIndex() {
@@ -470,7 +501,10 @@ async function uniqueSlug(baseSlug, blingId) {
   return `${fallback}-${blingId}`;
 }
 
-function inferCategory(name) {
+function inferCategory(name, blingCategory) {
+  const fromBling = mapBlingCategory(blingCategory);
+  if (fromBling) return fromBling;
+
   const n = normalizeSearch(name);
 
   if (/\b(case|capinha|capa|iphone|ip\s*\d+)/.test(n)) {
@@ -504,8 +538,41 @@ function inferCategory(name) {
   return { categorySlug: "bijuterias", subcategorySlug: null };
 }
 
+function mapBlingCategory(value) {
+  const normalized = normalizeSearch(value);
+  const aliases = {
+    "sex shop": { categorySlug: "sex-shop", subcategorySlug: null },
+    adulto: { categorySlug: "sex-shop", subcategorySlug: null },
+    "linha adulto": { categorySlug: "sex-shop", subcategorySlug: null },
+    bijuterias: { categorySlug: "bijuterias", subcategorySlug: null },
+    bijoux: { categorySlug: "bijuterias", subcategorySlug: null },
+    "capinhas e acessorios de celular": { categorySlug: "capinhas-acessorios-celular", subcategorySlug: null },
+    capinhas: { categorySlug: "capinhas-acessorios-celular", subcategorySlug: null },
+    oculos: { categorySlug: "oculos", subcategorySlug: "oculos-adulto" },
+    lingerie: { categorySlug: "lingerie", subcategorySlug: null },
+    maquiagem: { categorySlug: "maquiagem", subcategorySlug: null },
+    perfumaria: { categorySlug: "perfumaria", subcategorySlug: null },
+    papelaria: { categorySlug: "papelaria", subcategorySlug: null },
+    brinquedos: { categorySlug: "brinquedos", subcategorySlug: null },
+  };
+
+  return aliases[normalized] ?? null;
+}
+
 function isAdultProduct(n) {
-  return /\b(gel|lub|lubrificante|intimo|vibrador|bullet|peniano|masturbador|algema|dedeira|tesao|pocao|garganta|sexy|creme|pau|virginite|anosex|egg)\b/.test(n);
+  if (/\b(sexy|sex|intimo|intima|lubrificante|vibrador|bullet|peniano|masturbador|algema|dedeira|tesao|pocao|garganta profunda|virginite|anosex|egg|pau de cavalo|duramais|dessensibilizante|excitante|anestesico|beijavel)\b/.test(n)) {
+    return true;
+  }
+
+  if (/\bgel\b/.test(n) && /\b(excitant|sensual|massageador|massagem|comestivel|anestesico|dessensibilizante|esquenta|esfria|beijavel|anal|intimo|sex|sexy|masculino)\b/.test(n)) {
+    return true;
+  }
+
+  if (/\bpomada\b/.test(n) && /\b(massageadora|canela|tubarao)\b/.test(n)) {
+    return true;
+  }
+
+  return false;
 }
 
 function inferAdultSubcategory(n) {
@@ -564,8 +631,8 @@ function buildReportOnly(products, duplicates, imageIndex) {
   for (const row of products) {
     const product = normalizeBlingRow(row);
     const imageMatch = findImageForProduct(product, imageIndex);
-    const category = inferCategory(product.nome);
-    const hasImage = Boolean(imageMatch);
+    const category = inferCategory(product.nome, product.categoria);
+    const hasImage = Boolean(product.imageUrl || imageMatch);
     const hasDescription = false;
     const status = hasImage ? "MISSING_DESCRIPTION" : "MISSING_IMAGE";
     const issues = [];
@@ -587,12 +654,12 @@ function buildReportOnly(products, duplicates, imageIndex) {
       estoque: product.estoque,
       categoria: category.categorySlug,
       subcategoria: category.subcategorySlug,
-      imagem: imageMatch?.item?.nome ? `/uploads/products/${imageMatch.item.nome}` : null,
+      imagem: product.imageUrl || (imageMatch?.item?.nome ? `/uploads/products/${imageMatch.item.nome}` : null),
       semImagem: !hasImage,
       semDescricao: !hasDescription,
       status,
       ativo: product.situacao === "A" && product.estoque > 0 && hasImage,
-      origemImagem: imageMatch?.reason ?? null,
+      origemImagem: product.imageUrl ? "bling_image" : imageMatch?.reason ?? null,
     });
   }
 

@@ -15,6 +15,9 @@ const nextConfig = {
       { hostname: "res.cloudinary.com" },
       { hostname: "images.unsplash.com" },
       { hostname: "*.supabase.co" },
+      { hostname: "bling.com.br" },
+      { hostname: "*.bling.com.br" },
+      { hostname: "storage.googleapis.com" },
     ],
   },
   experimental: {

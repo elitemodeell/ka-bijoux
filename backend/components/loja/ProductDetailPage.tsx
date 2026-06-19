@@ -10,7 +10,7 @@ import ProductCard from "@/components/loja/ProductCard";
 type RelatedProduct = {
   id: string;
   name: string;
-  slug: string;
+  slug?: string;
   price: number;
   promotionalPrice?: number | null;
   image?: string | null;

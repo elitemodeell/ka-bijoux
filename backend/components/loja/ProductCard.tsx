@@ -93,7 +93,7 @@ export default function ProductCard({ product, revealDelay = 0 }: Props) {
             <img
               src={image}
               alt={name}
-              className="ka-product-img h-full w-full object-cover"
+              className="ka-product-img h-full w-full object-contain p-2.5"
               onError={() => setImgError(true)}
               loading="lazy"
             />

@@ -2,7 +2,6 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MOCK_PRODUCTS } from "@/lib/catalog";
 import { addCartItem, normalizeCartProduct, type ClientCartProduct } from "@/lib/client-cart";
 
 type QuickShopProduct = ClientCartProduct & {
@@ -77,10 +76,7 @@ export default function QuickShopModal() {
 
   const recommendations = useMemo(() => {
     if (!product) return [];
-
-    return MOCK_PRODUCTS.filter((item) => item.id !== product.id)
-      .slice(0, 2)
-      .map((item) => normalizeCartProduct(item));
+    return [] as QuickShopProduct[];
   }, [product]);
 
   if (!product) return null;
@@ -91,34 +87,11 @@ export default function QuickShopModal() {
   const availableStock = product.stock ?? 99;
   const togetherItems: TogetherItem[] = [
     { key: "current", product, locked: true },
-    {
-      key: "recommended",
-      product:
-        recommendations[0] ??
-        normalizeCartProduct({
-          id: "mock-brinco-delicado-extra",
-          name: "Brinco delicado",
-          description: "Brinco feminino leve para combinar com o look.",
-          price: 12,
-          image: "/imagens/foto-03.jpeg",
-          category: { name: "Bijuterias", slug: "bijuterias" },
-        }),
+    ...recommendations.slice(0, 2).map((recommendation, index) => ({
+      key: index === 0 ? "recommended" as const : "extra" as const,
+      product: recommendation,
       locked: false,
-    },
-    {
-      key: "extra",
-      product:
-        recommendations[1] ??
-        normalizeCartProduct({
-          id: "mock-necessaire-rosa-extra",
-          name: "Necessaire rosa",
-          description: "Necessaire pratica para organizar acessorios femininos.",
-          price: 48,
-          image: "/imagens/foto-05.jpeg",
-          category: { name: "Bolsas e Necessaires", slug: "bolsas-necessaires" },
-        }),
-      locked: false,
-    },
+    })),
   ];
   const togetherTotal = togetherItems.reduce((sum, item) => {
     if (!selectedTogether[item.key]) return sum;
@@ -201,7 +174,7 @@ export default function QuickShopModal() {
                     <img
                       src={currentMedia.url}
                       alt={currentMedia.alt ?? product.name}
-                      className={`h-full w-full object-cover transition-transform duration-500 ${zoomed ? "scale-150" : "scale-100"}`}
+                      className={`h-full w-full object-contain p-4 transition-transform duration-500 ${zoomed ? "scale-150" : "scale-100"}`}
                     />
                   </button>
                 )}
@@ -230,7 +203,7 @@ export default function QuickShopModal() {
                           VIDEO
                         </span>
                       ) : (
-                        <img src={item.url} alt="" className="h-full w-full object-cover" />
+                        <img src={item.url} alt="" className="h-full w-full object-contain p-1" />
                       )}
                     </button>
                   ))}
@@ -348,6 +321,7 @@ export default function QuickShopModal() {
             </div>
           </div>
 
+          {togetherItems.length > 1 && (
           <section className="mt-7 rounded-[24px] border border-pink-100 bg-gradient-to-br from-white to-pink-50 p-4 md:p-5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
@@ -376,7 +350,7 @@ export default function QuickShopModal() {
                       aria-label={`Ver detalhes de ${item.product.name}`}
                     >
                       <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-pink-50">
-                        {item.product.image ? <img src={item.product.image} alt="" className="h-full w-full object-cover" /> : null}
+                        {item.product.image ? <img src={item.product.image} alt="" className="h-full w-full object-contain p-1" /> : null}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-gray-800">{item.product.name}</p>
@@ -398,6 +372,7 @@ export default function QuickShopModal() {
               </button>
             </div>
           </section>
+          )}
 
           <section className="mt-5 pb-28 md:pb-8">
             <div className="rounded-[24px] bg-[#1A0A0F] px-5 py-5 text-white">
@@ -449,7 +424,7 @@ function ComboPreview({
           {isVideo(image.url) ? (
             <video src={image.url} controls playsInline className="h-full w-full object-cover" />
           ) : (
-            <img src={image.url} alt={image.alt ?? product.name} className="h-full w-full object-cover" />
+            <img src={image.url} alt={image.alt ?? product.name} className="h-full w-full object-contain p-4" />
           )}
         </div>
 

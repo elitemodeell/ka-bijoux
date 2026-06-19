@@ -6,7 +6,7 @@ import ProductCard from "@/components/loja/ProductCard";
 import ReelsSection from "@/components/loja/ReelsSection";
 import AnimatedSection from "@/components/loja/AnimatedSection";
 import KABijouxStories from "@/components/loja/KABijouxStories";
-import { MOCK_PRODUCTS } from "@/lib/catalog";
+import { getBlingProductCards, type ProductCardProduct } from "@/lib/bling-catalog";
 
 export const metadata: Metadata = {
   title: "KA Bijoux — Bijuterias, Óculos e Acessórios Femininos",
@@ -114,24 +114,24 @@ const DEMO_PRODUCTS = [
   },
 ];
 
-async function getFeaturedProducts() {
+async function getFeaturedProducts(): Promise<ProductCardProduct[]> {
   try {
     const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
-    const res = await fetch(`${base}/api/products?featured=true&pageSize=8`, {
+    const res = await fetch(`${base}/api/products?pageSize=8`, {
       next: { revalidate: 60 },
       signal: AbortSignal.timeout(2500),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return [];
     const json = await res.json();
-    return json.data?.products ?? null;
+    return Array.isArray(json.data?.products) ? json.data.products : [];
   } catch {
-    return null;
+    return [];
   }
 }
 
 export default async function HomePage() {
   const liveProducts = await getFeaturedProducts();
-  const products = liveProducts ?? MOCK_PRODUCTS;
+  const products = liveProducts.length ? liveProducts : getBlingProductCards({ limit: 8 });
 
   return (
     <main className="overflow-x-hidden">
@@ -179,7 +179,7 @@ export default async function HomePage() {
           </AnimatedSection>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-            {products.map((product: typeof DEMO_PRODUCTS[0], i: number) => (
+            {products.map((product: ProductCardProduct, i: number) => (
               <ProductCard key={product.id} product={product} revealDelay={i * 70} />
             ))}
           </div>
@@ -253,7 +253,7 @@ export default async function HomePage() {
           </AnimatedSection>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-            {products.slice(4, 8).map((product: typeof DEMO_PRODUCTS[0], i: number) => (
+            {products.slice(4, 8).map((product: ProductCardProduct, i: number) => (
               <ProductCard
                 key={`best-${product.id}`}
                 product={{ ...product, badge: "Destaque" }}
@@ -278,7 +278,7 @@ export default async function HomePage() {
           </AnimatedSection>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-            {products.slice(0, 4).map((product: typeof DEMO_PRODUCTS[0], i: number) => (
+            {products.slice(0, 4).map((product: ProductCardProduct, i: number) => (
               <ProductCard
                 key={`new-${product.id}`}
                 product={{ ...product, badge: "Novo" }}
@@ -303,7 +303,7 @@ export default async function HomePage() {
           </AnimatedSection>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-            {products.slice(2, 6).map((product: typeof DEMO_PRODUCTS[0], i: number) => (
+            {products.slice(2, 6).map((product: ProductCardProduct, i: number) => (
               <ProductCard
                 key={`pick-${product.id}`}
                 product={product}
@@ -335,7 +335,7 @@ export default async function HomePage() {
           </AnimatedSection>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-            {[...products].reverse().slice(0, 4).map((product: typeof DEMO_PRODUCTS[0], i: number) => (
+            {[...products].reverse().slice(0, 4).map((product: ProductCardProduct, i: number) => (
               <ProductCard
                 key={`detail-${product.id}`}
                 product={{ ...product, badge: product.badge ?? "Novo" }}

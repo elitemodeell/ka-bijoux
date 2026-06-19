@@ -6,6 +6,14 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError, paginate, slugify } from "@/lib/utils";
+import { getPublicCategoryName } from "@/lib/catalog";
+import {
+  findBlingProductForSource,
+  getBlingProductCards,
+  getProductIdentityKeys,
+  type CatalogFilters,
+  type ProductCardProduct,
+} from "@/lib/bling-catalog";
 
 const productInclude = {
   category: true,
@@ -13,6 +21,8 @@ const productInclude = {
   images: { orderBy: { order: "asc" as const } },
   variations: { where: { active: true } },
 };
+
+const API_FETCH_LIMIT = 500;
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,6 +39,19 @@ export async function GET(req: NextRequest) {
     const exactPrice = searchParams.get("price");
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
+    const filters: CatalogFilters = {
+      categorySlug: category,
+      subcategorySlug: subcategory,
+      query: search,
+      featured,
+      onlyNew: isNew,
+      promo,
+      sort,
+      exactPrice,
+      minPrice,
+      maxPrice,
+      requireImage: true,
+    };
 
     const where: Prisma.ProductWhereInput = { active: true };
     if (category) where.category = { slug: category };
@@ -41,6 +64,7 @@ export async function GET(req: NextRequest) {
         { name: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
         { sku: { contains: search, mode: "insensitive" } },
+        { searchTags: { has: search } },
       ];
     }
     if (exactPrice && exactPrice !== "all") {
@@ -62,21 +86,133 @@ export async function GET(req: NextRequest) {
 
     const { skip, take } = paginate(page, pageSize);
 
-    const [products, total] = await Promise.all([
-      prisma.product.findMany({ where, include: productInclude, orderBy, skip, take }),
-      prisma.product.count({ where }),
-    ]);
+    const products = await prisma.product.findMany({
+      where,
+      include: productInclude,
+      orderBy,
+      skip: 0,
+      take: Math.max(API_FETCH_LIMIT, skip + take),
+    });
+
+    const dbProducts = products
+      .map((product) => mapDbProductToCard(product))
+      .filter((product): product is ProductCardProduct => Boolean(product));
+    const merged = mergeWithBlingCatalog(dbProducts, filters);
+    const pageProducts = merged.slice(skip, skip + take);
 
     return apiSuccess({
-      products,
-      total,
+      products: pageProducts,
+      total: merged.length,
       page,
       pageSize,
-      totalPages: Math.ceil(total / pageSize),
+      totalPages: Math.ceil(merged.length / pageSize),
     });
   } catch {
-    return apiError("Erro ao buscar produtos.", 500);
+    return apiSuccess(getFallbackProducts(req));
   }
+}
+
+function getFallbackProducts(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const page = Number(searchParams.get("page") ?? 1);
+  const pageSize = Number(searchParams.get("pageSize") ?? 20);
+  const { skip, take } = paginate(page, pageSize);
+  const filters: CatalogFilters = {
+    categorySlug: searchParams.get("category") ?? searchParams.get("cat"),
+    subcategorySlug: searchParams.get("subcategory"),
+    query: searchParams.get("q"),
+    featured: searchParams.get("featured") === "true",
+    onlyNew: searchParams.get("new") === "true",
+    promo: searchParams.get("promo") === "true",
+    sort: searchParams.get("sort") ?? searchParams.get("ordem") ?? "createdAt",
+    exactPrice: searchParams.get("price"),
+    minPrice: searchParams.get("minPrice"),
+    maxPrice: searchParams.get("maxPrice"),
+    requireImage: true,
+  };
+  const products = getBlingProductCards(filters);
+
+  return {
+    products: products.slice(skip, skip + take),
+    total: products.length,
+    page,
+    pageSize,
+    totalPages: Math.ceil(products.length / pageSize),
+  };
+}
+
+function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof productInclude }>): ProductCardProduct | null {
+  const bling = findBlingProductForSource({
+    blingId: product.blingId,
+    sku: product.sku,
+    slug: product.slug,
+    name: product.name,
+  });
+
+  if (bling && (!bling.active || bling.stock <= 0)) return null;
+
+  const dbImages = product.images.map((image) => ({ url: image.url, alt: image.alt ?? product.name }));
+  const images = dbImages.length ? dbImages : bling?.images ?? [];
+  const promotionalPrice = bling
+    ? null
+    : product.promotionalPrice
+      ? Number(product.promotionalPrice)
+      : null;
+
+  return {
+    id: product.id,
+    name: bling?.name ?? product.name,
+    slug: product.slug ?? bling?.slug,
+    description: product.description || bling?.description,
+    price: bling?.price ?? Number(product.price),
+    promotionalPrice,
+    promo: promotionalPrice,
+    badge: product.isNew ? "Novo" : product.featured ? "Destaque" : bling?.badge ?? null,
+    stock: bling?.stock ?? product.stock,
+    sku: bling?.sku ?? product.sku,
+    blingId: bling?.blingId ?? product.blingId,
+    category: product.category
+      ? { name: getPublicCategoryName(product.category), slug: product.category.slug }
+      : bling?.category ?? null,
+    subcategory: product.subcategory
+      ? { name: product.subcategory.name, slug: product.subcategory.slug }
+      : bling?.subcategory ?? null,
+    images,
+    image: images[0]?.url ?? null,
+    sourceOrder: bling?.sourceOrder ?? 100000,
+    priceSource: bling ? "BLING" : "DATABASE",
+    imageSource: dbImages.length ? "DATABASE" : bling?.imageSource ?? "NONE",
+  } satisfies ProductCardProduct;
+}
+
+function mergeWithBlingCatalog(dbProducts: ProductCardProduct[], filters: CatalogFilters) {
+  const seen = new Set<string>();
+  for (const product of dbProducts) {
+    getProductIdentityKeys(product).forEach((key) => seen.add(key));
+  }
+
+  const blingProducts = getBlingProductCards(filters).filter((product) => {
+    const keys = getProductIdentityKeys(product);
+    return !keys.some((key) => seen.has(key));
+  });
+
+  return sortProducts([...dbProducts, ...blingProducts], filters.sort);
+}
+
+function sortProducts(products: ProductCardProduct[], sort?: string | null) {
+  if (sort === "price_asc" || sort === "menor-preco") {
+    return [...products].sort((a, b) => Number(a.price) - Number(b.price));
+  }
+
+  if (sort === "price_desc" || sort === "maior-preco") {
+    return [...products].sort((a, b) => Number(b.price) - Number(a.price));
+  }
+
+  if (sort === "best_sellers" || sort === "mais-vendidos") {
+    return [...products].sort((a, b) => Number(b.stock ?? 0) - Number(a.stock ?? 0));
+  }
+
+  return [...products].sort((a, b) => (a.sourceOrder ?? 100000) - (b.sourceOrder ?? 100000));
 }
 
 const imageSchema = z.object({
