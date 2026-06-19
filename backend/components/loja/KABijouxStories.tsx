@@ -614,14 +614,15 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
 function CopaDoPrazerBanner() {
   return (
     <section className="mx-auto mt-6 max-w-7xl px-4 sm:mt-8 sm:px-6" aria-label="Copa do Prazer">
-      <Link href={copaBannerHref} className="group block" aria-label="Copa do Prazer — Quero aproveitar">
+      <Link href={copaBannerHref} className="group block" aria-label="Copa do Prazer 2026 — Quero aproveitar">
         <div className="overflow-hidden rounded-[28px] shadow-[0_24px_70px_rgba(236,72,153,0.20)] transition-transform duration-300 group-hover:scale-[1.005]">
+          {/* portrait image: full height on mobile, capped on desktop */}
           <img
             src={copaBannerImage}
-            alt="Copa do Prazer — Produtos selecionados com frete grátis acima de R$150"
+            alt="Copa do Prazer 2026 — Promoções campeãs para você aproveitar"
             loading="eager"
             decoding="async"
-            className="w-full object-cover"
+            className="w-full object-cover object-top sm:max-h-[600px] lg:max-h-[700px]"
           />
         </div>
       </Link>

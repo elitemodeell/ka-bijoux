@@ -23,7 +23,7 @@ export type SeasonalCampaign = {
 
 export const copaBannerHref = "/categoria/sex-shop";
 
-export const copaBannerImage = "/banners/banner-copa-do-prazer-2.png";
+export const copaBannerImage = "/banners/banner-copa-do-prazer-2026-vertical.jpg";
 
 export const activeSeasonalCampaign: SeasonalCampaign = {
   id: "copa-do-prazer",
