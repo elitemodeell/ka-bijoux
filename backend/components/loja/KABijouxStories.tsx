@@ -625,7 +625,7 @@ function MainHeroCarousel() {
 
   useEffect(() => {
     const activeHeroSlide = heroSlides[activeSlide];
-    const duration = activeHeroSlide?.variant === "video" ? HERO_VIDEO_TEASER_DURATION : HERO_IMAGE_DURATION;
+    const duration = HERO_IMAGE_DURATION;
     const timeout = window.setTimeout(goNextSlide, duration);
 
     return () => window.clearTimeout(timeout);
