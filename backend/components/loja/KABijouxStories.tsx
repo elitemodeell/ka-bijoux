@@ -23,6 +23,13 @@ const storyHighlightCoverEntries = Object.entries(storyHighlightCovers);
 
 const heroSlides = [
   {
+    title: "Copa do Prazer 2026 — Promoções Campeãs!",
+    href: "/categoria/sex-shop",
+    image: "/banners/banner-copa-do-prazer-2026.jpg",
+    imagePosition: "center",
+    variant: "artwork" as const,
+  },
+  {
     title: "KA Bijoux — Novidades",
     href: "/produtos?new=true",
     image: "/banners/banner-ka-bijoux-novidades.png",
