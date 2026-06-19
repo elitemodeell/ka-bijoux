@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
+import Link from "next/link";
 import { addCartItem } from "@/lib/client-cart";
 
 type ProductMedia = { url: string; alt?: string | null };
@@ -142,11 +143,19 @@ export default function ProductCard({ product, revealDelay = 0 }: Props) {
       </div>
 
       <div className="flex flex-1 flex-col p-4">
-        <button type="button" onClick={openQuickShop} className="text-left">
-          <h3 className="mb-2 line-clamp-2 text-sm font-semibold leading-snug text-gray-800 transition-colors hover:text-pink-500">
-            {name}
-          </h3>
-        </button>
+        {product.slug ? (
+          <Link href={`/produto/${product.slug}`} className="text-left">
+            <h3 className="mb-2 line-clamp-2 text-sm font-semibold leading-snug text-gray-800 transition-colors hover:text-pink-500">
+              {name}
+            </h3>
+          </Link>
+        ) : (
+          <button type="button" onClick={openQuickShop} className="text-left">
+            <h3 className="mb-2 line-clamp-2 text-sm font-semibold leading-snug text-gray-800 transition-colors hover:text-pink-500">
+              {name}
+            </h3>
+          </button>
+        )}
 
         <div className="mt-auto">
           <div className="mb-3 flex items-baseline gap-2">
