@@ -28,6 +28,9 @@ CREATE TYPE "ProductImportSource" AS ENUM ('MANUAL', 'BLING');
 -- CreateEnum
 CREATE TYPE "ProductEnrichmentStatus" AS ENUM ('NOT_REQUIRED', 'PENDING_RESEARCH', 'ENRICHED', 'NEEDS_MANUAL_REVIEW', 'MANUAL_REVIEWED');
 
+-- CreateEnum
+CREATE TYPE "ProductPublicationStatus" AS ENUM ('IMPORTED', 'PENDING_REVIEW', 'APPROVED', 'PUBLISHED', 'HIDDEN', 'MISSING_IMAGE', 'MISSING_DESCRIPTION');
+
 -- CreateTable
 CREATE TABLE "admins" (
     "id" TEXT NOT NULL,
@@ -122,6 +125,8 @@ CREATE TABLE "products" (
     "blingId" TEXT,
     "importSource" "ProductImportSource" NOT NULL DEFAULT 'MANUAL',
     "enrichmentStatus" "ProductEnrichmentStatus" NOT NULL DEFAULT 'NOT_REQUIRED',
+    "publicationStatus" "ProductPublicationStatus" NOT NULL DEFAULT 'IMPORTED',
+    "searchTags" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "researchSources" JSONB,
     "researchNotes" TEXT,
     "researchedAt" TIMESTAMP(3),

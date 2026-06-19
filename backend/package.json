@@ -13,6 +13,7 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
     "db:seed:sex-shop": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-sex-shop.ts",
+    "bling:import": "node scripts/import-bling-products.js",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force"
   },

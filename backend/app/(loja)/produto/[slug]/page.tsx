@@ -32,6 +32,8 @@ type DbProduct = {
   stock: number;
   featured: boolean;
   isNew: boolean;
+  categoryId: string;
+  subcategoryId: string | null;
   category: { name: string; slug: string } | null;
   subcategory: { name: string; slug: string } | null;
   images: { url: string; alt: string | null; order: number }[];
@@ -78,6 +80,8 @@ async function fetchDbProduct(slug: string): Promise<DbProduct | null> {
       stock: product.stock,
       featured: product.featured,
       isNew: product.isNew,
+      categoryId: product.categoryId,
+      subcategoryId: product.subcategoryId,
       category: product.category
         ? { name: product.category.name, slug: product.category.slug }
         : null,
@@ -96,8 +100,8 @@ async function fetchDbProduct(slug: string): Promise<DbProduct | null> {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const staticProduct = getStaticProduct(params.slug);
-  const dbProduct = staticProduct ? null : await fetchDbProduct(params.slug);
+  const dbProduct = await fetchDbProduct(params.slug);
+  const staticProduct = dbProduct ? null : getStaticProduct(params.slug);
 
   const name = staticProduct?.name ?? dbProduct?.name ?? "Produto";
   const description =
@@ -112,62 +116,98 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ProdutoPage({ params }: PageProps) {
-  const staticProduct = getStaticProduct(params.slug);
+  const dbProduct = await fetchDbProduct(params.slug);
 
-  // If static product exists, use it directly (no DB call needed)
-  if (staticProduct) {
-    const subcategoryName = getSubcategoryName(staticProduct.subcategorySlug);
-    const subcategoryPathSlug = getSubcategoryPathSlug(staticProduct.subcategorySlug);
+  if (dbProduct) {
+    const relatedDbProducts = await prisma.product.findMany({
+      where: {
+        active: true,
+        id: { not: dbProduct.id },
+        OR: dbProduct.subcategoryId
+          ? [{ subcategoryId: dbProduct.subcategoryId }, { categoryId: dbProduct.categoryId }]
+          : [{ categoryId: dbProduct.categoryId }],
+      },
+      include: {
+        category: true,
+        subcategory: true,
+        images: { orderBy: { order: "asc" }, take: 1 },
+      },
+      take: 8,
+    });
+
+    const subcategoryName =
+      dbProduct.subcategory?.name ??
+      getSubcategoryName(dbProduct.subcategory?.slug ?? "");
+    const subcategoryPathSlug = getSubcategoryPathSlug(
+      dbProduct.subcategory?.slug ?? ""
+    );
+
+    const adaptedProduct = {
+      slug: dbProduct.slug ?? params.slug,
+      name: dbProduct.name,
+      sku: dbProduct.sku ?? "",
+      brand: dbProduct.brand ?? undefined,
+      ean: dbProduct.ean ?? undefined,
+      price: Number(dbProduct.price),
+      promotionalPrice: dbProduct.promotionalPrice ? Number(dbProduct.promotionalPrice) : null,
+      categoryName: dbProduct.category?.name ?? "KA Bijoux",
+      categorySlug: dbProduct.category?.slug ?? "produtos",
+      subcategoryName,
+      subcategorySlug: dbProduct.subcategory?.slug ?? "",
+      imageFile: dbProduct.images[0]?.url ?? "",
+      galleryImages: dbProduct.images.map((image) => image.url),
+      shortDescription:
+        dbProduct.description?.split("\n")[0] ??
+        "Produto selecionado com carinho pela KA Bijoux.",
+      longDescription: dbProduct.description ?? "",
+      details: [] as string[],
+      benefits: dbProduct.benefits ?? undefined,
+      howToUse: dbProduct.howToUse ?? "",
+      composition: dbProduct.composition ?? undefined,
+      careInstructions: dbProduct.careInstructions ?? undefined,
+      packageContents: dbProduct.packageContents ?? undefined,
+      relatedSlugs: [] as string[],
+      relatedProducts: relatedDbProducts.map((related) => ({
+        id: related.id,
+        name: related.name,
+        slug: related.slug,
+        price: Number(related.price),
+        promotionalPrice: related.promotionalPrice ? Number(related.promotionalPrice) : null,
+        image: related.images[0]?.url ?? null,
+        badge: related.isNew ? "Novo" : related.featured ? "Destaque" : null,
+        stock: related.stock,
+        sku: related.sku,
+        description: related.description,
+        category: related.category ? { name: related.category.name, slug: related.category.slug } : null,
+        subcategory: related.subcategory ? { name: related.subcategory.name, slug: related.subcategory.slug } : null,
+      })),
+      badge: dbProduct.isNew ? "Novo" : dbProduct.featured ? "Destaque" : undefined,
+      stock: dbProduct.stock,
+      installments: 3,
+    };
 
     return (
       <ProductDetailPage
-        product={staticProduct}
+        product={adaptedProduct}
         subcategoryName={subcategoryName}
         subcategoryPathSlug={subcategoryPathSlug}
       />
     );
   }
 
-  // Fallback: try DB for non-catalog products
-  const dbProduct = await fetchDbProduct(params.slug);
-  if (!dbProduct) notFound();
-
-  // Convert DB product to static shape for rendering
-  const subcategoryName =
-    dbProduct.subcategory?.name ??
-    getSubcategoryName(dbProduct.subcategory?.slug ?? "");
-  const subcategoryPathSlug = getSubcategoryPathSlug(
-    dbProduct.subcategory?.slug ?? ""
-  );
-
-  const adaptedProduct = {
-    slug: dbProduct.slug ?? params.slug,
-    name: dbProduct.name,
-    sku: dbProduct.sku ?? "",
-    brand: dbProduct.brand ?? undefined,
-    ean: dbProduct.ean ?? undefined,
-    price: Number(dbProduct.price),
-    subcategorySlug: dbProduct.subcategory?.slug ?? "sex-shop",
-    imageFile: dbProduct.images[0]?.url ?? "",
-    shortDescription:
-      dbProduct.description?.split("\n")[0] ??
-      "Produto selecionado com carinho pela KA Bijoux.",
-    longDescription: dbProduct.description ?? "",
-    details: [] as string[],
-    benefits: dbProduct.benefits ?? undefined,
-    howToUse: dbProduct.howToUse ?? "",
-    composition: dbProduct.composition ?? undefined,
-    careInstructions: dbProduct.careInstructions ?? undefined,
-    packageContents: dbProduct.packageContents ?? undefined,
-    relatedSlugs: [] as string[],
-    badge: dbProduct.isNew ? "Novo" : dbProduct.featured ? "Destaque" : undefined,
-    stock: dbProduct.stock,
-    installments: 1,
-  };
+  const staticProduct = getStaticProduct(params.slug);
+  if (!staticProduct) notFound();
+  const subcategoryName = getSubcategoryName(staticProduct.subcategorySlug);
+  const subcategoryPathSlug = getSubcategoryPathSlug(staticProduct.subcategorySlug);
 
   return (
     <ProductDetailPage
-      product={adaptedProduct}
+      product={{
+        ...staticProduct,
+        categoryName: "KA Bijoux",
+        categorySlug: "produtos",
+        subcategoryName,
+      }}
       subcategoryName={subcategoryName}
       subcategoryPathSlug={subcategoryPathSlug}
     />

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { ProductEnrichmentStatus, ProductImportSource } from "@prisma/client";
+import { ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
@@ -57,6 +57,8 @@ const updateSchema = z.object({
   blingId: z.string().trim().optional().nullable(),
   importSource: z.nativeEnum(ProductImportSource).optional(),
   enrichmentStatus: z.nativeEnum(ProductEnrichmentStatus).optional(),
+  publicationStatus: z.nativeEnum(ProductPublicationStatus).optional(),
+  searchTags: z.array(z.string().trim()).optional(),
   featured: z.boolean().optional(),
   isNew: z.boolean().optional(),
   active: z.boolean().optional(),

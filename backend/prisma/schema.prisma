@@ -128,6 +128,8 @@ model Product {
   blingId          String?  @unique
   importSource     ProductImportSource @default(MANUAL)
   enrichmentStatus ProductEnrichmentStatus @default(NOT_REQUIRED)
+  publicationStatus ProductPublicationStatus @default(IMPORTED)
+  searchTags       String[] @default([])
   researchSources  Json?
   researchNotes    String? @db.Text
   researchedAt     DateTime?
@@ -160,6 +162,16 @@ enum ProductEnrichmentStatus {
   ENRICHED
   NEEDS_MANUAL_REVIEW
   MANUAL_REVIEWED
+}
+
+enum ProductPublicationStatus {
+  IMPORTED
+  PENDING_REVIEW
+  APPROVED
+  PUBLISHED
+  HIDDEN
+  MISSING_IMAGE
+  MISSING_DESCRIPTION
 }
 
 // ─── ProductImage ─────────────────────────────────────────────────────────────

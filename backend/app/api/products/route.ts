@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { Prisma, ProductEnrichmentStatus, ProductImportSource } from "@prisma/client";
+import { Prisma, ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
@@ -117,6 +117,8 @@ const createSchema = z.object({
   blingId: z.string().trim().optional().nullable(),
   importSource: z.nativeEnum(ProductImportSource).optional(),
   enrichmentStatus: z.nativeEnum(ProductEnrichmentStatus).optional(),
+  publicationStatus: z.nativeEnum(ProductPublicationStatus).optional(),
+  searchTags: z.array(z.string().trim()).optional(),
   featured: z.boolean().default(false),
   isNew: z.boolean().default(true),
   active: z.boolean().default(true),
@@ -165,6 +167,10 @@ export async function POST(req: NextRequest) {
           (importSource === ProductImportSource.BLING
             ? ProductEnrichmentStatus.PENDING_RESEARCH
             : ProductEnrichmentStatus.NOT_REQUIRED),
+        publicationStatus:
+          data.publicationStatus ??
+          (data.active ? ProductPublicationStatus.PUBLISHED : ProductPublicationStatus.IMPORTED),
+        searchTags: data.searchTags ?? [],
         importedAt: importSource === ProductImportSource.BLING ? new Date() : null,
         featured: data.featured,
         isNew: data.isNew,

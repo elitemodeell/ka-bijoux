@@ -1,4 +1,4 @@
-import { Prisma, Product, ProductEnrichmentStatus, ProductImportSource } from "@prisma/client";
+import { Prisma, Product, ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 type ProductForResearch = Pick<
@@ -97,6 +97,29 @@ export async function enrichRecentBlingProducts(options: { limit?: number } = {}
   };
 }
 
+export async function enrichBlingProductsByIds(productIds: string[]) {
+  const ids = Array.from(new Set(productIds.filter(Boolean))).slice(0, 20);
+  const products = await prisma.product.findMany({
+    where: {
+      id: { in: ids },
+      importSource: ProductImportSource.BLING,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const results = [];
+  for (const product of products) {
+    results.push(await enrichProductFromTrustedSources(product));
+  }
+
+  return {
+    processed: results.length,
+    enriched: results.filter((item) => item.status === ProductEnrichmentStatus.ENRICHED).length,
+    needsReview: results.filter((item) => item.status === ProductEnrichmentStatus.NEEDS_MANUAL_REVIEW).length,
+    results,
+  };
+}
+
 export async function enrichProductFromTrustedSources(product: ProductForResearch) {
   const result = await researchProduct(product);
   const now = new Date();
@@ -105,6 +128,7 @@ export async function enrichProductFromTrustedSources(product: ProductForResearc
     const data: Prisma.ProductUpdateInput = {
       ...result.content,
       enrichmentStatus: ProductEnrichmentStatus.ENRICHED,
+      publicationStatus: ProductPublicationStatus.PENDING_REVIEW,
       researchSources: serializeSources(result.sources),
       researchNotes: result.notes.join("\n"),
       researchedAt: now,
@@ -126,6 +150,7 @@ export async function enrichProductFromTrustedSources(product: ProductForResearc
     where: { id: product.id },
     data: {
       enrichmentStatus: ProductEnrichmentStatus.NEEDS_MANUAL_REVIEW,
+      publicationStatus: ProductPublicationStatus.MISSING_DESCRIPTION,
       researchSources: serializeSources(result.sources),
       researchNotes: result.notes.join("\n"),
       researchedAt: now,

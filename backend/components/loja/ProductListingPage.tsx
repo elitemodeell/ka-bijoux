@@ -52,9 +52,7 @@ export default async function ProductListingPage({
   const productListKey = `${categorySlug ?? "todos"}-${subcategorySlug ?? "todas"}-${promo ? "promo" : onlyNew ? "new" : "all"}-${sort}-${query ?? ""}`;
 
   const liveProducts = await getLiveProducts({ categorySlug, subcategorySlug, selectedPrice, sort, promo, onlyNew, query });
-  const products = liveProducts.length > 0
-    ? liveProducts
-    : getMockProducts({ categorySlug, subcategorySlug, selectedPrice, promo, onlyNew, query });
+  const products = liveProducts;
 
   return (
     <section className={embedded ? "" : "bg-white pt-28 md:pt-28"}>
@@ -180,7 +178,7 @@ export default async function ProductListingPage({
               <div className="rounded-[28px] border border-pink-100 bg-pink-50 px-6 py-16 text-center">
                 <p className="font-playfair text-2xl font-bold text-gray-900">Em breve teremos novidades nessa categoria.</p>
                 <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-gray-500">
-                  A estrutura já está pronta para receber os produtos reais da cliente.
+                  Estamos preparando os produtos reais da KA Bijoux para esta vitrine.
                 </p>
                 <Link href="/produtos" className="mt-6 inline-flex rounded-full bg-pink-500 px-6 py-3 text-sm font-bold text-white">
                   Ver todos os produtos

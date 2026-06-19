@@ -54,5 +54,6 @@ Thumbs.db
 coverage/
 .nyc_output/
 *.tsbuildinfo
+tmp/bling-products-report.*
 
 .vercel
