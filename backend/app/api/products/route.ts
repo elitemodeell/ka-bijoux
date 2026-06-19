@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
     const exactPrice = searchParams.get("price");
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
+    const withImage = searchParams.get("withImage") === "true";
     const filters: CatalogFilters = {
       categorySlug: category,
       subcategorySlug: subcategory,
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
       exactPrice,
       minPrice,
       maxPrice,
-      requireImage: true,
+      requireImage: withImage,
     };
 
     const where: Prisma.ProductWhereInput = { active: true };
@@ -128,7 +129,7 @@ function getFallbackProducts(req: NextRequest) {
     exactPrice: searchParams.get("price"),
     minPrice: searchParams.get("minPrice"),
     maxPrice: searchParams.get("maxPrice"),
-    requireImage: true,
+    requireImage: searchParams.get("withImage") === "true",
   };
   const products = getBlingProductCards(filters);
 

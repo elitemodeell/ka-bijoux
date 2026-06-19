@@ -114,7 +114,7 @@ export function getBlingProductCards(filters: CatalogFilters = {}) {
 }
 
 export function getBlingCatalogProducts(filters: CatalogFilters = {}) {
-  const requireImage = filters.requireImage ?? true;
+  const requireImage = filters.requireImage ?? false;
   const normalizedQuery = normalizeSearch(filters.query ?? "");
   const selectedPrice = filters.selectedPrice ?? filters.exactPrice ?? null;
   const minPrice = toOptionalNumber(filters.minPrice);
