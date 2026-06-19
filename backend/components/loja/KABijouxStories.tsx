@@ -49,6 +49,15 @@ const heroSlides = [
     objectFit: "cover" as const,
     objectPosition: "center",
   },
+  {
+    title: "Copa do Prazer",
+    subtitle: "Produtos que vão elevar a sua experiência.",
+    cta: "Quero Aproveitar",
+    href: "/categoria/sex-shop",
+    image: "/banners/banner-copa-do-prazer-2.png",
+    objectFit: "cover" as const,
+    objectPosition: "center",
+  },
 ];
 
 const fallbackGroups: StoryGroup[] = [
