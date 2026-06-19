@@ -19,7 +19,14 @@ type DbProduct = {
   name: string;
   slug: string | null;
   sku: string | null;
+  brand: string | null;
+  ean: string | null;
   description: string | null;
+  benefits: string | null;
+  howToUse: string | null;
+  composition: string | null;
+  careInstructions: string | null;
+  packageContents: string | null;
   price: number | string;
   promotionalPrice: number | string | null;
   stock: number;
@@ -58,7 +65,14 @@ async function fetchDbProduct(slug: string): Promise<DbProduct | null> {
       name: product.name,
       slug: product.slug,
       sku: product.sku,
+      brand: product.brand,
+      ean: product.ean,
       description: product.description,
+      benefits: product.benefits,
+      howToUse: product.howToUse,
+      composition: product.composition,
+      careInstructions: product.careInstructions,
+      packageContents: product.packageContents,
       price: Number(product.price),
       promotionalPrice: product.promotionalPrice ? Number(product.promotionalPrice) : null,
       stock: product.stock,
@@ -130,6 +144,8 @@ export default async function ProdutoPage({ params }: PageProps) {
     slug: dbProduct.slug ?? params.slug,
     name: dbProduct.name,
     sku: dbProduct.sku ?? "",
+    brand: dbProduct.brand ?? undefined,
+    ean: dbProduct.ean ?? undefined,
     price: Number(dbProduct.price),
     subcategorySlug: dbProduct.subcategory?.slug ?? "sex-shop",
     imageFile: dbProduct.images[0]?.url ?? "",
@@ -137,8 +153,12 @@ export default async function ProdutoPage({ params }: PageProps) {
       dbProduct.description?.split("\n")[0] ??
       "Produto selecionado com carinho pela KA Bijoux.",
     longDescription: dbProduct.description ?? "",
-    details: [],
-    howToUse: "",
+    details: [] as string[],
+    benefits: dbProduct.benefits ?? undefined,
+    howToUse: dbProduct.howToUse ?? "",
+    composition: dbProduct.composition ?? undefined,
+    careInstructions: dbProduct.careInstructions ?? undefined,
+    packageContents: dbProduct.packageContents ?? undefined,
     relatedSlugs: [] as string[],
     badge: dbProduct.isNew ? "Novo" : dbProduct.featured ? "Destaque" : undefined,
     stock: dbProduct.stock,

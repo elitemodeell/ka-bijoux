@@ -23,13 +23,6 @@ const storyHighlightCoverEntries = Object.entries(storyHighlightCovers);
 
 const heroSlides = [
   {
-    title: "Copa do Prazer — 5 Cores Disponíveis",
-    href: "/categoria/sex-shop",
-    image: "/banners/banner-copa-do-prazer-1.png",
-    imagePosition: "center",
-    variant: "artwork" as const,
-  },
-  {
     title: "KA Bijoux — Novidades",
     href: "/produtos?new=true",
     image: "/banners/banner-ka-bijoux-novidades.png",
@@ -459,41 +452,16 @@ export default function KABijouxStories() {
         />
       </div>
 
-      <div className="relative z-10 pb-6 pt-0 text-center sm:pb-8 sm:pt-3">
+      <div className="relative z-10 pb-10 pt-0 sm:pb-12 sm:pt-3">
         <MainHeroCarousel />
-
-        <div className="mx-auto mt-5 max-w-7xl overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex min-w-max items-start gap-4 px-1 sm:justify-center sm:gap-6">
-            {loading
-              ? Array.from({ length: 5 }).map((_, index) => (
-                  <div key={index} className="w-[74px] shrink-0 animate-pulse">
-                    <div className="mx-auto h-16 w-16 rounded-full bg-pink-100" />
-                    <div className="mx-auto mt-2 h-2.5 w-12 rounded-full bg-pink-50" />
-                  </div>
-                ))
-              : visibleGroups.map((group, index) => {
-                  const coverMedia = getStoryCoverMedia(group);
-                  return (
-                    <button
-                      key={group.id}
-                      type="button"
-                      onClick={() => openGroup(index)}
-                      className="group w-[74px] shrink-0 text-center outline-none"
-                      aria-label={`Abrir story ${group.title}`}
-                    >
-                      <span className="mx-auto flex h-[68px] w-[68px] items-center justify-center rounded-full bg-[conic-gradient(from_210deg,#ec4899,#d946ef,#fb7185,#fb923c,#ec4899)] p-[3px] shadow-[0_8px_24px_rgba(255,77,109,0.20)] transition-transform duration-200 group-hover:scale-[1.04]">
-                        <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white">
-                          <StoryCover media={coverMedia} title={group.title} />
-                        </span>
-                      </span>
-                      <span className="mt-2 block truncate text-[11px] font-semibold leading-tight text-gray-700">
-                        {group.title}
-                      </span>
-                    </button>
-                  );
-                })}
-          </div>
-        </div>
+        <StorySpotlight
+          groups={visibleGroups}
+          loading={loading}
+          onOpenGroup={openGroup}
+          seenIds={seenIds}
+        />
+        <CopaDoPrazerBanner />
+        <CopaPromoStrip />
       </div>
 
       {activeGroup && activeItem && (
@@ -587,14 +555,219 @@ export default function KABijouxStories() {
   );
 }
 
+type StorySpotlightProps = {
+  groups: StoryGroup[];
+  loading: boolean;
+  onOpenGroup: (index: number) => void;
+  seenIds: Set<string>;
+};
+
+const copaProducts = [
+  "Lubrificante íntimo",
+  "Gel corporal",
+  "Desodorante íntimo",
+  "Cápsulas vibratórias",
+  "Bullet vibratório",
+];
+
+const copaBenefits = [
+  { icon: "🚚", title: "Frete grátis", text: "acima de R$150" },
+  { icon: "🎁", title: "Mimos", text: "em todos os presentes" },
+  { icon: "📦", title: "Embalagem", text: "100% discreta" },
+  { icon: "🔒", title: "Compra", text: "100% segura" },
+];
+
+function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotlightProps) {
+  return (
+    <section className="mx-auto mt-4 max-w-7xl px-4 sm:mt-6 sm:px-6" aria-label="Stories KA Bijoux">
+      <div className="relative overflow-hidden rounded-[28px] border border-pink-100/80 bg-gradient-to-br from-white via-pink-50 to-rose-50 p-4 shadow-[0_18px_54px_rgba(255,77,109,0.14)] sm:p-5 lg:p-6">
+        <span className="ka-story-spotlight-shine" aria-hidden="true" />
+        <span className="pointer-events-none absolute -right-12 -top-16 h-36 w-36 rounded-full bg-[#f9d976]/25 blur-3xl" aria-hidden="true" />
+        <span className="pointer-events-none absolute -bottom-20 left-8 h-40 w-40 rounded-full bg-pink-300/22 blur-3xl" aria-hidden="true" />
+
+        <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:gap-7">
+          <div className="text-center lg:w-[310px] lg:shrink-0 lg:text-left">
+            <p className="ka-story-attention-label mx-auto inline-flex items-center justify-center rounded-full border border-pink-200/80 bg-white/88 px-4 py-2 text-[12px] font-black uppercase tracking-[0.16em] text-pink-600 shadow-sm backdrop-blur lg:mx-0">
+              ✨ VEJA NOSSOS STORIES
+            </p>
+            <p className="mx-auto mt-3 max-w-[300px] text-sm font-semibold leading-relaxed text-gray-700 lg:mx-0">
+              Arraste para o lado e descubra novidades, promoções e lançamentos.
+            </p>
+            <span className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-pink-600 to-pink-400 px-4 py-2 text-[11px] font-black uppercase tracking-wide text-white shadow-[0_12px_26px_rgba(236,72,153,0.24)] lg:mx-0">
+              Arraste
+              <span className="ka-story-arrow text-lg leading-none" aria-hidden="true">→</span>
+            </span>
+          </div>
+
+          <div className="overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:flex-1">
+            <div className="flex min-w-max snap-x snap-mandatory items-start gap-5 px-1 sm:gap-7 lg:min-w-0 lg:justify-center">
+              {loading
+                ? Array.from({ length: 5 }).map((_, index) => (
+                    <div key={index} className="w-[88px] shrink-0 animate-pulse text-center sm:w-[96px]">
+                      <div className="mx-auto h-20 w-20 rounded-full bg-pink-100 sm:h-24 sm:w-24" />
+                      <div className="mx-auto mt-3 h-3 w-16 rounded-full bg-pink-100/80" />
+                    </div>
+                  ))
+                : groups.map((group, index) => {
+                    const coverMedia = getStoryCoverMedia(group);
+                    const hasSeen = seenIds.has(group.id);
+
+                    return (
+                      <button
+                        key={group.id}
+                        type="button"
+                        onClick={() => onOpenGroup(index)}
+                        className="group w-[88px] shrink-0 snap-start text-center outline-none sm:w-[96px]"
+                        aria-label={`Abrir story ${group.title}`}
+                      >
+                        <span
+                          className={`ka-story-ring mx-auto flex h-20 w-20 items-center justify-center rounded-full p-[4px] transition-transform duration-300 group-hover:scale-[1.04] sm:h-24 sm:w-24 ${
+                            hasSeen ? "ka-story-ring-seen" : "ka-story-ring-unseen"
+                          }`}
+                        >
+                          <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.78)]">
+                            <StoryCover media={coverMedia} title={group.title} />
+                          </span>
+                        </span>
+                        <span className="mt-3 block truncate text-[12px] font-bold leading-tight text-gray-800 sm:text-[13px]">
+                          {group.title}
+                        </span>
+                      </button>
+                    );
+                  })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CopaDoPrazerBanner() {
+  return (
+    <section className="mx-auto mt-6 max-w-7xl px-4 sm:mt-8 sm:px-6" aria-label="Copa do Prazer">
+      <Link
+        href={copaBannerHref}
+        className="group block"
+        aria-label="Copa do Prazer. Quero aproveitar produtos selecionados."
+      >
+        <article className="ka-copa-banner relative min-h-[650px] overflow-hidden rounded-[28px] bg-[#031408] shadow-[0_24px_70px_rgba(236,72,153,0.20)] sm:min-h-[590px] lg:aspect-[1680/825] lg:min-h-0">
+          <img
+            src={copaBannerImage}
+            alt=""
+            aria-hidden="true"
+            loading="eager"
+            decoding="async"
+            className="absolute inset-0 h-full w-full origin-top scale-[1.15] object-cover object-[42%_top] opacity-45 lg:scale-100 lg:object-[center_top] lg:opacity-100"
+          />
+          <span className="absolute inset-0 bg-[radial-gradient(circle_at_28%_12%,rgba(255,255,255,0.24),transparent_22%),linear-gradient(135deg,rgba(1,20,7,0.48),rgba(1,20,7,0.12)_44%,rgba(224,0,104,0.48))] lg:hidden" aria-hidden="true" />
+          <span className="absolute inset-0 rounded-[28px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16),inset_0_0_42px_rgba(255,0,128,0.24)]" aria-hidden="true" />
+          <span className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#031408] via-[#031408]/86 to-transparent lg:hidden" aria-hidden="true" />
+
+          <div className="relative z-10 flex min-h-[650px] flex-col justify-between p-5 text-white sm:min-h-[590px] sm:p-7 lg:hidden">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-yellow-200/35 bg-white/12 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-yellow-100 backdrop-blur">
+                🇧🇷 Entrou em campo
+              </span>
+              <h2 className="mt-4 max-w-[300px] text-5xl font-black uppercase leading-[0.9] tracking-normal text-white drop-shadow-[0_8px_20px_rgba(0,0,0,0.34)]">
+                Copa do prazer!
+              </h2>
+              <p className="mt-3 max-w-[260px] text-sm font-semibold leading-relaxed text-white/86">
+                Produtos que vão elevar a sua experiência.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="rounded-[22px] border border-white/14 bg-white/12 p-3 shadow-[0_14px_34px_rgba(0,0,0,0.18)] backdrop-blur-md">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-yellow-100">
+                  Produtos em destaque
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {copaProducts.map((product) => (
+                    <span key={product} className="rounded-full bg-white/88 px-3 py-1.5 text-[11px] font-bold text-pink-700">
+                      {product}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {copaBenefits.map((benefit) => (
+                  <span
+                    key={benefit.title}
+                    className="flex items-center gap-3 rounded-2xl border border-white/14 bg-white/88 px-3 py-2.5 text-left text-gray-950 shadow-[0_12px_28px_rgba(0,0,0,0.16)] backdrop-blur"
+                  >
+                    <span className="text-2xl leading-none" aria-hidden="true">{benefit.icon}</span>
+                    <span>
+                      <span className="block text-[12px] font-black uppercase text-pink-600">{benefit.title}</span>
+                      <span className="block text-[12px] font-semibold leading-tight text-gray-800">{benefit.text}</span>
+                    </span>
+                  </span>
+                ))}
+              </div>
+
+              <span className="ka-btn flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-pink-600 via-pink-500 to-pink-400 px-6 py-4 text-sm font-black uppercase tracking-wide text-white shadow-[0_18px_38px_rgba(236,72,153,0.36)]">
+                QUERO APROVEITAR
+                <span className="text-xl leading-none transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true">→</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="pointer-events-none absolute left-[6.2%] bottom-[17%] z-10 hidden w-[37%] rounded-2xl border border-white/14 bg-[#041b0c]/88 p-3 text-white shadow-[0_16px_36px_rgba(0,0,0,0.26)] backdrop-blur-md lg:block">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-yellow-100">
+              Produtos em destaque
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {copaProducts.map((product) => (
+                <span key={product} className="rounded-full bg-white/92 px-3 py-1.5 text-[11px] font-bold text-pink-700">
+                  {product}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <span className="sr-only">
+            Frete grátis acima de R$150. Mimos em todos os presentes. Embalagem 100% discreta. Compra 100% segura.
+          </span>
+        </article>
+      </Link>
+    </section>
+  );
+}
+
+function CopaPromoStrip() {
+  return (
+    <section className="mx-auto mt-4 max-w-7xl px-4 sm:mt-5 sm:px-6" aria-label="Campeões de vendas">
+      <Link
+        href={copaBannerHref}
+        className="ka-copa-promo-strip group flex flex-col gap-4 rounded-[24px] bg-gradient-to-r from-pink-700 via-pink-500 to-pink-400 p-5 text-white shadow-[0_20px_54px_rgba(236,72,153,0.24)] sm:flex-row sm:items-center sm:justify-between sm:p-6"
+      >
+        <span className="flex items-center gap-4">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/12 text-4xl shadow-inner backdrop-blur" aria-hidden="true">
+            🏆
+          </span>
+          <span>
+            <span className="block text-xl font-black uppercase leading-tight sm:text-2xl">
+              A COPA DO PRAZER JÁ COMEÇOU!
+            </span>
+            <span className="mt-1 block text-sm font-semibold text-yellow-100 sm:text-base">
+              Confira nossos campeões de vendas
+            </span>
+          </span>
+        </span>
+        <span className="ka-btn inline-flex min-h-12 items-center justify-center gap-3 rounded-2xl bg-white px-6 py-3 text-sm font-black uppercase tracking-wide text-pink-600 shadow-[0_14px_30px_rgba(0,0,0,0.14)] sm:min-w-[190px]">
+          EU QUERO
+          <span className="text-xl leading-none transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true">→</span>
+        </span>
+      </Link>
+    </section>
+  );
+}
+
 function MainHeroCarousel() {
   const [activeSlide, setActiveSlide] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const touchDeltaX = useRef(0);
-
-  const goToSlide = useCallback((index: number) => {
-    setActiveSlide((index + heroSlides.length) % heroSlides.length);
-  }, []);
 
   const goNextSlide = useCallback(() => {
     setActiveSlide((current) => (current + 1) % heroSlides.length);
@@ -605,7 +778,6 @@ function MainHeroCarousel() {
   }, []);
 
   useEffect(() => {
-    const activeHeroSlide = heroSlides[activeSlide];
     const duration = HERO_IMAGE_DURATION;
     const timeout = window.setTimeout(goNextSlide, duration);
 
@@ -657,7 +829,8 @@ function MainHeroCarousel() {
                   alt=""
                   className="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-xl"
                   style={{ objectPosition: slide.imagePosition }}
-                  loading="eager"
+                  loading={index === 0 ? "eager" : "lazy"}
+                  decoding="async"
                   aria-hidden="true"
                 />
                 <span className="absolute inset-0 bg-gradient-to-r from-pink-50/55 via-white/15 to-pink-100/45" />
@@ -665,7 +838,8 @@ function MainHeroCarousel() {
                   src={slide.image}
                   alt={slide.title}
                   className="relative z-10 h-full w-full object-contain"
-                  loading="eager"
+                  loading={index === 0 ? "eager" : "lazy"}
+                  decoding="async"
                 />
               </>
             ) : (
@@ -675,7 +849,8 @@ function MainHeroCarousel() {
                   alt={slide.title}
                   className="absolute inset-0 h-full w-full object-cover"
                   style={{ objectPosition: slide.imagePosition }}
-                  loading="eager"
+                  loading={index === 0 ? "eager" : "lazy"}
+                  decoding="async"
                 />
                 <span className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/68 to-white/10" />
                 <span className="absolute inset-0 bg-gradient-to-t from-pink-950/12 via-transparent to-white/12" />
@@ -702,20 +877,6 @@ function MainHeroCarousel() {
         ))}
       </div>
 
-      <div className="absolute bottom-3 left-0 right-0 z-20 flex items-center justify-center gap-2">
-        {heroSlides.map((slide, index) => (
-          <button
-            key={slide.title}
-            type="button"
-            onClick={() => goToSlide(index)}
-            className={`h-2 rounded-full transition-all ${
-              activeSlide === index ? "w-7 bg-pink-500" : "w-2 bg-white/80 shadow-sm"
-            }`}
-            aria-label={`Ir para banner ${index + 1}`}
-            aria-current={activeSlide === index ? "true" : undefined}
-          />
-        ))}
-      </div>
     </div>
   );
 }

@@ -141,6 +141,60 @@ body {
     transform: translateY(0) scale(1);
   }
 }
+@keyframes ka-story-ring-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes ka-story-attention-pulse {
+  0%, 100% {
+    box-shadow: 0 10px 24px rgba(236, 72, 153, 0.12);
+    transform: translateY(0);
+  }
+  50% {
+    box-shadow: 0 14px 34px rgba(236, 72, 153, 0.24);
+    transform: translateY(-1px);
+  }
+}
+@keyframes ka-story-arrow-nudge {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(7px); }
+}
+@keyframes ka-story-shine-sweep {
+  0%, 28% {
+    opacity: 0;
+    transform: translateX(-130%) skewX(-18deg);
+  }
+  48%, 62% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(160%) skewX(-18deg);
+  }
+}
+@keyframes ka-copa-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes ka-copa-neon-sweep {
+  0%, 22% {
+    opacity: 0;
+    transform: translateX(-72%) rotate(8deg);
+  }
+  48%, 56% {
+    opacity: 0.42;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(76%) rotate(8deg);
+  }
+}
 
 /* ─── Utility Classes ────────────────────────────────────────────────────── */
 
@@ -284,6 +338,77 @@ body {
 .ka-quick-buy-button:active {
   transform: scale(0.98);
 }
+.ka-story-attention-label {
+  animation: ka-story-attention-pulse 2.8s ease-in-out infinite;
+}
+.ka-story-arrow {
+  display: inline-block;
+  animation: ka-story-arrow-nudge 1.25s ease-in-out infinite;
+}
+.ka-story-spotlight-shine {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 110px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+  animation: ka-story-shine-sweep 5.2s ease-in-out infinite;
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+.ka-story-ring {
+  position: relative;
+  isolation: isolate;
+  box-shadow: 0 12px 28px rgba(236, 72, 153, 0.18);
+}
+.ka-story-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: conic-gradient(from 210deg, #ec4899, #f9d976, #ffffff, #ff6b8a, #ec4899);
+}
+.ka-story-ring::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+}
+.ka-story-ring-unseen::before {
+  animation: ka-story-ring-spin 4.6s linear infinite;
+}
+.ka-story-ring-unseen::after {
+  opacity: 0.95;
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 285deg, rgba(255,255,255,0.96) 310deg, transparent 338deg, transparent 360deg);
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.68));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+  animation: ka-story-ring-spin 2.8s linear infinite;
+}
+.ka-story-ring-seen {
+  box-shadow: 0 10px 22px rgba(148, 163, 184, 0.12);
+}
+.ka-story-ring-seen::before {
+  background: conic-gradient(from 210deg, #f9a8d4, #fff7ed, #ffffff, #e5e7eb, #f9a8d4);
+  opacity: 0.72;
+}
+.ka-copa-banner,
+.ka-copa-promo-strip {
+  animation: ka-copa-enter 0.72s ease-out both;
+}
+.ka-copa-banner::after {
+  content: "";
+  position: absolute;
+  inset: -36%;
+  z-index: 1;
+  background: linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.18) 48%, rgba(255,105,180,0.20) 52%, transparent 62%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: ka-copa-neon-sweep 6.8s ease-in-out infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .ka-header-sparkle,
@@ -294,7 +419,15 @@ body {
   .ka-mobile-drawer,
   .ka-free-shipping-card,
   .ka-free-shipping-card::after,
-  .ka-trust-seal {
+  .ka-trust-seal,
+  .ka-story-attention-label,
+  .ka-story-arrow,
+  .ka-story-spotlight-shine,
+  .ka-story-ring-unseen::before,
+  .ka-story-ring-unseen::after,
+  .ka-copa-banner,
+  .ka-copa-banner::after,
+  .ka-copa-promo-strip {
     animation: none;
   }
   .ka-announcement-ticker {

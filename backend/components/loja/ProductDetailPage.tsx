@@ -8,12 +8,21 @@ import { addCartItem } from "@/lib/client-cart";
 import ProductCard from "@/components/loja/ProductCard";
 
 type Props = {
-  product: StaticProduct;
+  product: ProductDetailProduct;
   subcategoryName: string;
   subcategoryPathSlug: string;
 };
 
 const WHATSAPP_NUMBER = "5537999999999";
+
+type ProductDetailProduct = StaticProduct & {
+  brand?: string | null;
+  ean?: string | null;
+  benefits?: string | null;
+  composition?: string | null;
+  careInstructions?: string | null;
+  packageContents?: string | null;
+};
 
 function fmt(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -154,10 +163,23 @@ export default function ProductDetailPage({
 
           {/* RIGHT — product info */}
           <div className="flex flex-col">
-            {/* SKU */}
-            {product.sku && (
-              <p className="text-xs text-white/30 mb-2">SKU: {product.sku}</p>
-            )}
+            <div className="mb-2 flex flex-wrap gap-2 text-xs text-white/35">
+              {product.brand && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                  Marca: {product.brand}
+                </span>
+              )}
+              {product.sku && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                  SKU: {product.sku}
+                </span>
+              )}
+              {product.ean && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                  EAN: {product.ean}
+                </span>
+              )}
+            </div>
 
             {/* Name */}
             <h1 className="font-playfair text-2xl font-bold text-white sm:text-3xl leading-tight">
@@ -343,32 +365,44 @@ export default function ProductDetailPage({
                     {paragraph.trim()}
                   </p>
                 ))}
+                {product.benefits && <InfoBlock title="Benefícios" text={product.benefits} />}
               </div>
             )}
 
             {activeTab === "detalhes" && (
-              <ul className="space-y-3">
-                {product.details.length > 0 ? (
-                  product.details.map((detail, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-white/60">
-                      <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-pink-500/20">
-                        <CheckSmallIcon />
-                      </span>
-                      {detail}
-                    </li>
-                  ))
-                ) : (
-                  <li className="text-sm text-white/40">Detalhes em breve.</li>
+              <div className="space-y-5">
+                <ul className="space-y-3">
+                  {product.details.length > 0 ? (
+                    product.details.map((detail, i) => (
+                      <li key={i} className="flex items-start gap-3 text-sm text-white/60">
+                        <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-pink-500/20">
+                          <CheckSmallIcon />
+                        </span>
+                        {detail}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-sm text-white/40">Detalhes em breve.</li>
+                  )}
+                </ul>
+                {product.composition && (
+                  <InfoBlock title="Composição" text={product.composition} />
                 )}
-              </ul>
+                {product.packageContents && (
+                  <InfoBlock title="Conteúdo da embalagem" text={product.packageContents} />
+                )}
+              </div>
             )}
 
             {activeTab === "como-usar" && (
-              <div>
+              <div className="space-y-5">
                 {product.howToUse ? (
                   <p className="text-sm leading-relaxed text-white/60">{product.howToUse}</p>
                 ) : (
                   <p className="text-sm text-white/40">Instruções em breve.</p>
+                )}
+                {product.careInstructions && (
+                  <InfoBlock title="Cuidados e recomendações" text={product.careInstructions} />
                 )}
               </div>
             )}
@@ -416,6 +450,15 @@ function TrustItem({ icon, label }: { icon: React.ReactNode; label: string }) {
       <span className="text-pink-400">{icon}</span>
       <span className="text-[11px] font-medium leading-tight text-white/50">{label}</span>
     </div>
+  );
+}
+
+function InfoBlock({ title, text }: { title: string; text: string }) {
+  return (
+    <section className="rounded-2xl border border-white/8 bg-white/[0.035] p-4">
+      <h3 className="text-sm font-bold text-pink-300">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-white/60">{text}</p>
+    </section>
   );
 }
 

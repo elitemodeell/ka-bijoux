@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AnnouncementBar from "@/components/loja/AnnouncementBar";
-import HeroSection from "@/components/loja/HeroSection";
 import CategoryGrid from "@/components/loja/CategoryGrid";
 import ProductCard from "@/components/loja/ProductCard";
 import ReelsSection from "@/components/loja/ReelsSection";
@@ -144,8 +143,6 @@ export default async function HomePage() {
         <KABijouxStories />
       </section>
 
-      {/* ── Hero ──────────────────────────────────────────── */}
-      <HeroSection />
       <ReelsSection />
 
       {/* ── Categorias ────────────────────────────────────── */}

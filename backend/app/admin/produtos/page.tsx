@@ -14,6 +14,14 @@ async function getProducts() {
 const formatCurrency = (v: unknown) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v));
 
+const enrichmentLabels: Record<string, { label: string; className: string }> = {
+  NOT_REQUIRED: { label: "Manual", className: "bg-gray-100 text-gray-500" },
+  PENDING_RESEARCH: { label: "Pesquisar", className: "bg-yellow-100 text-yellow-700" },
+  ENRICHED: { label: "Enriquecido", className: "bg-green-100 text-green-700" },
+  NEEDS_MANUAL_REVIEW: { label: "Revisão manual", className: "bg-red-100 text-red-700" },
+  MANUAL_REVIEWED: { label: "Revisado", className: "bg-pink-100 text-pink-700" },
+};
+
 export default async function ProdutosPage() {
   const products = await getProducts();
 
@@ -39,6 +47,7 @@ export default async function ProdutosPage() {
                 <th className="text-left py-3 px-4 text-gray-500 font-medium">Preço</th>
                 <th className="text-left py-3 px-4 text-gray-500 font-medium">Estoque</th>
                 <th className="text-left py-3 px-4 text-gray-500 font-medium">Status</th>
+                <th className="text-left py-3 px-4 text-gray-500 font-medium">Revisão</th>
                 <th className="py-3 px-4"></th>
               </tr>
             </thead>
@@ -91,6 +100,14 @@ export default async function ProdutosPage() {
                     <span className={`badge-status ${product.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                       {product.active ? "Ativo" : "Inativo"}
                     </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className={`badge-status ${enrichmentLabels[product.enrichmentStatus]?.className ?? "bg-gray-100 text-gray-500"}`}>
+                      {enrichmentLabels[product.enrichmentStatus]?.label ?? product.enrichmentStatus}
+                    </span>
+                    {product.importSource === "BLING" && (
+                      <p className="mt-1 text-[11px] font-semibold text-pink-500">Bling</p>
+                    )}
                   </td>
                   <td className="py-3 px-4">
                     <Link href={`/admin/produtos/${product.id}`} className="text-pink-500 hover:text-pink-600 text-xs font-medium">

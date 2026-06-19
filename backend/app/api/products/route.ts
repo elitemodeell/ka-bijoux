@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { Prisma } from "@prisma/client";
+import { Prisma, ProductEnrichmentStatus, ProductImportSource } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
@@ -96,6 +96,13 @@ const variationSchema = z.object({
 const createSchema = z.object({
   name: z.string().min(2),
   description: z.string().min(3),
+  brand: z.string().trim().optional().nullable(),
+  ean: z.string().trim().optional().nullable(),
+  benefits: z.string().trim().optional().nullable(),
+  howToUse: z.string().trim().optional().nullable(),
+  composition: z.string().trim().optional().nullable(),
+  careInstructions: z.string().trim().optional().nullable(),
+  packageContents: z.string().trim().optional().nullable(),
   price: z.number().positive(),
   promotionalPrice: z.number().positive().optional().nullable(),
   stock: z.number().int().min(0),
@@ -107,6 +114,9 @@ const createSchema = z.object({
   categoryId: z.string(),
   subcategoryId: z.string().optional().nullable(),
   sku: z.string().trim().optional().nullable(),
+  blingId: z.string().trim().optional().nullable(),
+  importSource: z.nativeEnum(ProductImportSource).optional(),
+  enrichmentStatus: z.nativeEnum(ProductEnrichmentStatus).optional(),
   featured: z.boolean().default(false),
   isNew: z.boolean().default(true),
   active: z.boolean().default(true),
@@ -123,12 +133,20 @@ export async function POST(req: NextRequest) {
     const slug = slugify(data.name);
     const existing = await prisma.product.findUnique({ where: { slug } });
     const finalSlug = existing ? `${slug}-${Date.now()}` : slug;
+    const importSource = data.importSource ?? (data.blingId ? ProductImportSource.BLING : ProductImportSource.MANUAL);
 
     const product = await prisma.product.create({
       data: {
         name: data.name,
         slug: finalSlug,
         description: data.description,
+        brand: data.brand || null,
+        ean: data.ean || null,
+        benefits: data.benefits || null,
+        howToUse: data.howToUse || null,
+        composition: data.composition || null,
+        careInstructions: data.careInstructions || null,
+        packageContents: data.packageContents || null,
         price: data.price,
         promotionalPrice: data.promotionalPrice,
         stock: data.stock,
@@ -140,6 +158,14 @@ export async function POST(req: NextRequest) {
         categoryId: data.categoryId,
         subcategoryId: data.subcategoryId || null,
         sku: data.sku || null,
+        blingId: data.blingId || null,
+        importSource,
+        enrichmentStatus:
+          data.enrichmentStatus ??
+          (importSource === ProductImportSource.BLING
+            ? ProductEnrichmentStatus.PENDING_RESEARCH
+            : ProductEnrichmentStatus.NOT_REQUIRED),
+        importedAt: importSource === ProductImportSource.BLING ? new Date() : null,
         featured: data.featured,
         isNew: data.isNew,
         active: data.active,

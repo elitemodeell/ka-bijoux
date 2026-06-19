@@ -105,6 +105,13 @@ model Product {
   name             String
   slug             String   @unique
   description      String
+  brand            String?
+  ean              String?
+  benefits         String?  @db.Text
+  howToUse         String?  @db.Text
+  composition      String?  @db.Text
+  careInstructions String?  @db.Text
+  packageContents  String?  @db.Text
   price            Decimal  @db.Decimal(10, 2)
   promotionalPrice Decimal? @db.Decimal(10, 2)
   stock            Int      @default(0)
@@ -118,6 +125,13 @@ model Product {
   isNew            Boolean  @default(true)
   soldCount        Int      @default(0)
   sku              String?
+  blingId          String?  @unique
+  importSource     ProductImportSource @default(MANUAL)
+  enrichmentStatus ProductEnrichmentStatus @default(NOT_REQUIRED)
+  researchSources  Json?
+  researchNotes    String? @db.Text
+  researchedAt     DateTime?
+  importedAt       DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -133,6 +147,19 @@ model Product {
   favorites   Favorite[]
 
   @@map("products")
+}
+
+enum ProductImportSource {
+  MANUAL
+  BLING
+}
+
+enum ProductEnrichmentStatus {
+  NOT_REQUIRED
+  PENDING_RESEARCH
+  ENRICHED
+  NEEDS_MANUAL_REVIEW
+  MANUAL_REVIEWED
 }
 
 // ─── ProductImage ─────────────────────────────────────────────────────────────
