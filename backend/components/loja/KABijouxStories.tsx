@@ -12,7 +12,6 @@ import {
 const seenStorageKey = "ka-bijoux-seen-stories";
 const storyLogo = "/images/brand/ka-bijoux-logo-story-icon.png";
 const HERO_IMAGE_DURATION = 2500;
-const HERO_VIDEO_TEASER_DURATION = 3000;
 const storyHighlightCovers = {
   novidades: "/images/stories/highlights/novidades.jpg",
   promocoes: "/images/stories/highlights/promocoes.jpg",
@@ -597,7 +596,6 @@ export default function KABijouxStories() {
 
 function MainHeroCarousel() {
   const [activeSlide, setActiveSlide] = useState(0);
-  const [readyHeroVideos, setReadyHeroVideos] = useState<Set<string>>(() => new Set());
   const touchStartX = useRef<number | null>(null);
   const touchDeltaX = useRef(0);
 
@@ -611,16 +609,6 @@ function MainHeroCarousel() {
 
   const goPreviousSlide = useCallback(() => {
     setActiveSlide((current) => (current - 1 + heroSlides.length) % heroSlides.length);
-  }, []);
-
-  const markHeroVideoReady = useCallback((src: string) => {
-    setReadyHeroVideos((current) => {
-      if (current.has(src)) return current;
-
-      const next = new Set(current);
-      next.add(src);
-      return next;
-    });
   }, []);
 
   useEffect(() => {
@@ -669,7 +657,7 @@ function MainHeroCarousel() {
             className="relative block h-full min-w-full overflow-hidden bg-pink-100 text-left"
             aria-label={slide.title}
           >
-            {slide.variant === "artwork" ? (
+            {"variant" in slide && slide.variant === "artwork" ? (
               <>
                 <img
                   src={slide.image}
@@ -687,40 +675,6 @@ function MainHeroCarousel() {
                   style={{ objectPosition: slide.imagePosition }}
                   loading="eager"
                 />
-              </>
-            ) : slide.variant === "video" ? (
-              <>
-                <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.82),rgba(251,207,232,0.82)_38%,rgba(244,114,182,0.42)_100%)]" />
-                <span className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-pink-950/18 to-transparent" />
-                {index === activeSlide ? (
-                  <>
-                    {!readyHeroVideos.has(slide.video) && (
-                      <span className="absolute inset-0 z-10 flex items-center justify-center" aria-hidden="true">
-                        <span className="h-12 w-12 animate-pulse rounded-full bg-white/80 shadow-[0_12px_34px_rgba(236,72,153,0.28)]" />
-                      </span>
-                    )}
-                    <video
-                      key={slide.video}
-                      src={slide.video}
-                      muted
-                      autoPlay
-                      loop
-                      playsInline
-                      preload="auto"
-                      className={`relative z-10 mx-auto h-full w-full object-contain transition-opacity duration-300 ${
-                        readyHeroVideos.has(slide.video) ? "opacity-100" : "opacity-0"
-                      }`}
-                      aria-label={slide.title}
-                      onLoadedData={() => markHeroVideoReady(slide.video)}
-                      onCanPlay={() => markHeroVideoReady(slide.video)}
-                    />
-                  </>
-                ) : (
-                  <span className="relative z-10 block h-full w-full" aria-hidden="true" />
-                )}
-                <span className="absolute left-4 top-4 z-20 rounded-full bg-white/85 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-pink-500 shadow-sm backdrop-blur">
-                  Copa do Prazer
-                </span>
               </>
             ) : (
               <>
