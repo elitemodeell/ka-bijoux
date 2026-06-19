@@ -23,13 +23,6 @@ const storyHighlightCoverEntries = Object.entries(storyHighlightCovers);
 
 const heroSlides = [
   {
-    title: "Copa do Prazer — Entrou em Campo!",
-    href: copaBannerHref,
-    image: copaBannerImage,
-    imagePosition: "center",
-    variant: "artwork" as const,
-  },
-  {
     title: "Copa do Prazer — 5 Cores Disponíveis",
     href: "/categoria/sex-shop",
     image: "/banners/banner-copa-do-prazer-1.png",
@@ -671,8 +664,7 @@ function MainHeroCarousel() {
                 <img
                   src={slide.image}
                   alt={slide.title}
-                  className="relative z-10 h-full w-full object-cover"
-                  style={{ objectPosition: slide.imagePosition }}
+                  className="relative z-10 h-full w-full object-contain"
                   loading="eager"
                 />
               </>
