@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { getCategoryGroups, getPublicCategoryName } from "@/lib/catalog";
 import { getCartCount, subscribeCart } from "@/lib/client-cart";
@@ -40,6 +41,7 @@ const groups = getCategoryGroups();
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
@@ -70,6 +72,95 @@ export default function Navbar() {
     setMenuOpen(false);
     setMegaOpen(false);
     router.push(value ? getSearchHref(value) : "/produtos");
+  }
+
+  if (pathname?.startsWith("/categoria/sex-shop")) {
+    return (
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-[#ead4d4]/70 bg-[#fff8f7]/88 shadow-[0_12px_32px_rgba(99,44,63,0.06)] backdrop-blur-xl">
+        <div className="mx-auto flex h-[84px] max-w-6xl items-center gap-2 px-3 sm:h-[96px] sm:gap-3 sm:px-6">
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[19px] border border-[#ead4d4] bg-white/72 text-[#8a4b5d] shadow-[0_12px_24px_rgba(99,44,63,0.08)] sm:h-14 sm:w-14 sm:rounded-[22px]"
+            aria-label="Abrir menu"
+          >
+            <HamburgerIcon />
+          </button>
+
+          <Link href="/categoria/sex-shop" className="shrink-0 leading-none" aria-label="KA Íntima">
+            <span className="block text-[30px] font-black tracking-tight text-[#e24c86] sm:text-[38px]">KA</span>
+            <span className="-mt-2 block font-playfair text-[15px] italic text-[#8a4b5d] sm:text-[17px]">Íntima</span>
+          </Link>
+
+          <form onSubmit={submitSearch} className="relative min-w-0 flex-1">
+            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a4b5d]/75 sm:left-4 sm:h-5 sm:w-5" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="O que você procura?"
+              list="ka-search-suggestions"
+              className="h-12 w-full rounded-[22px] border border-[#ead4d4] bg-white/62 pl-10 pr-3 text-sm font-medium text-[#6f4352] outline-none shadow-[0_14px_30px_rgba(99,44,63,0.06)] transition focus:border-[#d897ad] focus:bg-white focus:ring-2 focus:ring-[#f5dce6] sm:h-14 sm:rounded-[26px] sm:pl-12 sm:pr-4"
+            />
+            <datalist id="ka-search-suggestions">
+              {SEARCH_SUGGESTIONS.map((suggestion) => (
+                <option key={suggestion} value={suggestion} />
+              ))}
+            </datalist>
+          </form>
+
+          <Link
+            href="/carrinho"
+            className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#ead4d4] bg-white/74 text-[#8a4b5d] shadow-[0_12px_24px_rgba(99,44,63,0.08)] sm:h-14 sm:w-14"
+            aria-label={`Carrinho com ${cartCount} itens`}
+          >
+            <BagIcon className="h-5 w-5" />
+            {cartCount > 0 && (
+              <span className="absolute -right-0.5 -top-1 flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-[#e24c86] px-1 text-[10px] font-black text-white">
+                {cartCount > 99 ? "99+" : cartCount}
+              </span>
+            )}
+          </Link>
+
+          <Link
+            href="/admin/login"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#ead4d4] bg-white/74 text-[#8a4b5d] shadow-[0_12px_24px_rgba(99,44,63,0.08)] sm:h-14 sm:w-14"
+            aria-label="Conta"
+          >
+            <UserIcon className="h-5 w-5" />
+          </Link>
+        </div>
+
+        {menuOpen && (
+          <div className="fixed inset-0 z-[80] md:hidden">
+            <button type="button" className="absolute inset-0 bg-[#3b1825]/35 backdrop-blur-sm" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} />
+            <aside className="ka-mobile-drawer absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden rounded-l-[28px] bg-[#fffaf9] shadow-2xl">
+              <div className="flex items-center justify-between border-b border-[#f0dcdf] px-5 py-4">
+                <div>
+                  <span className="block text-3xl font-black text-[#e24c86]">KA</span>
+                  <span className="-mt-1 block font-playfair italic text-[#8a4b5d]">Íntima</span>
+                </div>
+                <button type="button" onClick={() => setMenuOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f9e9ee] text-xl leading-none text-[#8a4b5d]" aria-label="Fechar menu">
+                  x
+                </button>
+              </div>
+
+              <div className="grid gap-2 px-5 py-5">
+                {MENU_LINKS.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMenuOpen(false)}
+                    className="rounded-2xl border border-[#f0dcdf] bg-white px-4 py-3 text-sm font-bold text-[#6f4352] shadow-sm"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </aside>
+          </div>
+        )}
+      </header>
+    );
   }
 
   return (
@@ -342,6 +433,15 @@ function BagIcon({ className }: { className?: string }) {
       <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
       <line x1="3" y1="6" x2="21" y2="6" />
       <path d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
+  );
+}
+
+function UserIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21a8 8 0 0 0-16 0" />
+      <circle cx="12" cy="7" r="4" />
     </svg>
   );
 }
