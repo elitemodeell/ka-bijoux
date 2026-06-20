@@ -23,6 +23,15 @@ const storyHighlightCoverEntries = Object.entries(storyHighlightCovers);
 
 const heroSlides = [
   {
+    title: "Copa do Prazer",
+    subtitle: "Produtos que vão elevar a sua experiência.",
+    cta: "Quero Aproveitar",
+    href: "/categoria/sex-shop",
+    image: "/banners/banner-copa-do-prazer-2.png",
+    mobileImage: "/banners/banner-copa-do-prazer-2026-vertical.jpg",
+    objectPosition: "center",
+  },
+  {
     title: "Novidades KA Bijoux",
     subtitle: "Os acessórios que estão conquistando Itaúna.",
     cta: "Ver Novidades",
@@ -37,7 +46,7 @@ const heroSlides = [
     cta: "Ver Lingerie",
     href: "/categoria/lingerie",
     image: "/banners/banner-lingeries-desejos.png",
-    mobileImage: "/banners/mobile/banner-lingeries-desejos-mobile.jpg",
+    mobileImage: "/banners/mobile/banner-lingeries-desejos-mobile-modelos.jpg",
     objectPosition: "center",
   },
   {
@@ -47,15 +56,6 @@ const heroSlides = [
     href: "/categoria/sex-shop/geis-e-cremes",
     image: "/banners/banner-close-love-oferta.png",
     mobileImage: "/banners/mobile/banner-close-love-oferta-mobile.png",
-    objectPosition: "center",
-  },
-  {
-    title: "Copa do Prazer",
-    subtitle: "Produtos que vão elevar a sua experiência.",
-    cta: "Quero Aproveitar",
-    href: "/categoria/sex-shop",
-    image: "/banners/banner-copa-do-prazer-2.png",
-    mobileImage: "/banners/banner-copa-do-prazer-2026-vertical.jpg",
     objectPosition: "center",
   },
 ];
