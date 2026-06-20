@@ -54,7 +54,6 @@ type TechnicalSection = {
   title: string;
   text?: string | null;
   items?: string[];
-  missing?: boolean;
 };
 
 const fmt = (value: number) =>
@@ -86,6 +85,12 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const variations = product.variations ?? product.variants ?? [];
   const selectedVariant = variations[selectedVariation] ?? null;
   const isAdult = isAdultProduct(categorySlug, product.subcategorySlug, productSubcategoryName);
+  const publicBrand = publicText(product.brand);
+  const publicDescription = buildCommercialDescription(
+    product,
+    productSubcategoryName || categoryName,
+    isAdult
+  );
 
   const relatedProducts = useMemo(() => {
     if (product.relatedProducts?.length) return product.relatedProducts;
@@ -108,12 +113,10 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
       }));
   }, [categoryName, categorySlug, product.relatedProducts, product.relatedSlugs, productSubcategoryName]);
 
-  const packageDimensions = formatPackageDimensions(product);
   const technicalSections = buildTechnicalSections({
     product,
     categoryName,
     productSubcategoryName,
-    packageDimensions,
     variations,
     isAdult,
   });
@@ -169,7 +172,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-white text-pink-300">
                   <span className="text-6xl font-black">KA</span>
-                  <span className="mt-2 text-sm font-bold">Imagem em revisão</span>
+                  <span className="mt-2 text-sm font-bold">KA Bijoux</span>
                 </div>
               )}
 
@@ -209,21 +212,19 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
             <h1 className="mt-4 text-2xl font-black leading-tight tracking-normal text-gray-950 sm:text-3xl">{product.name}</h1>
 
             <dl className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3 border-y border-pink-50 py-4 text-xs">
-              <QuickFact label="Fabricante" value={product.brand || "Não informado"} />
-              <QuickFact label="Código/SKU" value={product.sku || "Não informado"} />
+              {publicBrand ? <QuickFact label="Marca" value={publicBrand} /> : null}
               <QuickFact label="Categoria" value={productSubcategoryName || categoryName} />
               <QuickFact label="Disponibilidade" value={available ? "Pronta entrega" : "Indisponível"} />
             </dl>
 
             <p className="mt-4 text-sm leading-relaxed text-gray-600">
-              {cleanDescription(product.shortDescription)}
+              {publicDescription}
             </p>
 
             <div className="mt-5 border-y border-pink-50 py-5">
               {product.promotionalPrice ? <p className="text-sm font-bold text-gray-400 line-through">{fmt(product.price)}</p> : null}
               <p className="text-3xl font-black text-pink-600">{fmt(finalPrice)}</p>
               <p className="mt-1 text-sm font-semibold text-gray-600">ou {installmentCount}x de {fmtInstallment(finalPrice, installmentCount)} sem juros</p>
-              <p className="mt-2 text-xs font-medium text-gray-400">Preço e estoque sincronizados com a Bling.</p>
             </div>
 
             {variations.length > 0 && (
@@ -285,9 +286,9 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
             <h2 className="mt-1 text-2xl font-black text-gray-950">Tudo o que você precisa saber</h2>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-2 lg:items-start">
-            {technicalSections.map((section, index) => (
-              <InfoSection key={section.id} section={section} defaultOpen={index < 2} />
+          <div className="mx-auto grid max-w-5xl gap-4">
+            {technicalSections.map((section) => (
+              <InfoSection key={section.id} section={section} />
             ))}
           </div>
         </section>
@@ -310,50 +311,48 @@ function buildTechnicalSections({
   product,
   categoryName,
   productSubcategoryName,
-  packageDimensions,
   variations,
   isAdult,
 }: {
   product: ProductDetailProduct;
   categoryName: string;
   productSubcategoryName: string;
-  packageDimensions: string | null;
   variations: StaticProductVariant[];
   isAdult: boolean;
 }): TechnicalSection[] {
-  const description = cleanDescription(product.longDescription || product.shortDescription);
-  const material = meaningful(product.composition) ? product.composition : null;
-  const howToUse = meaningful(product.howToUse) ? product.howToUse : null;
-  const care = meaningful(product.careInstructions) ? product.careInstructions : null;
-  const packageContents = meaningful(product.packageContents) ? product.packageContents : null;
-  const battery = inferBatteryInfo(product.name, productSubcategoryName);
+  const description = buildCommercialDescription(
+    product,
+    productSubcategoryName || categoryName,
+    isAdult
+  );
+  const material = publicText(product.composition);
+  const howToUse = isAdult
+    ? buildSafeUsage(product.name, true)
+    : publicText(product.howToUse) || buildSafeUsage(product.name, false);
+  const care = publicText(product.careInstructions);
+  const packageContents = publicText(product.packageContents);
+  const benefits = publicText(product.benefits);
+  const color = extractColor(product.name);
+  const purpose = getProductPurpose(product.name, productSubcategoryName, isAdult);
+  const optionLabels = variations.map((item) => publicText(item.label)).filter((item): item is string => Boolean(item));
 
-  return [
-    { id: "description", title: "Descrição do produto", text: description, missing: !meaningful(description) },
+  const sections: Array<TechnicalSection | null> = [
+    { id: "description", title: "Descrição do produto", text: description },
     {
       id: "characteristics",
       title: "Características",
       items: [
         `Produto: ${product.name}`,
         `Categoria: ${productSubcategoryName || categoryName}`,
-        `Marca/Fabricante: ${product.brand || "Não informado"}`,
-        `Código/SKU: ${product.sku || "Não informado"}`,
-        `EAN: ${product.ean || "Não informado"}`,
-        `Variações: ${variations.length ? variations.map((item) => item.label).join(", ") : "Não informadas"}`,
-      ],
+        ...(color ? [`Cor: ${color}`] : []),
+        ...(isAdult ? ["Uso: Adulto"] : []),
+        ...(purpose ? [`Finalidade: ${purpose}`] : []),
+        ...(optionLabels.length ? [`Opções disponíveis: ${optionLabels.join(", ")}`] : []),
+      ].filter(publicText),
     },
-    { id: "benefits", title: "Benefícios", text: product.benefits, missing: !meaningful(product.benefits) },
-    { id: "material", title: "Material e composição", text: material, missing: !material },
-    { id: "usage", title: "Modo de uso", text: howToUse, missing: !howToUse },
-    {
-      id: "dimensions",
-      title: "Medidas",
-      items: packageDimensions
-        ? [`Dimensões cadastradas para envio: ${packageDimensions}`, "As medidas podem corresponder à embalagem logística."]
-        : ["Medidas não informadas pelo fornecedor."],
-      missing: !packageDimensions,
-    },
-    { id: "battery", title: "Bateria e alimentação", text: battery, missing: battery.includes("Não informado") },
+    benefits ? { id: "benefits", title: "Benefícios", text: benefits } : null,
+    material ? { id: "material", title: "Material e composição", text: material } : null,
+    { id: "usage", title: "Modo de uso", text: howToUse },
     {
       id: "hygiene",
       title: "Higienização",
@@ -388,8 +387,10 @@ function buildTechnicalSections({
         "Em caso de dúvida técnica, solicite atendimento antes da compra.",
       ],
     },
-    { id: "package", title: "Conteúdo da embalagem", text: packageContents, missing: !packageContents },
+    packageContents ? { id: "package", title: "Conteúdo da embalagem", text: packageContents } : null,
   ];
+
+  return sections.filter((section): section is TechnicalSection => Boolean(section));
 }
 
 function RelatedSection({ title, products }: { title: string; products: RelatedProduct[] }) {
@@ -411,25 +412,21 @@ function RelatedSection({ title, products }: { title: string; products: RelatedP
   );
 }
 
-function InfoSection({ section, defaultOpen }: { section: TechnicalSection; defaultOpen: boolean }) {
-  const hasText = meaningful(section.text);
-  const hasItems = Boolean(section.items?.length);
-  const missing = section.missing || (!hasText && !hasItems);
+function InfoSection({ section }: { section: TechnicalSection }) {
+  const text = publicText(section.text);
+  const items = section.items?.map(publicText).filter((item): item is string => Boolean(item)) ?? [];
+  if (!text && !items.length) return null;
 
   return (
-    <details open={defaultOpen} className="group overflow-hidden rounded-[20px] border border-pink-100 bg-white shadow-[0_10px_30px_rgba(201,66,119,0.05)]">
-      <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
-        <h3 className="text-base font-black text-gray-950">{section.title}</h3>
-        <span className="flex items-center gap-2">
-          {missing && <span className="hidden rounded-full bg-amber-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-amber-700 sm:inline">Revisão pendente</span>}
-          <ChevronIcon />
-        </span>
-      </summary>
-      <div className="border-t border-pink-50 px-5 py-5">
-        {hasText ? <RichText value={section.text!} /> : null}
-        {hasItems ? (
-          <ul className={`space-y-2 ${hasText ? "mt-4" : ""}`}>
-            {section.items!.map((item) => (
+    <section className="overflow-hidden rounded-[20px] border border-pink-100 bg-white shadow-[0_10px_30px_rgba(201,66,119,0.05)]">
+      <div className="border-b border-pink-50 px-5 py-4 sm:px-6">
+        <h3 className="text-base font-black text-gray-950 sm:text-lg">{section.title}</h3>
+      </div>
+      <div className="px-5 py-5 sm:px-6">
+        {text ? <RichText value={text} /> : null}
+        {items.length ? (
+          <ul className={`space-y-2.5 ${text ? "mt-4" : ""}`}>
+            {items.map((item) => (
               <li key={item} className="flex gap-3 text-sm leading-relaxed text-gray-600">
                 <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-pink-400" />
                 <span>{item}</span>
@@ -437,9 +434,8 @@ function InfoSection({ section, defaultOpen }: { section: TechnicalSection; defa
             ))}
           </ul>
         ) : null}
-        {missing && !hasText && !hasItems ? <p className="text-sm text-gray-400">Não informado pelo fornecedor. Este campo necessita revisão manual.</p> : null}
       </div>
-    </details>
+    </section>
   );
 }
 
@@ -469,33 +465,94 @@ function DeliveryItem({ icon, title, text }: { icon: React.ReactNode; title: str
   );
 }
 
-function formatPackageDimensions(product: ProductDetailProduct) {
-  const values = [product.height, product.width, product.length].map(Number);
-  if (values.some((value) => !Number.isFinite(value) || value <= 0)) return null;
-  return `${values[0]} x ${values[1]} x ${values[2]} cm (A x L x C)`;
-}
-
-function inferBatteryInfo(name: string, subcategory: string) {
-  const normalized = normalize(`${name} ${subcategory}`);
-  if (/gel|creme|lubrificante|desodorante|bala|spray|óleo|oleo/.test(normalized)) return "Não utiliza bateria.";
-  return "Não informado pelo fornecedor.";
-}
-
 function isAdultProduct(categorySlug: string, subcategorySlug: string, categoryName: string) {
   return normalize(`${categorySlug} ${subcategorySlug} ${categoryName}`).includes("sex shop") || categorySlug === "sex-shop" || subcategorySlug.startsWith("sex-shop");
 }
 
-function cleanDescription(value?: string | null) {
-  if (!meaningful(value)) return "Descrição detalhada pendente de revisão. Confira nome, preço, imagens e disponibilidade antes da compra.";
-  const normalized = normalize(value!);
-  if (normalized.includes("informacoes tecnicas pendentes") || normalized.includes("importado da bling")) {
-    return "Produto selecionado pela KA Bijoux. As informações técnicas detalhadas estão em revisão e serão publicadas somente após confirmação do fabricante ou fornecedor.";
+function buildCommercialDescription(product: ProductDetailProduct, categoryName: string, isAdult: boolean) {
+  const name = product.name.trim();
+  const normalized = normalize(`${name} ${categoryName}`);
+  if (/mini bullet|bullet|vibrador|masturbador|sugador/.test(normalized)) {
+    const doublePoint = normalized.includes("duplo")
+      ? " Seu design com dois pontos de contato amplia as possibilidades de uso e permite explorar diferentes formas de estímulo."
+      : " Seu formato favorece estímulos direcionados e uma experiência prática.";
+    return `${name} é uma opção compacta e discreta para quem deseja explorar novas sensações com praticidade.${doublePoint} O tamanho reduzido facilita o transporte e o armazenamento, mantendo a experiência reservada e confortável.`;
   }
-  return value!.trim();
+  if (normalized.includes("anel peniano")) {
+    return `${name} é um acessório íntimo pensado para complementar os momentos a dois de forma prática e discreta. O formato de anel facilita o posicionamento, enquanto o design diferenciado acrescenta novas possibilidades à experiência do casal.`;
+  }
+
+  const savedDescription = [product.longDescription, product.shortDescription]
+    .map(publicText)
+    .find((value): value is string => Boolean(value));
+  if (savedDescription) return savedDescription;
+
+  if (/gel|creme|lubrificante|oleo|spray|desodorante/.test(normalized)) {
+    return `${name} integra a seleção de cuidados e bem-estar da KA Bijoux. É uma opção prática para incluir na rotina, com embalagem fácil de guardar e proposta de uso discreta. Consulte sempre as orientações do rótulo antes da aplicação.`;
+  }
+  if (isAdult) {
+    return `${name} faz parte da Linha Adulto KA Bijoux, uma seleção pensada para proporcionar novas experiências com discrição e cuidado. O produto é enviado em embalagem reservada e deve ser utilizado conforme as orientações presentes no rótulo ou na embalagem.`;
+  }
+  return `${name} foi selecionado para a vitrine KA Bijoux por sua proposta prática e versátil. Uma escolha pensada para complementar sua rotina com o estilo e o cuidado presentes em toda a nossa curadoria.`;
 }
 
-function meaningful(value?: string | null) {
-  return Boolean(value && value.trim().length >= 8);
+function publicText(value?: string | null) {
+  if (!value) return null;
+  const text = value.trim();
+  if (text.length < 3) return null;
+  const normalized = normalize(text);
+  const blocked = [
+    "nao informado",
+    "nao informada",
+    "nao informadas",
+    "nao disponivel",
+    "necessita revisao",
+    "revisao",
+    "revisao manual",
+    "revisao pendente",
+    "campo em revisao",
+    "informacao indisponivel",
+    "informacoes tecnicas pendentes",
+    "descricao detalhada pendente",
+    "importado da bling",
+    "produto selecionado pela ka bijoux",
+  ];
+  return blocked.some((term) => normalized.includes(term)) ? null : text;
+}
+
+function buildSafeUsage(name: string, isAdult: boolean) {
+  const normalized = normalize(name);
+  if (/gel|creme|lubrificante|oleo|spray|desodorante/.test(normalized)) {
+    return "Antes do uso, leia o rótulo e siga a forma de aplicação indicada na embalagem. Use apenas na região recomendada e interrompa a aplicação em caso de desconforto ou irritação.";
+  }
+  if (isAdult) {
+    return "Higienize o produto antes e após o uso. Comece de forma gradual e utilize somente conforme as orientações da embalagem. Quando aplicável, use lubrificante compatível e interrompa o uso em caso de desconforto.";
+  }
+  return "Utilize conforme as orientações presentes no rótulo ou na embalagem e conserve o produto em local limpo, seco e protegido.";
+}
+
+function getProductPurpose(name: string, categoryName: string, isAdult: boolean) {
+  const normalized = normalize(`${name} ${categoryName}`);
+  if (normalized.includes("anel peniano")) return "Acessório íntimo para momentos a dois";
+  if (normalized.includes("bullet") || normalized.includes("vibrador")) return "Acessório íntimo para exploração de novas sensações";
+  if (/gel|creme|lubrificante|oleo/.test(normalized)) return "Cuidado, bem-estar e conforto íntimo";
+  if (isAdult) return "Produto de uso adulto";
+  return null;
+}
+
+function extractColor(name: string) {
+  const colors: Array<[RegExp, string]> = [
+    [/\brox[oa]\b/, "Roxo"],
+    [/\bros[ae]\b/, "Rosa"],
+    [/\bpreto\b/, "Preto"],
+    [/\bbranco\b/, "Branco"],
+    [/\bvermelh[oa]\b/, "Vermelho"],
+    [/\bazul\b/, "Azul"],
+    [/\bdourad[oa]\b/, "Dourado"],
+    [/\bpratead[oa]\b/, "Prateado"],
+  ];
+  const normalized = normalize(name);
+  return colors.find(([pattern]) => pattern.test(normalized))?.[1] ?? null;
 }
 
 function normalize(value: string) {
@@ -503,7 +560,6 @@ function normalize(value: string) {
 }
 
 function HeartIcon() { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 0 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z" /></svg>; }
-function ChevronIcon() { return <svg className="h-5 w-5 text-pink-500 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>; }
 function StoreIcon() { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10h18"/><path d="M5 10v10h14V10"/><path d="m4 4-1 6h18l-1-6Z"/><path d="M9 20v-6h6v6"/></svg>; }
 function DeliveryIcon() { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M5 18H3V8h11l3 4h3v6h-1"/><path d="M9 18h6"/></svg>; }
 function TruckIcon() { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7h11v10H3z"/><path d="M14 10h4l3 3v4h-7"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>; }

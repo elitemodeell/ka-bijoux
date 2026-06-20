@@ -156,16 +156,29 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const staticProduct = dbProduct || blingProduct ? null : getStaticProduct(params.slug);
 
   const name = blingProduct?.name ?? staticProduct?.name ?? dbProduct?.name ?? "Produto";
-  const description =
+  const rawDescription =
     blingProduct?.description ??
     staticProduct?.shortDescription ??
     dbProduct?.description?.slice(0, 160) ??
-    "Produto selecionado com carinho pela KA Bijoux.";
+    null;
+  const description = getPublicMetadataDescription(rawDescription, name);
 
   return {
     title: `${name} | KA Bijoux`,
     description,
   };
+}
+
+function getPublicMetadataDescription(value: string | null | undefined, productName: string) {
+  const normalized = (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const blocked = ["nao informado", "revisao", "informacoes tecnicas pendentes", "importado da bling"];
+  if (value && value.trim().length >= 30 && !blocked.some((term) => normalized.includes(term))) {
+    return value.trim().slice(0, 160);
+  }
+  return `${productName} na KA Bijoux. Compra segura, atendimento cuidadoso e entrega discreta.`;
 }
 
 export default async function ProdutoPage({ params }: PageProps) {
@@ -357,11 +370,11 @@ function buildBlingDetailProduct(product: BlingCatalogProduct) {
     subcategorySlug: product.subcategory?.slug ?? "",
     imageFile: product.image ?? "",
     galleryImages: product.images.map((image) => image.url),
-    shortDescription: product.description ?? "Produto selecionado pela KA Bijoux.",
-    longDescription: product.staticLongDescription ?? "",
+    shortDescription: product.description ?? "",
+    longDescription: "",
     details: product.staticDetails ?? [],
     benefits: undefined,
-    howToUse: product.staticHowToUse ?? "",
+    howToUse: "",
     composition: undefined,
     careInstructions: undefined,
     packageContents: undefined,
