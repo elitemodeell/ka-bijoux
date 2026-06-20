@@ -15,7 +15,14 @@ interface Category {
 const emptyForm = {
   name: "",
   sku: "",
+  brand: "",
+  ean: "",
   description: "",
+  benefits: "",
+  howToUse: "",
+  composition: "",
+  careInstructions: "",
+  packageContents: "",
   price: "",
   promotionalPrice: "",
   stock: "1",
@@ -113,7 +120,14 @@ export default function NovoProdutoPage() {
         body: JSON.stringify({
           name: form.name,
           sku: form.sku || null,
+          brand: form.brand || null,
+          ean: form.ean || null,
           description: form.description,
+          benefits: form.benefits || null,
+          howToUse: form.howToUse || null,
+          composition: form.composition || null,
+          careInstructions: form.careInstructions || null,
+          packageContents: form.packageContents || null,
           price: parseFloat(form.price),
           promotionalPrice: form.promotionalPrice ? parseFloat(form.promotionalPrice) : null,
           stock: parseInt(form.stock),
@@ -184,10 +198,34 @@ export default function NovoProdutoPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Descricao curta *</label>
-                <textarea name="description" value={form.description} onChange={handleChange} required rows={3} placeholder="Descreva o produto para aparecer na compra rapida..." className="input-field resize-none" />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Marca/Fabricante</label>
+                  <input name="brand" value={form.brand} onChange={handleChange} placeholder="Ex: Intt" className="input-field" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">EAN/Código de barras</label>
+                  <input name="ean" value={form.ean} onChange={handleChange} placeholder="Código do fornecedor" className="input-field" />
+                </div>
               </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Descrição completa *</label>
+                <textarea name="description" value={form.description} onChange={handleChange} required rows={6} placeholder="Explique o produto, função e diferenciais sem inventar informações técnicas." className="input-field resize-y" />
+              </div>
+            </div>
+
+            <div className="card space-y-4">
+              <div>
+                <h3 className="font-semibold text-gray-900">Ficha técnica e orientações</h3>
+                <p className="mt-1 text-xs leading-relaxed text-gray-400">Deixe vazio quando o fabricante não informar. A loja mostrará o campo como pendente de revisão.</p>
+              </div>
+
+              <TechnicalTextarea name="benefits" label="Benefícios" value={form.benefits} onChange={handleChange} placeholder="Principais benefícios comerciais confirmados." />
+              <TechnicalTextarea name="composition" label="Material ou composição" value={form.composition} onChange={handleChange} placeholder="Somente dados confirmados na embalagem ou fabricante." />
+              <TechnicalTextarea name="howToUse" label="Modo de uso" value={form.howToUse} onChange={handleChange} placeholder="Orientações simples e seguras de uso." />
+              <TechnicalTextarea name="careInstructions" label="Cuidados e recomendações" value={form.careInstructions} onChange={handleChange} placeholder="Cuidados, restrições e forma de conservação." />
+              <TechnicalTextarea name="packageContents" label="Conteúdo da embalagem" value={form.packageContents} onChange={handleChange} placeholder="Ex: 1 unidade do produto." />
             </div>
 
             <div className="card space-y-4">
@@ -367,6 +405,34 @@ export default function NovoProdutoPage() {
           </div>
         </div>
       </form>
+    </div>
+  );
+}
+
+function TechnicalTextarea({
+  name,
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  name: string;
+  label: string;
+  value: string;
+  placeholder: string;
+  onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
+      <textarea
+        name={name}
+        value={value}
+        onChange={onChange}
+        rows={4}
+        placeholder={placeholder}
+        className="input-field resize-y"
+      />
     </div>
   );
 }

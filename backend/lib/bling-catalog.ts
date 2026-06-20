@@ -37,6 +37,7 @@ export type BlingCatalogProduct = ProductCardProduct & {
   name: string;
   slug: string;
   sku: string | null;
+  ean: string | null;
   price: number;
   stock: number;
   image: string | null;
@@ -289,6 +290,7 @@ function buildCatalogProduct(
     name: row.name,
     slug,
     sku: row.sku || null,
+    ean: row.ean || null,
     description,
     price: row.price,
     promotionalPrice: null,

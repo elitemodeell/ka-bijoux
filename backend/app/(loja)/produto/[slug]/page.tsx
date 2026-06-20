@@ -38,6 +38,10 @@ type DbProduct = {
   price: number | string;
   promotionalPrice: number | string | null;
   stock: number;
+  weight: number | string;
+  height: number | string;
+  width: number | string;
+  length: number | string;
   featured: boolean;
   isNew: boolean;
   blingId: string | null;
@@ -46,6 +50,14 @@ type DbProduct = {
   category: { name: string; slug: string } | null;
   subcategory: { name: string; slug: string } | null;
   images: { url: string; alt: string | null; order: number }[];
+  variations: {
+    id: string;
+    name: string;
+    value: string;
+    stock: number;
+    priceModifier: number | string;
+    active: boolean;
+  }[];
 };
 
 type RelatedDbProduct = Prisma.ProductGetPayload<{
@@ -53,6 +65,7 @@ type RelatedDbProduct = Prisma.ProductGetPayload<{
     category: true;
     subcategory: true;
     images: true;
+    variations: true;
   };
 }>;
 
@@ -74,6 +87,7 @@ async function fetchDbProduct(slug: string): Promise<DbProduct | null> {
           category: true,
           subcategory: true,
           images: { orderBy: { order: "asc" } },
+          variations: { where: { active: true } },
         },
       }),
       2500
@@ -95,6 +109,10 @@ async function fetchDbProduct(slug: string): Promise<DbProduct | null> {
       price: Number(product.price),
       promotionalPrice: product.promotionalPrice ? Number(product.promotionalPrice) : null,
       stock: product.stock,
+      weight: Number(product.weight),
+      height: Number(product.height),
+      width: Number(product.width),
+      length: Number(product.length),
       featured: product.featured,
       isNew: product.isNew,
       blingId: product.blingId,
@@ -110,6 +128,14 @@ async function fetchDbProduct(slug: string): Promise<DbProduct | null> {
         url: img.url,
         alt: img.alt,
         order: img.order,
+      })),
+      variations: product.variations.map((variation) => ({
+        id: variation.id,
+        name: variation.name,
+        value: variation.value,
+        stock: variation.stock,
+        priceModifier: Number(variation.priceModifier),
+        active: variation.active,
       })),
     };
   } catch {
@@ -164,6 +190,7 @@ export default async function ProdutoPage({ params }: PageProps) {
         category: true,
         subcategory: true,
         images: { orderBy: { order: "asc" }, take: 1 },
+        variations: { where: { active: true } },
       },
       take: 8,
     });
@@ -203,6 +230,20 @@ export default async function ProdutoPage({ params }: PageProps) {
       composition: dbProduct.composition ?? undefined,
       careInstructions: dbProduct.careInstructions ?? undefined,
       packageContents: dbProduct.packageContents ?? undefined,
+      weight: Number(dbProduct.weight),
+      height: Number(dbProduct.height),
+      width: Number(dbProduct.width),
+      length: Number(dbProduct.length),
+      variations: dbProduct.variations.map((variation) => ({
+        label: `${variation.name}: ${variation.value}`,
+        slug: `${variation.name}-${variation.value}`
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, ""),
+        active: variation.stock > 0,
+      })),
       relatedSlugs: [] as string[],
       relatedProducts: relatedDbProducts
         .map(mapRelatedDbProduct)
@@ -307,6 +348,7 @@ function buildBlingDetailProduct(product: BlingCatalogProduct) {
     slug: product.slug,
     name: product.name,
     sku: product.sku ?? "",
+    ean: product.ean ?? undefined,
     price: product.price,
     promotionalPrice: null,
     categoryName: product.category.name,
