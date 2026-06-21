@@ -842,7 +842,7 @@ function StoryCover({ media, title }: { media: StoryCoverMedia; title: string })
         src={media.src}
         muted
         playsInline
-        preload="metadata"
+        preload="none"
         aria-hidden="true"
         className={`h-full w-full object-cover transition-opacity duration-300 ${videoReady ? "opacity-100" : "opacity-0"}`}
         onLoadedMetadata={(event) => {

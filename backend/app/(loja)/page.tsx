@@ -117,9 +117,9 @@ const DEMO_PRODUCTS = [
 async function getFeaturedProducts(): Promise<ProductCardProduct[]> {
   try {
     const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
-    const res = await fetch(`${base}/api/products?pageSize=8&withImage=true`, {
+    const res = await fetch(`${base}/api/products?pageSize=8&withImage=true&line=normal`, {
       next: { revalidate: 60 },
-      signal: AbortSignal.timeout(2500),
+      signal: AbortSignal.timeout(1000),
     });
     if (!res.ok) return [];
     const json = await res.json();
@@ -131,7 +131,9 @@ async function getFeaturedProducts(): Promise<ProductCardProduct[]> {
 
 export default async function HomePage() {
   const liveProducts = await getFeaturedProducts();
-  const products = liveProducts.length ? liveProducts : getBlingProductCards({ limit: 8, requireImage: true });
+  const products = liveProducts.length
+    ? liveProducts
+    : getBlingProductCards({ limit: 8, requireImage: true, catalogLine: "normal" });
 
   return (
     <main className="overflow-x-hidden">

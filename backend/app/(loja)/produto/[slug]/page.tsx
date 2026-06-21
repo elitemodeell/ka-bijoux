@@ -18,6 +18,7 @@ import {
   type BlingCatalogProduct,
   type ProductCardProduct,
 } from "@/lib/bling-catalog";
+import { getProductCatalogLine, matchesCatalogLine } from "@/lib/product-line";
 
 export const dynamic = "force-dynamic";
 
@@ -83,7 +84,6 @@ type RelatedDbProduct = Prisma.ProductGetPayload<{
     category: true;
     subcategory: true;
     images: true;
-    variations: true;
   };
 }>;
 
@@ -280,7 +280,6 @@ export default async function ProdutoPage({ params }: PageProps) {
         category: true,
         subcategory: true,
         images: { orderBy: { order: "asc" }, take: 1 },
-        variations: { where: { active: true } },
       },
       take: 8,
     });
@@ -300,11 +299,30 @@ export default async function ProdutoPage({ params }: PageProps) {
       slug: canonicalSlug,
       name: blingProduct?.name ?? dbProduct.name,
     }));
+    const currentCatalogLine = blingProduct?.catalogLine ?? getProductCatalogLine({
+      name: blingProduct?.name ?? dbProduct.name,
+      categorySlug: blingProduct?.category.slug ?? dbProduct.category?.slug,
+      categoryName: blingProduct?.category.name ?? dbProduct.category?.name,
+      subcategorySlug: blingProduct?.subcategory?.slug ?? dbProduct.subcategory?.slug,
+      subcategoryName: blingProduct?.subcategory?.name ?? dbProduct.subcategory?.name,
+    });
     const relatedProducts = dedupeProductCards(
       relatedDbProducts
         .map(mapRelatedDbProduct)
         .filter((product): product is ProductCardProduct => Boolean(product))
-    ).filter((product) => !getProductIdentityKeys(product).some((key) => currentIdentity.has(key)));
+    ).filter(
+      (product) =>
+        matchesCatalogLine(
+          {
+            name: product.name,
+            categorySlug: product.category?.slug,
+            categoryName: product.category?.name,
+            subcategorySlug: product.subcategory?.slug,
+            subcategoryName: product.subcategory?.name,
+          },
+          currentCatalogLine
+        ) && !getProductIdentityKeys(product).some((key) => currentIdentity.has(key))
+    );
 
     const adaptedProduct = {
       slug: canonicalSlug,
@@ -414,6 +432,17 @@ function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | nu
     : product.promotionalPrice
       ? Number(product.promotionalPrice)
       : null;
+  const category = product.category ? { name: product.category.name, slug: product.category.slug } : bling?.category ?? null;
+  const subcategory = product.subcategory
+    ? { name: product.subcategory.name, slug: product.subcategory.slug }
+    : bling?.subcategory ?? null;
+  const catalogLine = bling?.catalogLine ?? getProductCatalogLine({
+    name: bling?.name ?? product.name,
+    categorySlug: category?.slug,
+    categoryName: category?.name,
+    subcategorySlug: subcategory?.slug,
+    subcategoryName: subcategory?.name,
+  });
 
   return {
     id: product.id,
@@ -432,8 +461,10 @@ function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | nu
     stock: bling?.stock ?? product.stock,
     sku: bling?.sku ?? product.sku,
     description: product.description || bling?.description,
-    category: product.category ? { name: product.category.name, slug: product.category.slug } : bling?.category ?? null,
-    subcategory: product.subcategory ? { name: product.subcategory.name, slug: product.subcategory.slug } : bling?.subcategory ?? null,
+    category,
+    subcategory,
+    catalogLine,
+    isAdult: catalogLine === "adult",
   };
 }
 
@@ -442,7 +473,8 @@ function buildBlingDetailProduct(product: BlingCatalogProduct) {
   const relatedProducts = dedupeProductCards(getBlingProductCards({
     categorySlug: product.category.slug,
     subcategorySlug: product.subcategory?.slug,
-    limit: 24,
+    catalogLine: product.catalogLine,
+    limit: 12,
   }))
     .filter((related) => related.slug !== product.slug)
     .sort((a, b) => {

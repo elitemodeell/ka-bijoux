@@ -16,21 +16,25 @@ import {
   type CatalogFilters,
   type ProductCardProduct,
 } from "@/lib/bling-catalog";
+import {
+  getProductCatalogLine,
+  matchesCatalogLine,
+  type CatalogLine,
+} from "@/lib/product-line";
 
 const productInclude = {
   category: true,
   subcategory: true,
-  images: { orderBy: { order: "asc" as const } },
-  variations: { where: { active: true } },
+  images: { orderBy: { order: "asc" as const }, take: 1 },
 };
 
-const API_FETCH_LIMIT = 500;
+const API_FETCH_LIMIT = 80;
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const page = Number(searchParams.get("page") ?? 1);
-    const pageSize = Number(searchParams.get("pageSize") ?? 20);
+    const page = Math.max(1, Number(searchParams.get("page") ?? 1) || 1);
+    const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") ?? 20) || 20));
     const category = searchParams.get("category") ?? searchParams.get("cat");
     const subcategory = searchParams.get("subcategory");
     const search = searchParams.get("q");
@@ -42,6 +46,7 @@ export async function GET(req: NextRequest) {
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
     const withImage = searchParams.get("withImage") === "true";
+    const catalogLine = getRequestedCatalogLine(searchParams, category, subcategory);
     const filters: CatalogFilters = {
       categorySlug: category,
       subcategorySlug: subcategory,
@@ -54,6 +59,7 @@ export async function GET(req: NextRequest) {
       minPrice,
       maxPrice,
       requireImage: withImage,
+      catalogLine,
     };
 
     const where: Prisma.ProductWhereInput = { active: true };
@@ -89,17 +95,21 @@ export async function GET(req: NextRequest) {
 
     const { skip, take } = paginate(page, pageSize);
 
-    const products = await prisma.product.findMany({
-      where,
-      include: productInclude,
-      orderBy,
-      skip: 0,
-      take: Math.max(API_FETCH_LIMIT, skip + take),
-    });
+    const products = await withTimeout(
+      prisma.product.findMany({
+        where,
+        include: productInclude,
+        orderBy,
+        skip: 0,
+        take: Math.min(API_FETCH_LIMIT, Math.max(take * 2, skip + take)),
+      }),
+      1000
+    );
 
     const dbProducts = products
       .map((product) => mapDbProductToCard(product))
-      .filter((product): product is ProductCardProduct => Boolean(product));
+      .filter((product): product is ProductCardProduct => Boolean(product))
+      .filter((product) => matchesCatalogLine(toProductLineSource(product), catalogLine));
     const merged = mergeWithBlingCatalog(dbProducts, filters);
     const pageProducts = merged.slice(skip, skip + take);
 
@@ -117,8 +127,8 @@ export async function GET(req: NextRequest) {
 
 function getFallbackProducts(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const page = Number(searchParams.get("page") ?? 1);
-  const pageSize = Number(searchParams.get("pageSize") ?? 20);
+  const page = Math.max(1, Number(searchParams.get("page") ?? 1) || 1);
+  const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") ?? 20) || 20));
   const { skip, take } = paginate(page, pageSize);
   const filters: CatalogFilters = {
     categorySlug: searchParams.get("category") ?? searchParams.get("cat"),
@@ -132,6 +142,11 @@ function getFallbackProducts(req: NextRequest) {
     minPrice: searchParams.get("minPrice"),
     maxPrice: searchParams.get("maxPrice"),
     requireImage: searchParams.get("withImage") === "true",
+    catalogLine: getRequestedCatalogLine(
+      searchParams,
+      searchParams.get("category") ?? searchParams.get("cat"),
+      searchParams.get("subcategory")
+    ),
   };
   const products = getBlingProductCards(filters);
 
@@ -161,6 +176,19 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof 
     : product.promotionalPrice
       ? Number(product.promotionalPrice)
       : null;
+  const category = product.category
+    ? { name: getPublicCategoryName(product.category), slug: product.category.slug }
+    : bling?.category ?? null;
+  const subcategory = product.subcategory
+    ? { name: product.subcategory.name, slug: product.subcategory.slug }
+    : bling?.subcategory ?? null;
+  const catalogLine = bling?.catalogLine ?? getProductCatalogLine({
+    name: bling?.name ?? product.name,
+    categorySlug: category?.slug,
+    categoryName: category?.name,
+    subcategorySlug: subcategory?.slug,
+    subcategoryName: subcategory?.name,
+  });
 
   return {
     id: product.id,
@@ -179,22 +207,22 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof 
     stock: bling?.stock ?? product.stock,
     sku: bling?.sku ?? product.sku,
     blingId: bling?.blingId ?? product.blingId,
-    category: product.category
-      ? { name: getPublicCategoryName(product.category), slug: product.category.slug }
-      : bling?.category ?? null,
-    subcategory: product.subcategory
-      ? { name: product.subcategory.name, slug: product.subcategory.slug }
-      : bling?.subcategory ?? null,
+    category,
+    subcategory,
     images,
     image: images[0]?.url ?? null,
     sourceOrder: bling?.sourceOrder ?? 100000,
     priceSource: bling ? "BLING" : "DATABASE",
     imageSource: dbImages.length ? "DATABASE" : bling?.imageSource ?? "NONE",
+    catalogLine,
+    isAdult: catalogLine === "adult",
   } satisfies ProductCardProduct;
 }
 
 function mergeWithBlingCatalog(dbProducts: ProductCardProduct[], filters: CatalogFilters) {
-  const canonicalDbProducts = dedupeProductCards(dbProducts);
+  const canonicalDbProducts = dedupeProductCards(dbProducts).filter((product) =>
+    matchesCatalogLine(toProductLineSource(product), filters.catalogLine)
+  );
   const seen = new Set<string>();
   for (const product of canonicalDbProducts) {
     getProductIdentityKeys(product).forEach((key) => seen.add(key));
@@ -205,7 +233,40 @@ function mergeWithBlingCatalog(dbProducts: ProductCardProduct[], filters: Catalo
     return !keys.some((key) => seen.has(key));
   });
 
-  return sortProducts(dedupeProductCards([...canonicalDbProducts, ...blingProducts]), filters.sort);
+  return sortProducts(dedupeProductCards([...canonicalDbProducts, ...blingProducts]), filters.sort).filter((product) =>
+    matchesCatalogLine(toProductLineSource(product), filters.catalogLine)
+  );
+}
+
+function getRequestedCatalogLine(
+  searchParams: URLSearchParams,
+  category?: string | null,
+  subcategory?: string | null
+): CatalogLine | "all" {
+  const requested = searchParams.get("line");
+  if (requested === "adult" || requested === "all") return requested;
+  if (requested === "normal") return "normal";
+  if (category === "sex-shop" || subcategory?.startsWith("sex-shop-")) return "adult";
+  return "normal";
+}
+
+function toProductLineSource(product: ProductCardProduct) {
+  return {
+    name: product.name,
+    categorySlug: product.category?.slug,
+    categoryName: product.category?.name,
+    subcategorySlug: product.subcategory?.slug,
+    subcategoryName: product.subcategory?.name,
+  };
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number) {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error("timeout")), ms);
+    }),
+  ]);
 }
 
 function sortProducts(products: ProductCardProduct[], sort?: string | null) {

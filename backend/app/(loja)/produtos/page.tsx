@@ -19,6 +19,7 @@ export default function ProdutosPage({
       description="Veja os produtos da loja, escolha uma categoria e navegue por promocoes e novidades com poucos toques."
       basePath="/produtos"
       searchParams={searchParams}
+      catalogLine="normal"
     />
   );
 }

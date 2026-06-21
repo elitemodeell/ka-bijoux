@@ -36,6 +36,7 @@ export default function SubcategoriaPage({
       categorySlug={category.slug}
       subcategorySlug={subcategory.slug}
       adultNotice={category.adult}
+      catalogLine={category.adult ? "adult" : "normal"}
     />
   );
 }

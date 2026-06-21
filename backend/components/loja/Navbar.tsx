@@ -71,7 +71,16 @@ export default function Navbar() {
     const value = search.trim();
     setMenuOpen(false);
     setMegaOpen(false);
-    router.push(value ? getSearchHref(value) : "/produtos");
+    const isAdultContext = pathname?.startsWith("/categoria/sex-shop");
+    router.push(
+      value
+        ? isAdultContext
+          ? `/categoria/sex-shop?q=${encodeURIComponent(value)}`
+          : getSearchHref(value)
+        : isAdultContext
+          ? "/categoria/sex-shop"
+          : "/produtos"
+    );
   }
 
   if (pathname?.startsWith("/categoria/sex-shop")) {

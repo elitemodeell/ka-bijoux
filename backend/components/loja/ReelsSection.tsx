@@ -57,7 +57,7 @@ export default function ReelsSection() {
                 poster={FEATURED_POSTER}
                 playsInline
                 controls
-                preload="metadata"
+                preload="none"
                 className="h-full w-full object-cover"
                 onError={() => setVideoError(true)}
               />

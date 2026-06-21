@@ -33,6 +33,7 @@ export default function CategoriaPage({
       searchParams={searchParams}
       categorySlug={category.slug}
       adultNotice={category.adult}
+      catalogLine={category.adult ? "adult" : "normal"}
     />
   );
 }

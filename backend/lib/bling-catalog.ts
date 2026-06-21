@@ -7,6 +7,12 @@ import { STATIC_SEX_SHOP_CATALOG } from "@/lib/static-sex-shop-catalog";
 import blingRows from "@/data/produtos-bling.json";
 import imageMapping from "@/data/mapeamento-imagens-produtos.json";
 import uploadImageFiles from "@/data/bling-image-files.json";
+import {
+  getProductCatalogLine,
+  isAdultCatalogProduct,
+  isAdultProductName,
+  type CatalogLine,
+} from "@/lib/product-line";
 
 export type ProductCardMedia = { url: string; alt?: string | null };
 
@@ -29,6 +35,8 @@ export type ProductCardProduct = {
   sourceOrder?: number;
   priceSource?: "BLING" | "DATABASE" | "LOCAL";
   imageSource?: "BLING" | "MARKETPLACE" | "DATABASE" | "STATIC" | "NONE";
+  catalogLine?: CatalogLine;
+  isAdult?: boolean;
 };
 
 export type BlingCatalogProduct = ProductCardProduct & {
@@ -51,6 +59,8 @@ export type BlingCatalogProduct = ProductCardProduct & {
   staticLongDescription?: string | null;
   staticHowToUse?: string | null;
   staticDetails?: string[];
+  catalogLine: CatalogLine;
+  isAdult: boolean;
 };
 
 export type CatalogFilters = {
@@ -68,6 +78,7 @@ export type CatalogFilters = {
   limit?: number;
   skip?: number;
   requireImage?: boolean;
+  catalogLine?: CatalogLine | "all";
 };
 
 type CsvRow = Record<string, string>;
@@ -123,6 +134,7 @@ export function getBlingCatalogProducts(filters: CatalogFilters = {}) {
 
   const products = getCatalogCache().products.filter((product) => {
     if (!product.active || product.stock <= 0) return false;
+    if (filters.catalogLine && filters.catalogLine !== "all" && product.catalogLine !== filters.catalogLine) return false;
     if (requireImage && !product.image) return false;
     if (filters.categorySlug && product.category.slug !== filters.categorySlug) return false;
     if (filters.subcategorySlug && product.subcategory?.slug !== filters.subcategorySlug) return false;
@@ -187,6 +199,8 @@ export function toProductCard(product: BlingCatalogProduct): ProductCardProduct 
     sourceOrder: product.sourceOrder,
     priceSource: "BLING",
     imageSource: product.imageSource,
+    catalogLine: product.catalogLine,
+    isAdult: product.isAdult,
   };
 }
 
@@ -226,6 +240,8 @@ export function dedupeProductCards(products: ProductCardProduct[]) {
       blingId: catalogProduct?.blingId ?? product.blingId,
       sku: catalogProduct?.sku ?? product.sku,
       slug: catalogProduct?.slug ?? product.slug,
+      catalogLine: catalogProduct?.catalogLine ?? product.catalogLine,
+      isAdult: catalogProduct?.isAdult ?? product.isAdult,
     };
     const keys = getProductIdentityKeys(canonicalProduct);
     if (keys.some((key) => seen.has(key))) continue;
@@ -316,6 +332,12 @@ function buildCatalogProduct(
       .filter(Boolean)
       .join(" ")
   );
+  const catalogLine = getProductCatalogLine({
+    name: row.name,
+    categorySlug: category.categorySlug,
+    categoryName: row.category,
+    subcategorySlug: category.subcategorySlug,
+  });
 
   return {
     id: `bling-${row.id}`,
@@ -346,6 +368,8 @@ function buildCatalogProduct(
     staticLongDescription: staticProduct?.longDescription ?? null,
     staticHowToUse: staticProduct?.howToUse ?? null,
     staticDetails: staticProduct?.details ?? [],
+    catalogLine,
+    isAdult: catalogLine === "adult",
   };
 }
 
@@ -495,6 +519,11 @@ function findStaticProduct(row: ReturnType<typeof normalizeBlingRow>) {
 
 function inferCategory(name: string, blingCategory?: string) {
   const fromBling = mapBlingCategory(blingCategory);
+  if (isAdultCatalogProduct({ name, categoryName: blingCategory, categorySlug: fromBling?.categorySlug })) {
+    const normalizedName = normalizeSearch(name);
+    return { categorySlug: "sex-shop", subcategorySlug: inferAdultSubcategory(normalizedName) };
+  }
+
   if (fromBling) return fromBling;
 
   const n = normalizeSearch(name);
@@ -515,7 +544,7 @@ function inferCategory(name: string, blingCategory?: string) {
     return { categorySlug: "bolsas-necessaires", subcategorySlug: null };
   }
 
-  if (isAdultProduct(n)) {
+  if (isAdultProductName(n)) {
     return { categorySlug: "sex-shop", subcategorySlug: inferAdultSubcategory(n) };
   }
 
@@ -582,27 +611,6 @@ function mapBlingCategory(value?: string) {
   });
 
   return category ? { categorySlug: category.slug, subcategorySlug: null } : null;
-}
-
-function isAdultProduct(n: string) {
-  if (
-    /\b(sexy|sex|intimo|intima|lubrificante|vibrador|bullet|peniano|masturbador|algema|dedeira|tesao|pocao|garganta profunda|virginite|anosex|egg|pau de cavalo|duramais|dessensibilizante|excitante|anestesico|beijavel)\b/.test(n)
-  ) {
-    return true;
-  }
-
-  if (
-    /\bgel\b/.test(n) &&
-    /\b(excitant|sensual|massageador|massagem|comestivel|anestesico|dessensibilizante|esquenta|esfria|beijavel|anal|intimo|sex|sexy|masculino)\b/.test(n)
-  ) {
-    return true;
-  }
-
-  if (/\bpomada\b/.test(n) && /\b(massageadora|canela|tubarao)\b/.test(n)) {
-    return true;
-  }
-
-  return false;
 }
 
 function inferAdultSubcategory(n: string) {

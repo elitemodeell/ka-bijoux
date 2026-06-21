@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 type SearchParams = Record<string, string | string[] | undefined>;
+const ADULT_PAGE_SIZE = 20;
 
 const CATEGORY_CARDS = [
   {
@@ -78,13 +79,20 @@ export default function SexShopPage({ searchParams = {} }: { searchParams?: Sear
   const promo = getParam(searchParams.promo) === "true";
   const onlyNew = getParam(searchParams.new) === "true";
   const sort = getParam(searchParams.sort) ?? getParam(searchParams.ordem) ?? "createdAt";
-  const products = getBlingProductCards({
+  const query = getParam(searchParams.q);
+  const requestedPage = Math.max(1, Number.parseInt(getParam(searchParams.page) ?? "1", 10) || 1);
+  const allProducts = getBlingProductCards({
     categorySlug: "sex-shop",
     promo,
     onlyNew,
     sort,
-    limit: 175,
+    query,
+    catalogLine: "adult",
   });
+  const total = allProducts.length;
+  const totalPages = Math.max(1, Math.ceil(total / ADULT_PAGE_SIZE));
+  const page = Math.min(requestedPage, totalPages);
+  const products = allProducts.slice((page - 1) * ADULT_PAGE_SIZE, page * ADULT_PAGE_SIZE);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#fff7f5] pb-28 pt-[112px] text-[#5b2638]">
@@ -146,7 +154,7 @@ export default function SexShopPage({ searchParams = {} }: { searchParams?: Sear
               className={`group relative min-h-[112px] overflow-hidden rounded-[24px] border border-[#dfbdc5] bg-gradient-to-br ${card.gradient} px-4 py-4 shadow-[0_12px_28px_rgba(116,62,80,0.08)] transition-transform hover:-translate-y-0.5 ${card.wide ? "col-span-2" : ""}`}
             >
               <div className="absolute inset-y-0 left-0 w-[45%] opacity-95">
-                <img src={card.image} alt="" className="h-full w-full object-contain p-3" />
+                <img src={card.image} alt="" loading="lazy" decoding="async" className="h-full w-full object-contain p-3" />
               </div>
               <div className="relative ml-[43%] pr-10">
                 <h3 className="font-playfair text-lg font-bold leading-tight text-[#654067] sm:text-2xl">{card.title}</h3>
@@ -169,9 +177,9 @@ export default function SexShopPage({ searchParams = {} }: { searchParams?: Sear
             </div>
 
             <div className="grid min-w-[260px] flex-1 grid-cols-3 rounded-full bg-[#fdf1f2] p-1">
-              <FilterTab href="/categoria/sex-shop" active={!promo && !onlyNew}>Todos</FilterTab>
-              <FilterTab href="/categoria/sex-shop?promo=true" active={promo}>Promoções</FilterTab>
-              <FilterTab href="/categoria/sex-shop?new=true" active={onlyNew}>Novidades</FilterTab>
+              <FilterTab href={buildSexShopHref(searchParams, { promo: undefined, new: undefined })} active={!promo && !onlyNew}>Todos</FilterTab>
+              <FilterTab href={buildSexShopHref(searchParams, { promo: "true", new: undefined })} active={promo}>Promoções</FilterTab>
+              <FilterTab href={buildSexShopHref(searchParams, { new: "true", promo: undefined })} active={onlyNew}>Novidades</FilterTab>
             </div>
           </div>
 
@@ -184,7 +192,7 @@ export default function SexShopPage({ searchParams = {} }: { searchParams?: Sear
           </div>
 
           <p className="mt-5 text-base font-bold text-[#5d2038]">
-            {products.length} produto(s) <span className="font-medium text-[#7d4b5d]">encontrados</span>
+            {total} produto(s) <span className="font-medium text-[#7d4b5d]">encontrados</span>
           </p>
 
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -192,6 +200,28 @@ export default function SexShopPage({ searchParams = {} }: { searchParams?: Sear
               <AdultProductCard key={product.id} product={product} />
             ))}
           </div>
+
+          {totalPages > 1 ? (
+            <nav className="mt-7 flex items-center justify-center gap-3" aria-label="Paginacao da Linha Adulto">
+              {page > 1 ? (
+                <Link
+                  href={buildSexShopHref(searchParams, { page: String(page - 1) })}
+                  className="rounded-full border border-[#dfbdc5] bg-white/80 px-4 py-2.5 text-sm font-bold text-[#8a4b5d]"
+                >
+                  Anterior
+                </Link>
+              ) : null}
+              <span className="text-sm font-semibold text-[#7d4b5d]">Pagina {page} de {totalPages}</span>
+              {page < totalPages ? (
+                <Link
+                  href={buildSexShopHref(searchParams, { page: String(page + 1) })}
+                  className="rounded-full bg-[#df5b8d] px-4 py-2.5 text-sm font-bold text-white"
+                >
+                  Proxima
+                </Link>
+              ) : null}
+            </nav>
+          ) : null}
         </div>
       </section>
 
@@ -309,6 +339,21 @@ function BottomNav() {
 
 function getParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function buildSexShopHref(current: SearchParams, updates: Record<string, string | undefined>) {
+  const params = new URLSearchParams();
+  Object.entries(current).forEach(([key, value]) => {
+    const currentValue = getParam(value);
+    if (currentValue) params.set(key, currentValue);
+  });
+  if (!("page" in updates)) params.delete("page");
+  Object.entries(updates).forEach(([key, value]) => {
+    if (value) params.set(key, value);
+    else params.delete(key);
+  });
+  const query = params.toString();
+  return query ? `/categoria/sex-shop?${query}` : "/categoria/sex-shop";
 }
 
 function formatCurrency(value: number) {
