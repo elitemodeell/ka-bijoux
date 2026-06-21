@@ -10,6 +10,9 @@ const nextConfig = {
     DATABASE_URL: process.env.DATABASE_URL ?? "postgresql://placeholder:placeholder@localhost:5432/placeholder",
   },
   images: {
+    formats: ["image/avif", "image/webp"],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [64, 128, 256, 384],
     remotePatterns: [
       { hostname: "placehold.co" },
       { hostname: "res.cloudinary.com" },

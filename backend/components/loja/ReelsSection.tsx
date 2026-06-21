@@ -52,7 +52,7 @@ function ReelCard({
         loop
         playsInline
         controls
-        preload="metadata"
+        preload="none"
         className="aspect-[9/16] w-full object-cover"
         style={{ maxHeight: 560 }}
       />

@@ -205,6 +205,37 @@ export function getProductIdentityKeys(product: {
   ].filter((value): value is string => Boolean(value));
 }
 
+export function getCanonicalProductSlug(product: {
+  blingId?: string | null;
+  sku?: string | null;
+  slug?: string | null;
+  name?: string | null;
+}) {
+  return findBlingProductForSource(product)?.slug ?? product.slug?.trim() ?? null;
+}
+
+export function dedupeProductCards(products: ProductCardProduct[]) {
+  const seen = new Set<string>();
+  const result: ProductCardProduct[] = [];
+
+  for (const product of products) {
+    const catalogProduct = findBlingProductForSource(product);
+    const canonicalProduct = {
+      ...product,
+      id: catalogProduct?.id ?? product.id,
+      blingId: catalogProduct?.blingId ?? product.blingId,
+      sku: catalogProduct?.sku ?? product.sku,
+      slug: catalogProduct?.slug ?? product.slug,
+    };
+    const keys = getProductIdentityKeys(canonicalProduct);
+    if (keys.some((key) => seen.has(key))) continue;
+    keys.forEach((key) => seen.add(key));
+    result.push(canonicalProduct);
+  }
+
+  return result;
+}
+
 function getCatalogCache(): CatalogCache {
   if (catalogCache) return catalogCache;
 
@@ -226,6 +257,8 @@ function getCatalogCache(): CatalogCache {
     byBlingId.set(product.blingId, product);
     if (product.sku) bySku.set(product.sku, product);
     bySlug.set(product.slug, product);
+    const nameSlug = slugify(product.name);
+    if (nameSlug && !bySlug.has(nameSlug)) bySlug.set(nameSlug, product);
     byName.set(normalizeSearch(product.name), product);
     if (product.staticSlug) bySlug.set(product.staticSlug, product);
   }
@@ -457,14 +490,7 @@ function findStaticProduct(row: ReturnType<typeof normalizeBlingRow>) {
   }
 
   const normalizedName = normalizeSearch(row.name);
-  return (
-    staticProducts.find((product) => normalizeSearch(product.name) === normalizedName) ??
-    staticProducts.find((product) => {
-      const candidate = normalizeSearch(`${product.name} ${product.slug} ${product.imageFile}`);
-      return candidate.includes(normalizedName) || normalizedName.includes(normalizeSearch(product.slug));
-    }) ??
-    null
-  );
+  return staticProducts.find((product) => normalizeSearch(product.name) === normalizedName) ?? null;
 }
 
 function inferCategory(name: string, blingCategory?: string) {

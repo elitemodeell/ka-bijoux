@@ -282,7 +282,7 @@ export default function KABijouxStories() {
 
     async function loadStories() {
       try {
-        const res = await fetch("/api/stories", { cache: "no-store" });
+        const res = await fetch("/api/stories");
         const json = await res.json();
         if (alive && res.ok) {
           const apiGroups = normalizeGroups(json.data);

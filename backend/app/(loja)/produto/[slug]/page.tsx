@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import ProductDetailPage from "@/components/loja/ProductDetailPage";
 import {
@@ -9,9 +9,12 @@ import {
 } from "@/lib/static-sex-shop-catalog";
 import { prisma } from "@/lib/prisma";
 import {
+  dedupeProductCards,
   findBlingProductForSource,
+  getCanonicalProductSlug,
   getBlingProductBySlug,
   getBlingProductCards,
+  getProductIdentityKeys,
   type BlingCatalogProduct,
   type ProductCardProduct,
 } from "@/lib/bling-catalog";
@@ -21,6 +24,21 @@ export const dynamic = "force-dynamic";
 type PageProps = {
   params: { slug: string };
 };
+
+type ProductLookup = {
+  slug: string;
+  sku?: string | null;
+  blingId?: string | null;
+};
+
+const detailProductInclude = {
+  category: true,
+  subcategory: true,
+  images: { orderBy: { order: "asc" as const } },
+  variations: { where: { active: true } },
+};
+
+type DetailDbRecord = Prisma.ProductGetPayload<{ include: typeof detailProductInclude }>;
 
 type DbProduct = {
   id: string;
@@ -78,20 +96,26 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
-async function fetchDbProduct(slug: string): Promise<DbProduct | null> {
+async function fetchDbProduct(lookup: ProductLookup): Promise<DbProduct | null> {
   try {
-    const product = await withTimeout(
-      prisma.product.findFirst({
-        where: { slug, active: true },
-        include: {
-          category: true,
-          subcategory: true,
-          images: { orderBy: { order: "asc" } },
-          variations: { where: { active: true } },
+    const identityFilters: Prisma.ProductWhereInput[] = [{ slug: lookup.slug }];
+    if (lookup.sku) identityFilters.push({ sku: lookup.sku });
+    if (lookup.blingId) identityFilters.push({ blingId: lookup.blingId });
+
+    const products = await withTimeout(
+      prisma.product.findMany({
+        where: {
+          active: true,
+          OR: identityFilters,
         },
+        include: detailProductInclude,
+        take: 10,
       }),
       2500
     );
+    const product = [...products].sort(
+      (a, b) => scoreDbCandidate(b, lookup) - scoreDbCandidate(a, lookup)
+    )[0];
     if (!product) return null;
     return {
       id: product.id,
@@ -143,23 +167,80 @@ async function fetchDbProduct(slug: string): Promise<DbProduct | null> {
   }
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const dbProduct = await fetchDbProduct(params.slug);
+function scoreDbCandidate(product: DetailDbRecord, lookup: ProductLookup) {
+  let score = 0;
+  if (lookup.blingId && product.blingId === lookup.blingId) score += 100;
+  if (lookup.sku && product.sku === lookup.sku) score += 80;
+  if (product.slug === lookup.slug) score += 5;
+
+  const normalizedDescription = normalizeProductText(product.description ?? "");
+  const placeholder = ["revisao", "nao informado", "importado da bling", "informacoes tecnicas pendentes"]
+    .some((term) => normalizedDescription.includes(term));
+  if (!placeholder && product.description?.trim().length >= 80) {
+    score += 30 + Math.min(20, Math.floor(product.description.length / 200));
+  }
+
+  [product.benefits, product.howToUse, product.composition, product.careInstructions, product.packageContents]
+    .forEach((value) => {
+      if (value?.trim()) score += 10;
+    });
+  if (product.images.length) score += 8;
+  if (product.variations.length) score += 4;
+  return score;
+}
+
+async function getCanonicalProduct(slug: string) {
+  const blingBySlug = getBlingProductBySlug(slug);
+  const staticBySlug = getStaticProduct(slug);
+  const staticBlingProduct = staticBySlug
+    ? findBlingProductForSource({
+        sku: staticBySlug.sku,
+        slug: staticBySlug.slug,
+        name: staticBySlug.name,
+      })
+    : null;
+  const catalogProduct = blingBySlug ?? staticBlingProduct;
+  const dbProduct = await fetchDbProduct({
+    slug,
+    sku: catalogProduct?.sku ?? staticBySlug?.sku,
+    blingId: catalogProduct?.blingId,
+  });
   const blingProduct = dbProduct
     ? findBlingProductForSource({
         blingId: dbProduct.blingId,
         sku: dbProduct.sku,
         slug: dbProduct.slug,
         name: dbProduct.name,
-      })
-    : getBlingProductBySlug(params.slug);
-  const staticProduct = dbProduct || blingProduct ? null : getStaticProduct(params.slug);
+      }) ?? catalogProduct
+    : catalogProduct;
+  const staticProduct =
+    (blingProduct?.staticSlug ? getStaticProduct(blingProduct.staticSlug) : null) ??
+    staticBySlug;
+  const canonicalSlug = getCanonicalProductSlug({
+    blingId: blingProduct?.blingId ?? dbProduct?.blingId,
+    sku: blingProduct?.sku ?? dbProduct?.sku ?? staticProduct?.sku,
+    slug: blingProduct?.slug ?? dbProduct?.slug ?? staticProduct?.slug ?? slug,
+    name: blingProduct?.name ?? dbProduct?.name ?? staticProduct?.name,
+  }) ?? slug;
+
+  return { dbProduct, blingProduct, staticProduct, canonicalSlug };
+}
+
+function normalizeProductText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { dbProduct, blingProduct, staticProduct } = await getCanonicalProduct(params.slug);
 
   const name = blingProduct?.name ?? staticProduct?.name ?? dbProduct?.name ?? "Produto";
   const rawDescription =
+    dbProduct?.description?.slice(0, 160) ??
     blingProduct?.description ??
     staticProduct?.shortDescription ??
-    dbProduct?.description?.slice(0, 160) ??
     null;
   const description = getPublicMetadataDescription(rawDescription, name);
 
@@ -182,15 +263,11 @@ function getPublicMetadataDescription(value: string | null | undefined, productN
 }
 
 export default async function ProdutoPage({ params }: PageProps) {
-  const dbProduct = await fetchDbProduct(params.slug);
+  const { dbProduct, blingProduct, staticProduct, canonicalSlug } = await getCanonicalProduct(params.slug);
+  if (!dbProduct && !blingProduct && !staticProduct) notFound();
+  if (params.slug !== canonicalSlug) redirect(`/produto/${canonicalSlug}`);
 
   if (dbProduct) {
-    const blingProduct = findBlingProductForSource({
-      blingId: dbProduct.blingId,
-      sku: dbProduct.sku,
-      slug: dbProduct.slug,
-      name: dbProduct.name,
-    });
     const relatedDbProducts = await prisma.product.findMany({
       where: {
         active: true,
@@ -217,9 +294,20 @@ export default async function ProdutoPage({ params }: PageProps) {
     );
     const dbImages = dbProduct.images.map((image) => image.url);
     const galleryImages = dbImages.length ? dbImages : blingProduct?.images.map((image) => image.url) ?? [];
+    const currentIdentity = new Set(getProductIdentityKeys({
+      blingId: blingProduct?.blingId ?? dbProduct.blingId,
+      sku: blingProduct?.sku ?? dbProduct.sku,
+      slug: canonicalSlug,
+      name: blingProduct?.name ?? dbProduct.name,
+    }));
+    const relatedProducts = dedupeProductCards(
+      relatedDbProducts
+        .map(mapRelatedDbProduct)
+        .filter((product): product is ProductCardProduct => Boolean(product))
+    ).filter((product) => !getProductIdentityKeys(product).some((key) => currentIdentity.has(key)));
 
     const adaptedProduct = {
-      slug: dbProduct.slug ?? blingProduct?.slug ?? params.slug,
+      slug: canonicalSlug,
       name: blingProduct?.name ?? dbProduct.name,
       sku: blingProduct?.sku ?? dbProduct.sku ?? "",
       brand: dbProduct.brand ?? undefined,
@@ -258,9 +346,7 @@ export default async function ProdutoPage({ params }: PageProps) {
         active: variation.stock > 0,
       })),
       relatedSlugs: [] as string[],
-      relatedProducts: relatedDbProducts
-        .map(mapRelatedDbProduct)
-        .filter((product): product is ProductCardProduct => Boolean(product)),
+      relatedProducts,
       badge: dbProduct.isNew ? "Novo" : dbProduct.featured ? "Destaque" : undefined,
       stock: blingProduct?.stock ?? dbProduct.stock,
       installments: 3,
@@ -275,7 +361,6 @@ export default async function ProdutoPage({ params }: PageProps) {
     );
   }
 
-  const blingProduct = getBlingProductBySlug(params.slug);
   if (blingProduct) {
     return (
       <ProductDetailPage
@@ -286,7 +371,6 @@ export default async function ProdutoPage({ params }: PageProps) {
     );
   }
 
-  const staticProduct = getStaticProduct(params.slug);
   if (!staticProduct) notFound();
   const staticBlingProduct = findBlingProductForSource({
     sku: staticProduct.sku,
@@ -334,7 +418,12 @@ function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | nu
   return {
     id: product.id,
     name: bling?.name ?? product.name,
-    slug: product.slug ?? bling?.slug,
+    slug: getCanonicalProductSlug({
+      blingId: bling?.blingId ?? product.blingId,
+      sku: bling?.sku ?? product.sku,
+      slug: product.slug,
+      name: bling?.name ?? product.name,
+    }) ?? product.slug,
     price: bling?.price ?? Number(product.price),
     promotionalPrice,
     image,
@@ -349,12 +438,18 @@ function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | nu
 }
 
 function buildBlingDetailProduct(product: BlingCatalogProduct) {
-  const relatedProducts = getBlingProductCards({
+  const productFamily = getProductFamilyName(product.name);
+  const relatedProducts = dedupeProductCards(getBlingProductCards({
     categorySlug: product.category.slug,
     subcategorySlug: product.subcategory?.slug,
-    limit: 9,
-  })
+    limit: 24,
+  }))
     .filter((related) => related.slug !== product.slug)
+    .sort((a, b) => {
+      const aIsSibling = getProductFamilyName(a.name) === productFamily ? 1 : 0;
+      const bIsSibling = getProductFamilyName(b.name) === productFamily ? 1 : 0;
+      return bIsSibling - aIsSibling;
+    })
     .slice(0, 8);
 
   return {
@@ -384,4 +479,11 @@ function buildBlingDetailProduct(product: BlingCatalogProduct) {
     stock: product.stock,
     installments: 3,
   };
+}
+
+function getProductFamilyName(name: string) {
+  return normalizeProductText(name)
+    .replace(/\b(preto|preta|rosa|marrom|branco|branca|vermelho|vermelha)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }

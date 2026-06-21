@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getHomeCategories, getPublicCategoryName } from "@/lib/catalog";
 import AnimatedSection from "./AnimatedSection";
 
@@ -15,11 +16,12 @@ export default function CategoryGrid() {
           >
             <div className="relative aspect-[1.08] overflow-hidden bg-pink-50">
               {cat.image ? (
-                <img
+                <Image
                   src={cat.image}
                   alt={getPublicCategoryName(cat)}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
-                  loading="lazy"
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 200px"
+                  className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-pink-50 to-white text-sm font-black text-pink-500">
@@ -42,11 +44,12 @@ export default function CategoryGrid() {
           className="ka-category-card group flex h-full min-h-[214px] flex-col overflow-hidden rounded-[22px] border border-pink-100 bg-pink-50 text-left shadow-[0_12px_34px_rgba(236,72,153,0.10)] hover:shadow-glow-lg"
         >
           <div className="relative aspect-[1.08] overflow-hidden bg-pink-100">
-            <img
+            <Image
               src="/images/home/ka-bijoux-hero-banner.jpg"
               alt=""
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
-              loading="lazy"
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 200px"
+              className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
             />
             <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-pink-600/35 via-pink-200/10 to-white/30" />
           </div>

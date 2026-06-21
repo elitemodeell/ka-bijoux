@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import Link from "next/link";
 import { addCartItem } from "@/lib/client-cart";
+import ProductVariantImage from "@/components/loja/ProductVariantImage";
 
 type ProductMedia = { url: string; alt?: string | null };
 
@@ -67,6 +68,10 @@ export default function ProductCard({ product, revealDelay = 0 }: Props) {
   }, [revealDelay]);
 
   function openQuickShop() {
+    if (normalized.slug) {
+      window.location.assign(`/produto/${normalized.slug}`);
+      return;
+    }
     window.dispatchEvent(new CustomEvent("ka:quick-shop", { detail: normalized }));
   }
 
@@ -87,15 +92,18 @@ export default function ProductCard({ product, revealDelay = 0 }: Props) {
           type="button"
           onClick={openQuickShop}
           className="block h-full w-full text-left"
-          aria-label={`Abrir compra rapida de ${name}`}
+          aria-label={`Ver detalhes de ${name}`}
         >
           {image && !imgError ? (
-            <img
+            <ProductVariantImage
               src={image}
               alt={name}
-              className="ka-product-img h-full w-full object-contain p-2.5"
+              productName={name}
+              sku={normalized.sku}
+              frameClassName="ka-product-img h-full w-full"
+              imageClassName="object-contain p-2.5"
               onError={() => setImgError(true)}
-              loading="lazy"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-pink-100">
@@ -130,16 +138,11 @@ export default function ProductCard({ product, revealDelay = 0 }: Props) {
           {cartAdded ? <CheckIcon /> : <CartIcon />}
         </button>
 
-        <button
-          type="button"
-          onClick={openQuickShop}
-          className="absolute inset-0 flex items-end justify-center bg-black/0 pb-4 opacity-0 transition-all duration-300 group-hover:bg-black/5 group-hover:opacity-100"
-          aria-label={`Comprar ${name}`}
-        >
+        <div className="pointer-events-none absolute inset-0 flex items-end justify-center bg-black/0 pb-4 opacity-0 transition-all duration-300 group-hover:bg-black/5 group-hover:opacity-100">
           <span className="rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-gray-700 shadow-sm backdrop-blur-sm">
-            Compra rapida
+            Ver produto
           </span>
-        </button>
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col p-4">

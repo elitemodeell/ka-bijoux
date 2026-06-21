@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { StaticProduct, StaticProductVariant } from "@/lib/static-sex-shop-catalog";
 import { getStaticProduct } from "@/lib/static-sex-shop-catalog";
 import { addCartItem } from "@/lib/client-cart";
 import ProductCard from "@/components/loja/ProductCard";
+import ProductVariantImage from "@/components/loja/ProductVariantImage";
 
 type RelatedProduct = {
   id: string;
@@ -66,14 +67,24 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const [cartAdded, setCartAdded] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariation, setSelectedVariation] = useState(0);
+  const variations = product.variations ?? product.variants ?? [];
+  const selectedVariant = variations[selectedVariation] ?? null;
 
   const images = useMemo(() => {
+    const variantGallery = selectedVariant?.images?.filter(Boolean) ?? [];
+    const variantFallback = selectedVariant?.imageFile
+      ? [selectedVariant.imageFile.startsWith("/") ? selectedVariant.imageFile : `/uploads/products/${selectedVariant.imageFile}`]
+      : [];
     const gallery = product.galleryImages?.filter(Boolean) ?? [];
     const fallback = product.imageFile
       ? [product.imageFile.startsWith("/") ? product.imageFile : `/uploads/products/${product.imageFile}`]
       : [];
-    return Array.from(new Set(gallery.length ? gallery : fallback));
-  }, [product.galleryImages, product.imageFile]);
+    return Array.from(new Set(variantGallery.length ? variantGallery : variantFallback.length ? variantFallback : gallery.length ? gallery : fallback));
+  }, [product.galleryImages, product.imageFile, selectedVariant]);
+
+  useEffect(() => {
+    setSelectedImage(0);
+  }, [selectedVariation]);
 
   const imageUrl = images[selectedImage] ?? "";
   const finalPrice = product.promotionalPrice ?? product.price;
@@ -82,8 +93,6 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const categorySlug = product.categorySlug ?? "produtos";
   const productSubcategoryName = product.subcategoryName ?? subcategoryName;
   const available = product.stock > 0;
-  const variations = product.variations ?? product.variants ?? [];
-  const selectedVariant = variations[selectedVariation] ?? null;
   const isAdult = isAdultProduct(categorySlug, product.subcategorySlug, productSubcategoryName);
   const publicBrand = publicText(product.brand);
   const publicDescription = buildCommercialDescription(
@@ -168,7 +177,16 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
           <div className="min-w-0">
             <div className="relative aspect-square overflow-hidden rounded-[24px] border border-pink-100 bg-white shadow-[0_22px_62px_rgba(201,66,119,0.11)] sm:rounded-[28px]">
               {imageUrl ? (
-                <img src={imageUrl} alt={product.name} className="h-full w-full object-contain p-4 sm:p-8" loading="eager" />
+                <ProductVariantImage
+                  src={imageUrl}
+                  alt={product.name}
+                  productName={selectedVariant ? `${product.name} ${selectedVariant.label}` : product.name}
+                  sku={selectedVariant?.sku ?? product.sku}
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  frameClassName="h-full w-full"
+                  imageClassName="object-contain p-4 sm:p-8"
+                />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-white text-pink-300">
                   <span className="text-6xl font-black">KA</span>
@@ -196,7 +214,15 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                     className={`h-20 w-20 shrink-0 overflow-hidden rounded-2xl border bg-white p-1 transition ${selectedImage === index ? "border-pink-500 ring-2 ring-pink-100" : "border-pink-100"}`}
                     aria-label={`Ver foto ${index + 1}`}
                   >
-                    <img src={image} alt="" className="h-full w-full rounded-xl object-contain" />
+                    <ProductVariantImage
+                      src={image}
+                      alt=""
+                      productName={selectedVariant ? `${product.name} ${selectedVariant.label}` : product.name}
+                      sku={selectedVariant?.sku ?? product.sku}
+                      sizes="80px"
+                      frameClassName="h-full w-full rounded-xl"
+                      imageClassName="rounded-xl object-contain"
+                    />
                   </button>
                 ))}
               </div>

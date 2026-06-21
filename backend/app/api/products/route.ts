@@ -8,7 +8,9 @@ import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError, paginate, slugify } from "@/lib/utils";
 import { getPublicCategoryName } from "@/lib/catalog";
 import {
+  dedupeProductCards,
   findBlingProductForSource,
+  getCanonicalProductSlug,
   getBlingProductCards,
   getProductIdentityKeys,
   type CatalogFilters,
@@ -163,7 +165,12 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof 
   return {
     id: product.id,
     name: bling?.name ?? product.name,
-    slug: product.slug ?? bling?.slug,
+    slug: getCanonicalProductSlug({
+      blingId: bling?.blingId ?? product.blingId,
+      sku: bling?.sku ?? product.sku,
+      slug: product.slug,
+      name: bling?.name ?? product.name,
+    }) ?? product.slug,
     description: product.description || bling?.description,
     price: bling?.price ?? Number(product.price),
     promotionalPrice,
@@ -187,8 +194,9 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof 
 }
 
 function mergeWithBlingCatalog(dbProducts: ProductCardProduct[], filters: CatalogFilters) {
+  const canonicalDbProducts = dedupeProductCards(dbProducts);
   const seen = new Set<string>();
-  for (const product of dbProducts) {
+  for (const product of canonicalDbProducts) {
     getProductIdentityKeys(product).forEach((key) => seen.add(key));
   }
 
@@ -197,7 +205,7 @@ function mergeWithBlingCatalog(dbProducts: ProductCardProduct[], filters: Catalo
     return !keys.some((key) => seen.has(key));
   });
 
-  return sortProducts([...dbProducts, ...blingProducts], filters.sort);
+  return sortProducts(dedupeProductCards([...canonicalDbProducts, ...blingProducts]), filters.sort);
 }
 
 function sortProducts(products: ProductCardProduct[], sort?: string | null) {

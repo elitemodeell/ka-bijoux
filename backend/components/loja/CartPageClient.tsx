@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   clearCart,
   getCartItems,
@@ -170,7 +171,7 @@ export default function CartPageClient() {
               <div className="flex gap-3 sm:gap-4">
                 <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-pink-50 sm:h-28 sm:w-28">
                   {item.image ? (
-                    <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                    <Image src={item.image} alt={item.name} width={112} height={112} className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-lg font-black text-pink-300">KA</div>
                   )}

@@ -6,6 +6,9 @@ export type StaticProductVariant = {
   slug: string;
   color?: string;
   active?: boolean;
+  sku?: string;
+  imageFile?: string;
+  images?: string[];
 };
 
 export type StaticProduct = {

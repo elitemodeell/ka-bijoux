@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { addCartItem, normalizeCartProduct, type ClientCartProduct } from "@/lib/client-cart";
+import ProductVariantImage from "@/components/loja/ProductVariantImage";
 
 type QuickShopProduct = ClientCartProduct & {
   badge?: string | null;
@@ -37,6 +38,10 @@ export default function QuickShopModal() {
   useEffect(() => {
     function open(event: Event) {
       const detail = (event as CustomEvent<QuickShopProduct>).detail;
+      if (detail.slug) {
+        router.push(`/produto/${detail.slug}`);
+        return;
+      }
       setProduct(normalizeCartProduct(detail));
       setActiveMedia(0);
       setQuantity(1);
@@ -49,7 +54,7 @@ export default function QuickShopModal() {
 
     window.addEventListener("ka:quick-shop", open);
     return () => window.removeEventListener("ka:quick-shop", open);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!product) return;
@@ -171,10 +176,14 @@ export default function QuickShopModal() {
                     className="h-full w-full overflow-hidden"
                     aria-label="Ampliar imagem"
                   >
-                    <img
+                    <ProductVariantImage
                       src={currentMedia.url}
                       alt={currentMedia.alt ?? product.name}
-                      className={`h-full w-full object-contain p-4 transition-transform duration-500 ${zoomed ? "scale-150" : "scale-100"}`}
+                      productName={product.name}
+                      sku={product.sku}
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      frameClassName={`h-full w-full transition-transform duration-500 ${zoomed ? "scale-150" : "scale-100"}`}
+                      imageClassName="object-contain p-4"
                     />
                   </button>
                 )}
@@ -203,7 +212,15 @@ export default function QuickShopModal() {
                           VIDEO
                         </span>
                       ) : (
-                        <img src={item.url} alt="" className="h-full w-full object-contain p-1" />
+                        <ProductVariantImage
+                          src={item.url}
+                          alt=""
+                          productName={product.name}
+                          sku={product.sku}
+                          sizes="64px"
+                          frameClassName="h-full w-full"
+                          imageClassName="object-contain p-1"
+                        />
                       )}
                     </button>
                   ))}
@@ -296,12 +313,6 @@ export default function QuickShopModal() {
                       <div className="flex justify-between gap-4">
                         <dt>Linha</dt>
                         <dd className="text-right font-semibold text-gray-800">{product.subcategory.name}</dd>
-                      </div>
-                    )}
-                    {product.sku && (
-                      <div className="flex justify-between gap-4">
-                        <dt>Codigo</dt>
-                        <dd className="text-right font-semibold text-gray-800">{product.sku}</dd>
                       </div>
                     )}
                     <div className="flex justify-between gap-4">
