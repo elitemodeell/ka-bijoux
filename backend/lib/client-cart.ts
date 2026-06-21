@@ -1,5 +1,7 @@
 "use client";
 
+import { getValidPromotionalPrice } from "@/lib/store-rules";
+
 export type ClientCartMedia = {
   url: string;
   alt?: string | null;
@@ -48,7 +50,7 @@ export function normalizeCartProduct(product: ClientCartProduct): ClientCartProd
 
   const price = toNumber(product.price);
   const promoValue = product.promo ?? product.promotionalPrice ?? null;
-  const promo = promoValue ? toNumber(promoValue, price) : null;
+  const promo = getValidPromotionalPrice(price, promoValue);
 
   return {
     ...product,

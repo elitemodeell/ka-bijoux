@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import Link from "next/link";
 import { addCartItem } from "@/lib/client-cart";
+import { getDiscountPercentage, getInstallmentInfo, getValidPromotionalPrice } from "@/lib/store-rules";
 import ProductVariantImage from "@/components/loja/ProductVariantImage";
 
 type ProductMedia = { url: string; alt?: string | null };
@@ -15,6 +16,8 @@ interface Product {
   price: number | string;
   promotionalPrice?: number | string | null;
   promo?: number | string | null;
+  discount?: number | string | null;
+  discountPercentage?: number | string | null;
   badge?: string | null;
   image?: string | null;
   images?: ProductMedia[];
@@ -36,8 +39,12 @@ export default function ProductCard({ product, revealDelay = 0 }: Props) {
   const [cartAdded, setCartAdded] = useState(false);
   const normalized = useMemo(() => normalizeProduct(product), [product]);
   const { name, price, promo, badge, image } = normalized;
-
-  const discount = promo ? Math.round(((price - promo) / price) * 100) : null;
+  const discount = getDiscountPercentage({
+    originalPrice: price,
+    currentPrice: promo,
+    manualPercentage: product.discountPercentage ?? product.discount,
+  });
+  const installment = getInstallmentInfo(promo ?? price);
 
   const fmt = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -120,7 +127,10 @@ export default function ProductCard({ product, revealDelay = 0 }: Props) {
             </span>
           )}
           {discount && (
-            <span className="rounded-full bg-green-500 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
+            <span
+              data-product-discount={discount}
+              className="rounded-full bg-gradient-to-r from-pink-700 to-pink-500 px-2.5 py-1 text-xs font-semibold text-white shadow-[0_6px_16px_rgba(190,24,93,0.24)]"
+            >
               -{discount}%
             </span>
           )}
@@ -171,6 +181,11 @@ export default function ProductCard({ product, revealDelay = 0 }: Props) {
               <span className="text-base font-bold text-gray-800">{fmt(price)}</span>
             )}
           </div>
+          {installment.eligible && (
+            <p className="mb-3 text-[11px] font-semibold text-gray-500">
+              {installment.label}
+            </p>
+          )}
 
           <div className="grid grid-cols-[1fr_42px] gap-2">
             <button
@@ -205,12 +220,15 @@ function normalizeProduct(product: Product) {
       ? [{ url: product.image, alt: product.name }]
       : [];
   const price = Number(product.price);
-  const promo = product.promo ?? product.promotionalPrice ?? null;
+  const promo = getValidPromotionalPrice(
+    price,
+    product.promo ?? product.promotionalPrice ?? null
+  );
 
   return {
     ...product,
     price,
-    promo: promo ? Number(promo) : null,
+    promo,
     image: product.image || images[0]?.url || null,
     images,
     description: product.description || "Produto selecionado com carinho pela KA Bijoux.",

@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { addCartItem, normalizeCartProduct, type ClientCartProduct } from "@/lib/client-cart";
+import { getInstallmentInfo } from "@/lib/store-rules";
 import ProductVariantImage from "@/components/loja/ProductVariantImage";
 
 type QuickShopProduct = ClientCartProduct & {
@@ -87,6 +88,7 @@ export default function QuickShopModal() {
   if (!product) return null;
 
   const price = getUnitPrice(product);
+  const installment = getInstallmentInfo(price);
   const gallery = getGallery(product);
   const currentMedia = gallery[activeMedia] ?? gallery[0];
   const availableStock = product.stock ?? 99;
@@ -241,6 +243,11 @@ export default function QuickShopModal() {
                 <span className="text-3xl font-black text-pink-500">{formatCurrency(price)}</span>
                 {product.promo && <span className="pb-1 text-sm text-gray-400 line-through">{formatCurrency(product.price)}</span>}
               </div>
+              <p className="text-xs font-semibold text-gray-500">
+                {installment.eligible && installment.installmentValue
+                  ? `${installment.label} de ${formatCurrency(installment.installmentValue)}`
+                  : installment.label}
+              </p>
 
               <p className="text-sm leading-relaxed text-gray-600">{product.description}</p>
 

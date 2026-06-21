@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { StaticProduct, StaticProductVariant } from "@/lib/static-sex-shop-catalog";
 import { getStaticProduct } from "@/lib/static-sex-shop-catalog";
 import { addCartItem } from "@/lib/client-cart";
+import { getInstallmentInfo, getValidPromotionalPrice } from "@/lib/store-rules";
 import ProductCard from "@/components/loja/ProductCard";
 import ProductVariantImage from "@/components/loja/ProductVariantImage";
 
@@ -60,8 +61,6 @@ type TechnicalSection = {
 const fmt = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
-const fmtInstallment = (price: number, installments: number) => fmt(price / installments);
-
 export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [cartAdded, setCartAdded] = useState(false);
@@ -87,8 +86,9 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   }, [selectedVariation]);
 
   const imageUrl = images[selectedImage] ?? "";
-  const finalPrice = product.promotionalPrice ?? product.price;
-  const installmentCount = product.installments > 1 ? product.installments : 3;
+  const promotionalPrice = getValidPromotionalPrice(product.price, product.promotionalPrice);
+  const finalPrice = promotionalPrice ?? product.price;
+  const installment = getInstallmentInfo(finalPrice);
   const categoryName = product.categoryName ?? "KA Bijoux";
   const categorySlug = product.categorySlug ?? "produtos";
   const productSubcategoryName = product.subcategoryName ?? subcategoryName;
@@ -186,7 +186,6 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   frameClassName="h-full w-full"
                   imageClassName="object-contain p-6 sm:p-10"
-                  disableCrop
                 />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-white text-pink-300">
@@ -249,9 +248,13 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
             </p>
 
             <div className="mt-5 border-y border-pink-50 py-5">
-              {product.promotionalPrice ? <p className="text-sm font-bold text-gray-400 line-through">{fmt(product.price)}</p> : null}
+              {promotionalPrice ? <p className="text-sm font-bold text-gray-400 line-through">{fmt(product.price)}</p> : null}
               <p className="text-3xl font-black text-pink-600">{fmt(finalPrice)}</p>
-              <p className="mt-1 text-sm font-semibold text-gray-600">ou {installmentCount}x de {fmtInstallment(finalPrice, installmentCount)} sem juros</p>
+              <p className="mt-1 text-sm font-semibold text-gray-600">
+                {installment.eligible && installment.installmentValue
+                  ? `${installment.label} de ${fmt(installment.installmentValue)}`
+                  : installment.label}
+              </p>
             </div>
 
             {variations.length > 0 && (

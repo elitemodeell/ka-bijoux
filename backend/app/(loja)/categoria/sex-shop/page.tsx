@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getBlingProductCards, type ProductCardProduct } from "@/lib/bling-catalog";
+import { getDiscountPercentage, getInstallmentInfo, getValidPromotionalPrice } from "@/lib/store-rules";
+import ProductVariantImage from "@/components/loja/ProductVariantImage";
 
 export const dynamic = "force-dynamic";
 
@@ -200,7 +202,10 @@ export default function SexShopPage({ searchParams = {} }: { searchParams?: Sear
 
 function AdultProductCard({ product }: { product: ProductCardProduct }) {
   const price = Number(product.price);
-  const installment = price / 3;
+  const promotionalPrice = getValidPromotionalPrice(price, product.promo ?? product.promotionalPrice);
+  const currentPrice = promotionalPrice ?? price;
+  const discount = getDiscountPercentage({ originalPrice: price, currentPrice: promotionalPrice });
+  const installment = getInstallmentInfo(currentPrice);
   const image = product.image || product.images?.[0]?.url || null;
 
   return (
@@ -208,14 +213,29 @@ function AdultProductCard({ product }: { product: ProductCardProduct }) {
       href={product.slug ? `/produto/${product.slug}` : "/produtos"}
       className="group relative overflow-hidden rounded-[22px] border border-[#ead7d7] bg-white/82 p-3 shadow-[0_14px_32px_rgba(116,62,80,0.08)] transition-transform hover:-translate-y-0.5"
     >
-      <span className="absolute left-3 top-3 z-10 rounded-md bg-[#df5b8d] px-2.5 py-1 text-xs font-bold text-white">Novo</span>
+      <span className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1.5">
+        <span className="rounded-md bg-[#df5b8d] px-2.5 py-1 text-xs font-bold text-white">Novo</span>
+        {discount ? (
+          <span className="rounded-full bg-gradient-to-r from-pink-700 to-pink-500 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
+            -{discount}%
+          </span>
+        ) : null}
+      </span>
       <span className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/82 text-[#c3a1a2] shadow-sm">
         <HeartIcon className="h-5 w-5" />
       </span>
 
       <div className="flex aspect-square items-center justify-center rounded-[18px] bg-gradient-to-br from-[#fff6f7] to-[#f8eef5]">
         {image ? (
-          <img src={image} alt={product.name} className="h-full w-full object-contain p-4 transition-transform duration-300 group-hover:scale-105" />
+          <ProductVariantImage
+            src={image}
+            alt={product.name}
+            productName={product.name}
+            sku={product.sku}
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            frameClassName="h-full w-full transition-transform duration-300 group-hover:scale-105"
+            imageClassName="object-contain p-4"
+          />
         ) : (
           <div className="text-center text-[#d4a7b5]">
             <span className="block text-3xl font-black">KA</span>
@@ -225,8 +245,15 @@ function AdultProductCard({ product }: { product: ProductCardProduct }) {
       </div>
 
       <h3 className="mt-3 line-clamp-2 min-h-[38px] text-sm font-bold leading-tight text-[#4d2938]">{product.name}</h3>
-      <p className="mt-2 text-lg font-black text-[#df5b8d]">{formatCurrency(price)}</p>
-      <p className="text-xs font-medium text-[#8a6671]">3x de {formatCurrency(installment)} sem juros</p>
+      <div className="mt-2 flex flex-wrap items-baseline gap-2">
+        <p className="text-lg font-black text-[#df5b8d]">{formatCurrency(currentPrice)}</p>
+        {promotionalPrice ? <p className="text-xs font-semibold text-[#aa8b94] line-through">{formatCurrency(price)}</p> : null}
+      </div>
+      <p className="text-xs font-medium text-[#8a6671]">
+        {installment.eligible && installment.installmentValue
+          ? `${installment.label} de ${formatCurrency(installment.installmentValue)}`
+          : installment.label}
+      </p>
     </Link>
   );
 }
