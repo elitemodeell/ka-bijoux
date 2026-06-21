@@ -20,6 +20,7 @@ type Props = {
   frameClassName?: string;
   imageClassName?: string;
   onError?: (event: SyntheticEvent<HTMLImageElement>) => void;
+  disableCrop?: boolean;
 };
 
 const SHARED_COLOR_IMAGE = "/uploads/products/vibrador-sexy-controle-cores.png";
@@ -42,8 +43,9 @@ export default function ProductVariantImage({
   frameClassName = "",
   imageClassName = "object-contain",
   onError,
+  disableCrop = false,
 }: Props) {
-  const crop = getColorCrop(src, sku, productName);
+  const crop = disableCrop ? null : getColorCrop(src, sku, productName);
 
   return (
     <span

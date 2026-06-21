@@ -175,7 +175,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
       <main className="mx-auto max-w-7xl px-4 sm:px-6">
         <section className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_470px] lg:items-start lg:gap-10">
           <div className="min-w-0">
-            <div className="relative aspect-square overflow-hidden rounded-[24px] border border-pink-100 bg-white shadow-[0_22px_62px_rgba(201,66,119,0.11)] sm:rounded-[28px]">
+            <div className="relative aspect-square max-h-[560px] overflow-hidden rounded-[24px] border border-pink-100 bg-white shadow-[0_22px_62px_rgba(201,66,119,0.11)] sm:rounded-[28px]">
               {imageUrl ? (
                 <ProductVariantImage
                   src={imageUrl}
@@ -185,7 +185,8 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                   priority
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   frameClassName="h-full w-full"
-                  imageClassName="object-contain p-4 sm:p-8"
+                  imageClassName="object-contain p-6 sm:p-10"
+                  disableCrop
                 />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-white text-pink-300">
