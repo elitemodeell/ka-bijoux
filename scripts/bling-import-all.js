@@ -8,18 +8,22 @@
  * 5. Envia nossas imagens editadas de volta para o Bling (substitui as fotos genéricas)
  */
 
-const { PrismaClient } = require('@prisma/client');
+const path  = require('path');
 const http  = require('http');
 const https = require('https');
 const fs    = require('fs');
-const path  = require('path');
+
+// Rodar com: NODE_PATH=./backend/node_modules node scripts/bling-import-all.js
+const BACKEND_DIR = path.resolve(__dirname, '..', 'backend');
+require('dotenv').config({ path: path.join(BACKEND_DIR, '.env') });
+const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
 const CLIENT_ID     = 'a328177fa4108c47078a0f0eb17395ba29bdd6cb';
 const CLIENT_SECRET = '795e2d2d93be82d84a902cd5958ae7f09a97424dfdc513c3ec2be73853f2';
 const REDIRECT_URI  = 'http://localhost:3007';
-const IMAGES_DIR    = path.join(__dirname, '..', 'backend', 'public', 'uploads', 'products');
+const IMAGES_DIR    = path.join(BACKEND_DIR, 'public', 'uploads', 'products');
 const SUPABASE_BASE = 'https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products';
 
 // ── Mapeamento de categoria por nome de produto ───────────────────────────────
@@ -287,7 +291,7 @@ async function importProducts(blingProducts, skuImageMap) {
           sku,
           description:   descricao,
           price:         preco,
-          stock:         bling?.estoque ? Math.max(Number(bling.estoque), 5) : 10,
+          stock:         bling?.estoque && !isNaN(Number(bling.estoque)) ? Math.max(Math.round(Number(bling.estoque)), 5) : 10,
           weight:        peso,
           height:        altura,
           width:         largura,
@@ -655,7 +659,8 @@ function gerarDescricao(nome) {
 }
 
 // ── MAIN ───────────────────────────────────────────────────────────────────────
-const authUrl = `https://www.bling.com.br/Api/v3/oauth/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+const STATE   = 'kabijoux_import_' + Date.now();
+const authUrl = `https://www.bling.com.br/Api/v3/oauth/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${STATE}`;
 
 console.log('\n╔══════════════════════════════════════════════════╗');
 console.log('║     KA BIJOUX — IMPORTAÇÃO COMPLETA DE PRODUTOS  ║');
@@ -703,7 +708,7 @@ const server = http.createServer(async (req, res) => {
 
         console.log('\nImportando produtos faltando no banco...');
         const skuImageMap = buildSkuImageMap();
-        const { importados, semBling } = await importProducts(blingProducts);
+        const { importados, semBling } = await importProducts(blingProducts, skuImageMap);
 
         // Enviar nossas imagens editadas de volta para o Bling
         const { ok: imgOk } = await updateBlingImages(token.access_token, blingProducts, skuImageMap);
