@@ -556,18 +556,6 @@ function resolveImage(
     return { url: `/uploads/products/${staticImageFile}`, source: "STATIC", reason: "static_catalog_sku" };
   }
 
-  const productTokens = tokenize(row.name);
-  let best: { item: ImageIndexEntry; score: number } | null = null;
-
-  for (const item of imageIndex.semantic) {
-    const score = similarityScore(productTokens, tokenize(item.nome || item.src || ""));
-    if (!best || score > best.score) best = { item, score };
-  }
-
-  if (best && best.score >= 0.62) {
-    return imageMatchToUrl(best.item, "MARKETPLACE", `nome_parecido_${best.score.toFixed(2)}`);
-  }
-
   return { url: "", source: "NONE", reason: "sem_imagem" };
 }
 
