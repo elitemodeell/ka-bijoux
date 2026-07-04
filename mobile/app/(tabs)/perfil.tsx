@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -81,8 +81,8 @@ export default function PerfilScreen() {
           ))}
         </View>
 
-        {/* Sair */}
-        <View style={{ paddingHorizontal: Spacing.base, marginTop: 16 }}>
+        {/* Sair e excluir */}
+        <View style={{ paddingHorizontal: Spacing.base, marginTop: 16, gap: 10 }}>
           <TouchableOpacity
             style={styles.logoutBtn}
             onPress={async () => {
@@ -92,6 +92,22 @@ export default function PerfilScreen() {
           >
             <Ionicons name="log-out-outline" size={20} color={Colors.error} />
             <Text style={styles.logoutText}>Sair da conta</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.deleteBtn}
+            onPress={() => Linking.openURL("https://kabijoux.com.br/privacidade")}
+          >
+            <Ionicons name="document-text-outline" size={16} color={Colors.textMuted} />
+            <Text style={styles.deleteText}>Política de Privacidade</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.deleteBtn}
+            onPress={() => router.push("/conta/excluir")}
+          >
+            <Ionicons name="trash-outline" size={16} color={Colors.textMuted} />
+            <Text style={styles.deleteText}>Excluir minha conta</Text>
           </TouchableOpacity>
         </View>
 
@@ -170,4 +186,9 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   logoutText: { fontSize: FontSizes.base, fontWeight: "600", color: Colors.error },
+  deleteBtn: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingVertical: 10, paddingHorizontal: 4,
+  },
+  deleteText: { fontSize: FontSizes.sm, color: Colors.textMuted },
 });

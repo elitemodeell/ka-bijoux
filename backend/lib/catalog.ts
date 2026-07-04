@@ -72,6 +72,24 @@ export const CATALOG_CATEGORIES: CatalogCategory[] = [
         description: "Géis de massagem corporal, cremes estimulantes e produtos sensoriais.",
       },
       {
+        name: "Jogos Adultos",
+        slug: "sex-shop-jogos",
+        pathSlug: "jogos-adultos",
+        description: "Jogos, cartas e desafios para momentos adultos com discrição.",
+      },
+      {
+        name: "Acessórios Adultos",
+        slug: "sex-shop-acessorios",
+        pathSlug: "acessorios-adultos",
+        description: "Acessórios adultos, plugs, algemas e itens para uso consensual.",
+      },
+      {
+        name: "Próteses Adultas",
+        slug: "sex-shop-proteses",
+        pathSlug: "proteses-adultas",
+        description: "Próteses adultas com informações claras, uso responsável e discrição.",
+      },
+      {
         name: "Vibradores",
         slug: "sex-shop-vibradores",
         pathSlug: "vibradores",

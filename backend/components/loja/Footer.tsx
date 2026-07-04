@@ -85,9 +85,14 @@ export default function Footer() {
         <p className="text-xs text-gray-500">
           © {new Date().getFullYear()} KA Bijoux. Todos os direitos reservados.
         </p>
-        <Link href="/admin/login" className="text-xs text-gray-600 transition-colors hover:text-pink-400">
-          Area administrativa
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/privacidade" className="text-xs text-gray-500 transition-colors hover:text-pink-400">
+            Política de Privacidade
+          </Link>
+          <Link href="/admin/login" className="text-xs text-gray-600 transition-colors hover:text-pink-400">
+            Area administrativa
+          </Link>
+        </div>
       </div>
     </footer>
   );

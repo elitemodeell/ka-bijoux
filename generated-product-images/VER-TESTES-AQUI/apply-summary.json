@@ -1,0 +1,13 @@
+{
+  "appliedAt": "2026-07-01T11:34:40",
+  "requestedLimit": 69,
+  "platformApplied": 69,
+  "skipped": 0,
+  "backendMappingEntries": 102,
+  "rootMappingEntries": 126,
+  "blingImageFilesEntries": 183,
+  "uploadsDir": "C:\\projeto\\KA Bijoux\\backend\\public\\uploads\\products",
+  "blingOnlineApplied": 0,
+  "blingOnlineStatus": "PENDENTE_CREDENCIAL_API_BLING",
+  "skippedItems": []
+}

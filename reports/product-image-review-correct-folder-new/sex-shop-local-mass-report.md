@@ -1,0 +1,373 @@
+# Aplicacao local em massa - Sex Shop
+
+Gerado em: 2026-07-03T14:03:48.474Z
+
+## Resumo
+
+- Produtos sincronizados do CSV Bling para o JSON local: 5652
+- Produtos adultos ativos com estoque: 375
+- Produtos adultos com imagem segura associada: 48
+- Produtos adultos sem imagem segura: 327
+- Descricoes completas presentes/geradas: 375
+- Modos de uso presentes/gerados: 375
+- Cuidados presentes/gerados: 375
+- Produtos adultos com preco zero: 0
+- Produtos adultos com conteudo pendente: 0
+
+## Links locais para conferir
+
+- Chicote Sexy Preto Fino - /produto/chicote-sexy-preto-fino
+- Chicote Sexy Preto Grosso - /produto/chicote-sexy-preto-grosso
+- Chicote Sexy Vermelho - /produto/chicote-sexy-vermelho
+- Perfume de Calcinha Garji Ternura - /produto/perfume-de-calcinha-garji-ternura
+- Perfume de Calcinha Garji Sintonia - /produto/perfume-de-calcinha-garji-sintonia
+- Perfume de Calcinha BG Hot Choco Menta - /produto/perfume-de-calcinha-bg-hot-choco-menta
+- Perfume de Calcinha BG Hot Menta - /produto/perfume-de-calcinha-bg-hot-menta
+- Perfume de Calcinha Sexy Uva - /produto/perfume-de-calcinha-sexy-uva
+- Perfume de Calcinha Apinil Caramelo - /produto/perfume-de-calcinha-apinil-caramelo
+- Perfume de Calcinha Apinil Baunilha - /produto/perfume-de-calcinha-apinil-baunilha
+- Perfume de Calcinha Apinil Menta - /produto/perfume-de-calcinha-apinil-menta
+- Perfume de Calcinha Apinil Melancia - /produto/perfume-de-calcinha-apinil-melancia
+- Perfume de Calcinha Apinil Morango - /produto/perfume-de-calcinha-apinil-morango
+- Perfume de Calcinha Apinil Uva - /produto/perfume-de-calcinha-apinil-uva
+- Meia Arrastão Sexy - /produto/meia-arrastao-sexy
+- Plug Silicone C/ Textura Lilás - /produto/plug-silicone-c-textura-lilas
+- Plug Silicone Sexy Cobrinha Vermelho - /produto/plug-silicone-sexy-cobrinha-vermelho
+- Plug Silicone Sexy Âncora Rosa - /produto/plug-silicone-sexy-ancora-rosa
+- Colar Pérola Sexy Preto - /produto/colar-perola-sexy-preto
+- Plug Gg Coração Azul - /produto/plug-gg-coracao-azul
+- Plug Gg Coração Rosa - /produto/plug-gg-coracao-rosa
+- Plug Gg Coração Roxo - /produto/plug-gg-coracao-roxo
+- Plug G Coracao Fruta Cor - /produto/plug-g-coracao-fruta-cor
+- Plug G Coracao Preto - /produto/plug-g-coracao-preto
+- Plug G Coracao Roxo - /produto/plug-g-coracao-roxo
+
+## Pendentes sem imagem segura
+
+- 3104000005061 - Chicote Sexy Preto Fino
+- 3104000005060 - Chicote Sexy Preto Grosso
+- 3104000005059 - Chicote Sexy Vermelho
+- 3104000004999 - Perfume de Calcinha Garji Ternura
+- 3104000004998 - Perfume de Calcinha Garji Sintonia
+- 3104000004997 - Perfume de Calcinha BG Hot Choco Menta
+- 3104000004996 - Perfume de Calcinha BG Hot Menta
+- 3104000004995 - Perfume de Calcinha Sexy Uva
+- 3104000004994 - Perfume de Calcinha Apinil Caramelo
+- 3104000004993 - Perfume de Calcinha Apinil Baunilha
+- 3104000004992 - Perfume de Calcinha Apinil Menta
+- 3104000004991 - Perfume de Calcinha Apinil Melancia
+- 3104000004990 - Perfume de Calcinha Apinil Morango
+- 3104000004989 - Perfume de Calcinha Apinil Uva
+- 3104000005048 - Meia Arrastão Sexy
+- 3104000005028 - Plug Silicone C/ Textura Lilás
+- 3104000005027 - Plug Silicone Sexy Cobrinha Vermelho
+- 3104000005026 - Plug Silicone Sexy Âncora Rosa
+- 3104000005025 - Colar Pérola Sexy Preto
+- 3104000005024 - Plug Gg Coração Azul
+- 3104000005022 - Plug Gg Coração Rosa
+- 3104000005021 - Plug Gg Coração Roxo
+- 3104000005020 - Plug G Coracao Fruta Cor
+- 3104000005019 - Plug G Coracao Preto
+- 3104000005018 - Plug G Coracao Roxo
+- 3104000005017 - Plug G Coracao Rosa
+- 3104000005016 - Plug G Redondo Fruta Cor
+- 3104000005015 - Plug G Redondo Lilas
+- 3104000005014 - Plug G Redondo Pink
+- 3104000005013 - Plug G Redondo Rosa
+- 3104000005012 - Plug G Redondo Cristal
+- 3104000005011 - Plug G Redondo Vermelho
+- 3104000005010 - Plug M Coracao Azul Claro
+- 3104000005009 - Plug M Coracao Azul Escuro
+- 3104000005008 - Plug M Coracao Roxo
+- 3104000005007 - Plug M Coracao Rosa
+- 3104000005006 - Plug M Coracao Cristal
+- 3104000005004 - Plug P Redondo Roxo
+- 3104000005003 - Plug P Redondo Fruta Cor
+- 3104000005002 - Plug P Redondo Rosa
+- 3104000005001 - Plug P Redondo Pink
+- 3104000005000 - Plug P Redondo Cristal
+- 3104000004955 - Duelo do Prazer Namoro
+- 3104000004954 - Duelo do Prazer Fetiches
+- 3104000004953 - Duelo do Prazer 36 Posicoes
+- 3104000004951 - Dados Sexy Jogo do Prazer Hot
+- 3104000004950 - Dados Sexy Toque do Cupido
+- 3104000004946 - Prótese M Preta
+- 3104000004945 - Prótese PP com Escroto
+- 3104000004944 - Prótese P MyDick
+- 3104000004943 - Prótese P Sexy Nude
+- 3104000004942 - Prótese P Sexy Rosa
+- 3104000004941 - Prótese P Sexy Bege
+- 3104000004940 - Prótese P Sexy Roxo
+- 3104000004939 - MyDick Prótese Sem Escroto
+- 3104000004938 - MyDick Prótese com Escroto
+- 3104000004937 - Chuca Sexy Vermelho
+- 3104000004936 - Chuca Sexy Rosa
+- 3104000004935 - Tapa Mamilo Fosco X Vermelho
+- 3104000004934 - Tapa Mamilo Lantejoula Preto
+- 3104000004923 - Vibrador Premium 17 - Roxo
+- 3104000004922 - Vibrador Premium 16 - Rosa
+- 3104000004921 - Vibrador Premium 15 - Rosa
+- 3104000004920 - Vibrador Premium 14 - Roxo
+- 3104000004919 - Vibrador Premium 13 - Roxo
+- 3104000004918 - Vibrador Premium 12 - Rosa
+- 3104000004917 - Vibrador Premium 11 - Roxo
+- 3104000004916 - Vibrador Premium 10- Rosa
+- 3104000004931 - Vibrador Premium 9 - Roxo
+- 3104000004930 - Vibrador Premium 8- Rosa
+- 3104000004929 - Vibrador Premium 7 - Roxo
+- 3104000004928 - Vibrador Premium 6 - Vermelho
+- 3104000004927 - Vibrador Premium 5 - Roxo
+- 3104000004926 - Vibrador Premium 4- Rosa
+- 3104000004925 - Vibrador Premium 3- Rosa
+- 3104000004924 - Vibrador Premium 2- Rosa
+- 3104000004915 - Vibrador Premium 1 - Rosa
+- 3104000004910 - Tatuagem Fake Sexy
+- 3104000004907 - Fusion Cereja Ice Sexy
+- 3104000004904 - Tapa Mamilo Lanteloja Vermelho
+- 3104000004903 - Tapa Mamilo Coração Fosco
+- 3104000004902 - Tapa Mamilo Brilho X Preto
+- 3104000004901 - Tapa Mamilo Brilho X Prata
+- 3104000004900 - Tapa Mamilo Brilho Coração Preto
+- 3104000004875 - Tapa Mamilo Brilho Coração Vermelho
+- 3104000004874 - Bala Gel 8ml Leite Condensado
+- 3104000004873 - Bala Gel 8ml Coca-cola
+- 3104000004871 - Caneta Comestivel Sexy Chocolate com Mento
+- 3104000004870 - Caneta Comestivel Sexy Banana Caramelizada
+- 3104000004872 - Caneta Comestivel Sexy Creme Condensado
+- 3104000004869 - Caneta Comestivel Sexy Morango
+- 3104000004868 - Caneta Comestivel Sexy Quero Mais
+- 3104000004867 - Caneta Comestivel Sexy Virgenzinha
+- 3104000004866 - Caneta Comestivel Sexy Uva
+- 3104000004865 - Caneta Comestivel Sexy Menta
+- 3104000004862 - Bolinhas Sexy Triplo-x
+- 3104000004861 - Bolinhas Sexy Caramelo
+- 3104000004860 - Bolinhas Sexy Coca-cola
+- 3104000004859 - Bolinhas Sexy Olho de Tandera
+- 3104000004858 - Bolinhas Sexy Black Ice
+- 3104000004857 - Bolinhas Sexy Leite Condensado
+- 3104000004856 - Bolinhas Sexy Guaraná
+- 3104000004854 - Bolinhas Sexy Cherry Bomb
+- 3104000004853 - Bolinhas Sexy Maça Verde
+- 3104000004852 - Bolinhas Sexy Twister
+- 3104000004851 - Bolinhas Sexy 100 Dor
+- 3104000004850 - Bolinhas Sexy Ah Now
+- 3104000004849 - Bolinhas Sexy Triple Shock
+- 3104000004848 - Bolinhas Sexy Doce de Leite
+- 3104000004846 - Fácil Lub Chocolate
+- 3104000004844 - Lub K Gel 18g
+- 3104000004843 - Gel Ice Cereja
+- 3104000004842 - Gel Ice Capirinha
+- 3104000004841 - Gel Ice Menta
+- 3104000004840 - Gel Carrosel Doce de Leite
+- 3104000004839 - Gel Carrosel Beijinho
+- 3104000004832 - Gel For Sexy Leite Condensado
+- 3104000004831 - Gel For Sexy Hot Caramelo
+- 3104000004830 - Gel For Sexy Ice Black
+- 3104000004829 - Gel Hot Menta
+- 3104000004828 - Gel Sedenta Por Sensação
+- 3104000004827 - Gel Sedenta Por Chiclete
+- 3104000004826 - Gel Sedenta Por Iogurte
+- 3104000004825 - Gel Misterzão
+- 3104000004824 - Gel Durateson
+- 3104000004823 - Gel Lamb Pêssego e Chantilly
+- 3104000004822 - Gel Lamb Yogurte
+- 3104000004821 - Gel Lamb Hortelã
+- 3104000004820 - Gel Yummy Framboesa
+- 3104000004819 - Gel Yummy Chiclete
+- 3104000004818 - Gel Yummy Vinho Tinto
+- 3104000004817 - Gel Yummy Morango
+- 3104000004816 - Gel Yummy Caipirinha
+- 3104000004815 - Gel Yummy Ice Menta
+- 3104000004814 - Gel Yummy Menta
+- 3104000004808 - Bolinhas Sexy Tequila
+- 3104000004807 - Bolinhas Sexy Caipirinha
+- 3104000004806 - Bolinhas Sexy Smirnfuck
+- 3104000004805 - Bolinhas Sexy Babaluu Melancia
+- 3104000004804 - Bolinhas Sexy Babaluu Morango
+- 3104000004803 - Bolinhas Sexy Babaluu Tutti-frutti
+- 3104000004802 - Bolinhas Sexy Love Livre
+- 3104000004801 - Bolinhas Sexy Anal Love
+- 3104000004800 - Bolinhas Sexy Viber Morango
+- 3104000004799 - Bolinhas Sexy Chocolate com Avela
+- 3104000004798 - Bolinhas Sexy Hot Rdbull
+- 3104000004797 - Bolinhas Sexy Sem Desconforto
+- 3104000004796 - Bolinhas Sexy Pop Morango
+- 3104000004795 - Bolinhas Sexy Pop Frutas Vermelhas
+- 3104000004794 - Bolinhas Sexy Pop Morango C/ Champanhe
+- 3104000004793 - Bolinhas Sexy Pop Sensação
+- 3104000004792 - Bolinhas Sexy Pop Uva
+- 3104000004791 - Bolinhas Sexy In Dolor
+- 3104000004789 - Bela Adormecida Sexy
+- 3104000004788 - Gel Massagem Sempre Virgem
+- 3104000004787 - Calda Sexy Morango
+- 3104000004786 - Masturbador Capsule Sexy Cinza
+- 3104000004781 - Masturbador Capsule Sexy Azul
+- 3104000004784 - Masturbador Capsule Sexy Verde
+- 3104000004783 - Masturbador Capsule Sexy Rosa
+- 3104000004785 - Masturbador Capsule Sexy Laranja
+- 3104000004782 - Masturbador Capsule Sexy Roxo
+- 3104000004777 - Kgel Lubrificante Tradicional
+- 3104000004776 - Gel Rapidinha Chiclete
+- 3104000004775 - Love Lub Hot
+- 3104000004773 - Lubrificante Babbaloo Menta
+- 3104000004772 - Lubrificante Babbaloo Menta Ice
+- 3104000004771 - Lubrificante Babbaloo Morango
+- 3104000004770 - Lubrificante Babbaloo Melancia
+- 3104000004774 - Lubrificante Babbaloo Tutti-fruit
+- 3104000004757 - Mini Bullet Duplo Sugador Rosa
+- 3104000004726 - Amoxsex Gel
+- 3104000004723 - Dando Uma Gostoso Gel
+- 3104000004722 - Come Anel Gel
+- 3104000004721 - QY Morango Gel
+- 3104000004719 - Hot Ice Gel
+- 3104000004718 - Sempre Virgem Gel
+- 3104000004717 - Mais Bumbum Gel
+- 3104000004716 - Nabucetão Gel
+- 3104000004715 - Mete Ficha Gel
+- 3104000004713 - Vamos Ser Feliz Gel
+- 3104000004712 - Fofatoba Gel
+- 3104000004710 - Pirocaxona Gel
+- 3104000004709 - Pirocadura Gel
+- 3104000004708 - Janumete Gel
+- 3104000004707 - Beijo Grego Gel
+- 3104000004705 - Metioulate Gel
+- 3104000004704 - Rivosex Gel
+- 3104000004703 - Kama Sutra Gel
+- 3104000004702 - Garganta Profunda Maçã Verde
+- 3104000004701 - Garganta Profunda Morango Com Lichia
+- 3104000004700 - Lub-Plus Gel 15ml
+- 3104000004699 - Lub-plus Gel 100ml
+- 3104000004696 - Masturbador Egg Bege Sexy
+- 3104000004693 - Creme Adstringente Sexy
+- 3104000004688 - Pau de Cavalo Spray 40ml Sexy
+- 3104000004664 - Sabonete Íntimo Morango
+- 3104000004577 - Riacho Cinta Liga Sexy
+- 3104000004576 - Calcinha Fio Renda Borboleta
+- 3104000004575 - Calcinha Fio Renda Frase
+- 3104000004574 - Calcinha Fio Coração Renda
+- 3104000004573 - Calcinha Fio Strass com Regulagem
+- 3104000004572 - Calcinha Fio Love Duplo Forrada
+- 3104000004571 - Calcinha Fio Tailandesa Regulável
+- 3104000004570 - Calcinha Calvin Fio Renda
+- 3104000004569 - Calcinha Fio Frase
+- 3104000004453 - Body Rendado + Persex Sexy
+- 3104000004452 - Conjunto Sexy
+- 3104000004450 - Mascara Tiazinha Sexy
+- 3104000004449 - Algema de Couro Macio
+- 3104000004448 - Cinta Couro Para Prótese Sexy
+- 3104000004447 - Cinto de Castidade Sexy
+- 3104000004445 - Fio Dental Gabi Pimenta Sexy
+- 3104000004444 - Vibrador Magic Rose 2 Sexy
+- 3104000004443 - Fio Dental Lap Dance Sexy
+- 3104000004399 - Perfume Íntimo Sexy
+- 3104000004398 - Creme Excitante Femme 4g
+- 3104000004397 - Papermint Lâminas Refrescantes Sexy
+- 3104000004396 - Gummy do Amor Sexy
+- 3104000004394 - Creme Masculino Sexy
+- 3104000004392 - Tesao De Vaca 10ml Sex
+- 3104000004390 - Duramais Gel Masculino
+- 3104000004389 - Gel Massagem 100dor Sexy
+- 3104000004380 - Sexy Drink
+- 3104000003967 - Garganta Profunda Sex On The Beach
+- 3104000003966 - Gel Excitnte Sedenta 18g Sexy
+- 3104000003965 - Gel Faisca Na Xavasca Sexy
+- 3104000003963 - Gel Anest Indolor 15g Sexy
+- 3104000003961 - Sugador Clitoris Sexy
+- 3104000003960 - Gel Napepex Sexy
+- 3104000003959 - Aromatizante Bucal Beijo Sexy
+- 3104000003958 - Mel Arabe Prazer 10g Sexy
+- 3104000003956 - Virginite 15ml Sexy
+- 3104000003846 - Perfumezin Sexy
+- 3104000003811 - Lenço Higienizador Íntimo
+- 3104000003541 - Mini Bullet Duplo Vibrador
+- 3104000003540 - Vibrador Golfinho Sexy
+- 3104000003417 - Gel Corporal 60 ml Sex
+- 3104000003416 - Lubrificante Íntimo 60ml Sexy
+- 3104000003415 - Gel Corporal 15ml Sex
+- 3104000003414 - Gel Beijavel 15ml Sex
+- 3104000003409 - Gel QY P/massagem Corporal Sex
+- 3104000003408 - Tesao De Egua 10ml Sex
+- 3104000003407 - Tesao De Jegue 10ml Sex
+- 3104000003406 - Tesao De Vaca 20ml Sex
+- 3104000003404 - Tesao De Touro 10ml Sex
+- 3104000003403 - Pau de Cavalo Gel 40ml Sexy
+- 3104000003361 - Fantasia Adulto Vampiro
+- 3104000003230 - Saia Fitinhas Adulto
+- 3104000003211 - Chinelo Adulto
+- 3104000003085 - Calcinha + Sutia Renda Premium
+- 3104000003084 - Conjunto Sexy
+- 3104000003082 - Macaquinho Sexy
+- 3104000003081 - Mel Honey Sexy
+- 3104000003005 - Gel Dessensibilizante
+- 3104000002933 - Guarda Chuva Adulto Grande
+- 3104000002780 - Oleo Corporal Sexy
+- 3104000002771 - Algema de Metal Veludo Sexy
+- 3104000002276 - Prótese Metal Sexy
+- 3104000002222 - Vibrador Golfinho Premium Sexy
+- 3104000002221 - Mini Bullet Vibrador
+- 3104000002209 - Prótese Silicone Sexy
+- 3104000002208 - Gel Ku Loko Sexy
+- 3104000001795 - Vibrado Sexy Promoçao
+- 3104000001754 - Plug M Gold
+- 3104000001687 - Capsula Estimulante Sexy
+- 3104000001685 - Baralho Super Erotico Sexy
+- 3104000001684 - Mel Honey Sexy
+- 3104000001681 - Vibrador Mulvelocidade Sexy
+- 3104000001680 - Funil Sexy
+- 3104000001679 - Estimulante de Clitoris Sexy
+- 3104000001675 - Estimulante Premium Sexy
+- 3104000001674 - Body Sexy
+- 3104000001673 - Grampo P/seios Sexy
+- 3104000001627 - Saia Tule Adulto
+- 3104000001603 - Desodorante Íntimo Babasoul
+- 3104000001497 - Gel P/ Massagem Corporal Sex
+- 3104000001480 - Lubrificante Íntimo Premium Sexy
+- 3104000001421 - Raspadinha Sexy
+- 3104000001420 - Mini Bolinha Sexy
+- 3104000001189 - Pijama Macaquinho Adulto
+- 3104000001161 - Calcinha + Sutia Renda C/bojo
+- 3104000001152 - Meia Anti Derrapante Adulto
+- 3104000001098 - Gel Massageador Fortgel
+- 3104000001097 - Gel Massageador Pimenta Negra
+- 3104000000963 - Viseira Adulto
+- 3104000000954 - Guarda Chuva Adulto
+- 3104000000928 - Varal P/roupa Íntima
+- 3104000000908 - Bolinha Tailandesa Premium Sexy
+- 3104000000899 - Viseira Adulto Premium
+- 3104000000822 - Vibrador Gold Sexy
+- 3104000000821 - Vibrador Premium Sexy
+- 3104000000820 - Prótese Gold Sexy
+- 3104000000819 - Prótese Premium Sexy
+- 3104000000817 - Baralho Drinks Sexy
+- 3104000000816 - Estimulante Sexy
+- 3104000000815 - Jogo de Dados Sexy
+- 3104000000813 - Bala Liquida Sexy
+- 3104000000809 - Vibrador Sexy
+- 3104000000805 - Plug Silicone Sexy
+- 3104000000799 - Energetico Premium Sexy
+- 3104000000797 - Calcinha Sexy
+- 3104000000796 - Bolinha Tailandesa Sexy
+- 3104000000795 - Bolinha Sexy
+- 3104000000794 - Baralho Premium Sexy
+- 3104000000793 - Baralho Kama Sutra Sexy
+- 3104000000791 - Anel Peniano Sexy
+- 3104000000790 - Algema de Metal Sexy
+- 3104000000789 - Lubrificante Íntimo Sexy
+- 3104000000788 - Gel Comestivel Sexy
+- 3104000000787 - Gel Anestesico Sexy
+- 3104000000627 - Umidificador Egg
+- 3104000000592 - Pijama Curto Adulto
+- 3104000000590 - Pijama Adulto Completo
+- 3104000000583 - Calcinha + Perneira
+- 3104000000582 - Calcinha de Renda
+- 3104000000492 - Laço Adulto
+- 3104000000479 - Escova de Dente Adulto
+- 3104000000423 - Chinelo Adulto Premium
+- 3104000000415 - Calcinha
+- 3104000000412 - Cueca Adulto
+- 3104000000393 - Meia Arrastão Adulto
+- 3104000000391 - Meia Fio 15 Adulto
+- 3104000000390 - Turbante Adulto
+- 3104000000385 - Meia Peluciada Adulto
+- 3104000000383 - Pantufa Adulto
+- 3104000000321 - Sabonete Íntimo

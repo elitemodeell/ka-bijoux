@@ -43,6 +43,7 @@ type ProductDetailProduct = StaticProduct & {
   width?: number | null;
   length?: number | null;
   variations?: StaticProductVariant[];
+  isAdult?: boolean | null;
 };
 
 type Props = {
@@ -93,7 +94,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const categorySlug = product.categorySlug ?? "produtos";
   const productSubcategoryName = product.subcategoryName ?? subcategoryName;
   const available = product.stock > 0;
-  const isAdult = isAdultProduct(categorySlug, product.subcategorySlug, productSubcategoryName);
+  const isAdult = product.isAdult ?? isAdultProduct(categorySlug, product.subcategorySlug, productSubcategoryName, product.name);
   const publicBrand = publicText(product.brand);
   const publicDescription = buildCommercialDescription(
     product,
@@ -356,29 +357,29 @@ function buildTechnicalSections({
     isAdult
   );
   const material = publicText(product.composition);
-  const howToUse = isAdult
-    ? buildSafeUsage(product.name, true)
-    : publicText(product.howToUse) || buildSafeUsage(product.name, false);
+  const howToUse = publicText(product.howToUse) || buildSafeUsage(product.name, isAdult);
   const care = publicText(product.careInstructions);
   const packageContents = publicText(product.packageContents);
   const benefits = publicText(product.benefits);
   const color = extractColor(product.name);
   const purpose = getProductPurpose(product.name, productSubcategoryName, isAdult);
   const optionLabels = variations.map((item) => publicText(item.label)).filter((item): item is string => Boolean(item));
+  const characteristicItems = Array.from(new Set([
+    `Produto: ${product.name}`,
+    `Categoria: ${productSubcategoryName || categoryName}`,
+    ...(color ? [`Cor: ${color}`] : []),
+    ...(product.details ?? []),
+    ...(isAdult ? ["Uso: Adulto"] : []),
+    ...(purpose ? [`Finalidade: ${purpose}`] : []),
+    ...(optionLabels.length ? [`Opções disponíveis: ${optionLabels.join(", ")}`] : []),
+  ].map(publicText).filter((item): item is string => Boolean(item))));
 
   const sections: Array<TechnicalSection | null> = [
     { id: "description", title: "Descrição do produto", text: description },
     {
       id: "characteristics",
       title: "Características",
-      items: [
-        `Produto: ${product.name}`,
-        `Categoria: ${productSubcategoryName || categoryName}`,
-        ...(color ? [`Cor: ${color}`] : []),
-        ...(isAdult ? ["Uso: Adulto"] : []),
-        ...(purpose ? [`Finalidade: ${purpose}`] : []),
-        ...(optionLabels.length ? [`Opções disponíveis: ${optionLabels.join(", ")}`] : []),
-      ].filter(publicText),
+      items: characteristicItems,
     },
     benefits ? { id: "benefits", title: "Benefícios", text: benefits } : null,
     material ? { id: "material", title: "Material e composição", text: material } : null,
@@ -495,13 +496,24 @@ function DeliveryItem({ icon, title, text }: { icon: React.ReactNode; title: str
   );
 }
 
-function isAdultProduct(categorySlug: string, subcategorySlug: string, categoryName: string) {
-  return normalize(`${categorySlug} ${subcategorySlug} ${categoryName}`).includes("sex shop") || categorySlug === "sex-shop" || subcategorySlug.startsWith("sex-shop");
+function isAdultProduct(categorySlug: string, subcategorySlug: string, categoryName: string, productName = "") {
+  const text = normalize(`${categorySlug} ${subcategorySlug} ${categoryName} ${productName}`);
+  return (
+    text.includes("sex shop") ||
+    categorySlug === "sex-shop" ||
+    subcategorySlug.startsWith("sex-shop") ||
+    /\b(intimo|intima|lubrificante|vibrador|bullet|peniano|masturbador|algema|dedeira|plug anal|retardante|dessensibilizante|excitante|anestesico|protese|dildo|escroto|mydick|chicote|tapa mamilo)\b/.test(text)
+  );
 }
 
 function buildCommercialDescription(product: ProductDetailProduct, categoryName: string, isAdult: boolean) {
   const name = product.name.trim();
   const normalized = normalize(`${name} ${categoryName}`);
+  const savedDescription = [product.longDescription, product.shortDescription]
+    .map(publicText)
+    .find((value): value is string => Boolean(value));
+  if (savedDescription) return savedDescription;
+
   if (/mini bullet|bullet|vibrador|masturbador|sugador/.test(normalized)) {
     const doublePoint = normalized.includes("duplo")
       ? " Seu design com dois pontos de contato amplia as possibilidades de uso e permite explorar diferentes formas de estímulo."
@@ -511,12 +523,9 @@ function buildCommercialDescription(product: ProductDetailProduct, categoryName:
   if (normalized.includes("anel peniano")) {
     return `${name} é um acessório íntimo pensado para complementar os momentos a dois de forma prática e discreta. O formato de anel facilita o posicionamento, enquanto o design diferenciado acrescenta novas possibilidades à experiência do casal.`;
   }
-
-  const savedDescription = [product.longDescription, product.shortDescription]
-    .map(publicText)
-    .find((value): value is string => Boolean(value));
-  if (savedDescription) return savedDescription;
-
+  if (/protese|dildo|escroto|mydick/.test(normalized)) {
+    return `${name} faz parte da Linha Adulto KA Bijoux e foi selecionado para quem busca uma opção de uso adulto com informação clara, discrição e cuidado. Confira as características do produto, higienize antes e após o uso e siga sempre as orientações da embalagem.`;
+  }
   if (/gel|creme|lubrificante|oleo|spray|desodorante/.test(normalized)) {
     return `${name} integra a seleção de cuidados e bem-estar da KA Bijoux. É uma opção prática para incluir na rotina, com embalagem fácil de guardar e proposta de uso discreta. Consulte sempre as orientações do rótulo antes da aplicação.`;
   }
@@ -564,6 +573,7 @@ function buildSafeUsage(name: string, isAdult: boolean) {
 function getProductPurpose(name: string, categoryName: string, isAdult: boolean) {
   const normalized = normalize(`${name} ${categoryName}`);
   if (normalized.includes("anel peniano")) return "Acessório íntimo para momentos a dois";
+  if (/protese|dildo|escroto|mydick/.test(normalized)) return "Produto adulto para uso íntimo responsável";
   if (normalized.includes("bullet") || normalized.includes("vibrador")) return "Acessório íntimo para exploração de novas sensações";
   if (/gel|creme|lubrificante|oleo/.test(normalized)) return "Cuidado, bem-estar e conforto íntimo";
   if (isAdult) return "Produto de uso adulto";

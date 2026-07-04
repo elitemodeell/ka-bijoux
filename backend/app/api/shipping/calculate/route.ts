@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { requireCustomer } from "@/lib/auth";
 import { calculateShipping } from "@/lib/shipping";
 import { apiSuccess, apiError } from "@/lib/utils";
 
@@ -17,13 +18,16 @@ const schema = z.object({
     .optional(),
 });
 
+// Dimensões padrão para bijuterias pequenas (fallback quando não há carrinho)
+const DEFAULT_ITEM = { weight: 0.15, height: 5, width: 10, length: 15, quantity: 1 };
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { zipCode, cartId, items: bodyItems } = schema.parse(body);
 
-    const config = await prisma.storeSettings.findFirst();
-    if (!config) return apiError("Configurações da loja não encontradas.", 500);
+    let config = await prisma.storeSettings.findFirst();
+    if (!config) config = await prisma.storeSettings.create({ data: {} });
 
     let shippingItems: Array<{
       weight: number; height: number; width: number; length: number; quantity: number;
@@ -58,7 +62,28 @@ export async function POST(req: NextRequest) {
         };
       });
     } else {
-      return apiError("Informe cartId ou items.", 400);
+      // Tentar usar o carrinho do cliente autenticado
+      try {
+        const customer = await requireCustomer(req);
+        const cart = await prisma.cart.findUnique({
+          where: { customerId: customer.id },
+          include: { items: { include: { product: true } } },
+        });
+        if (cart && cart.items.length > 0) {
+          shippingItems = cart.items.map((item) => ({
+            weight: Number(item.product.weight),
+            height: Number(item.product.height),
+            width: Number(item.product.width),
+            length: Number(item.product.length),
+            quantity: item.quantity,
+          }));
+        } else {
+          shippingItems = [DEFAULT_ITEM];
+        }
+      } catch {
+        // Usuário não autenticado — usar dimensão padrão
+        shippingItems = [DEFAULT_ITEM];
+      }
     }
 
     const options = await calculateShipping(zipCode, shippingItems, {

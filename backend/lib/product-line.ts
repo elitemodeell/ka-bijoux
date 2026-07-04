@@ -9,6 +9,8 @@ export type ProductLineSource = {
 };
 
 const ADULT_CATEGORY_SLUG = "sex-shop";
+const NON_ADULT_NAME_PATTERN =
+  /\b(infantil|crianca|criancas|anti acne|acne|sobrancelha|glitter|orbis|bolinha de gel|bolinha d gel|esfoliante|pedras vulcanicas)\b/;
 
 export function normalizeCatalogText(value: string | null | undefined) {
   return String(value ?? "")
@@ -22,6 +24,7 @@ export function normalizeCatalogText(value: string | null | undefined) {
 export function isAdultProductName(name: string | null | undefined) {
   const normalizedName = normalizeCatalogText(name);
   if (!normalizedName) return false;
+  if (NON_ADULT_NAME_PATTERN.test(normalizedName)) return false;
 
   if (isStrongAdultProductName(normalizedName)) return true;
 
@@ -31,9 +34,10 @@ export function isAdultProductName(name: string | null | undefined) {
 export function isStrongAdultProductName(name: string | null | undefined) {
   const normalizedName = normalizeCatalogText(name);
   if (!normalizedName) return false;
+  if (NON_ADULT_NAME_PATTERN.test(normalizedName)) return false;
 
   if (
-    /\b(intimo|intima|lubrificante|vibrador|bullet|peniano|masturbador|algema|dedeira|tesao|pocao|garganta profunda|virginite|anosex|egg|pau de cavalo|duramais|dessensibilizante|excitante|anestesico|beijavel|plug anal|retardante)\b/.test(
+    /\b(intimo|intima|lub|lubrificante|calcinha|vibrador|bullet|peniano|masturbador|algema|dedeira|tesao|pocao|garganta profunda|virginite|anosex|egg|pau de cavalo|duramais|dessensibilizante|excitante|anestesico|beijavel|plug|retardante|protese|dildo|escroto|mydick|chicote|tapa mamilo|chuca|duelo|dados sexy|jogo do prazer|perfume de calcinha)\b/.test(
       normalizedName
     )
   ) {
@@ -42,7 +46,7 @@ export function isStrongAdultProductName(name: string | null | undefined) {
 
   if (
     /\bgel\b/.test(normalizedName) &&
-    /\b(excitant|sensual|massageador|massagem|comestivel|anestesico|dessensibilizante|esquenta|esfria|beijavel|anal|intimo|sex|sexy|masculino)\b/.test(
+    /\b(bala|ice|hot|excitant|sensual|massageador|massagem|comestivel|anestesico|dessensibilizante|esquenta|esfria|beijavel|anal|intimo|sex|sexy|masculino|qy|kgel|k med|kmed|babbaloo|sempre virgem|rapidinha|amoxsex|metioulate|rivosex|napepex|dando uma|come anel|ku loko|beijo grego|misterzao|durateson|yummy|sedenta|carrosel|lamb|for sexy|bumbum|nabucetao|mete ficha|vamos ser feliz|fofatoba|pirocaxona|pirocadura|janumete|kama sutra|cavalo)\b/.test(
       normalizedName
     )
   ) {

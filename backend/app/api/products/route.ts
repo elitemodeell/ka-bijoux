@@ -26,6 +26,7 @@ const productInclude = {
   category: true,
   subcategory: true,
   images: { orderBy: { order: "asc" as const }, take: 1 },
+  variations: { where: { active: true }, orderBy: { order: "asc" as const } },
 };
 
 const API_FETCH_LIMIT = 80;
@@ -190,6 +191,16 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof 
     subcategoryName: subcategory?.name,
   });
 
+  const variations = product.variations?.map((v) => ({
+    id: v.id,
+    name: v.name,
+    value: v.value,
+    imageUrl: v.imageUrl ?? null,
+    stock: v.stock,
+    isDefault: v.isDefault,
+    order: v.order,
+  })) ?? [];
+
   return {
     id: product.id,
     name: bling?.name ?? product.name,
@@ -216,6 +227,7 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof 
     imageSource: dbImages.length ? "DATABASE" : bling?.imageSource ?? "NONE",
     catalogLine,
     isAdult: catalogLine === "adult",
+    variations: variations.length > 0 ? variations : undefined,
   } satisfies ProductCardProduct;
 }
 
@@ -294,8 +306,12 @@ const imageSchema = z.object({
 const variationSchema = z.object({
   name: z.string().min(1),
   value: z.string().min(1),
+  sku: z.string().trim().optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
   stock: z.number().int().min(0).default(0),
   priceModifier: z.number().default(0),
+  isDefault: z.boolean().default(false),
+  order: z.number().int().default(0),
   active: z.boolean().default(true),
 });
 
@@ -392,11 +408,15 @@ export async function POST(req: NextRequest) {
           : undefined,
         variations: data.variations.length
           ? {
-              create: data.variations.map((variation) => ({
+              create: data.variations.map((variation, i) => ({
                 name: variation.name,
                 value: variation.value,
+                sku: variation.sku || null,
+                imageUrl: variation.imageUrl || null,
                 stock: variation.stock,
                 priceModifier: variation.priceModifier,
+                isDefault: variation.isDefault,
+                order: variation.order ?? i,
                 active: variation.active,
               })),
             }

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
 import { OrderStatus, ShippingType } from "@prisma/client";
+import { sendPushNotification, orderStatusMessage } from "@/lib/notifications";
 
 const schema = z.object({
   status: z.nativeEnum(OrderStatus),
@@ -76,6 +77,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         customer: { select: { id: true, name: true, email: true } },
       },
     });
+
+    // Notificação push para o cliente (best-effort)
+    if (order.customer.pushToken) {
+      const msg = orderStatusMessage(status, order.orderNumber, order.shippingType, trackingCode);
+      sendPushNotification({
+        to: order.customer.pushToken,
+        title: msg.title,
+        body: msg.body,
+        data: { orderId: order.id, orderNumber: order.orderNumber },
+      });
+    }
 
     return apiSuccess(updated);
   } catch (e) {

@@ -1,0 +1,18 @@
+codigo_lido;produto_visual;imagem_pendente_provavel;confianca;status_local;observacao
+3104000004954;Jogo Duelo do Prazer vermelho;NEW-IMG002;alta;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Na pasta existe arte pendente do Duelo do Prazer. Ja havia outro SKU antigo aplicado, entao precisa confirmar que o SKU novo substitui o antigo.
+3104000004955;Jogo Duelo de Casal azul;NEW-IMG003;alta;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Nao existe produto local com nome Duelo de Casal no export atual.
+3104000005003;Plug metalico com cristal furta-cor redondo;NEW-IMG005;media;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Ha mais de uma arte furta-cor parecida, revisar visualmente antes de aplicar.
+3104000005005;Plug metalico com cristal lilas/violeta redondo;NEW-IMG008;media;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Pode corresponder a outra variacao lilas, revisar visualmente.
+3104000005002;Plug metalico com cristal rosa redondo;NEW-IMG020;media;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Ha mais de uma arte rosa redonda, revisar visualmente.
+3104000005001;Plug metalico com cristal rosa/magenta redondo;NEW-IMG011;media;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Ha mais de uma arte rosa, revisar visualmente.
+3104000005007;Plug metalico com cristal coracao rosa;NEW-IMG012;media;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Ha duas artes de coracao rosa parecidas.
+3104000005006;Plug metalico com cristal coracao transparente;NEW-IMG018;alta;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Essa imagem ja foi aplicada no SKU generico antigo PLUG METAL PREMIUM SEXY; deve migrar para este SKU quando o cadastro local for atualizado.
+3104000005009;Plug metalico com cristal coracao azul;NEW-IMG017;media;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Ha duas artes de coracao azul parecidas.
+3104000005008;Plug metalico com cristal coracao roxo escuro;NEW-IMG013;media;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Pode corresponder a NEW-IMG014 tambem.
+3104000005010;Plug metalico com cristal coracao azul/turquesa;NEW-IMG015;media;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Ha duas artes de coracao azul parecidas.
+3104000005011;Plug metalico com cristal vermelho redondo;NEW-IMG016;alta;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Correspondencia visual clara.
+3104000005018;Plug metalico com cristal coracao roxo;NEW-IMG014;media;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Pode corresponder a NEW-IMG013 tambem.
+3104000005017;Plug metalico com cristal coracao rosa claro;NEW-IMG019;media;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Ha duas artes de coracao rosa parecidas.
+3104000005016;Plug metalico com cristal furta-cor redondo;NEW-IMG006;media;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Ha mais de uma arte furta-cor parecida.
+3104000005015;Plug metalico com cristal lilas claro redondo;NEW-IMG022;media;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Pode corresponder a outra variacao lilas, revisar visualmente.
+3104000005014;Plug metalico com cristal rosa redondo;NEW-IMG021;media;SKU_NAO_ENCONTRADO_NO_EXPORT_LOCAL;Ha mais de uma arte rosa/lilas, revisar visualmente.

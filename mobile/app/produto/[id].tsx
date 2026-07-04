@@ -1,24 +1,36 @@
 import { useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, ActivityIndicator, Dimensions,
+  Image, ActivityIndicator, Dimensions, Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
-import { productsApi } from "@/services/api";
+import { productsApi, api } from "@/services/api";
 import { useCartStore } from "@/stores/cartStore";
+import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/Button";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+type Variation = {
+  id: string;
+  name: string;
+  value: string;
+  imageUrl?: string | null;
+  stock: number;
+  priceModifier?: number;
+  isDefault?: boolean;
+  order?: number;
+};
 
 type Product = {
   id: string; name: string; description: string;
   price: number; promotionalPrice?: number | null; stock: number;
   images: Array<{ url: string; alt?: string }>;
   category: { name: string }; isNew?: boolean;
-  variations: Array<{ id: string; name: string; value: string; stock: number }>;
+  variations: Variation[];
 };
 
 const formatCurrency = (v: number) =>
@@ -28,6 +40,7 @@ export default function ProdutoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { addItem, isLoading } = useCartStore();
+  const { customer } = useAuthStore();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
@@ -36,16 +49,76 @@ export default function ProdutoScreen() {
   const [selectedVariation, setSelectedVariation] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const [favoriteId, setFavoriteId] = useState<string | null>(null);
+  const [togglingFav, setTogglingFav] = useState(false);
+  const [variationError, setVariationError] = useState(false);
 
   useEffect(() => {
     productsApi.getById(id)
       .then((res) => {
         const data = res.data.data;
-        setProduct(data.product);
+        const p: Product = data.product;
+        setProduct(p);
         setRelated(data.related ?? []);
+
+        const def = p.variations.find((v) => v.isDefault) ?? null;
+        if (def && def.stock > 0) setSelectedVariation(def.id);
       })
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!customer || !id) return;
+    api.get("/api/customers/me/favorites")
+      .then((res) => {
+        const list: Array<{ favoriteId: string; id: string }> = res.data.data ?? [];
+        const found = list.find((f) => f.id === id);
+        setFavoriteId(found?.favoriteId ?? null);
+      })
+      .catch(() => {});
+  }, [customer, id]);
+
+  async function toggleFavorite() {
+    if (!customer) { router.push("/(auth)/login"); return; }
+    if (togglingFav) return;
+    setTogglingFav(true);
+    try {
+      if (favoriteId) {
+        await api.delete(`/api/customers/me/favorites/${favoriteId}`);
+        setFavoriteId(null);
+      } else {
+        const res = await api.post("/api/customers/me/favorites", { productId: id });
+        setFavoriteId(res.data.data.id);
+      }
+    } catch {
+    } finally {
+      setTogglingFav(false);
+    }
+  }
+
+  function handleSelectVariation(v: Variation) {
+    if (v.stock === 0) return;
+    setVariationError(false);
+    setSelectedVariation((prev) => (prev === v.id ? null : v.id));
+    if (v.imageUrl) {
+      // Insere a imagem da variação como primeira, sem remover as originais
+      setSelectedImage(-1);
+    } else {
+      setSelectedImage(0);
+    }
+  }
+
+  async function handleAddToCart() {
+    if (!product) return;
+    const hasVariations = product.variations.length > 0;
+    if (hasVariations && !selectedVariation) {
+      setVariationError(true);
+      return;
+    }
+    await addItem(product.id, quantity, selectedVariation ?? undefined);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  }
 
   if (loading) {
     return (
@@ -66,33 +139,58 @@ export default function ProdutoScreen() {
     );
   }
 
-  const isAvailable = product.stock > 0;
+  const hasVariations = product.variations.length > 0;
+  const activeVariation = hasVariations
+    ? product.variations.find((v) => v.id === selectedVariation) ?? null
+    : null;
+
+  const mainImageUri = (activeVariation?.imageUrl && selectedImage === -1)
+    ? activeVariation.imageUrl
+    : (product.images[Math.max(0, selectedImage)]?.url ?? "https://placehold.co/400x400/FFB6C1/FFF?text=KA");
+
+  const isAvailable = hasVariations
+    ? product.variations.some((v) => v.stock > 0)
+    : product.stock > 0;
+
+  const activeStock = activeVariation ? activeVariation.stock : product.stock;
+
+  const priceModifier = activeVariation?.priceModifier ?? 0;
+  const basePrice = product.promotionalPrice && product.promotionalPrice < product.price
+    ? product.promotionalPrice
+    : product.price;
   const hasPromo = !!product.promotionalPrice && product.promotionalPrice < product.price;
-  const price = hasPromo ? product.promotionalPrice! : product.price;
+  const price = basePrice + priceModifier;
   const discount = hasPromo
     ? Math.round(((product.price - product.promotionalPrice!) / product.price) * 100)
     : 0;
 
-  async function handleAddToCart() {
-    await addItem(product!.id, quantity, selectedVariation ?? undefined);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
-  }
+  const variationGroupName = product.variations[0]?.name ?? "Cor";
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Back button */}
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <View style={styles.backBtnInner}>
-            <Ionicons name="arrow-back" size={20} color={Colors.textPrimary} />
-          </View>
-        </TouchableOpacity>
+        {/* Botões flutuantes */}
+        <View style={styles.floatingBtns}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <View style={styles.floatingBtnInner}>
+              <Ionicons name="arrow-back" size={20} color={Colors.textPrimary} />
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.favBtn} onPress={toggleFavorite} disabled={togglingFav}>
+            <View style={[styles.floatingBtnInner, favoriteId && styles.favBtnActive]}>
+              <Ionicons
+                name={favoriteId ? "heart" : "heart-outline"}
+                size={20}
+                color={favoriteId ? "#fff" : Colors.primary}
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
 
-        {/* Imagens */}
+        {/* Imagem principal */}
         <View style={styles.imagesContainer}>
           <Image
-            source={{ uri: product.images[selectedImage]?.url ?? "https://placehold.co/400x400/FFB6C1/FFF?text=KA" }}
+            source={{ uri: mainImageUri }}
             style={styles.mainImage}
             resizeMode="cover"
           />
@@ -108,7 +206,7 @@ export default function ProdutoScreen() {
           )}
         </View>
 
-        {/* Thumbnails */}
+        {/* Thumbnails do produto */}
         {product.images.length > 1 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.thumbnails}>
@@ -140,30 +238,74 @@ export default function ProdutoScreen() {
           </View>
 
           {/* Variações */}
-          {product.variations.length > 0 && (
+          {hasVariations && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Opções disponíveis</Text>
-              <View style={styles.variations}>
-                {product.variations.map((v) => (
-                  <TouchableOpacity
-                    key={v.id}
-                    style={[
-                      styles.variationChip,
-                      selectedVariation === v.id && styles.variationChipActive,
-                      v.stock === 0 && styles.variationChipUnavailable,
-                    ]}
-                    onPress={() => v.stock > 0 && setSelectedVariation(v.id === selectedVariation ? null : v.id)}
-                    disabled={v.stock === 0}
-                  >
-                    <Text style={[
-                      styles.variationText,
-                      selectedVariation === v.id && styles.variationTextActive,
-                    ]}>
-                      {v.value}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.variationHeader}>
+                <Text style={styles.sectionTitle}>
+                  {variationGroupName === "Cor" ? "Escolha 1 cor" : `Escolha: ${variationGroupName}`}
+                </Text>
+                {activeVariation && (
+                  <Text style={styles.selectedVariationLabel}>{activeVariation.value}</Text>
+                )}
               </View>
+
+              {variationError && (
+                <Text style={styles.variationErrorText}>
+                  Selecione uma opção antes de adicionar ao carrinho.
+                </Text>
+              )}
+
+              <View style={styles.variations}>
+                {product.variations.map((v) => {
+                  const isSelected = selectedVariation === v.id;
+                  const unavailable = v.stock === 0;
+                  return (
+                    <TouchableOpacity
+                      key={v.id}
+                      accessibilityLabel={`${v.name}: ${v.value}`}
+                      style={[
+                        styles.variationChip,
+                        isSelected && styles.variationChipActive,
+                        unavailable && styles.variationChipUnavailable,
+                        variationError && !selectedVariation && styles.variationChipError,
+                      ]}
+                      onPress={() => handleSelectVariation(v)}
+                      disabled={unavailable}
+                    >
+                      {v.imageUrl ? (
+                        <View style={styles.variationWithImage}>
+                          <Image
+                            source={{ uri: v.imageUrl }}
+                            style={styles.variationThumb}
+                          />
+                          <Text style={[
+                            styles.variationText,
+                            isSelected && styles.variationTextActive,
+                            unavailable && styles.variationTextUnavailable,
+                          ]}>
+                            {v.value}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={[
+                          styles.variationText,
+                          isSelected && styles.variationTextActive,
+                          unavailable && styles.variationTextUnavailable,
+                        ]}>
+                          {v.value}
+                        </Text>
+                      )}
+                      {unavailable && (
+                        <View style={styles.strikeThrough} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={styles.variationHint}>
+                Vendido por unidade — escolha 1 {variationGroupName.toLowerCase()}
+              </Text>
             </View>
           )}
 
@@ -180,13 +322,13 @@ export default function ProdutoScreen() {
               <Text style={styles.qtyText}>{quantity}</Text>
               <TouchableOpacity
                 style={styles.qtyBtn}
-                onPress={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                disabled={quantity >= product.stock}
+                onPress={() => setQuantity(Math.min(activeStock, quantity + 1))}
+                disabled={quantity >= activeStock}
               >
                 <Ionicons name="add" size={18} color={Colors.primary} />
               </TouchableOpacity>
               <Text style={styles.stockText}>
-                {product.stock} {product.stock === 1 ? "disponível" : "disponíveis"}
+                {activeStock} {activeStock === 1 ? "disponível" : "disponíveis"}
               </Text>
             </View>
           </View>
@@ -199,7 +341,7 @@ export default function ProdutoScreen() {
         </View>
       </ScrollView>
 
-      {/* Add to cart button */}
+      {/* Rodapé */}
       <View style={styles.footer}>
         <View style={styles.footerPrice}>
           <Text style={styles.footerPriceLabel}>Total</Text>
@@ -222,15 +364,19 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   errorText: { fontSize: FontSizes.base, color: Colors.textMuted },
-  backBtn: {
-    position: "absolute", top: 16, left: 16, zIndex: 10,
+  floatingBtns: {
+    position: "absolute", top: 16, left: 16, right: 16,
+    flexDirection: "row", justifyContent: "space-between", zIndex: 10,
   },
-  backBtnInner: {
+  backBtn: {},
+  favBtn: {},
+  floatingBtnInner: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.9)",
     alignItems: "center", justifyContent: "center",
     ...Shadows.sm,
   },
+  favBtnActive: { backgroundColor: Colors.primary },
   imagesContainer: { position: "relative", width: SCREEN_WIDTH, height: SCREEN_WIDTH, backgroundColor: Colors.pinkPale },
   mainImage: { width: "100%", height: "100%" },
   discountBadge: {
@@ -261,18 +407,49 @@ const styles = StyleSheet.create({
   pricePromo: { color: Colors.primary },
   originalPrice: { fontSize: FontSizes.md, color: Colors.textMuted, textDecorationLine: "line-through" },
   section: { marginTop: 20 },
-  sectionTitle: { fontSize: FontSizes.base, fontWeight: "700", color: Colors.textPrimary, marginBottom: 10 },
+  sectionTitle: { fontSize: FontSizes.base, fontWeight: "700", color: Colors.textPrimary, marginBottom: 6 },
+  variationHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+  selectedVariationLabel: {
+    fontSize: FontSizes.sm, color: Colors.primary, fontWeight: "600",
+    backgroundColor: Colors.pinkSoft, paddingHorizontal: 10, paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  variationErrorText: {
+    fontSize: FontSizes.xs, color: "#e53e3e", fontWeight: "500", marginBottom: 8,
+  },
   variations: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   variationChip: {
-    paddingHorizontal: 16, paddingVertical: 8,
-    borderRadius: BorderRadius.full,
     borderWidth: 1.5, borderColor: Colors.border,
+    borderRadius: BorderRadius.full,
     backgroundColor: Colors.surface,
+    overflow: "hidden",
   },
   variationChipActive: { borderColor: Colors.primary, backgroundColor: Colors.pinkSoft },
   variationChipUnavailable: { opacity: 0.4 },
-  variationText: { fontSize: FontSizes.sm, color: Colors.textSecondary, fontWeight: "500" },
+  variationChipError: { borderColor: "#e53e3e" },
+  variationWithImage: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingLeft: 4, paddingRight: 14, paddingVertical: 6,
+  },
+  variationThumb: {
+    width: 28, height: 28, borderRadius: 14,
+  },
+  variationText: {
+    fontSize: FontSizes.sm, color: Colors.textSecondary, fontWeight: "500",
+    paddingHorizontal: 16, paddingVertical: 8,
+  },
   variationTextActive: { color: Colors.primary, fontWeight: "700" },
+  variationTextUnavailable: { color: Colors.textLight },
+  strikeThrough: {
+    position: "absolute", left: 0, right: 0,
+    top: "50%", height: 1.5,
+    backgroundColor: Colors.textMuted,
+  },
+  variationHint: {
+    marginTop: 8,
+    fontSize: FontSizes.xs, color: Colors.textMuted,
+    fontStyle: "italic",
+  },
   qtyRow: { flexDirection: "row", alignItems: "center", gap: 16 },
   qtyBtn: {
     width: 36, height: 36, borderRadius: BorderRadius.md,

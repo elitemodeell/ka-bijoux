@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import ProductDetailPage from "@/components/loja/ProductDetailPage";
+import productContentOverrides from "@/data/product-content-overrides.json";
 import {
   getStaticProduct,
   getSubcategoryName,
@@ -78,6 +79,41 @@ type DbProduct = {
     active: boolean;
   }[];
 };
+
+type ProductContentOverride = {
+  blingId?: string | null;
+  sku?: string | null;
+  name?: string | null;
+  displayName?: string | null;
+  isAdult?: boolean;
+  categoryName?: string | null;
+  subcategoryName?: string | null;
+  shortDescription?: string | null;
+  longDescription?: string | null;
+  details?: string[];
+  benefits?: string | null;
+  howToUse?: string | null;
+  composition?: string | null;
+  careInstructions?: string | null;
+  packageContents?: string | null;
+  galleryImages?: string[];
+  variations?: ProductContentVariation[];
+  variants?: ProductContentVariation[];
+};
+
+type ProductContentVariation = {
+  label: string;
+  slug?: string;
+  color?: string;
+  active?: boolean;
+  sku?: string;
+  imageFile?: string;
+  images?: string[];
+};
+
+const contentOverrides = Array.isArray(productContentOverrides)
+  ? (productContentOverrides as ProductContentOverride[])
+  : (Object.values(productContentOverrides) as ProductContentOverride[]);
 
 type RelatedDbProduct = Prisma.ProductGetPayload<{
   include: {
@@ -293,6 +329,11 @@ export default async function ProdutoPage({ params }: PageProps) {
     );
     const dbImages = dbProduct.images.map((image) => image.url);
     const galleryImages = dbImages.length ? dbImages : blingProduct?.images.map((image) => image.url) ?? [];
+    const contentOverride = getProductContentOverride({
+      blingId: blingProduct?.blingId ?? dbProduct.blingId,
+      sku: blingProduct?.sku ?? dbProduct.sku,
+      name: blingProduct?.name ?? dbProduct.name,
+    });
     const currentIdentity = new Set(getProductIdentityKeys({
       blingId: blingProduct?.blingId ?? dbProduct.blingId,
       sku: blingProduct?.sku ?? dbProduct.sku,
@@ -324,50 +365,56 @@ export default async function ProdutoPage({ params }: PageProps) {
         ) && !getProductIdentityKeys(product).some((key) => currentIdentity.has(key))
     );
 
+    const overrideGalleryImages = getOverrideGalleryImages(contentOverride, galleryImages);
+    const dbVariations = dbProduct.variations.map((variation) => ({
+      label: `${variation.name}: ${variation.value}`,
+      slug: `${variation.name}-${variation.value}`
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, ""),
+      active: variation.stock > 0,
+    }));
+    const overrideVariations = getOverrideVariations(contentOverride);
+
     const adaptedProduct = {
       slug: canonicalSlug,
-      name: blingProduct?.name ?? dbProduct.name,
+      name: contentOverride?.displayName ?? blingProduct?.name ?? dbProduct.name,
       sku: blingProduct?.sku ?? dbProduct.sku ?? "",
       brand: dbProduct.brand ?? undefined,
       ean: dbProduct.ean ?? undefined,
       price: blingProduct?.price ?? Number(dbProduct.price),
       promotionalPrice: blingProduct ? null : dbProduct.promotionalPrice ? Number(dbProduct.promotionalPrice) : null,
-      categoryName: dbProduct.category?.name ?? blingProduct?.category.name ?? "KA Bijoux",
+      categoryName: contentOverride?.categoryName ?? dbProduct.category?.name ?? blingProduct?.category.name ?? "KA Bijoux",
       categorySlug: dbProduct.category?.slug ?? blingProduct?.category.slug ?? "produtos",
-      subcategoryName,
+      subcategoryName: contentOverride?.subcategoryName ?? subcategoryName,
       subcategorySlug: dbProduct.subcategory?.slug ?? blingProduct?.subcategory?.slug ?? "",
-      imageFile: galleryImages[0] ?? "",
-      galleryImages,
+      imageFile: overrideGalleryImages[0] ?? "",
+      galleryImages: overrideGalleryImages,
       shortDescription:
+        contentOverride?.shortDescription ??
         dbProduct.description?.split("\n")[0] ??
         blingProduct?.description ??
         "Produto selecionado com carinho pela KA Bijoux.",
-      longDescription: dbProduct.description ?? "",
-      details: [] as string[],
-      benefits: dbProduct.benefits ?? undefined,
-      howToUse: dbProduct.howToUse ?? "",
-      composition: dbProduct.composition ?? undefined,
-      careInstructions: dbProduct.careInstructions ?? undefined,
-      packageContents: dbProduct.packageContents ?? undefined,
+      longDescription: contentOverride?.longDescription ?? dbProduct.description ?? "",
+      details: contentOverride?.details ?? [] as string[],
+      benefits: contentOverride?.benefits ?? dbProduct.benefits ?? undefined,
+      howToUse: contentOverride?.howToUse ?? dbProduct.howToUse ?? "",
+      composition: contentOverride?.composition ?? dbProduct.composition ?? undefined,
+      careInstructions: contentOverride?.careInstructions ?? dbProduct.careInstructions ?? undefined,
+      packageContents: contentOverride?.packageContents ?? dbProduct.packageContents ?? undefined,
       weight: Number(dbProduct.weight),
       height: Number(dbProduct.height),
       width: Number(dbProduct.width),
       length: Number(dbProduct.length),
-      variations: dbProduct.variations.map((variation) => ({
-        label: `${variation.name}: ${variation.value}`,
-        slug: `${variation.name}-${variation.value}`
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, ""),
-        active: variation.stock > 0,
-      })),
+      variations: overrideVariations.length ? overrideVariations : dbVariations,
       relatedSlugs: [] as string[],
       relatedProducts,
       badge: dbProduct.isNew ? "Novo" : dbProduct.featured ? "Destaque" : undefined,
       stock: blingProduct?.stock ?? dbProduct.stock,
       installments: 3,
+      isAdult: contentOverride?.isAdult ?? blingProduct?.isAdult,
     };
 
     return (
@@ -469,6 +516,12 @@ function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | nu
 }
 
 function buildBlingDetailProduct(product: BlingCatalogProduct) {
+  const contentOverride = getProductContentOverride(product);
+  const galleryImages = getOverrideGalleryImages(
+    contentOverride,
+    product.images.map((image) => image.url)
+  );
+  const variations = getOverrideVariations(contentOverride);
   const productFamily = getProductFamilyName(product.name);
   const relatedProducts = dedupeProductCards(getBlingProductCards({
     categorySlug: product.category.slug,
@@ -486,31 +539,82 @@ function buildBlingDetailProduct(product: BlingCatalogProduct) {
 
   return {
     slug: product.slug,
-    name: product.name,
+    name: contentOverride?.displayName ?? product.name,
     sku: product.sku ?? "",
     ean: product.ean ?? undefined,
     price: product.price,
     promotionalPrice: null,
-    categoryName: product.category.name,
+    categoryName: contentOverride?.categoryName ?? product.category.name,
     categorySlug: product.category.slug,
-    subcategoryName: product.subcategory?.name ?? product.category.name,
+    subcategoryName: contentOverride?.subcategoryName ?? product.subcategory?.name ?? product.category.name,
     subcategorySlug: product.subcategory?.slug ?? "",
-    imageFile: product.image ?? "",
-    galleryImages: product.images.map((image) => image.url),
-    shortDescription: product.description ?? "",
-    longDescription: "",
-    details: product.staticDetails ?? [],
-    benefits: undefined,
-    howToUse: "",
-    composition: undefined,
-    careInstructions: undefined,
-    packageContents: undefined,
+    imageFile: galleryImages[0] ?? product.image ?? "",
+    galleryImages,
+    shortDescription: contentOverride?.shortDescription ?? product.description ?? "",
+    longDescription: contentOverride?.longDescription ?? "",
+    details: contentOverride?.details ?? product.staticDetails ?? [],
+    benefits: contentOverride?.benefits ?? undefined,
+    howToUse: contentOverride?.howToUse ?? "",
+    composition: contentOverride?.composition ?? undefined,
+    careInstructions: contentOverride?.careInstructions ?? undefined,
+    packageContents: contentOverride?.packageContents ?? undefined,
     relatedSlugs: [] as string[],
     relatedProducts,
+    variations,
     badge: product.badge ?? undefined,
     stock: product.stock,
     installments: 3,
+    isAdult: contentOverride?.isAdult ?? product.isAdult,
   };
+}
+
+function getOverrideGalleryImages(contentOverride: ProductContentOverride | null, fallback: string[]) {
+  const overrideImages = contentOverride?.galleryImages
+    ?.filter(Boolean)
+    .map(toPublicImageUrl) ?? [];
+  return overrideImages.length ? overrideImages : fallback;
+}
+
+function getOverrideVariations(contentOverride: ProductContentOverride | null) {
+  const variations = contentOverride?.variations ?? contentOverride?.variants ?? [];
+  return variations
+    .filter((variation) => variation?.label)
+    .map((variation) => ({
+      label: variation.label,
+      slug: variation.slug ?? toVariationSlug(variation.label),
+      color: variation.color,
+      active: variation.active ?? true,
+      sku: variation.sku,
+      imageFile: variation.imageFile ? toPublicImageUrl(variation.imageFile) : undefined,
+      images: variation.images?.filter(Boolean).map(toPublicImageUrl),
+    }));
+}
+
+function toPublicImageUrl(image: string) {
+  if (/^https?:\/\//i.test(image) || image.startsWith("/")) return image;
+  return `/uploads/products/${image}`;
+}
+
+function toVariationSlug(label: string) {
+  return label
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getProductContentOverride(product: { blingId?: string | null; sku?: string | null; name?: string | null }) {
+  const blingId = product.blingId ? String(product.blingId).trim() : "";
+  const sku = product.sku ? String(product.sku).trim() : "";
+  const normalizedName = normalizeProductText(product.name ?? "").trim();
+
+  return (
+    (blingId ? contentOverrides.find((item) => String(item.blingId ?? "").trim() === blingId) : null) ??
+    (sku ? contentOverrides.find((item) => String(item.sku ?? "").trim() === sku) : null) ??
+    (normalizedName ? contentOverrides.find((item) => normalizeProductText(item.name ?? "").trim() === normalizedName) : null) ??
+    null
+  );
 }
 
 function getProductFamilyName(name: string) {

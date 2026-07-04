@@ -1,0 +1,168 @@
+# Produto Lote 1 - Aplicacao local
+- Pasta origem: `C:\Users\bruno\Downloads\produto lote 1`
+- Imagens no lote: 244
+- Produtos atualizados na plataforma local: 73
+- Pendentes para revisao: 171
+- Erros: 0
+- Bling online: nao atualizado nesta etapa. Foi criada uma fila segura para upload depois de revisao/aprovacao.
+## Arquivos gerados
+- `reports/product-lote-1/lote1-applied-local.csv`
+- `reports/product-lote-1/lote1-pending-review.csv`
+- `reports/product-lote-1/bling-upload-safe-queue.csv`
+- `reports/product-lote-1/contact-sheet-01.jpg` ate `contact-sheet-10.jpg`
+## Produtos aplicados
+- 002 | 3104000004296 | Fone Bluetooth P47 | http://localhost:3000/produto/fone-bluetooth-p47 | fone-bluetooth-p47-3104000004296.png
+- 010 | 3104000004209 | Sutia Adesivo de Silicone | http://localhost:3000/produto/sutia-adesivo-de-silicone | sutia-adesivo-de-silicone-3104000004209.png
+- 011 | 3104000000066 | Boob Tape Fita Modeladora | http://localhost:3000/produto/boob-tape-fita-modeladora | boob-tape-fita-modeladora-3104000000066.png
+- 019 | 3104000004360 | Escova Dental Dupla para Pets | http://localhost:3000/produto/escova-dental-dupla-para-pets | escova-dental-dupla-para-pets-3104000004360.png
+- 020 | 3104000004071 | Agua Perfumada Conforto | http://localhost:3000/produto/agua-perfumada-conforto | agua-perfumada-conforto-3104000004071.png
+- 030 | 3104000000462 | Espelho de Mesa Redondo | http://localhost:3000/produto/espelho-de-mesa-redondo | espelho-de-mesa-redondo-3104000000462.png
+- 033 | 3104000004072 | Perfume de Ambiente | http://localhost:3000/produto/perfume-de-ambiente | perfume-de-ambiente-3104000004072.png
+- 034 | 3104000000106 | Odorizador de Tecidos e Ambientes | http://localhost:3000/produto/odorizador-de-tecidos-e-ambientes | odorizador-de-tecidos-e-ambientes-3104000000106.png
+- 035 | 3104000001146 | Protetor de Calcanhar com 2 Unidades | http://localhost:3000/produto/protetor-de-calcanhar-com-2-unidades | protetor-de-calcanhar-com-2-unidades-3104000001146.png
+- 057 | 3104000000603 | Fone de Ouvido com Conector Lightning | http://localhost:3000/produto/fone-de-ouvido-com-conector-lightning | fone-de-ouvido-com-conector-lightning-3104000000603.png
+- 058 | 3104000003047 | Hub USB 4 Portas | http://localhost:3000/produto/hub-usb-4-portas | hub-usb-4-portas-3104000003047.png
+- 059 | 3104000000957 | Cabide Organizador Multiuso | http://localhost:3000/produto/cabide-organizador-multiuso | cabide-organizador-multiuso-3104000000957.png
+- 065 | 3104000004340 | Cabo USB-C para Lightning 30W | http://localhost:3000/produto/cabo-usb-c-para-lightning-30w | cabo-usb-c-para-lightning-30w-3104000004340.png
+- 066 | 3104000004339 | Cabo USB-C para USB-C 60W | http://localhost:3000/produto/cabo-usb-c-para-usb-c-60w | cabo-usb-c-para-usb-c-60w-3104000004339.png
+- 082 | 3104000003348 | Carregador Veicular com Cabo | http://localhost:3000/produto/carregador-veicular-com-cabo | carregador-veicular-com-cabo-3104000003348.png
+- 088 | 3104000003778 | Limpador Magnetico para Vidros | http://localhost:3000/produto/limpador-magnetico-para-vidros | limpador-magnetico-para-vidros-3104000003778.png
+- 089 | 3104000004427 | Porta Comprimidos Premium | http://localhost:3000/produto/porta-comprimidos-premium | porta-comprimidos-premium-3104000004427.png
+- 096 | 3104000000016 | Dispenser Eletrico de Agua | http://localhost:3000/produto/dispenser-eletrico-de-agua | dispenser-eletrico-de-agua-3104000000016.png
+- 099 | 3104000003767 | Perfume Lady Billion | http://localhost:3000/produto/perfume-lady-billion | perfume-lady-billion-3104000003767.png
+- 100 | 3104000003761 | Perfume Lady Dior | http://localhost:3000/produto/perfume-lady-dior | perfume-lady-dior-3104000003761.png
+- 101 | 3104000003762 | Perfume Eterny | http://localhost:3000/produto/perfume-eterny | perfume-eterny-3104000003762.png
+- 102 | 3104000003765 | Perfume Cloe | http://localhost:3000/produto/perfume-cloe | perfume-cloe-3104000003765.png
+- 103 | 3104000003763 | Perfume J Amore | http://localhost:3000/produto/perfume-j-amore | perfume-j-amore-3104000003763.png
+- 104 | 3104000003764 | Perfume Isis Madam | http://localhost:3000/produto/perfume-isis-madam | perfume-isis-madam-3104000003764.png
+- 107 | 3104000003766 | Perfume La Bella | http://localhost:3000/produto/perfume-la-bella | perfume-la-bella-3104000003766.png
+- 113 | 3104000004093 | Aparador Higienico Recarregavel | http://localhost:3000/produto/aparador-higienico-recarregavel | aparador-higienico-recarregavel-3104000004093.png
+- 134 | 3104000001154 | Kit Limpa Prata e Ouro | http://localhost:3000/produto/kit-limpa-prata-e-ouro | kit-limpa-prata-e-ouro-3104000001154.png
+- 135 | 3104000004899 | Kit Frascos para Viagem | http://localhost:3000/produto/kit-frascos-para-viagem | kit-frascos-para-viagem-3104000004899.png
+- 136 | 3104000000635 | Mini Mixer Eletrico | http://localhost:3000/produto/mini-mixer-eletrico | mini-mixer-eletrico-3104000000635.png
+- 138 | 3104000000021 | Aspirador e Soprador de Ar Portatil | http://localhost:3000/produto/aspirador-e-soprador-de-ar-portatil | aspirador-e-soprador-de-ar-portatil-3104000000021.png
+- 142 | 3104000004403 | Papel de Parede Adesivo 45cm x 5m | http://localhost:3000/produto/papel-de-parede-adesivo-45cm-x-5m | papel-de-parede-adesivo-45cm-x-5m-3104000004403.png
+- 145 | 3104000004420 | Album de Fotos | http://localhost:3000/produto/album-de-fotos | album-de-fotos-3104000004420.png
+- 149 | 3104000004664 | Sabonete Intimo Morango | http://localhost:3000/produto/sabonete-intimo-morango | sabonete-intimo-morango-3104000004664.png
+- 170 | 3104000004288 | Body Modelador Fitness | http://localhost:3000/produto/body-modelador-fitness | body-modelador-fitness-3104000004288.png
+- 187 | 3104000005233 | Relicario Coracao Flor Prata | http://localhost:3000/produto/relicario-coracao-flor-prata | relicario-coracao-flor-prata-3104000005233.png
+- 188 | 3104000005052 | Relicario Redondo Flor Dourado | http://localhost:3000/produto/relicario-redondo-flor-dourado | relicario-redondo-flor-dourado-3104000005052.png
+- 208 | 3104000005562 | Anel de Cabelo Colorido | http://localhost:3000/produto/anel-de-cabelo-colorido | anel-de-cabelo-colorido-3104000005562.png
+- 216 | 3104000005812 | Mini Robo Aspirador Branco | http://localhost:3000/produto/mini-robo-aspirador-branco | mini-robo-aspirador-branco-3104000005812.png
+- 218 | 3104000005811 | Mini Robo Aspirador Preto | http://localhost:3000/produto/mini-robo-aspirador-preto | mini-robo-aspirador-preto-3104000005811.png
+- 220 | 3104000005817 | Luminaria LED Coracao 3D | http://localhost:3000/produto/luminaria-led-coracao-3d | luminaria-led-coracao-3d-3104000005817.png
+- 222 | 3104000005561 | Anel de Cabelo Prateado | http://localhost:3000/produto/anel-de-cabelo-prateado | anel-de-cabelo-prateado-3104000005561.png
+- 226 | 3104000003063 | Caixa de Som Portatil 3 Polegadas | http://localhost:3000/produto/caixa-de-som-portatil-3-polegadas | caixa-de-som-portatil-3-polegadas-3104000003063.png
+- 231 | 3104000003064 | Caneta Laser | http://localhost:3000/produto/caneta-laser | caneta-laser-3104000003064.png
+- 234 | 3104000000163 | Pulseira Smart Basica | http://localhost:3000/produto/pulseira-smart-basica | pulseira-smart-basica-3104000000163.png
+- 235 | 3104000001529 | Pulseira Smart Metal | http://localhost:3000/produto/pulseira-smart-metal | pulseira-smart-metal-3104000001529.png
+- 236 | 3104000004504 | Pulseira Smart Couro | http://localhost:3000/produto/pulseira-smart-couro | pulseira-smart-couro-3104000004504.png
+- 008 | 3104000003531 | Escova Tira Pelos com Deposito | http://localhost:3000/produto/escova-tira-pelos-com-deposito | escova-tira-pelos-com-deposito-3104000003531.png
+- 025 | 3104000004250 | Esfoliante para os Pes | http://localhost:3000/produto/esfoliante-para-os-pes | esfoliante-para-os-pes-3104000004250.png
+- 028 | 3104000004023 | Hidratante Corporal Live Roses | http://localhost:3000/produto/hidratante-corporal-live-roses | hidratante-corporal-live-roses-3104000004023.png
+- 029 | 3104000003006 | Mascara Facial Rosa Mosqueta Isis | http://localhost:3000/produto/mascara-facial-rosa-mosqueta-isis | mascara-facial-rosa-mosqueta-isis-3104000003006.png
+- 037 | 3104000000098 | Protetor de Silicone para Planta do Pe | http://localhost:3000/produto/protetor-de-silicone-para-planta-do-pe | protetor-de-silicone-para-planta-do-pe-3104000000098.png
+- 077 | 3104000000162 | Cabo de Carregamento V8 Micro USB | http://localhost:3000/produto/cabo-de-carregamento-v8-micro-usb | cabo-de-carregamento-v8-micro-usb-3104000000162.png
+- 080 | 3104000000160 | Cabo Lightning para USB | http://localhost:3000/produto/cabo-lightning-para-usb | cabo-lightning-para-usb-3104000000160.png
+- 083 | 3104000001381 | Fonte com Cabo Tipo-C 35W | http://localhost:3000/produto/fonte-com-cabo-tipo-c-35w | fonte-com-cabo-tipo-c-35w-3104000001381.png
+- 084 | 3104000004348 | Fonte USB-C 20W | http://localhost:3000/produto/fonte-usb-c-20w | fonte-usb-c-20w-3104000004348.png
+- 130 | 3104000000064 | Tapa Mamilo de Silicone | http://localhost:3000/produto/tapa-mamilo-de-silicone | tapa-mamilo-de-silicone-3104000000064.png
+- 132 | 3104000000157 | Kit Prendedores para Lencol | http://localhost:3000/produto/kit-prendedores-para-lencol | kit-prendedores-para-lencol-3104000000157.png
+- 171 | 3104000003352 | Pente Alisador Recarregavel | http://localhost:3000/produto/pente-alisador-recarregavel | pente-alisador-recarregavel-3104000003352.png
+- 177 | 3104000005305 | Bracelete Aco Inox Cartier com Strass | http://localhost:3000/produto/bracelete-aco-inox-cartier-com-strass | bracelete-aco-inox-cartier-com-strass-3104000005305.png
+- 179 | 3104000005304 | Bracelete Aco Inox Roma | http://localhost:3000/produto/bracelete-aco-inox-roma | bracelete-aco-inox-roma-3104000005304.png
+- 181 | 3104000005307 | Bracelete Aco Inox Liso | http://localhost:3000/produto/bracelete-aco-inox-liso | bracelete-aco-inox-liso-3104000005307.png
+- 192 | 3104000005351 | Mix de Colares Malha Fina Dourado | http://localhost:3000/produto/mix-de-colares-malha-fina-dourado | mix-de-colares-malha-fina-dourado-3104000005351.png
+- 193 | 3104000005352 | Mix de Colares Malha Fina Prata | http://localhost:3000/produto/mix-de-colares-malha-fina-prata | mix-de-colares-malha-fina-prata-3104000005352.png
+- 209 | 3104000000325 | Mini Prancha Roxa | http://localhost:3000/produto/mini-prancha-roxa | mini-prancha-roxa-3104000000325.png
+- 210 | 3104000005670 | Mini Prancha Rosa | http://localhost:3000/produto/mini-prancha-rosa | mini-prancha-rosa-3104000005670.png
+- 211 | 3104000000633 | Papa Bolinha Recarregavel Branco | http://localhost:3000/produto/papa-bolinha-recarregavel-branco | papa-bolinha-recarregavel-branco-3104000000633.png
+- 212 | 3104000005576 | Papa Bolinha Recarregavel Verde | http://localhost:3000/produto/papa-bolinha-recarregavel-verde | papa-bolinha-recarregavel-verde-3104000005576.png
+- 214 | 3104000005384 | Pulseira Pedra Turquesa Dourada Oval | http://localhost:3000/produto/pulseira-pedra-turquesa-dourada-oval | pulseira-pedra-turquesa-dourada-oval-3104000005384.png
+- 221 | 3104000005381 | Bracelete Aco Inox Liso Prata | http://localhost:3000/produto/bracelete-aco-inox-liso-prata | bracelete-aco-inox-liso-prata-3104000005381.png
+- 223 | 3104000001048 | Anel de Cabelo Dourado | http://localhost:3000/produto/anel-de-cabelo-dourado | anel-de-cabelo-dourado-3104000001048.png
+- 227 | 3104000005815 | Papa Bolinha a Pilha Rosa | http://localhost:3000/produto/papa-bolinha-a-pilha-rosa | papa-bolinha-a-pilha-rosa-3104000005815.png
+- 228 | 3104000005814 | Papa Bolinha a Pilha Azul | http://localhost:3000/produto/papa-bolinha-a-pilha-azul | papa-bolinha-a-pilha-azul-3104000005814.png
+- 229 | 3104000000015 | Lampada Globo de Festa RGB | http://localhost:3000/produto/lampada-globo-de-festa-rgb | lampada-globo-de-festa-rgb-3104000000015.png
+## Pendentes
+- 001 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_51_13 (2).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 003 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_51_13 (3).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 004 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_51_14 (4).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 005 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_51_14 (5).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 006 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_51_29 (1).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 007 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_51_30 (3).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 009 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_51_30 (5).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 012 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_51_47 (3).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 013 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_51_48 (4).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 014 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_51_48 (5).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 015 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_52_30 (1).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 016 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_52_30 (2).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 017 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_52_30 (3).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 018 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_52_31 (4).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 021 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_53_01 (2).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 022 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_53_01 (3).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 023 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_53_02 (4).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 024 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_53_02 (5).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 026 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_53_16 (2).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 027 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_53_16 (3).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 031 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_53_29 (2).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 032 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 06_53_30 (3).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 036 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_17_09 (2).png | Imagem extra do protetor de calcanhar; produto ja recebeu imagem principal no item 35.
+- 038 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_17_09 (4).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 039 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_17_09 (5).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 040 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_17_34 (1).png | Variacao de aroma do odorizador; SKU individual nao confirmado no Bling.
+- 041 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_17_34 (2).png | Variacao de aroma do odorizador; SKU individual nao confirmado no Bling.
+- 042 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_17_34 (3).png | Variacao de aroma do odorizador; SKU individual nao confirmado no Bling.
+- 043 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_17_34 (4).png | Variacao de aroma do odorizador; SKU individual nao confirmado no Bling.
+- 044 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_17_34 (5).png | Variacao de aroma do odorizador; SKU individual nao confirmado no Bling.
+- 045 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_17_47 (1).png | Variacao de perfume de ambiente; SKU individual nao confirmado no Bling.
+- 046 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_17_47 (2).png | Variacao de perfume de ambiente; SKU individual nao confirmado no Bling.
+- 047 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_17_47 (3).png | Variacao de perfume de ambiente; SKU individual nao confirmado no Bling.
+- 048 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_17_47 (4).png | Variacao de perfume de ambiente; SKU individual nao confirmado no Bling.
+- 049 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_17_47 (5).png | Variacao de perfume de ambiente; SKU individual nao confirmado no Bling.
+- 050 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_18_02 (1).png | Imagem alternativa do cabide organizador; produto ja recebeu imagem principal no item 59.
+- 051 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_18_02 (2).png | Imagem extra do protetor de calcanhar; produto ja recebeu imagem principal no item 35.
+- 052 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_18_02 (3).png | Imagem extra do protetor de calcanhar; produto ja recebeu imagem principal no item 35.
+- 053 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_18_02 (4).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 054 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_18_03 (5).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 055 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_18_14 (1).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 056 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_18_14 (2).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 060 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_18_39 (1).png | Imagem alternativa do dispenser; produto ja recebeu imagem principal no item 96.
+- 061 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_18_39 (2).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 062 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_18_39 (3).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 063 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_18_52 (1).png | Imagem alternativa do perfume La Bella; produto ja recebeu imagem principal no item 107.
+- 064 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_18_52 (2).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 067 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_19_24 (3).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 068 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_19_25 (4).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 069 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_19_25 (5).png | Imagem alternativa de fonte USB-C 20W; produto ja recebeu imagem principal no item 84.
+- 070 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_19_25 (6).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 071 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_19_26 (7).png | Imagem alternativa do papa bolinha branco; produto ja recebeu imagem principal no item 211.
+- 072 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_20_16 (1).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 073 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_20_16 (2).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 074 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_20_17 (3).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 075 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_20_17 (4).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 076 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_20_17 (5).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 078 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_20_45 (2).png | Imagem alternativa do cabo USB-C; produto ja recebeu imagem principal no item 66.
+- 079 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 07_20_45 (3).png | Imagem alternativa do cabo V8/Micro USB; produto ja recebeu imagem principal no item 77.
+- 081 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_20_46 (5).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 085 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_20_46 (9).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 086 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_20_47 (10).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 087 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 07_21_01.png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 090 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 08_18_38 (2).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 091 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 08_19_05 (1).png | Imagem alternativa do dispenser; produto ja recebeu imagem principal no item 96.
+- 092 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 08_19_05 (2).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 093 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 08_19_05 (3).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 094 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 08_19_06 (4).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 095 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 08_19_06 (5).png | Imagem alternativa do perfume Lady Billion; produto ja recebeu imagem principal no item 99.
+- 097 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 08_20_26 (2).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 098 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 08_20_26 (3).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 105 | DUPLICADA_OU_VARIACAO_PENDENTE | ChatGPT Image 3 de jul. de 2026, 08_35_52 (1).png | Imagem extra do protetor de calcanhar; produto ja recebeu imagem principal no item 35.
+- 106 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 08_35_52 (2).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 108 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 08_36_43 (1).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 109 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 08_36_43 (2).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 110 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 08_36_43 (3).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 111 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 08_36_44 (5).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 112 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 08_36_44 (4).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 114 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 13_01_37 (2).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- 115 | PENDENTE_REVISAO | ChatGPT Image 3 de jul. de 2026, 13_01_37 (3).png | Sem correspondencia segura com SKU unico no export local do Bling. Precisa revisar antes de associar.
+- ... mais 91 itens no CSV de pendencias.

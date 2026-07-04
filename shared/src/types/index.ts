@@ -66,8 +66,13 @@ export interface ProductVariation {
   id: string;
   name: string;
   value: string;
+  sku?: string | null;
+  imageUrl?: string | null;
   stock: number;
   priceModifier: number;
+  isDefault: boolean;
+  order: number;
+  active?: boolean;
 }
 
 export interface Product {

@@ -1,0 +1,1390 @@
+{
+  "summary": {
+    "total": 69,
+    "ok": 69,
+    "errors": 0,
+    "generatedAt": "2026-07-01T15:18:53.948Z"
+  },
+  "results": [
+    {
+      "blingId": "16666400685",
+      "sku": "3104000004763",
+      "originalName": "CACHECOL XADREZ",
+      "displayName": "Cachecol Xadrez de Inverno",
+      "slug": "cachecol-xadrez",
+      "url": "http://localhost:3000/produto/cachecol-xadrez",
+      "imageFile": "cachecol-xadrez-3104000004763.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666393768",
+      "sku": "3104000004762",
+      "originalName": "CACHECOL LISO POMPOM",
+      "displayName": "Cachecol Liso com Pompom",
+      "slug": "cachecol-liso-pompom",
+      "url": "http://localhost:3000/produto/cachecol-liso-pompom",
+      "imageFile": "cachecol-liso-pompom-3104000004762.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666386904",
+      "sku": "3104000004761",
+      "originalName": "CACHECOL XADREZ PREMIUM",
+      "displayName": "Cachecol Xadrez Premium",
+      "slug": "cachecol-xadrez-premium",
+      "url": "http://localhost:3000/produto/cachecol-xadrez-premium",
+      "imageFile": "cachecol-xadrez-premium-3104000004761.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666378189",
+      "sku": null,
+      "originalName": "CASE IP 16E Cor:BRANCO",
+      "displayName": "Capa Case para iPhone 16e - Branco",
+      "slug": "case-ip-16e-cor-branco",
+      "url": "http://localhost:3000/produto/case-ip-16e-cor-branco",
+      "imageFile": "case-ip-16e-cor-branco.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666378185",
+      "sku": null,
+      "originalName": "CASE IP 16E Cor:ROSA",
+      "displayName": "Capa Case para iPhone 16e - Rosa",
+      "slug": "case-ip-16e-cor-rosa",
+      "url": "http://localhost:3000/produto/case-ip-16e-cor-rosa",
+      "imageFile": "case-ip-16e-cor-rosa.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666378183",
+      "sku": null,
+      "originalName": "CASE IP 16E Cor:VERMELHO",
+      "displayName": "Capa Case para iPhone 16e - Vermelho",
+      "slug": "case-ip-16e-cor-vermelho",
+      "url": "http://localhost:3000/produto/case-ip-16e-cor-vermelho",
+      "imageFile": "case-ip-16e-cor-vermelho.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666378181",
+      "sku": null,
+      "originalName": "CASE IP 16E Cor:PRETO",
+      "displayName": "Capa Case para iPhone 16e - Preto",
+      "slug": "case-ip-16e-cor-preto",
+      "url": "http://localhost:3000/produto/case-ip-16e-cor-preto",
+      "imageFile": "case-ip-16e-cor-preto.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666355912",
+      "sku": "3104000004758",
+      "originalName": "MINI BULLET DUPLO LINGUINHA ROXO",
+      "displayName": "Mini Bullet Duplo Linguinha - Roxo",
+      "slug": "mini-bullet-duplo-linguinha-roxo",
+      "url": "http://localhost:3000/produto/mini-bullet-duplo-linguinha",
+      "imageFile": "mini-bullet-duplo-linguinha-roxo-3104000004758.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666351847",
+      "sku": "3104000004756",
+      "originalName": "VIBRADOR SEXY CONTROLE PRETO",
+      "displayName": "Vibrador Sexy com Controle - Preto",
+      "slug": "vibrador-sexy-controle-preto",
+      "url": "http://localhost:3000/produto/vibrador-sexy-controle-preto",
+      "imageFile": "vibrador-sexy-controle-preto-3104000004756.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666351572",
+      "sku": "3104000004755",
+      "originalName": "VIBRADOR SEXY CONTROLE ROSA",
+      "displayName": "Vibrador Sexy com Controle - Rosa",
+      "slug": "vibrador-sexy-controle-rosa",
+      "url": "http://localhost:3000/produto/vibrador-sexy-controle-rosa",
+      "imageFile": "vibrador-sexy-controle-rosa-3104000004755.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666351358",
+      "sku": "3104000004754",
+      "originalName": "VIBRADOR SEXY CONTROLE MARROM",
+      "displayName": "Vibrador Sexy com Controle - Marrom",
+      "slug": "vibrador-sexy-controle-marrom",
+      "url": "http://localhost:3000/produto/vibrador-sexy-controle-marrom",
+      "imageFile": "vibrador-sexy-controle-marrom-3104000004754.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666351227",
+      "sku": "3104000004753",
+      "originalName": "VIBRADOR SEXY CONTROLE BRANCO",
+      "displayName": "Vibrador Sexy com Controle - Branco",
+      "slug": "vibrador-sexy-controle-branco",
+      "url": "http://localhost:3000/produto/vibrador-sexy-controle-branco",
+      "imageFile": "vibrador-sexy-controle-branco-3104000004753.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666350309",
+      "sku": "3104000004752",
+      "originalName": "VIBRADOR SEXY CONTROLE VERMELHO",
+      "displayName": "Vibrador Sexy com Controle - Vermelho",
+      "slug": "vibrador-sexy-controle-vermelho",
+      "url": "http://localhost:3000/produto/vibrador-sexy-controle-vermelho",
+      "imageFile": "vibrador-sexy-controle-vermelho-3104000004752.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666345310",
+      "sku": "3104000004750",
+      "originalName": "MINI VIBRADOR SEXY",
+      "displayName": "Mini Vibrador Sexy",
+      "slug": "mini-vibrador-sexy",
+      "url": "http://localhost:3000/produto/mini-vibrador-sexy",
+      "imageFile": "mini-vibrador-sexy-3104000004750.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666344865",
+      "sku": "3104000004749",
+      "originalName": "ANEL PENIANO SEXY URSINHO PRETO",
+      "displayName": "Anel Peniano Sexy Ursinho - Preto",
+      "slug": "anel-peniano-sexy-ursinho-preto",
+      "url": "http://localhost:3000/produto/anel-peniano-sexy-ursinho-preto",
+      "imageFile": "anel-peniano-sexy-ursinho-preto-3104000004749.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666344667",
+      "sku": "3104000004748",
+      "originalName": "ANEL PENIANO SEXY URSINHO TRANSP.",
+      "displayName": "Anel Peniano Sexy Ursinho - Transparente",
+      "slug": "anel-peniano-sexy-ursinho-transp",
+      "url": "http://localhost:3000/produto/anel-peniano-sexy-ursinho-transp",
+      "imageFile": "anel-peniano-sexy-ursinho-transp-3104000004748.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666344242",
+      "sku": "3104000004747",
+      "originalName": "ANEL PENIANO SEXY BOLINHA TRANSP.",
+      "displayName": "Anel Peniano Sexy Bolinha - Transparente",
+      "slug": "anel-peniano-bolinha-cores",
+      "url": "http://localhost:3000/produto/anel-peniano-bolinha-cores",
+      "imageFile": "anel-peniano-sexy-bolinha-transp-3104000004747.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666344004",
+      "sku": "3104000004746",
+      "originalName": "ANEL PENIANO SEXY BOLINHA ROSA",
+      "displayName": "Anel Peniano Sexy Bolinha - Rosa",
+      "slug": "anel-peniano-sexy-bolinha-rosa",
+      "url": "http://localhost:3000/produto/anel-peniano-sexy-bolinha-rosa",
+      "imageFile": "anel-peniano-sexy-bolinha-rosa-3104000004746.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666343091",
+      "sku": "3104000004745",
+      "originalName": "ANEL PENIANO SEXY BOLINHA PRETO",
+      "displayName": "Anel Peniano Sexy Bolinha - Preto",
+      "slug": "anel-peniano-sexy-bolinha-preto",
+      "url": "http://localhost:3000/produto/anel-peniano-sexy-bolinha-preto",
+      "imageFile": "anel-peniano-sexy-bolinha-preto-3104000004745.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666342904",
+      "sku": "3104000004744",
+      "originalName": "DEDEIRA COM TEXTURA SEXY ROXO",
+      "displayName": "Dedeira com Textura Sexy - Roxo",
+      "slug": "dedeira-com-textura-sexy-roxo",
+      "url": "http://localhost:3000/produto/dedeira-com-textura-sexy-roxo",
+      "imageFile": "dedeira-com-textura-sexy-roxo-3104000004744.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666342654",
+      "sku": "3104000004743",
+      "originalName": "DEDEIRA COM TEXTURA SEXY ROSA",
+      "displayName": "Dedeira com Textura Sexy - Rosa",
+      "slug": "dedeira-com-textura-sexy-rosa",
+      "url": "http://localhost:3000/produto/dedeira-com-textura-sexy-rosa",
+      "imageFile": "dedeira-com-textura-sexy-rosa-3104000004743.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666342377",
+      "sku": "3104000004742",
+      "originalName": "ANEL PENIANO ROSA DE ORELHA",
+      "displayName": "Anel Peniano com Orelhinha - Rosa",
+      "slug": "anel-peniano-orelha-rosa",
+      "url": "http://localhost:3000/produto/anel-peniano-orelha-rosa",
+      "imageFile": "anel-peniano-rosa-de-orelha-3104000004742.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666342223",
+      "sku": "3104000004741",
+      "originalName": "ANEL PENIANO ROXO DE ORELHA",
+      "displayName": "Anel Peniano com Orelhinha - Roxo",
+      "slug": "anel-peniano-orelha-roxo",
+      "url": "http://localhost:3000/produto/anel-peniano-orelha-roxo",
+      "imageFile": "anel-peniano-roxo-de-orelha-3104000004741.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666340000",
+      "sku": "3104000004740",
+      "originalName": "ALGEMA PRATA TRADICIONAL",
+      "displayName": "Algema Tradicional Prata",
+      "slug": "algema-prata-tradicional",
+      "url": "http://localhost:3000/produto/algema-prata-tradicional",
+      "imageFile": "algema-prata-tradicional-3104000004740.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666339674",
+      "sku": "3104000004739",
+      "originalName": "ALGEMA PRETA VELUDO",
+      "displayName": "Algema de Veludo - Preta",
+      "slug": "algema-preta-veludo",
+      "url": "http://localhost:3000/produto/algema-preta-veludo",
+      "imageFile": "algema-preta-veludo-3104000004739.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666339520",
+      "sku": "3104000004738",
+      "originalName": "ALGEMA VERMELHA VELUDO",
+      "displayName": "Algema de Veludo - Vermelha",
+      "slug": "algema-vermelha-veludo",
+      "url": "http://localhost:3000/produto/algema-vermelha-veludo",
+      "imageFile": "algema-vermelha-veludo-3104000004738.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666339307",
+      "sku": "3104000004737",
+      "originalName": "ALGEMA BRANCA VELUDO",
+      "displayName": "Algema de Veludo - Branca",
+      "slug": "algema-branca-veludo",
+      "url": "http://localhost:3000/produto/algema-branca-veludo",
+      "imageFile": "algema-branca-veludo-3104000004737.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666339092",
+      "sku": "3104000004736",
+      "originalName": "ALGEMA ROSA VELUDO",
+      "displayName": "Algema de Veludo - Rosa",
+      "slug": "algema-rosa-veludo",
+      "url": "http://localhost:3000/produto/algema-rosa-veludo",
+      "imageFile": "algema-rosa-veludo-3104000004736.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666338734",
+      "sku": "3104000004735",
+      "originalName": "ALGEMA ONÇA VELUDO",
+      "displayName": "Algema de Veludo - Onça",
+      "slug": "algema-onca-veludo",
+      "url": "http://localhost:3000/produto/algema-onca-veludo",
+      "imageFile": "algema-onca-veludo-3104000004735.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666333232",
+      "sku": "3104000004734",
+      "originalName": "CONJUNTO COLAR + BRINCO BRASIL",
+      "displayName": "Conjunto Colar e Brinco Brasil",
+      "slug": "conjunto-colar-brinco-brasil",
+      "url": "http://localhost:3000/produto/conjunto-colar-brinco-brasil",
+      "imageFile": "conjunto-colar-brinco-brasil-3104000004734.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666288324",
+      "sku": "3104000004733",
+      "originalName": "CACHECOL LISO",
+      "displayName": "Cachecol Liso de Inverno",
+      "slug": "cachecol-liso",
+      "url": "http://localhost:3000/produto/cachecol-liso",
+      "imageFile": "cachecol-liso-3104000004733.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666285483",
+      "sku": "3104000004732",
+      "originalName": "BROCHE DO BRASIL",
+      "displayName": "Broche do Brasil",
+      "slug": "broche-do-brasil",
+      "url": "http://localhost:3000/produto/broche-do-brasil",
+      "imageFile": "broche-do-brasil-3104000004732.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666284001",
+      "sku": "3104000004731",
+      "originalName": "BRACELETE DO BRASIL",
+      "displayName": "Bracelete do Brasil",
+      "slug": "bracelete-do-brasil",
+      "url": "http://localhost:3000/produto/bracelete-do-brasil",
+      "imageFile": "bracelete-do-brasil-3104000004731.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666279944",
+      "sku": "3104000004730",
+      "originalName": "PULSEIRA MISSANGA DO BRASIL",
+      "displayName": "Pulseira Miçanga do Brasil",
+      "slug": "pulseira-missanga-do-brasil",
+      "url": "http://localhost:3000/produto/pulseira-missanga-do-brasil",
+      "imageFile": "pulseira-missanga-do-brasil-3104000004730.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666277821",
+      "sku": "3104000004729",
+      "originalName": "FAIXA BRASIL",
+      "displayName": "Faixa Brasil",
+      "slug": "faixa-brasil",
+      "url": "http://localhost:3000/produto/faixa-brasil",
+      "imageFile": "faixa-brasil-3104000004729.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666276471",
+      "sku": "3104000004728",
+      "originalName": "ADESIVO BRASIL",
+      "displayName": "Adesivo Brasil",
+      "slug": "adesivo-brasil",
+      "url": "http://localhost:3000/produto/adesivo-brasil",
+      "imageFile": "adesivo-brasil-3104000004728.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666188473",
+      "sku": "3104000004725",
+      "originalName": "GEL CHINÊS SEXY",
+      "displayName": "Gel Chinês Sexy",
+      "slug": "gel-chines-sexy",
+      "url": "http://localhost:3000/produto/gel-chines-sexy",
+      "imageFile": "gel-chines-sexy-3104000004725.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666186258",
+      "sku": "3104000004724",
+      "originalName": "PAU ERGUIDO SEXY",
+      "displayName": "Gel Pau Erguido Sexy",
+      "slug": "pau-erguido-sexy",
+      "url": "http://localhost:3000/produto/pau-erguido-sexy",
+      "imageFile": "pau-erguido-sexy-3104000004724.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666181502",
+      "sku": "3104000004720",
+      "originalName": "GEL SENSUAL",
+      "displayName": "Gel Sensual",
+      "slug": "gel-sensual",
+      "url": "http://localhost:3000/produto/gel-sensual",
+      "imageFile": "gel-sensual-3104000004720.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666180810",
+      "sku": "3104000004717",
+      "originalName": "MAIS BUMBUM GEL",
+      "displayName": "Mais Bumbum Gel",
+      "slug": "mais-bumbum-gel",
+      "url": "http://localhost:3000/produto/mais-bumbum-gel",
+      "imageFile": "mais-bumbum-gel-3104000004717.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16666180492",
+      "sku": "3104000004716",
+      "originalName": "NABUCETÃO GEL",
+      "displayName": "Nabucetão Gel",
+      "slug": "nabucetao-gel",
+      "url": "http://localhost:3000/produto/nabucetao-gel",
+      "imageFile": "nabucetao-gel-3104000004716.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16665846287",
+      "sku": "3104000004697",
+      "originalName": "MASTURBADOR EGG VERDE SEXY",
+      "displayName": "Masturbador Egg Verde Sexy",
+      "slug": "masturbador-egg-verde-sexy",
+      "url": "http://localhost:3000/produto/masturbador-egg-verde-sexy",
+      "imageFile": "masturbador-egg-verde-sexy-3104000004697.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16665811415",
+      "sku": "3104000004692",
+      "originalName": "CREME DESSENSIBILIZANTE",
+      "displayName": "Creme Dessensibilizante",
+      "slug": "creme-dessensibilizante",
+      "url": "http://localhost:3000/produto/creme-dessensibilizante",
+      "imageFile": "creme-dessensibilizante-3104000004692.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16665810318",
+      "sku": "3104000004691",
+      "originalName": "CREME MULTIFUNÇÕES SEXY",
+      "displayName": "Creme Multifunções Sexy",
+      "slug": "creme-multifuncoes-sexy",
+      "url": "http://localhost:3000/produto/creme-multifuncoes-sexy",
+      "imageFile": "creme-multifuncoes-sexy-3104000004691.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16665809574",
+      "sku": "3104000004690",
+      "originalName": "CREME FEMININO SEXY",
+      "displayName": "Creme Feminino Sexy",
+      "slug": "creme-feminino-sexy",
+      "url": "http://localhost:3000/produto/creme-feminino-sexy",
+      "imageFile": "creme-feminino-sexy-3104000004690.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16665732164",
+      "sku": "3104000004689",
+      "originalName": "BOTA DE CHUVA PARA TÊNIS",
+      "displayName": "Bota de Chuva para Tênis",
+      "slug": "bota-de-chuva-para-tenis",
+      "url": "http://localhost:3000/produto/bota-de-chuva-para-tenis",
+      "imageFile": "bota-de-chuva-para-tenis-3104000004689.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16663860735",
+      "sku": "3104000004687",
+      "originalName": "PULSEIRA PREMIUM",
+      "displayName": "Pulseira Premium",
+      "slug": "pulseira-premium",
+      "url": "http://localhost:3000/produto/pulseira-premium",
+      "imageFile": "pulseira-premium-3104000004687.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16663808241",
+      "sku": "3104000004686",
+      "originalName": "LAÇO BRASIL",
+      "displayName": "Laço Brasil",
+      "slug": "laco-brasil",
+      "url": "http://localhost:3000/produto/laco-brasil",
+      "imageFile": "laco-brasil-3104000004686.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16663594524",
+      "sku": "3104000004685",
+      "originalName": "CARIMBO DE FRANCESINHA",
+      "displayName": "Carimbo de Francesinha",
+      "slug": "carimbo-de-francesinha",
+      "url": "http://localhost:3000/produto/carimbo-de-francesinha",
+      "imageFile": "carimbo-de-francesinha-3104000004685.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16663291910",
+      "sku": "3104000004684",
+      "originalName": "VALE PRESENTE 50,00",
+      "displayName": "Vale-Presente KA Bijoux - R$ 50",
+      "slug": "vale-presente-50-00",
+      "url": "http://localhost:3000/produto/vale-presente-50-00",
+      "imageFile": "vale-presente-50-00-3104000004684.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16663291350",
+      "sku": "3104000004683",
+      "originalName": "VALE PRESENTE 200,00",
+      "displayName": "Vale-Presente KA Bijoux - R$ 200",
+      "slug": "vale-presente-200-00",
+      "url": "http://localhost:3000/produto/vale-presente-200-00",
+      "imageFile": "vale-presente-200-00-3104000004683.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16663288574",
+      "sku": "3104000004682",
+      "originalName": "VALE PRESENTE 100,00",
+      "displayName": "Vale-Presente KA Bijoux - R$ 100",
+      "slug": "vale-presente-100-00",
+      "url": "http://localhost:3000/produto/vale-presente-100-00",
+      "imageFile": "vale-presente-100-00-3104000004682.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16663203249",
+      "sku": "3104000004681",
+      "originalName": "TAPETE ESCORREDOR DE COPOS",
+      "displayName": "Tapete Escorredor de Copos",
+      "slug": "tapete-escorredor-de-copos",
+      "url": "http://localhost:3000/produto/tapete-escorredor-de-copos",
+      "imageFile": "tapete-escorredor-de-copos-3104000004681.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662984864",
+      "sku": "3104000004680",
+      "originalName": "CALCINHA COM CINTA",
+      "displayName": "Calcinha com Cinta",
+      "slug": "calcinha-com-cinta",
+      "url": "http://localhost:3000/produto/calcinha-com-cinta",
+      "imageFile": "calcinha-com-cinta-3104000004680.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662870496",
+      "sku": "3104000004679",
+      "originalName": "VASO DECORATIVO 60,00",
+      "displayName": "Vaso Decorativo - Modelo 60",
+      "slug": "vaso-decorativo-60-00",
+      "url": "http://localhost:3000/produto/vaso-decorativo-60-00",
+      "imageFile": "vaso-decorativo-60-00-3104000004679.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662870006",
+      "sku": "3104000004678",
+      "originalName": "VASO DECORATIVO 72,00",
+      "displayName": "Vaso Decorativo - Modelo 72",
+      "slug": "vaso-decorativo-72-00",
+      "url": "http://localhost:3000/produto/vaso-decorativo-72-00",
+      "imageFile": "vaso-decorativo-72-00-3104000004678.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662803847",
+      "sku": "3104000004676",
+      "originalName": "CHINELO HAVAIANAS BRANCA",
+      "displayName": "Chinelo Havaianas Branco",
+      "slug": "chinelo-havaianas-branca",
+      "url": "http://localhost:3000/produto/chinelo-havaianas-branca",
+      "imageFile": "chinelo-havaianas-branca-3104000004676.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662752361",
+      "sku": "3104000004677",
+      "originalName": "CESTA DIA DOS NAMORADOS",
+      "displayName": "Cesta Dia dos Namorados",
+      "slug": "cesta-dia-dos-namorados",
+      "url": "http://localhost:3000/produto/cesta-dia-dos-namorados",
+      "imageFile": "cesta-dia-dos-namorados-3104000004677.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662670632",
+      "sku": "3104000004675",
+      "originalName": "CHINELO DE TIME",
+      "displayName": "Chinelo de Time",
+      "slug": "chinelo-de-time",
+      "url": "http://localhost:3000/produto/chinelo-de-time",
+      "imageFile": "chinelo-de-time-3104000004675.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662668538",
+      "sku": "3104000004674",
+      "originalName": "COLAR COURO COMPRIDO",
+      "displayName": "Colar de Couro Comprido",
+      "slug": "colar-couro-comprido",
+      "url": "http://localhost:3000/produto/colar-couro-comprido",
+      "imageFile": "colar-couro-comprido-3104000004674.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662596168",
+      "sku": "3104000004673",
+      "originalName": "ESCOVA ELETRICA DE DENTE",
+      "displayName": "Escova Elétrica de Dente",
+      "slug": "escova-eletrica-de-dente",
+      "url": "http://localhost:3000/produto/escova-eletrica-de-dente",
+      "imageFile": "escova-eletrica-de-dente-3104000004673.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662569695",
+      "sku": "3104000004672",
+      "originalName": "ESCOVA FINALIZADORA PARA CABELO",
+      "displayName": "Escova Finalizadora para Cabelo",
+      "slug": "escova-finalizadora-para-cabelo",
+      "url": "http://localhost:3000/produto/escova-finalizadora-para-cabelo",
+      "imageFile": "escova-finalizadora-para-cabelo-3104000004672.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662565262",
+      "sku": "3104000004671",
+      "originalName": "PENTE AIRBAG MASSAGE COMB",
+      "displayName": "Pente Airbag Massage Comb",
+      "slug": "pente-airbag-massage-comb",
+      "url": "http://localhost:3000/produto/pente-airbag-massage-comb",
+      "imageFile": "pente-airbag-massage-comb-3104000004671.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662546311",
+      "sku": "3104000004670",
+      "originalName": "PULSEIRA CASAL",
+      "displayName": "Pulseira Casal",
+      "slug": "pulseira-casal",
+      "url": "http://localhost:3000/produto/pulseira-casal",
+      "imageFile": "pulseira-casal-3104000004670.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662528768",
+      "sku": "3104000004669",
+      "originalName": "ÓLEO HIDRATANTE DE CUTÍCULA",
+      "displayName": "Óleo Hidratante de Cutícula",
+      "slug": "oleo-hidratante-de-cuticula",
+      "url": "http://localhost:3000/produto/oleo-hidratante-de-cuticula",
+      "imageFile": "oleo-hidratante-de-cuticula-3104000004669.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662524791",
+      "sku": "3104000004668",
+      "originalName": "BLUSH BOBBI RARA",
+      "displayName": "Blush Bobbi Rara",
+      "slug": "blush-bobbi-rara",
+      "url": "http://localhost:3000/produto/blush-bobbi-rara",
+      "imageFile": "blush-bobbi-rara-3104000004668.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662521375",
+      "sku": "3104000004667",
+      "originalName": "ALGODÃO DEMAQUILANTE - MIAMAKE",
+      "displayName": "Algodão Demaquilante Miamake",
+      "slug": "algodao-demaquilante-miamake",
+      "url": "http://localhost:3000/produto/algodao-demaquilante-miamake",
+      "imageFile": "algodao-demaquilante-miamake-3104000004667.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662513572",
+      "sku": "3104000004666",
+      "originalName": "PROGRESSIVA DE CHUVEIRO SACHÊ",
+      "displayName": "Progressiva de Chuveiro Sachê",
+      "slug": "progressiva-de-chuveiro-sache",
+      "url": "http://localhost:3000/produto/progressiva-de-chuveiro-sache",
+      "imageFile": "progressiva-de-chuveiro-sache-3104000004666.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    },
+    {
+      "blingId": "16662510546",
+      "sku": "3104000004665",
+      "originalName": "CREME FACIAL NOTURNO",
+      "displayName": "Creme Facial Noturno",
+      "slug": "creme-facial-noturno",
+      "url": "http://localhost:3000/produto/creme-facial-noturno",
+      "imageFile": "creme-facial-noturno-3104000004665.jpg",
+      "imageExists": true,
+      "checks": {
+        "status": true,
+        "name": true,
+        "image": true,
+        "description": true,
+        "usage": true,
+        "care": true
+      },
+      "status": "OK",
+      "errors": []
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
 import { authApi } from "@/services/api";
+import { registerPushToken, unregisterPushToken } from "@/lib/pushNotifications";
 
 interface Customer {
   id: string;
@@ -31,6 +32,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       const customerJson = await SecureStore.getItemAsync("ka-customer");
       if (token && customerJson) {
         set({ token, customer: JSON.parse(customerJson), isLoading: false });
+        // Registrar push token em background (não bloqueia a sessão)
+        registerPushToken().catch(() => {});
       } else {
         set({ isLoading: false });
       }
@@ -45,6 +48,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     await SecureStore.setItemAsync("ka-token", token);
     await SecureStore.setItemAsync("ka-customer", JSON.stringify(customer));
     set({ token, customer });
+    registerPushToken().catch(() => {});
   },
 
   register: async (data) => {
@@ -53,9 +57,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     await SecureStore.setItemAsync("ka-token", token);
     await SecureStore.setItemAsync("ka-customer", JSON.stringify(customer));
     set({ token, customer });
+    registerPushToken().catch(() => {});
   },
 
   logout: async () => {
+    await unregisterPushToken();
     await SecureStore.deleteItemAsync("ka-token");
     await SecureStore.deleteItemAsync("ka-customer");
     set({ token: null, customer: null });

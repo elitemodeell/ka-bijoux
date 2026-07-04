@@ -7,6 +7,7 @@ import { STATIC_SEX_SHOP_CATALOG } from "@/lib/static-sex-shop-catalog";
 import blingRows from "@/data/produtos-bling.json";
 import imageMapping from "@/data/mapeamento-imagens-produtos.json";
 import uploadImageFiles from "@/data/bling-image-files.json";
+import productContentOverrides from "@/data/product-content-overrides.json";
 import {
   getProductCatalogLine,
   isAdultCatalogProduct,
@@ -15,6 +16,16 @@ import {
 } from "@/lib/product-line";
 
 export type ProductCardMedia = { url: string; alt?: string | null };
+
+export type ProductCardVariation = {
+  id: string;
+  name: string;
+  value: string;
+  imageUrl?: string | null;
+  stock: number;
+  isDefault: boolean;
+  order: number;
+};
 
 export type ProductCardProduct = {
   id: string;
@@ -37,6 +48,7 @@ export type ProductCardProduct = {
   imageSource?: "BLING" | "MARKETPLACE" | "DATABASE" | "STATIC" | "NONE";
   catalogLine?: CatalogLine;
   isAdult?: boolean;
+  variations?: ProductCardVariation[];
 };
 
 export type BlingCatalogProduct = ProductCardProduct & {
@@ -113,10 +125,47 @@ type CatalogCache = {
   };
 };
 
+type ProductContentOverride = {
+  blingId?: string | null;
+  sku?: string | null;
+  name?: string | null;
+  displayName?: string | null;
+  isAdult?: boolean;
+  categoryName?: string | null;
+  subcategoryName?: string | null;
+  shortDescription?: string | null;
+  longDescription?: string | null;
+  details?: string[];
+  imageFile?: string | null;
+  galleryImages?: string[];
+  variations?: ProductContentVariation[];
+  variants?: ProductContentVariation[];
+  benefits?: string | null;
+  howToUse?: string | null;
+  composition?: string | null;
+  careInstructions?: string | null;
+  packageContents?: string | null;
+  seoSlug?: string | null;
+  seoKeywords?: string[];
+};
+
+type ProductContentVariation = {
+  label: string;
+  slug?: string;
+  color?: string;
+  active?: boolean;
+  sku?: string;
+  imageFile?: string;
+  images?: string[];
+};
+
 const TECHNICAL_PENDING_DESCRIPTION =
   "Produto KA Bijoux com nome, preco e estoque sincronizados pela Bling. Informacoes tecnicas pendentes de revisao manual.";
 
 let catalogCache: CatalogCache | null = null;
+const contentOverrides = Array.isArray(productContentOverrides)
+  ? (productContentOverrides as ProductContentOverride[])
+  : (Object.values(productContentOverrides) as ProductContentOverride[]);
 
 export function getBlingProductCards(filters: CatalogFilters = {}) {
   const products = getBlingCatalogProducts(filters);
@@ -276,6 +325,9 @@ function getCatalogCache(): CatalogCache {
     const nameSlug = slugify(product.name);
     if (nameSlug && !bySlug.has(nameSlug)) bySlug.set(nameSlug, product);
     byName.set(normalizeSearch(product.name), product);
+    const contentOverride = getProductContentOverride(product);
+    if (contentOverride?.name) byName.set(normalizeSearch(contentOverride.name), product);
+    if (contentOverride?.displayName) byName.set(normalizeSearch(contentOverride.displayName), product);
     if (product.staticSlug) bySlug.set(product.staticSlug, product);
   }
 
@@ -311,15 +363,22 @@ function buildCatalogProduct(
   const categoryDef = getCategoryBySlug(category.categorySlug);
   const subcategoryDef =
     categoryDef?.subcategories?.find((item) => item.slug === category.subcategorySlug) ?? null;
-  const imageMatch = resolveImage(row, imageIndex, staticProduct?.imageFile);
-  const baseSlug = staticProduct?.slug ?? slugify(row.name) ?? `produto-${row.id}`;
+  const contentOverride = getProductContentOverride({
+    blingId: row.id,
+    sku: row.sku,
+    name: row.name,
+  });
+  const imageMatch = resolveImage(row, imageIndex, contentOverride?.imageFile ?? staticProduct?.imageFile);
+  const baseSlug = contentOverride?.seoSlug ?? staticProduct?.slug ?? slugify(row.name) ?? `produto-${row.id}`;
   const slug = uniqueSlug(baseSlug, row.id, usedSlugs);
-  const description = staticProduct?.shortDescription ?? TECHNICAL_PENDING_DESCRIPTION;
-  const categoryName = categoryDef ? getPublicCategoryName(categoryDef) : "KA Bijoux";
-  const subcategoryName = subcategoryDef?.name ?? null;
+  const displayName = contentOverride?.displayName ?? row.name;
+  const description = contentOverride?.shortDescription ?? staticProduct?.shortDescription ?? TECHNICAL_PENDING_DESCRIPTION;
+  const categoryName = contentOverride?.categoryName ?? (categoryDef ? getPublicCategoryName(categoryDef) : "KA Bijoux");
+  const subcategoryName = contentOverride?.subcategoryName ?? subcategoryDef?.name ?? null;
   const searchText = normalizeSearch(
     [
       row.name,
+      displayName,
       row.sku,
       row.id,
       row.category,
@@ -328,6 +387,10 @@ function buildCatalogProduct(
       categoryName,
       subcategoryName,
       staticProduct?.slug,
+      contentOverride?.shortDescription,
+      contentOverride?.longDescription,
+      ...(contentOverride?.details ?? []),
+      ...(contentOverride?.seoKeywords ?? []),
     ]
       .filter(Boolean)
       .join(" ")
@@ -342,7 +405,7 @@ function buildCatalogProduct(
   return {
     id: `bling-${row.id}`,
     blingId: row.id,
-    name: row.name,
+    name: displayName,
     slug,
     sku: row.sku || null,
     ean: row.ean || null,
@@ -369,8 +432,25 @@ function buildCatalogProduct(
     staticHowToUse: staticProduct?.howToUse ?? null,
     staticDetails: staticProduct?.details ?? [],
     catalogLine,
-    isAdult: catalogLine === "adult",
+    isAdult: contentOverride?.isAdult ?? catalogLine === "adult",
   };
+}
+
+function getProductContentOverride(product: {
+  blingId?: string | null;
+  sku?: string | null;
+  name?: string | null;
+}) {
+  const blingId = product.blingId ? String(product.blingId).trim() : "";
+  const sku = product.sku ? String(product.sku).trim() : "";
+  const normalizedName = normalizeSearch(product.name ?? "");
+
+  return (
+    (blingId ? contentOverrides.find((item) => String(item.blingId ?? "").trim() === blingId) : null) ??
+    (sku ? contentOverrides.find((item) => String(item.sku ?? "").trim() === sku) : null) ??
+    (normalizedName ? contentOverrides.find((item) => normalizeSearch(item.name ?? "") === normalizedName) : null) ??
+    null
+  );
 }
 
 function normalizeBlingRow(row: CsvRow) {
@@ -615,6 +695,9 @@ function mapBlingCategory(value?: string) {
 
 function inferAdultSubcategory(n: string) {
   if (/\b(desodorante)\b/.test(n)) return "sex-shop-desodorantes";
+  if (/\b(jogo|roleta|baralho|duelo|seducao)\b/.test(n)) return "sex-shop-jogos";
+  if (/\b(protese|dildo|escroto|mydick)\b/.test(n)) return "sex-shop-proteses";
+  if (/\b(plug|algema|tapa|mamilo|adesivo|chicote|colar|mascara|cinta|castidade)\b/.test(n)) return "sex-shop-acessorios";
   if (/\b(vibrador|bullet|sugador|golfinho|magic rose)\b/.test(n)) return "sex-shop-vibradores";
   if (/\b(anel|peniano|dedeira)\b/.test(n)) return "sex-shop-aneis";
   if (/\b(masturbador|egg)\b/.test(n)) return "sex-shop-masturbadores";

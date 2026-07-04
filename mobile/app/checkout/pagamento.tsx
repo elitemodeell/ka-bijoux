@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -42,7 +42,14 @@ export default function PagamentoScreen() {
       });
 
       const order = res.data.data;
+      const checkoutUrl = order.payment?.gatewayData?.checkoutUrl as string | undefined;
+
       reset();
+
+      if (paymentMethod === "CARTAO_CREDITO" && checkoutUrl) {
+        await Linking.openURL(checkoutUrl);
+      }
+
       router.replace(`/checkout/confirmacao?orderId=${order.id}`);
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
@@ -54,7 +61,7 @@ export default function PagamentoScreen() {
 
   const paymentOptions: Array<{ method: PaymentMethod; label: string; desc: string; icon: string }> = [
     { method: "PIX", label: "Pix", desc: "Pagamento instantâneo — copie o código e pague no seu banco", icon: "💠" },
-    { method: "CARTAO_CREDITO", label: "Cartão de Crédito", desc: "Em até 12× sem juros (quando disponível)", icon: "💳" },
+    { method: "CARTAO_CREDITO", label: "Cartão de Crédito", desc: "Pague com cartão via Mercado Pago (abre navegador)", icon: "💳" },
   ];
 
   return (
@@ -105,6 +112,15 @@ export default function PagamentoScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {paymentMethod === "CARTAO_CREDITO" && (
+          <View style={styles.infoBox}>
+            <Ionicons name="information-circle-outline" size={16} color={Colors.info} />
+            <Text style={styles.infoText}>
+              Você será redirecionado para o Mercado Pago para concluir o pagamento com segurança.
+            </Text>
+          </View>
+        )}
 
         {error ? (
           <View style={styles.errorBox}>
@@ -165,9 +181,12 @@ const styles = StyleSheet.create({
   },
   radioActive: { borderColor: Colors.primary },
   radioFill: { width: 12, height: 12, borderRadius: 6, backgroundColor: Colors.primary },
-  errorBox: {
-    backgroundColor: Colors.errorLight, borderRadius: BorderRadius.lg, padding: 12,
+  infoBox: {
+    flexDirection: "row", alignItems: "flex-start", gap: 8,
+    backgroundColor: Colors.infoLight, borderRadius: BorderRadius.lg, padding: 12,
   },
+  infoText: { flex: 1, fontSize: FontSizes.sm, color: Colors.info, lineHeight: 18 },
+  errorBox: { backgroundColor: Colors.errorLight, borderRadius: BorderRadius.lg, padding: 12 },
   errorText: { color: Colors.error, fontSize: FontSizes.sm },
   footer: { padding: Spacing.base, paddingBottom: 24, backgroundColor: Colors.surface, borderTopWidth: 1, borderTopColor: Colors.border },
 });

@@ -1483,6 +1483,7 @@ export function getStaticProduct(slug: string): StaticProduct | null {
 // Subcategory name lookup helper
 const SUBCATEGORY_NAMES: Record<string, string> = {
   "sex-shop-geis-e-cremes": "Géis & Cremes",
+  "sex-shop-proteses": "Próteses Adultas",
   "sex-shop-vibradores": "Vibradores",
   "sex-shop-aneis": "Anéis Penianos",
   "sex-shop-masturbadores": "Masturbadores",
@@ -1497,6 +1498,7 @@ export function getSubcategoryName(subcategorySlug: string): string {
 // Subcategory pathSlug lookup for breadcrumb links
 const SUBCATEGORY_PATH_SLUGS: Record<string, string> = {
   "sex-shop-geis-e-cremes": "geis-e-cremes",
+  "sex-shop-proteses": "proteses-adultas",
   "sex-shop-vibradores": "vibradores",
   "sex-shop-aneis": "aneis-penianos",
   "sex-shop-masturbadores": "masturbadores",

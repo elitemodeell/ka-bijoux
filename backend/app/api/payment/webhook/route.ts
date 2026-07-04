@@ -1,42 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { validateWebhookSignature } from "@/lib/payment";
 import { OrderStatus } from "@prisma/client";
+import { sendPushNotification } from "@/lib/notifications";
 
-// POST /api/payment/webhook — Receber confirmação do gateway
+// POST /api/payment/webhook — Receber confirmação do Mercado Pago
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
-    const signature = req.headers.get("x-signature") ?? "";
-    const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET ?? "";
+    const xSignature = req.headers.get("x-signature") ?? "";
+    const xRequestId = req.headers.get("x-request-id") ?? "";
+    const { searchParams } = new URL(req.url);
+    const dataId = searchParams.get("data.id") ?? "";
 
-    if (secret && !validateWebhookSignature(rawBody, signature, secret)) {
+    const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET ?? "";
+    if (secret && xSignature && !validateSignature(xSignature, xRequestId, dataId, secret)) {
       return NextResponse.json({ error: "Assinatura inválida." }, { status: 401 });
     }
 
     const event = JSON.parse(rawBody);
     const { type, data } = event;
 
-    // Mercado Pago envia: type = "payment", data.id = payment_id
     if (type === "payment" && data?.id) {
-      const gatewayPayment = await fetchMercadoPagoPayment(data.id);
-      if (!gatewayPayment) return NextResponse.json({ ok: true });
+      const mpPayment = await fetchMercadoPagoPayment(data.id);
+      if (!mpPayment) return NextResponse.json({ ok: true });
 
-      const payment = await prisma.payment.findFirst({
-        where: { gatewayId: { contains: data.id.toString() } },
-        include: { order: true },
-      });
-
+      const payment = await findPaymentRecord(data.id, mpPayment.external_reference);
       if (!payment) return NextResponse.json({ ok: true });
 
-      if (gatewayPayment.status === "approved") {
-        // Confirmar pagamento e atualizar pedido
+      if (mpPayment.status === "approved") {
         await prisma.payment.update({
           where: { id: payment.id },
-          data: { status: "PAGO", paidAt: new Date() },
+          data: {
+            status: "PAGO",
+            paidAt: new Date(),
+            gatewayId: String(data.id),
+          },
         });
 
-        await prisma.order.update({
+        const updatedOrder = await prisma.order.update({
           where: { id: payment.orderId },
           data: {
             status: OrderStatus.PAGAMENTO_APROVADO,
@@ -47,9 +49,18 @@ export async function POST(req: NextRequest) {
               },
             },
           },
+          include: { customer: { select: { pushToken: true } } },
         });
 
-        // Baixar estoque
+        if (updatedOrder.customer.pushToken) {
+          sendPushNotification({
+            to: updatedOrder.customer.pushToken,
+            title: "Pagamento confirmado! ✅",
+            body: `Pedido #${updatedOrder.orderNumber} pago. Já estamos preparando seus itens.`,
+            data: { orderId: updatedOrder.id, orderNumber: updatedOrder.orderNumber },
+          });
+        }
+
         const orderItems = await prisma.orderItem.findMany({
           where: { orderId: payment.orderId },
         });
@@ -70,10 +81,20 @@ export async function POST(req: NextRequest) {
             });
           }
         }
-      } else if (gatewayPayment.status === "rejected") {
+      } else if (mpPayment.status === "rejected" || mpPayment.status === "cancelled") {
         await prisma.payment.update({
           where: { id: payment.id },
           data: { status: "RECUSADO" },
+        });
+
+        await prisma.order.update({
+          where: { id: payment.orderId },
+          data: {
+            status: OrderStatus.CANCELADO,
+            statusHistory: {
+              create: { status: OrderStatus.CANCELADO, note: "Pagamento recusado pelo gateway" },
+            },
+          },
         });
       }
     }
@@ -85,11 +106,54 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// Mercado Pago v2 — x-signature: "ts=TIMESTAMP,v1=HMAC"
+// Manifest: "id:DATA_ID;request-id:X_REQUEST_ID;ts:TIMESTAMP;"
+function validateSignature(
+  xSignature: string,
+  xRequestId: string,
+  dataId: string,
+  secret: string
+): boolean {
+  const ts = xSignature.split(",").find((p) => p.startsWith("ts="))?.slice(3) ?? "";
+  const v1 = xSignature.split(",").find((p) => p.startsWith("v1="))?.slice(3) ?? "";
+  if (!ts || !v1) return false;
+
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+  const expected = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+
+  try {
+    return crypto.timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(v1, "hex"));
+  } catch {
+    return false;
+  }
+}
+
 async function fetchMercadoPagoPayment(id: string) {
-  // TODO: buscar do Mercado Pago real
-  // const response = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
-  //   headers: { Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}` }
-  // });
-  // return response.json();
-  return { id, status: "approved" }; // simulação
+  const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+  if (!token) return { id, status: "approved", external_reference: null };
+
+  const res = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) return null;
+  return res.json() as Promise<{ id: string; status: string; external_reference: string | null }>;
+}
+
+async function findPaymentRecord(mpPaymentId: string, externalReference: string | null) {
+  // PIX: gatewayId = MP payment ID direto
+  let payment = await prisma.payment.findFirst({
+    where: { gatewayId: String(mpPaymentId) },
+  });
+
+  // Checkout Pro: gateway armazena preference ID, mas o order tem external_reference = orderNumber
+  if (!payment && externalReference) {
+    const order = await prisma.order.findFirst({
+      where: { orderNumber: externalReference },
+      include: { payment: true },
+    });
+    payment = order?.payment ?? null;
+  }
+
+  return payment;
 }

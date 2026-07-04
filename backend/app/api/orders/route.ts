@@ -14,13 +14,6 @@ const checkoutSchema = z.object({
   paymentMethod: z.nativeEnum(PaymentMethod),
   couponCode: z.string().optional(),
   notes: z.string().optional(),
-  card: z
-    .object({
-      token: z.string(),
-      installments: z.number().int().min(1).max(12),
-      holderName: z.string(),
-    })
-    .optional(),
 });
 
 // POST /api/orders — Cliente finaliza compra
@@ -109,7 +102,6 @@ export async function POST(req: NextRequest) {
       amount: total,
       method: data.paymentMethod,
       customer: { name: customer.name, email: customer.email },
-      card: data.card,
     });
 
     const paymentStatus = paymentResult.success ? "AGUARDANDO" : "RECUSADO";
@@ -123,16 +115,14 @@ export async function POST(req: NextRequest) {
         gatewayId: paymentResult.gatewayId,
         pixCode: paymentResult.pixCode,
         pixExpiration: paymentResult.pixExpiration,
+        gatewayData: paymentResult.checkoutUrl ? { checkoutUrl: paymentResult.checkoutUrl } : undefined,
       },
     });
 
-    // Atualizar status do pedido
-    const newStatus =
-      data.paymentMethod === PaymentMethod.PIX
-        ? OrderStatus.AGUARDANDO_PAGAMENTO
-        : paymentResult.success
-        ? OrderStatus.PAGAMENTO_APROVADO
-        : OrderStatus.AGUARDANDO_PAGAMENTO;
+    // Ambos PIX e Checkout Pro (cartão) são assíncronos — status definido via webhook
+    const newStatus = paymentResult.success
+      ? OrderStatus.AGUARDANDO_PAGAMENTO
+      : OrderStatus.CANCELADO;
 
     await prisma.order.update({
       where: { id: order.id },
@@ -143,11 +133,6 @@ export async function POST(req: NextRequest) {
         },
       },
     });
-
-    // Baixar estoque apenas se pagamento aprovado (cartão)
-    if (newStatus === OrderStatus.PAGAMENTO_APROVADO) {
-      await decreaseStock(cart.items);
-    }
 
     // Limpar carrinho
     await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
