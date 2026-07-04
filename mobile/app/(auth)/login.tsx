@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   View, Text, TextInput, StyleSheet, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView,
+  KeyboardAvoidingView, Platform, ScrollView, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -83,7 +83,7 @@ export default function LoginScreen() {
               />
             </View>
 
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => Alert.alert("Redefinir senha", "Entre em contato com o suporte pelo WhatsApp para redefinir sua senha.")}>
               <Text style={styles.forgotPassword}>Esqueci minha senha</Text>
             </TouchableOpacity>
 

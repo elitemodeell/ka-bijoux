@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { ShippingType } from "@shared/types";
 
 export interface ShippingOption {
   type: string;
