@@ -183,6 +183,8 @@ export function getBlingCatalogProducts(filters: CatalogFilters = {}) {
 
   const products = getCatalogCache().products.filter((product) => {
     if (!product.active || product.stock <= 0) return false;
+    // PAUSADO: categoria adulto fora do ar até auditoria de imagens
+    if (product.category.slug === "sex-shop") return false;
     if (filters.catalogLine && filters.catalogLine !== "all" && product.catalogLine !== filters.catalogLine) return false;
     if (requireImage && !product.image) return false;
     if (filters.categorySlug && product.category.slug !== filters.categorySlug) return false;
