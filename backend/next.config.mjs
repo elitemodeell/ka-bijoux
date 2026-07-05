@@ -13,6 +13,7 @@ const nextConfig = {
     formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [64, 128, 256, 384],
+    minimumCacheTTL: 31536000,
     remotePatterns: [
       { hostname: "placehold.co" },
       { hostname: "res.cloudinary.com" },
@@ -22,6 +23,37 @@ const nextConfig = {
       { hostname: "*.bling.com.br" },
       { hostname: "storage.googleapis.com" },
     ],
+  },
+  async headers() {
+    return [
+      {
+        // Imagens de produto (uploads locais) — imutáveis: só mudam quando o nome muda
+        source: "/uploads/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+      {
+        // Imagens/banners estáticos do site
+        source: "/imagens/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" },
+        ],
+      },
+      {
+        source: "/banners/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" },
+        ],
+      },
+      {
+        // Fontes — imutáveis por fingerprint
+        source: "/_next/static/media/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+    ];
   },
   experimental: {
     serverComponentsExternalPackages: ["@prisma/client", "bcryptjs"],

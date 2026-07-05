@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { getBlingProductCards, type ProductCardProduct } from "@/lib/bling-catalog";
 import { getDiscountPercentage, getInstallmentInfo, getValidPromotionalPrice } from "@/lib/store-rules";
 import ProductVariantImage from "@/components/loja/ProductVariantImage";
 
-export const dynamic = "force-dynamic";
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
 export const metadata: Metadata = {
   title: "Linha Adulto - KA Bijoux",
@@ -154,7 +156,7 @@ export default function SexShopPage({ searchParams = {} }: { searchParams?: Sear
               className={`group relative min-h-[112px] overflow-hidden rounded-[24px] border border-[#dfbdc5] bg-gradient-to-br ${card.gradient} px-4 py-4 shadow-[0_12px_28px_rgba(116,62,80,0.08)] transition-transform hover:-translate-y-0.5 ${card.wide ? "col-span-2" : ""}`}
             >
               <div className="absolute inset-y-0 left-0 w-[45%] opacity-95">
-                <img src={card.image} alt="" loading="lazy" decoding="async" className="h-full w-full object-contain p-3" />
+                <Image src={card.image} alt="" width={160} height={160} loading="lazy" className="h-full w-full object-contain p-3" />
               </div>
               <div className="relative ml-[43%] pr-10">
                 <h3 className="font-playfair text-lg font-bold leading-tight text-[#654067] sm:text-2xl">{card.title}</h3>
@@ -356,9 +358,6 @@ function buildSexShopHref(current: SearchParams, updates: Record<string, string 
   return query ? `/categoria/sex-shop?${query}` : "/categoria/sex-shop";
 }
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-}
 
 type IconComponent = ({ className }: { className?: string }) => JSX.Element;
 

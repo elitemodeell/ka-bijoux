@@ -3,8 +3,6 @@ import { notFound } from "next/navigation";
 import ProductListingPage from "@/components/loja/ProductListingPage";
 import { getCategoryBySlug, getPublicCategoryName, getSubcategoryByPath } from "@/lib/catalog";
 
-export const dynamic = "force-dynamic";
-
 export function generateMetadata({ params }: { params: { slug: string; subcategoria: string } }): Metadata {
   const category = getCategoryBySlug(params.slug);
   const subcategory = getSubcategoryByPath(params.slug, params.subcategoria);

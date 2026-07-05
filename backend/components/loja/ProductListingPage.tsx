@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { Prisma } from "@prisma/client";
 import ProductCard from "@/components/loja/ProductCard";
 import { prisma } from "@/lib/prisma";
@@ -203,7 +204,7 @@ export default async function ProductListingPage({
             {products.length > 0 ? (
               <div key={productListKey} className="grid animate-[kaProductsFade_260ms_ease-out] grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
                 {products.map((product, index) => (
-                  <ProductCard key={product.id} product={product} revealDelay={index * 70} />
+                  <ProductCard key={product.id} product={product} revealDelay={index * 70} priority={index < 4} />
                 ))}
               </div>
             ) : (
@@ -304,17 +305,7 @@ function CategoryChip({ href, active, children }: { href: string; active: boolea
   );
 }
 
-async function getLiveProducts({
-  categorySlug,
-  subcategorySlug,
-  selectedPrice,
-  sort,
-  promo,
-  onlyNew,
-  query,
-  catalogLine,
-  page,
-}: {
+type LiveProductParams = {
   categorySlug?: string;
   subcategorySlug?: string;
   selectedPrice?: string;
@@ -323,52 +314,53 @@ async function getLiveProducts({
   onlyNew: boolean;
   query?: string;
   catalogLine: CatalogLine;
-  page: number;
-}) {
-  const filters: CatalogFilters = {
-    categorySlug,
-    subcategorySlug,
-    selectedPrice,
-    sort,
-    promo,
-    onlyNew,
-    query,
-    catalogLine,
-  };
+};
+
+// Busca e merge do banco + Bling — resultado cacheado 60s por combinação de filtros
+const fetchMergedProducts = unstable_cache(
+  async (params: LiveProductParams): Promise<ProductCardProduct[]> => {
+    const { categorySlug, subcategorySlug, selectedPrice, sort, promo, onlyNew, query, catalogLine } = params;
+    const filters: CatalogFilters = { categorySlug, subcategorySlug, selectedPrice, sort, promo, onlyNew, query, catalogLine };
+
+    const where: Prisma.ProductWhereInput = { active: true };
+    if (categorySlug) where.category = { slug: categorySlug };
+    if (subcategorySlug) where.subcategory = { slug: subcategorySlug };
+    if (selectedPrice) where.price = { equals: Number(selectedPrice) };
+    if (promo) where.promotionalPrice = { not: null };
+    if (onlyNew) where.isNew = true;
+    if (query) {
+      const searchMatches = getSearchMatches(query);
+      where.OR = [
+        { name: { contains: query, mode: "insensitive" } },
+        { description: { contains: query, mode: "insensitive" } },
+        { sku: { contains: query, mode: "insensitive" } },
+        ...searchMatches.categorySlugs.map((slug) => ({ category: { slug } })),
+        ...searchMatches.subcategorySlugs.map((slug) => ({ subcategory: { slug } })),
+      ];
+    }
+
+    const orderBy: Prisma.ProductOrderByWithRelationInput =
+      sort === "price_asc" ? { price: "asc" } : sort === "price_desc" ? { price: "desc" } : { createdAt: "desc" };
+
+    const products = await prisma.product.findMany({ where, include: productInclude, orderBy, take: LISTING_DB_LIMIT });
+    const dbProducts = products
+      .map((product) => mapDbProductToCard(product))
+      .filter((product): product is ProductCardProduct => Boolean(product))
+      .filter((product) => matchesCatalogLine(toProductLineSource(product), catalogLine));
+
+    return mergeWithBlingCatalog(dbProducts, filters);
+  },
+  ["products-listing"],
+  { revalidate: 60, tags: ["products"] }
+);
+
+async function getLiveProducts(params: LiveProductParams & { page: number }) {
+  const { page, ...filterParams } = params;
+  const filters: CatalogFilters = filterParams;
 
   try {
-    return await withTimeout(
-      (async () => {
-        const where: Prisma.ProductWhereInput = { active: true };
-        if (categorySlug) where.category = { slug: categorySlug };
-        if (subcategorySlug) where.subcategory = { slug: subcategorySlug };
-        if (selectedPrice) where.price = { equals: Number(selectedPrice) };
-        if (promo) where.promotionalPrice = { not: null };
-        if (onlyNew) where.isNew = true;
-        if (query) {
-          const searchMatches = getSearchMatches(query);
-          where.OR = [
-            { name: { contains: query, mode: "insensitive" } },
-            { description: { contains: query, mode: "insensitive" } },
-            { sku: { contains: query, mode: "insensitive" } },
-            ...searchMatches.categorySlugs.map((slug) => ({ category: { slug } })),
-            ...searchMatches.subcategorySlugs.map((slug) => ({ subcategory: { slug } })),
-          ];
-        }
-
-        const orderBy: Prisma.ProductOrderByWithRelationInput =
-          sort === "price_asc" ? { price: "asc" } : sort === "price_desc" ? { price: "desc" } : { createdAt: "desc" };
-
-        const products = await prisma.product.findMany({ where, include: productInclude, orderBy, take: LISTING_DB_LIMIT });
-        const dbProducts = products
-          .map((product) => mapDbProductToCard(product))
-          .filter((product): product is ProductCardProduct => Boolean(product))
-          .filter((product) => matchesCatalogLine(toProductLineSource(product), catalogLine));
-
-        return paginateProducts(mergeWithBlingCatalog(dbProducts, filters), page);
-      })(),
-      1000
-    );
+    const allProducts = await withTimeout(fetchMergedProducts(filterParams), 1500);
+    return paginateProducts(allProducts, page);
   } catch {
     return paginateProducts(getBlingProductCards(filters), page);
   }

@@ -4,8 +4,6 @@ import { notFound } from "next/navigation";
 import ProductListingPage from "@/components/loja/ProductListingPage";
 import { getSubcategoryByPath } from "@/lib/catalog";
 
-export const dynamic = "force-dynamic";
-
 export function generateMetadata({ params }: { params: { subcategoria: string } }): Metadata {
   const sub = getSubcategoryByPath("sex-shop", params.subcategoria);
   if (!sub) return { title: "Linha Adulto — KA Bijoux" };

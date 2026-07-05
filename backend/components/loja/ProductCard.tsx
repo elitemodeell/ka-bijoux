@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import Link from "next/link";
 import { addCartItem } from "@/lib/client-cart";
 import { getDiscountPercentage, getInstallmentInfo, getValidPromotionalPrice } from "@/lib/store-rules";
+
+const fmt = (v: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 import ProductVariantImage from "@/components/loja/ProductVariantImage";
 
 type ProductMedia = { url: string; alt?: string | null };
@@ -31,9 +34,10 @@ interface Product {
 interface Props {
   product: Product;
   revealDelay?: number;
+  priority?: boolean;
 }
 
-export default function ProductCard({ product, revealDelay = 0 }: Props) {
+function ProductCard({ product, revealDelay = 0, priority = false }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [imgError, setImgError] = useState(false);
   const [cartAdded, setCartAdded] = useState(false);
@@ -45,9 +49,6 @@ export default function ProductCard({ product, revealDelay = 0 }: Props) {
     manualPercentage: product.discountPercentage ?? product.discount,
   });
   const installment = getInstallmentInfo(promo ?? price);
-
-  const fmt = (v: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
   useEffect(() => {
     const el = cardRef.current;
@@ -111,6 +112,7 @@ export default function ProductCard({ product, revealDelay = 0 }: Props) {
               imageClassName="object-contain p-2.5"
               onError={() => setImgError(true)}
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              priority={priority}
             />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-pink-100">
@@ -235,6 +237,8 @@ function normalizeProduct(product: Product) {
     stock: product.stock ?? 1,
   };
 }
+
+export default memo(ProductCard);
 
 function CartIcon() {
   return (

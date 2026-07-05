@@ -3,8 +3,6 @@ import { notFound } from "next/navigation";
 import ProductListingPage from "@/components/loja/ProductListingPage";
 import { getCategoryBySlug, getPublicCategoryName } from "@/lib/catalog";
 
-export const dynamic = "force-dynamic";
-
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const category = getCategoryBySlug(params.slug);
   if (!category) return { title: "Categoria" };

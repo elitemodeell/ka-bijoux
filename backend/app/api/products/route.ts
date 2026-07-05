@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 import { NextRequest } from "next/server";
 import { Prisma, ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
