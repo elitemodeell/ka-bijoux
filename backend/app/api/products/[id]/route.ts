@@ -4,6 +4,7 @@ import { ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus 
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
+import { isAdultImageUrl } from "@/lib/bling-catalog";
 
 const productInclude = {
   category: true,
@@ -30,7 +31,22 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       take: 6,
     });
 
-    return apiSuccess({ product, related });
+    const isAdultProduct = product.category?.slug === "sex-shop";
+    const filteredProduct = {
+      ...product,
+      images: isAdultProduct
+        ? product.images
+        : product.images.filter((img) => !isAdultImageUrl(img.url)),
+    };
+    const filteredRelated = related.map((r) => {
+      const isAdultRelated = r.category?.slug === "sex-shop";
+      return {
+        ...r,
+        images: isAdultRelated ? r.images : r.images.filter((img) => !isAdultImageUrl(img.url)),
+      };
+    });
+
+    return apiSuccess({ product: filteredProduct, related: filteredRelated });
   } catch {
     return apiError("Erro ao buscar produto.", 500);
   }
