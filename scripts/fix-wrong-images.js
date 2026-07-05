@@ -26,7 +26,7 @@ function isStrongAdultName(name) {
   const n = name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   if (!n) return false;
   if (/\b(infantil|crianca|criancas|anti acne|acne|sobrancelha|glitter|orbis|bolinha de gel|esfoliante|pedras vulcanicas)\b/.test(n)) return false;
-  if (/\b(intimo|intima|lub|lubrificante|calcinha|vibrador|bullet|peniano|masturbador|algema|dedeira|tesao|pocao|garganta profunda|virginite|egg|pau de cavalo|dessensibilizante|excitante|anestesico|beijavel|plug|retardante|tapa mamilo|duelo|dados sexy|jogo do prazer)\b/.test(n)) return true;
+  if (/\b(intimo|intima|lub|lubrificante|calcinha|vibrador|bullet|peniano|masturbador|algema|dedeira|tesao|pocao|garganta profunda|virginite|egg|pau de cavalo|dessensibilizante|excitante|anestesico|beijavel|plug|retardante|tapa mamilo|duelo|dados sexy|jogo do prazer|sexy|cueca|arrastao|tanga|sensations)\b/.test(n)) return true;
   if (/\bgel\b/.test(n) && /\b(bala|ice|hot|excitant|sensual|massageador|comestivel|anestesico|dessensibilizante|anal|intimo|sex|sexy|masculino|sempre virgem|amoxsex|metioulate|rivosex|nabucetao|mete ficha|vamos ser feliz|fofatoba|pirocaxona|pirocadura|janumete|kama sutra|for sexy|bumbum|dando uma|come anel|ku loko|beijo grego)\b/.test(n)) return true;
   if (/\b(nabucetim|nocucedim|napepex|paracetaduro|pererecard|pirocadura|fofatoba|kama sutra|janumete|metioulate|rivosex|amoxsex|virginite|sempre virgem)\b/.test(n)) return true;
   return false;

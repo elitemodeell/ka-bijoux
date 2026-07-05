@@ -16,6 +16,7 @@ import {
   getBlingProductBySlug,
   getBlingProductCards,
   getProductIdentityKeys,
+  isAdultImageUrl,
   type BlingCatalogProduct,
   type ProductCardProduct,
 } from "@/lib/bling-catalog";
@@ -327,7 +328,9 @@ export default async function ProdutoPage({ params }: PageProps) {
     const subcategoryPathSlug = getSubcategoryPathSlug(
       dbProduct.subcategory?.slug ?? ""
     );
-    const dbImages = dbProduct.images.map((image) => image.url);
+    const isAdultProduct = dbProduct.category?.slug === "sex-shop" || blingProduct?.catalogLine === "adult";
+    const rawDbImages = dbProduct.images.map((image) => image.url);
+    const dbImages = isAdultProduct ? rawDbImages : rawDbImages.filter((url) => !isAdultImageUrl(url));
     const galleryImages = dbImages.length ? dbImages : blingProduct?.images.map((image) => image.url) ?? [];
     const contentOverride = getProductContentOverride({
       blingId: blingProduct?.blingId ?? dbProduct.blingId,
@@ -472,7 +475,9 @@ function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | nu
 
   if (bling && (!bling.active || bling.stock <= 0)) return null;
 
-  const dbImage = product.images[0]?.url ?? null;
+  const rawDbImage = product.images[0]?.url ?? null;
+  const isAdultRelated = product.category?.slug === "sex-shop" || bling?.catalogLine === "adult";
+  const dbImage = rawDbImage && !isAdultRelated && isAdultImageUrl(rawDbImage) ? null : rawDbImage;
   const image = dbImage ?? bling?.image ?? null;
   const promotionalPrice = bling
     ? null
