@@ -13,6 +13,7 @@ import {
   getCanonicalProductSlug,
   getBlingProductCards,
   getProductIdentityKeys,
+  isAdultImageUrl,
   type CatalogFilters,
   type ProductCardProduct,
 } from "@/lib/bling-catalog";
@@ -28,6 +29,7 @@ const productInclude = {
   images: { orderBy: { order: "asc" as const }, take: 1 },
   variations: { where: { active: true }, orderBy: { order: "asc" as const } },
 };
+
 
 const API_FETCH_LIMIT = 80;
 
@@ -170,7 +172,9 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof 
 
   if (bling && (!bling.active || bling.stock <= 0)) return null;
 
-  const dbImages = product.images.map((image) => ({ url: image.url, alt: image.alt ?? product.name }));
+  const isAdultCategory = product.category?.slug === "sex-shop";
+  const rawDbImages = product.images.map((image) => ({ url: image.url, alt: image.alt ?? product.name }));
+  const dbImages = isAdultCategory ? rawDbImages : rawDbImages.filter((i) => !isAdultImageUrl(i.url));
   const images = dbImages.length ? dbImages : bling?.images ?? [];
   const promotionalPrice = bling
     ? null

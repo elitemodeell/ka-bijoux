@@ -12,6 +12,7 @@ import {
   getProductCatalogLine,
   isAdultCatalogProduct,
   isAdultProductName,
+  isStrongAdultProductName,
   type CatalogLine,
 } from "@/lib/product-line";
 
@@ -108,6 +109,53 @@ type ImageMatch = {
   source: "BLING" | "MARKETPLACE" | "STATIC" | "NONE";
   reason: string;
 };
+
+// Constrói o conjunto autoritativo de filenames de imagens adultas em dois passes:
+// Passe 1 – produtos sex-shop do catálogo Bling (imageUrl + mapeamento)
+// Passe 2 – arquivos de upload cujo nome (sem SKU) é inequivocamente adulto
+function buildAdultFilenames(): Set<string> {
+  const set = new Set<string>();
+  const imageIdx = buildImageIndex();
+  const rows = Array.isArray(blingRows) ? (blingRows as CsvRow[]) : [];
+
+  for (const rawRow of rows) {
+    const row = normalizeBlingRow(rawRow);
+    if (!row.id || !row.name) continue;
+    const cat = inferCategory(row.name, row.category);
+    if (cat.categorySlug !== "sex-shop") continue;
+
+    const match = resolveImage(row, imageIdx);
+    if (match.url) {
+      const f = match.url.split("/").pop()?.toLowerCase();
+      if (f) set.add(f);
+    }
+    if (row.imageUrl) {
+      const f = row.imageUrl.split("/").pop()?.toLowerCase();
+      if (f) set.add(f);
+    }
+  }
+
+  const files = Array.isArray(uploadImageFiles) ? (uploadImageFiles as string[]) : [];
+  for (const filename of files) {
+    const lf = filename.toLowerCase();
+    if (set.has(lf)) continue;
+    const nameFromFile = lf
+      .replace(/\.[^.]+$/, "")
+      .replace(/-\d{10,}/g, "")
+      .replace(/-/g, " ")
+      .trim();
+    if (isStrongAdultProductName(nameFromFile)) set.add(lf);
+  }
+
+  return set;
+}
+
+const ADULT_FILENAMES = buildAdultFilenames();
+
+export function isAdultImageUrl(url: string): boolean {
+  const filename = url.split("/").pop()?.toLowerCase() ?? "";
+  return ADULT_FILENAMES.has(filename);
+}
 
 type CatalogCache = {
   products: BlingCatalogProduct[];
@@ -402,6 +450,12 @@ function buildCatalogProduct(
     subcategorySlug: category.subcategorySlug,
   });
 
+  // Bloqueia imagens de produtos adultos que foram incorretamente associadas a produtos normais
+  const safeImageMatch: ImageMatch =
+    catalogLine !== "adult" && imageMatch.url && isAdultImageUrl(imageMatch.url)
+      ? { url: "", source: "NONE", reason: "adult_image_blocked_for_normal_product" }
+      : imageMatch;
+
   return {
     id: `bling-${row.id}`,
     blingId: row.id,
@@ -421,9 +475,9 @@ function buildCatalogProduct(
     subcategory: category.subcategorySlug
       ? { name: subcategoryName ?? category.subcategorySlug, slug: category.subcategorySlug }
       : null,
-    image: imageMatch.url || null,
-    images: imageMatch.url ? [{ url: imageMatch.url, alt: row.name }] : [],
-    imageSource: imageMatch.source,
+    image: safeImageMatch.url || null,
+    images: safeImageMatch.url ? [{ url: safeImageMatch.url, alt: row.name }] : [],
+    imageSource: safeImageMatch.source,
     sourceOrder: index,
     priceSource: "BLING",
     searchText,
