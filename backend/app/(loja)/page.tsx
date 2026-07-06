@@ -3,9 +3,9 @@ import Link from "next/link";
 import AnnouncementBar from "@/components/loja/AnnouncementBar";
 import CategoryGrid from "@/components/loja/CategoryGrid";
 import ProductCard from "@/components/loja/ProductCard";
-import ReelsSection from "@/components/loja/ReelsSection";
 import AnimatedSection from "@/components/loja/AnimatedSection";
 import KABijouxStories from "@/components/loja/KABijouxStories";
+import QuickCategoryBar from "@/components/loja/QuickCategoryBar";
 import { getBlingProductCards, type ProductCardProduct } from "@/lib/bling-catalog";
 
 export const metadata: Metadata = {
@@ -145,48 +145,36 @@ export default async function HomePage() {
         <KABijouxStories />
       </section>
 
-      <ReelsSection />
+      {/* ── Categorias rápidas ────────────────────────────── */}
+      <QuickCategoryBar />
 
-      {/* ── Categorias ────────────────────────────────────── */}
-      <section className="bg-white py-12 sm:py-16 md:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <AnimatedSection className="mb-8 text-center sm:mb-12">
-            <h2 className="font-playfair text-4xl font-bold text-gray-900 mb-4">
-              O que você procura?
-            </h2>
-            <div className="ka-divider mx-auto" />
-          </AnimatedSection>
-          <CategoryGrid />
-        </div>
-      </section>
-
-      {/* ── Produtos Em Destaque ───────────────────────────── */}
-      <section className="py-20 bg-ka-subtle">
-        <div className="max-w-7xl mx-auto px-6">
-          <AnimatedSection className="flex items-end justify-between mb-12">
+      {/* ── Ofertas Relâmpago ─────────────────────────────── */}
+      <section className="py-10 bg-ka-subtle sm:py-14">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <AnimatedSection className="flex items-end justify-between mb-6 sm:mb-10">
             <div>
-              <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-3 block">
-                Vitrine
+              <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-2 block">
+                Imperdíveis
               </span>
-              <h2 className="font-playfair text-4xl font-bold text-gray-900">
-                Em Destaque ✨
+              <h2 className="font-playfair text-3xl font-bold text-gray-900 sm:text-4xl">
+                Ofertas Relâmpago 🔥
               </h2>
             </div>
             <Link
-              href="/produtos"
-              className="hidden sm:inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200"
+              href="/produtos?promo=true"
+              className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200 flex-shrink-0"
             >
-              Ver todos →
+              Ver mais →
             </Link>
           </AnimatedSection>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-            {products.map((product: ProductCardProduct, i: number) => (
-              <ProductCard key={product.id} product={product} revealDelay={i * 70} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+            {products.slice(0, 8).map((product: ProductCardProduct, i: number) => (
+              <ProductCard key={product.id} product={product} revealDelay={i * 60} />
             ))}
           </div>
 
-          <div className="text-center mt-10 sm:hidden">
+          <div className="text-center mt-8">
             <Link
               href="/produtos"
               className="ka-btn inline-flex items-center gap-2 bg-gradient-to-r from-pink-500 to-pink-400 text-white font-semibold px-7 py-3.5 rounded-2xl"
@@ -234,27 +222,27 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Mais Vendidos ─────────────────────────────────── */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <AnimatedSection className="flex items-end justify-between mb-12">
+      {/* ── Principais Produtos ───────────────────────────── */}
+      <section className="py-14 bg-white sm:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <AnimatedSection className="flex items-end justify-between mb-8 sm:mb-12">
             <div>
-              <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-3 block">
+              <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-2 block">
                 Top da semana
               </span>
-              <h2 className="font-playfair text-4xl font-bold text-gray-900">
-                Mais Vendidos 🔥
+              <h2 className="font-playfair text-3xl font-bold text-gray-900 sm:text-4xl">
+                Principais Produtos ⭐
               </h2>
             </div>
             <Link
               href="/produtos?ordem=mais-vendidos"
-              className="hidden sm:inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200"
+              className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200 flex-shrink-0"
             >
               Ver todos →
             </Link>
           </AnimatedSection>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
             {products.slice(4, 8).map((product: ProductCardProduct, i: number) => (
               <ProductCard
                 key={`best-${product.id}`}
@@ -266,82 +254,38 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Novidades / Segunda vitrine ────────────────────── */}
-      <section className="py-20 bg-ka-subtle">
-        <div className="max-w-7xl mx-auto px-6">
-          <AnimatedSection className="text-center mb-12">
+      {/* ── O que você procura? (Categorias) ─────────────── */}
+      <section className="bg-white py-12 sm:py-16 md:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <AnimatedSection className="mb-8 text-center sm:mb-12">
+            <h2 className="font-playfair text-4xl font-bold text-gray-900 mb-4">
+              O que você procura?
+            </h2>
+            <div className="ka-divider mx-auto" />
+          </AnimatedSection>
+          <CategoryGrid />
+        </div>
+      </section>
+
+      {/* ── Novidades ─────────────────────────────────────── */}
+      <section className="py-14 bg-ka-subtle sm:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <AnimatedSection className="text-center mb-10">
             <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-3 block">
               Chegando agora
             </span>
-            <h2 className="font-playfair text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="font-playfair text-3xl font-bold text-gray-900 mb-4 sm:text-4xl">
               Novidades 🆕
             </h2>
             <div className="ka-divider mx-auto" />
           </AnimatedSection>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
             {products.slice(0, 4).map((product: ProductCardProduct, i: number) => (
               <ProductCard
                 key={`new-${product.id}`}
                 product={{ ...product, badge: "Novo" }}
                 revealDelay={i * 80}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Escolhidos para você ──────────────────────────── */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <AnimatedSection className="text-center mb-12">
-            <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-3 block">
-              Seleção especial
-            </span>
-            <h2 className="font-playfair text-4xl font-bold text-gray-900 mb-4">
-              Escolhidos para você 💕
-            </h2>
-            <div className="ka-divider mx-auto" />
-          </AnimatedSection>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-            {products.slice(2, 6).map((product: ProductCardProduct, i: number) => (
-              <ProductCard
-                key={`pick-${product.id}`}
-                product={product}
-                revealDelay={i * 80}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Detalhes que encantam ─────────────────────────── */}
-      <section className="py-20 bg-ka-subtle">
-        <div className="max-w-7xl mx-auto px-6">
-          <AnimatedSection className="flex items-end justify-between mb-12">
-            <div>
-              <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-3 block">
-                Peças únicas
-              </span>
-              <h2 className="font-playfair text-4xl font-bold text-gray-900">
-                Detalhes que encantam ✨
-              </h2>
-            </div>
-            <Link
-              href="/produtos"
-              className="hidden sm:inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200"
-            >
-              Ver todos →
-            </Link>
-          </AnimatedSection>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-            {[...products].reverse().slice(0, 4).map((product: ProductCardProduct, i: number) => (
-              <ProductCard
-                key={`detail-${product.id}`}
-                product={{ ...product, badge: product.badge ?? "Novo" }}
-                revealDelay={i * 90}
               />
             ))}
           </div>

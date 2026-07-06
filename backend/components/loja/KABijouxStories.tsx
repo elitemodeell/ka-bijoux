@@ -707,13 +707,13 @@ function MainHeroCarousel() {
   return (
     <div className="px-2 pt-2 pb-0 sm:px-4">
       <div
-        className="relative overflow-hidden rounded-[24px] shadow-[0_8px_32px_rgba(236,72,153,0.18)]"
+        className="relative overflow-hidden rounded-[24px] shadow-[0_8px_32px_rgba(236,72,153,0.18)] aspect-[4/5] sm:aspect-[16/7] lg:aspect-[16/6]"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         <div
-          className="flex aspect-[4/5] transition-transform duration-500 ease-out sm:aspect-[16/7] lg:aspect-[16/6]"
+          className="absolute inset-0 flex transition-transform duration-500 ease-out"
           style={{ transform: `translateX(-${activeSlide * 100}%)` }}
         >
           {heroSlides.map((slide, index) => (
