@@ -175,7 +175,10 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof 
   const isAdultCategory = product.category?.slug === "sex-shop";
   const rawDbImages = product.images.map((image) => ({ url: image.url, alt: image.alt ?? product.name }));
   const dbImages = isAdultCategory ? rawDbImages : rawDbImages.filter((i) => !isAdultImageUrl(i.url));
-  const images = dbImages.length ? dbImages : bling?.images ?? [];
+  const blingFallback = isAdultCategory
+    ? (bling?.images ?? [])
+    : (bling?.images ?? []).filter((i) => !isAdultImageUrl(i.url));
+  const images = dbImages.length ? dbImages : blingFallback;
   const promotionalPrice = bling
     ? null
     : product.promotionalPrice
