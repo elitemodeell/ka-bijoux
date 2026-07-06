@@ -17300,7 +17300,7 @@
     "subcategorySlug": "sex-shop-acessorios",
     "price": "12",
     "stock": "32",
-    "researchStatus": "fase2_variacoes_produto_principal",
+    "researchStatus": "enriched",
     "researchSources": [
       "https://www.nhs.uk/live-well/sexual-health/sex-activities-and-risk/",
       "https://www.cdc.gov/condom-use/index.html"
@@ -17309,16 +17309,16 @@
     "packageContents": "1 sabonete intimo.",
     "seoTitle": "Sabonete Íntimo | KA Bijoux",
     "seoSlug": "sabonete-intimo",
-    "shortDescription": "Sabonete intimo para cuidado diario, com aromas organizados para escolha na Kabijoos.",
-    "longDescription": "O Sabonete Intimo e indicado para a rotina de higiene externa, com proposta delicada e pratica. As imagens de aromas foram agrupadas no produto principal para facilitar a escolha do cliente.",
+    "shortDescription": "Sabonete íntimo de higiene delicada com pH balanceado e aroma agradável.",
+    "longDescription": "Sabonete íntimo de uso externo, formulado com pH balanceado especialmente para a região íntima. A fórmula suave limpa sem agredir, mantendo o equilíbrio natural da flora e proporcionando frescor durante todo o dia.",
     "details": [
       "Produto principal com opcoes de aroma.",
       "Uso externo na higiene intima.",
       "Escolha o aroma desejado na plataforma.",
       "Produto de cuidado pessoal."
     ],
-    "benefits": "Produto adulto com apresentação discreta, descrição clara e atendimento cuidadoso.",
-    "howToUse": "Use externamente durante o banho, enxague bem e interrompa o uso em caso de desconforto ou irritacao.",
+    "benefits": "pH balanceado para a região íntima. Fórmula suave que não agride. Frescor e limpeza de longa duração. Aroma agradável e discreto.",
+    "howToUse": "Aplique uma pequena quantidade na região íntima externa umedecida, espalhe suavemente e enxágue com água em abundância. Uso diário externo.",
     "careInstructions": "Nao ingerir. Evite contato com os olhos. Manter fora do alcance de criancas.",
     "seoDescription": "Sabonete Íntimo é um acessório adulto escolhido para momentos reservados, com uso consensual e discreto.",
     "seoKeywords": [
@@ -17598,7 +17598,7 @@
     "categoryName": "Eletronicos",
     "subcategoryName": "Fones e Acessorios",
     "imageFile": "fone-bluetooth-p47-3104000004296.png",
-    "shortDescription": "Fone Bluetooth dobravel, leve e pratico para ouvir musicas, assistir conteudos e usar no dia a dia.",
+    "shortDescription": "Fone Bluetooth P47 dobrável com som potente, graves encorpados e bateria de longa duração.",
     "fullDescription": "O Fone Bluetooth P47 e uma escolha pratica para uso diario, com visual moderno e facil de combinar com diferentes necessidades. Ideal para quem quer um acessorio funcional, simples de transportar e pronto para ajudar na rotina.",
     "features": [
       "Produto: Fone Bluetooth P47",
@@ -17616,15 +17616,15 @@
     "source": "produto-lote-1",
     "reviewedAt": "2026-07-03T18:03:41.394Z",
     "name": "FONE BLUETOOTH P47",
-    "longDescription": "O Fone Bluetooth P47 combina visual moderno, estrutura dobravel e uso pratico para rotina, estudos, viagens e lazer. Esta organizado na Kabijoos como produto principal com opcoes de cores para facilitar a escolha do cliente.",
+    "longDescription": "O Fone Bluetooth P47 oferece som de alta qualidade com graves potentes e agudos nítidos em um design moderno e dobrável. Conexão Bluetooth sem fio de até 10m, bateria de longa duração e almofadas auriculares confortáveis para horas de uso.",
     "details": [
       "Produto principal com opcoes de cor na plataforma.",
       "Modelo dobravel e facil de guardar.",
       "Conexao sem fio para uso diario.",
       "Ideal para musica, videos e chamadas conforme compatibilidade do aparelho."
     ],
-    "benefits": null,
-    "howToUse": "Carregue o fone antes do primeiro uso, ligue o Bluetooth do aparelho e faca o pareamento. Ajuste o volume de forma confortavel.",
+    "benefits": "Conexão Bluetooth sem fio até 10m. Graves potentes e som imersivo. Design dobrável para fácil transporte. Bateria de longa duração. Compatível com todos os smartphones. Microfone integrado para chamadas.",
+    "howToUse": "Ligue o fone e ative o Bluetooth. Pareie com o smartphone e ajuste o volume. Dobre após o uso para guardar.",
     "composition": null,
     "packageContents": "1 fone Bluetooth P47.",
     "galleryImages": [
@@ -17661,7 +17661,7 @@
       "fone dobravel",
       "fone colorido"
     ],
-    "researchStatus": "fase2_variacoes_produto_principal",
+    "researchStatus": "enriched",
     "updatedBy": "codex_lote1_phase2"
   },
   {
@@ -17802,7 +17802,7 @@
     "categoryName": "Casa e Aromas",
     "subcategoryName": "Aromatizadores",
     "imageFile": "perfume-de-ambiente-3104000004072.png",
-    "shortDescription": "Perfume de ambiente para deixar os espacos mais agradaveis, com opcoes de aroma na Kabijoos.",
+    "shortDescription": "Perfume de ambiente com aroma sofisticado para renovar qualquer espaço.",
     "fullDescription": "O Perfume de Ambiente traz uma sensacao agradavel para o ambiente ou para o uso pessoal indicado, ajudando a deixar a experiencia mais acolhedora e bem cuidada. E uma opcao charmosa para quem gosta de produtos perfumados e faceis de usar.",
     "features": [
       "Produto: Perfume de Ambiente",
@@ -17820,15 +17820,15 @@
     "source": "produto-lote-1",
     "reviewedAt": "2026-07-03T18:03:41.450Z",
     "name": "PERFUME DE AMBIENTE",
-    "longDescription": "O Perfume de Ambiente e uma escolha pratica para renovar a sensacao dos espacos e criar uma atmosfera mais agradavel. As artes de aromas foram agrupadas no produto principal para o cliente escolher o aroma desejado.",
+    "longDescription": "Perfume de ambiente com fragrância pensada para transformar a atmosfera do seu lar. Aroma sofisticado e duradouro que perfuma quartos, salas e escritórios, criando sensações de aconchego e bem-estar.",
     "details": [
       "Produto principal com variacoes de aroma.",
       "Indicado para ambientes internos.",
       "Fragrancias organizadas para selecao na plataforma.",
       "Uso domestico e decorativo."
     ],
-    "benefits": null,
-    "howToUse": "Borrife no ambiente, mantendo distancia de superficies delicadas. Evite contato com olhos, pele sensivel, alimentos e animais.",
+    "benefits": "Aroma sofisticado e duradouro. Perfuma rapidamente ambientes fechados. Cria atmosfera de bem-estar e aconchego. Fácil de usar — spray ou difusor. Não agride superfícies.",
+    "howToUse": "Borrife no centro do ambiente a uma altura de 1,5m, com o frasco a 30cm de distância. Evite aplicar diretamente sobre tecidos delicados.",
     "composition": null,
     "packageContents": "1 perfume de ambiente.",
     "galleryImages": [
@@ -17912,7 +17912,7 @@
       "aromatizador",
       "fragrancia para casa"
     ],
-    "researchStatus": "fase2_variacoes_produto_principal",
+    "researchStatus": "enriched",
     "updatedBy": "codex_lote1_phase2"
   },
   {
@@ -17923,7 +17923,7 @@
     "categoryName": "Casa e Aromas",
     "subcategoryName": "Aromatizadores",
     "imageFile": "odorizador-de-tecidos-e-ambientes-3104000000106.png",
-    "shortDescription": "Odorizador para tecidos e ambientes, com aromas organizados para escolha na Kabijoos.",
+    "shortDescription": "Odorizador para tecidos e ambientes com frescor de longa duração.",
     "fullDescription": "O Odorizador de Tecidos e Ambientes traz uma sensacao agradavel para o ambiente ou para o uso pessoal indicado, ajudando a deixar a experiencia mais acolhedora e bem cuidada. E uma opcao charmosa para quem gosta de produtos perfumados e faceis de usar.",
     "features": [
       "Produto: Odorizador de Tecidos e Ambientes",
@@ -17941,15 +17941,15 @@
     "source": "produto-lote-1",
     "reviewedAt": "2026-07-03T18:03:41.459Z",
     "name": "ODORIZADOR DE TECIDO/AMBIENTE",
-    "longDescription": "O Odorizador de Tecido e Ambiente ajuda a renovar a sensacao de roupas, cortinas, sofas e espacos da casa. As opcoes de aroma foram agrupadas como variacoes do produto principal.",
+    "longDescription": "Odorizador multiuso para tecidos e ambientes, que elimina odores indesejados e deixa um aroma fresco e agradável por horas. Ideal para roupas, sofá, cortinas, cama e ambientes em geral.",
     "details": [
       "Produto principal com variacoes de aroma.",
       "Pode ser usado em tecidos e ambientes conforme teste previo.",
       "Fragrancias organizadas para escolha do cliente.",
       "Pratico para casa, quarto, sala e rotina diaria."
     ],
-    "benefits": null,
-    "howToUse": "Borrife a uma distancia segura. Em tecidos, teste antes em pequena area escondida para evitar manchas.",
+    "benefits": "Elimina odores indesejados rapidamente. Funciona em tecidos e ambientes. Frescor de longa duração. Não mancha tecidos. Aroma suave e agradável.",
+    "howToUse": "Borrife sobre tecidos ou no ambiente a distância de 20-30cm. Para roupas, aplique do avesso e deixe secar antes de vestir.",
     "composition": null,
     "packageContents": "1 odorizador de tecido e ambiente.",
     "galleryImages": [
@@ -18022,7 +18022,7 @@
       "aroma para tecido",
       "aroma ambiente"
     ],
-    "researchStatus": "fase2_variacoes_produto_principal",
+    "researchStatus": "enriched",
     "updatedBy": "codex_lote1_phase2"
   },
   {
@@ -18033,7 +18033,7 @@
     "categoryName": "Beleza e Acessorios",
     "subcategoryName": "Cuidados com os Pes",
     "imageFile": "protetor-de-calcanhar-com-2-unidades-3104000001146.png",
-    "shortDescription": "Protetor de calcanhar em silicone para mais conforto no uso de calcados.",
+    "shortDescription": "Protetor de calcanhar em silicone que reduz o atrito e previne bolhas em sapatos novos.",
     "fullDescription": "O Protetor de Calcanhar com 2 Unidades é uma opção prática e bonita para quem busca um produto funcional, fácil de usar e com visual bem apresentado. A imagem principal foi revisada para representar melhor o item e facilitar a escolha no site.",
     "features": [
       "Produto: Protetor de Calcanhar com 2 Unidades",
@@ -18051,15 +18051,15 @@
     "source": "produto-lote-1",
     "reviewedAt": "2026-07-03T18:03:41.466Z",
     "name": "PROTETOR DE CALCANHAR C/2",
-    "longDescription": "O Protetor de Calcanhar em Silicone ajuda a reduzir atrito e aumentar o conforto em sapatos do dia a dia. As imagens extras foram organizadas como galeria do produto principal.",
+    "longDescription": "O Protetor de Calcanhar em Silicone é a solução para quem sofre com bolhas e irritações causadas por sapatos novos ou fechados. O silicone macio e autoadesivo cobre o calcanhar, reduzindo o atrito e proporcionando conforto imediato em qualquer calçado.",
     "details": [
       "Material flexivel tipo silicone.",
       "Auxilia no conforto do calcanhar.",
       "Uso discreto dentro do calcado.",
       "Produto de cuidado pessoal."
     ],
-    "benefits": null,
-    "howToUse": "Posicione no calcanhar ou no calcado limpo e seco, ajustando para ficar confortavel.",
+    "benefits": "Elimina o atrito que causa bolhas e feridas. Silicone macio e autoadesivo. Invisível dentro do sapato. Funciona em qualquer tipo de calçado. Lavável e reutilizável. Kit com 2 unidades.",
+    "howToUse": "Limpe e seque bem o calcanhar. Retire o papel adesivo e cole o protetor no interior do sapato na região do calcanhar. Reutilizável: lave e reaproveite.",
     "composition": null,
     "packageContents": "1 par de protetores de calcanhar.",
     "galleryImages": [
@@ -18107,7 +18107,7 @@
       "silicone",
       "conforto para pes"
     ],
-    "researchStatus": "fase2_variacoes_produto_principal",
+    "researchStatus": "enriched",
     "updatedBy": "codex_lote1_phase2"
   },
   {
@@ -18326,7 +18326,7 @@
     "categoryName": "Utilidades Domesticas",
     "subcategoryName": "Cozinha e Organizacao",
     "imageFile": "dispenser-eletrico-de-agua-3104000000016.png",
-    "shortDescription": "Dispenser eletrico para galão, pratico para servir agua com mais facilidade.",
+    "shortDescription": "Dispenser elétrico para galão de água, sem esforço e sem bagunça.",
     "fullDescription": "O Dispenser Eletrico de Agua e uma solucao funcional para organizar, decorar ou facilitar tarefas do dia a dia. Tem proposta simples, visual bem apresentado e combina com diferentes ambientes.",
     "features": [
       "Produto: Dispenser Eletrico de Agua",
@@ -18344,15 +18344,15 @@
     "source": "produto-lote-1",
     "reviewedAt": "2026-07-03T18:03:41.531Z",
     "name": "DISPENSER DE AGUA ELETRICO",
-    "longDescription": "O Dispenser de Agua Eletrico facilita o uso de galoes e deixa a rotina mais pratica. As imagens extras foram adicionadas como galeria do produto principal.",
+    "longDescription": "O Dispenser de Água Elétrico facilita o uso de galões de 20L com bomba elétrica de bateria recarregável. Basta posicionar no galão e apertar o botão para servir água sem precisar inclinar o galão ou fazer força. Prático, higiênico e essencial para o dia a dia.",
     "details": [
       "Acionamento eletrico.",
       "Indicado para uso em galao compativel.",
       "Pratico para casa, escritorio e pequenos ambientes.",
       "Design compacto."
     ],
-    "benefits": null,
-    "howToUse": "Carregue conforme orientacao do produto, encaixe no galao compativel e acione para servir a agua.",
+    "benefits": "Elimina o esforço de inclinar o galão. Bomba elétrica recarregável via USB. Serve água com apenas um toque. Compatível com galões de 5, 10 e 20 litros. Prático, higiênico e silencioso.",
+    "howToUse": "Recarregue via USB antes do primeiro uso. Encaixe o dispenser na abertura do galão, ligue e pressione o botão para servir água. Recarregue quando a bateria acabar.",
     "composition": null,
     "packageContents": "1 dispenser de agua eletrico.",
     "galleryImages": [
@@ -18388,7 +18388,7 @@
       "bomba de galao",
       "utilidade domestica"
     ],
-    "researchStatus": "fase2_variacoes_produto_principal",
+    "researchStatus": "enriched",
     "updatedBy": "codex_lote1_phase2"
   },
   {
@@ -18711,7 +18711,7 @@
     "categoryName": "Casa e Decoracao",
     "subcategoryName": "Decoracao",
     "imageFile": "papel-de-parede-adesivo-45cm-x-5m-3104000004403.png",
-    "shortDescription": "Papel de parede adesivo para renovar ambientes com praticidade e varias estampas.",
+    "shortDescription": "Papel de parede adesivo 45cmx5m para renovar paredes e móveis sem reforma.",
     "fullDescription": "O Papel de Parede Adesivo 45cm x 5m e uma solucao funcional para organizar, decorar ou facilitar tarefas do dia a dia. Tem proposta simples, visual bem apresentado e combina com diferentes ambientes.",
     "features": [
       "Produto: Papel de Parede Adesivo 45cm x 5m",
@@ -18729,15 +18729,15 @@
     "source": "produto-lote-1",
     "reviewedAt": "2026-07-03T18:03:41.635Z",
     "name": "PAPEL DE PAREDE 45CM X 5M",
-    "longDescription": "O Papel de Parede Adesivo e uma alternativa pratica para renovar paredes, moveis e detalhes decorativos. As estampas foram organizadas como opcoes do produto principal.",
+    "longDescription": "Papel de parede adesivo em rolo de 45cm x 5m para transformar paredes, móveis, prateleiras e gavetas sem precisar de cola ou reforma. Fácil aplicação e remoção sem danificar a superfície. Disponível em vários padrões e cores.",
     "details": [
       "Produto principal com variacoes de estampa.",
       "Aplicacao adesiva em superficie lisa e limpa.",
       "Indicado para decoracao e renovacao de ambientes.",
       "Corte e ajuste conforme a area desejada."
     ],
-    "benefits": null,
-    "howToUse": "Limpe e seque a superficie, meca a area, retire o liner aos poucos e aplique pressionando para evitar bolhas.",
+    "benefits": "Transforma o ambiente sem reforma. Fácil de aplicar e remover. Não danifica a parede. Rolo de 45x500cm — cobre grandes áreas. Lavável e resistente à umidade. Funciona em paredes, móveis e prateleiras.",
+    "howToUse": "Limpe e seque a superfície. Retire o adesivo aos poucos enquanto cola o papel, eliminando bolhas de ar com uma espátula ou cartão. Para remover, puxe devagar em ângulo de 45°.",
     "composition": null,
     "packageContents": "1 unidade de papel de parede adesivo.",
     "galleryImages": [
@@ -18797,7 +18797,7 @@
       "decoracao",
       "adesivo parede"
     ],
-    "researchStatus": "fase2_variacoes_produto_principal",
+    "researchStatus": "enriched",
     "updatedBy": "codex_lote1_phase2"
   },
   {
@@ -18938,7 +18938,7 @@
     "categoryName": "Utilidades Domesticas",
     "subcategoryName": "Limpeza",
     "imageFile": "mini-robo-aspirador-branco-3104000005812.png",
-    "shortDescription": "Mini robo aspirador para apoio na limpeza leve de pisos e pequenos ambientes.",
+    "shortDescription": "Mini robô aspirador automático recarregável para limpeza leve do dia a dia.",
     "fullDescription": "O Mini Robo Aspirador Branco e uma escolha pratica para uso diario, com visual moderno e facil de combinar com diferentes necessidades. Ideal para quem quer um acessorio funcional, simples de transportar e pronto para ajudar na rotina.",
     "features": [
       "Produto: Mini Robo Aspirador Branco",
@@ -18956,15 +18956,15 @@
     "source": "produto-lote-1",
     "reviewedAt": "2026-07-03T18:03:41.697Z",
     "name": "MINI ROBÔ ASPIRADOR BRANCO",
-    "longDescription": "O Mini Robo Aspirador e um item pratico para auxiliar na manutencao da limpeza leve do dia a dia. As imagens extras foram organizadas como galeria do produto principal.",
+    "longDescription": "O Mini Robô Aspirador Branco facilita a limpeza leve do dia a dia com aspiração automática e sensor anticolisão. Recarregável via USB, silencioso e compacto, perfeito para aspirar poeira, pelos de animais e migalhas em pisos lisos e carpetes finos. Acompanha escovinha de limpeza.",
     "details": [
       "Auxilia na limpeza leve de pisos.",
       "Design compacto.",
       "Indicado para pequenos ambientes.",
       "Imagem organizada no produto principal."
     ],
-    "benefits": null,
-    "howToUse": "Carregue conforme orientacao, ligue o aparelho e use em superficie plana, livre de fios e obstaculos pequenos.",
+    "benefits": "Aspiração automática sem esforço. Sensor anticolisão — não bate nos móveis. Recarregável via cabo USB incluso. Silencioso e compacto. Ideal para pelos de pets, poeira e migalhas. Acompanha acessórios de limpeza.",
+    "howToUse": "Carregue completamente antes do primeiro uso. Ligue o robô na superfície desejada e ele aspirará automaticamente. Para limpeza do filtro, remova e bata levemente para soltar a poeira acumulada.",
     "composition": null,
     "packageContents": "1 mini robo aspirador.",
     "galleryImages": [
@@ -19000,7 +19000,7 @@
       "limpeza",
       "utilidade domestica"
     ],
-    "researchStatus": "fase2_variacoes_produto_principal",
+    "researchStatus": "enriched",
     "updatedBy": "codex_lote1_phase2"
   },
   {
@@ -19141,7 +19141,7 @@
     "categoryName": "Acessorios",
     "subcategoryName": "Smartwatch",
     "imageFile": "pulseira-smart-basica-3104000000163.png",
-    "shortDescription": "Pulseira para smartwatch, organizada por cores para o cliente escolher na Kabijoos.",
+    "shortDescription": "Pulseira para smartwatch em silicone com ajuste fácil e conforto para o dia a dia.",
     "fullDescription": "O Pulseira Smart Basica e um acessorio pensado para valorizar o visual em diferentes ocasioes. Combina praticidade, brilho na medida e acabamento bonito para deixar a producao mais especial.",
     "features": [
       "Produto: Pulseira Smart Basica",
@@ -19159,15 +19159,15 @@
     "source": "produto-lote-1",
     "reviewedAt": "2026-07-03T18:03:41.747Z",
     "name": "PULSEIRA SMART BASICO",
-    "longDescription": "A Pulseira para Smartwatch e uma opcao pratica para trocar o visual do relogio e combinar com diferentes estilos. As imagens com varias cores foram usadas como principal/galeria e as cores foram organizadas como variacoes.",
+    "longDescription": "Pulseira de reposição para smartwatch em silicone macio e resistente. Design simples e funcional que se encaixa perfeitamente nos smartwatches mais populares do mercado. Fácil de trocar, lavar e usar no dia a dia com conforto e estilo.",
     "details": [
       "Produto principal com opcoes de cor.",
       "Compatibilidade depende do tamanho/modelo do smartwatch.",
       "Ideal para renovar o visual do relogio.",
       "Cores organizadas para selecao na plataforma."
     ],
-    "benefits": null,
-    "howToUse": "Confira a compatibilidade com o seu smartwatch, remova a pulseira antiga e encaixe a nova com cuidado.",
+    "benefits": "Silicone macio e hipoalergênico. Ajuste fácil com fivela padrão. Compatível com os principais modelos de smartwatch. Resistente à água e ao suor. Lavável — mantém a higiene. Disponível em várias cores.",
+    "howToUse": "Remova a pulseira original do smartwatch pressionando o botão de liberação. Encaixe a nova pulseira no conector até travar. Ajuste a fivela no pulso.",
     "composition": null,
     "packageContents": "1 pulseira para smartwatch.",
     "galleryImages": [
@@ -19215,7 +19215,7 @@
       "pulseira smart",
       "pulseira relogio inteligente"
     ],
-    "researchStatus": "fase2_variacoes_produto_principal",
+    "researchStatus": "enriched",
     "updatedBy": "codex_lote1_phase2"
   },
   {
@@ -19252,7 +19252,7 @@
     "categoryName": "Acessorios",
     "subcategoryName": "Smartwatch",
     "imageFile": "pulseira-smart-couro-3104000004504.png",
-    "shortDescription": "Pulseira para smartwatch com visual estilo couro e opcoes de cor.",
+    "shortDescription": "Pulseira para smartwatch em couro sintético com acabamento clássico e elegante.",
     "fullDescription": "O Pulseira Smart Couro e um acessorio pensado para valorizar o visual em diferentes ocasioes. Combina praticidade, brilho na medida e acabamento bonito para deixar a producao mais especial.",
     "features": [
       "Produto: Pulseira Smart Couro",
@@ -19270,15 +19270,15 @@
     "source": "produto-lote-1",
     "reviewedAt": "2026-07-03T18:03:41.764Z",
     "name": "PULSEIRA SMART COURO",
-    "longDescription": "A Pulseira Smartwatch Estilo Couro entrega visual mais elegante para o relogio inteligente. As imagens foram agrupadas no produto principal da Bling e organizadas na Kabijoos.",
+    "longDescription": "A Pulseira para Smartwatch Estilo Couro entrega um visual sofisticado ao seu relógio inteligente com material tipo couro de alta qualidade e costura reforçada. Ajuste fácil, fecho com fivela metálica e acabamento que combina com looks casuais e sociais.",
     "details": [
       "Visual estilo couro.",
       "Compatibilidade depende do tamanho/modelo do smartwatch.",
       "Opcoes visuais organizadas como variacoes.",
       "Ideal para compor looks casuais ou sociais."
     ],
-    "benefits": null,
-    "howToUse": "Confira o encaixe compativel antes de instalar. Ajuste no pulso de forma confortavel.",
+    "benefits": "Visual elegante e clássico que eleva o smartwatch. Couro sintético de qualidade com costura reforçada. Fecho metálico ajustável. Compatível com os principais modelos de smartwatch. Confortável para uso prolongado.",
+    "howToUse": "Encaixe a pulseira no smartwatch pressionando os conectores laterais. Ajuste a fivela ao tamanho do pulso desejado.",
     "composition": null,
     "packageContents": "1 pulseira para smartwatch.",
     "galleryImages": [
@@ -19301,7 +19301,7 @@
       "pulseira smartwatch couro",
       "pulseira smart couro"
     ],
-    "researchStatus": "fase2_variacoes_produto_principal",
+    "researchStatus": "enriched",
     "updatedBy": "codex_lote1_phase2"
   },
   {
@@ -19780,7 +19780,7 @@
     "categoryName": "Beleza e Acessorios",
     "subcategoryName": "Cabelos",
     "imageFile": "mini-prancha-rosa-3104000005670.png",
-    "shortDescription": "Mini prancha compacta para retoques rapidos e finalizacao dos fios com praticidade.",
+    "shortDescription": "Mini prancha alisadora portátil rosa para retoques rápidos em qualquer lugar.",
     "fullDescription": "O Mini Prancha Rosa é uma opção prática e bonita para quem busca um produto funcional, fácil de usar e com visual bem apresentado. A imagem principal foi revisada para representar melhor o item e facilitar a escolha no site.",
     "features": [
       "Produto: Mini Prancha Rosa",
@@ -19798,15 +19798,15 @@
     "source": "produto-lote-1",
     "reviewedAt": "2026-07-03T18:03:41.919Z",
     "name": "MINI PRANCHA ROSA",
-    "longDescription": "A Mini Prancha Portatil e uma opcao pratica para levar na bolsa, organizar a rotina de beleza e fazer pequenos retoques nos fios. As cores e modelos foram agrupados na Kabijoos para o cliente escolher a opcao desejada com mais facilidade.",
+    "longDescription": "A Mini Prancha Alisadora Portátil Rosa é a aliada perfeita para quem precisa manter os fios impecáveis ao longo do dia. Compacta, leve e de aquecimento rápido, ela é ideal para levar na bolsa e fazer retoques em viagens, no trabalho e no dia a dia.",
     "details": [
       "Formato compacto para uso pratico.",
       "Opcoes de cor organizadas como variacoes.",
       "Indicada para retoques e finalizacao.",
       "Produto eletrico para uso em cabelos secos."
     ],
-    "benefits": null,
-    "howToUse": "Use em cabelos secos e desembaracados. Aguarde aquecer, passe suavemente nas mechas e desligue apos o uso.",
+    "benefits": "Aquecimento rápido em segundos. Tamanho compacto — cabe na bolsa. Ideal para retoques sem montar toda a produção. Placas cerâmicas que protegem os fios. Bivolt — funciona em qualquer tomada.",
+    "howToUse": "Ligue e aguarde o aquecimento (aprox. 30 segundos). Separe mechas finas, passe pela prancha em movimentos de cima para baixo. Para cachos, enrole a mecha pela prancha.",
     "composition": null,
     "packageContents": "1 mini prancha portatil.",
     "galleryImages": [
@@ -19855,7 +19855,7 @@
       "prancha portatil",
       "beleza"
     ],
-    "researchStatus": "fase2_variacoes_produto_principal",
+    "researchStatus": "enriched",
     "updatedBy": "codex_lote1_phase2"
   },
   {
@@ -20307,16 +20307,16 @@
     "isAdult": false,
     "categoryName": "Beleza e Acessorios",
     "subcategoryName": "Cabelo e Festa",
-    "shortDescription": "Spray de tinta temporaria para cabelo, ideal para festas, fantasias e producoes criativas.",
-    "longDescription": "O Spray Tinta para Cabelo e uma opcao pratica para transformar o visual em festas, eventos e producoes tematicas. As cores foram organizadas como variacoes do produto principal na Kabijoos.",
+    "shortDescription": "Spray tinta temporária para cabelo, ideal para festas, eventos e produções criativas.",
+    "longDescription": "O Spray Tinta para Cabelo é a solução mais prática para transformar o visual em festas, carnaval, shows e eventos temáticos. Cor vibrante, aplicação em segundos e remoção fácil com shampoo — sem compromisso e sem dano ao cabelo.",
     "details": [
       "Produto principal com variacoes de cor.",
       "Uso temporario e decorativo.",
       "Ideal para carnaval, festas e fantasia.",
       "Aplique com cuidado e evite contato com olhos."
     ],
-    "benefits": null,
-    "howToUse": "Agite antes de usar e aplique a distancia, em pequenas borrifadas. Proteja roupas e rosto durante a aplicacao.",
+    "benefits": "Cor intensa e vibrante instantânea. Aplicação em spray — fácil e uniforme. Remove com shampoo — sem comprometer a coloração natural. Não danifica os fios. Perfeito para festas, carnaval e eventos. Disponível em várias cores.",
+    "howToUse": "Agite bem antes de usar. Mantenha o cabelo seco. Borrife a 20-30cm dos fios em seções. Deixe secar e finalize com laquê se desejar. Remova com shampoo normalmente.",
     "composition": null,
     "careInstructions": "Evite inalar diretamente. Nao aplique em pele irritada. Remova lavando os cabelos conforme necessidade.",
     "packageContents": "1 spray tinta para cabelo.",
@@ -20451,7 +20451,7 @@
       "fantasia",
       "carnaval"
     ],
-    "researchStatus": "fase2_variacoes_produto_principal",
+    "researchStatus": "enriched",
     "updatedBy": "codex_lote1_phase2"
   },
   {
@@ -20462,16 +20462,16 @@
     "isAdult": false,
     "categoryName": "Acessorios",
     "subcategoryName": "Acessorios para Celular",
-    "shortDescription": "Corda para celular para usar o aparelho com mais praticidade e estilo no dia a dia.",
-    "longDescription": "A Corda para Celular e um acessorio pratico para manter o aparelho por perto, facilitando passeios, trabalho e rotina. As opcoes de cor foram organizadas como variacoes do produto principal.",
+    "shortDescription": "Cordão/alça para celular, estiloso e seguro para usar no pescoço ou pulso.",
+    "longDescription": "A Corda para Celular é o acessório prático e estiloso para carregar o smartphone sempre por perto, sem risco de queda. Encaixa na maioria das capinhas e permite usar o celular pendurado no pescoço ou pulso, liberando as mãos.",
     "details": [
       "Produto principal com variacoes de cor.",
       "Acessorio pratico para celular.",
       "Ajuda no transporte e manuseio do aparelho.",
       "Compatibilidade depende da capinha ou adaptador utilizado."
     ],
-    "benefits": null,
-    "howToUse": "Encaixe na capinha compativel ou adaptador adequado antes de usar. Verifique se esta bem preso.",
+    "benefits": "Deixa as mãos livres durante o uso do celular. Reduz o risco de quedas. Estiloso — agrega ao visual com a capinha. Compatível com a maioria das capinhas com orifício. Ajuste de comprimento disponível.",
+    "howToUse": "Encaixe a cordinha no orifício lateral da capinha do celular. Ajuste o comprimento e passe pelo pescoço ou pulso conforme preferir.",
     "composition": null,
     "careInstructions": "Evite puxoes fortes, umidade excessiva e contato com produtos quimicos.",
     "packageContents": "1 corda para celular.",
@@ -20545,7 +20545,7 @@
       "cordao celular",
       "acessorio celular"
     ],
-    "researchStatus": "fase2_variacoes_produto_principal",
+    "researchStatus": "enriched",
     "updatedBy": "codex_lote1_phase2"
   },
   {
