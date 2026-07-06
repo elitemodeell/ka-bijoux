@@ -141,7 +141,7 @@ export default async function HomePage() {
       {/* ── Barra de anúncios ──────────────────────────────── */}
       <AnnouncementBar />
 
-      <section className="bg-white pt-24 md:pt-24">
+      <section className="bg-white pt-[84px] sm:pt-24">
         <KABijouxStories />
       </section>
 

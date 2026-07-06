@@ -547,14 +547,12 @@ type StorySpotlightProps = {
 
 function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotlightProps) {
   return (
-    <section className="mx-auto mt-4 max-w-7xl px-4 sm:mt-6 sm:px-6" aria-label="Stories KA Bijoux">
-      <div className="relative overflow-hidden rounded-[28px] border border-pink-100/80 bg-gradient-to-br from-white via-pink-50 to-rose-50 p-4 shadow-[0_18px_54px_rgba(255,77,109,0.14)] sm:p-5 lg:p-6">
+    <section className="mx-auto mt-3 max-w-7xl px-4 sm:mt-6 sm:px-6" aria-label="Stories KA Bijoux">
+      <div className="relative overflow-hidden rounded-[20px] border border-pink-100/80 bg-gradient-to-br from-white via-pink-50 to-rose-50 px-3 py-3 shadow-[0_8px_24px_rgba(255,77,109,0.10)] sm:rounded-[28px] sm:p-5 lg:p-6">
         <span className="ka-story-spotlight-shine" aria-hidden="true" />
-        <span className="pointer-events-none absolute -right-12 -top-16 h-36 w-36 rounded-full bg-[#f9d976]/25 blur-3xl" aria-hidden="true" />
-        <span className="pointer-events-none absolute -bottom-20 left-8 h-40 w-40 rounded-full bg-pink-300/22 blur-3xl" aria-hidden="true" />
 
-        <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:gap-7">
-          <div className="text-center lg:w-[310px] lg:shrink-0 lg:text-left">
+        <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-7">
+          <div className="hidden sm:block text-center lg:w-[310px] lg:shrink-0 lg:text-left">
             <p className="ka-story-attention-label mx-auto inline-flex items-center justify-center rounded-full border border-pink-200/80 bg-white/88 px-4 py-2 text-[12px] font-black uppercase tracking-[0.16em] text-pink-600 shadow-sm backdrop-blur lg:mx-0">
               ✨ VEJA NOSSOS STORIES
             </p>
@@ -707,7 +705,7 @@ function MainHeroCarousel() {
   return (
     <div className="px-2 pt-2 pb-0 sm:px-4">
       <div
-        className="relative overflow-hidden rounded-[24px] shadow-[0_8px_32px_rgba(236,72,153,0.18)] aspect-[4/5] sm:aspect-[16/7] lg:aspect-[16/6]"
+        className="relative overflow-hidden rounded-[24px] shadow-[0_8px_32px_rgba(236,72,153,0.18)] aspect-[16/9] sm:aspect-[16/7] lg:aspect-[16/6]"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
