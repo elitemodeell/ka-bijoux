@@ -531,41 +531,47 @@ export default function KABijouxStories() {
 
 function SexShopMobileAccess() {
   return (
-    <section className="mx-auto mb-3 mt-2 max-w-md px-4 sm:hidden" aria-label="Acesso ao Sex Shop">
+    <section className="mx-auto mb-3 mt-2 w-full px-1.5 sm:hidden" aria-label="Acesso ao Sex Shop">
       <Link
         href="/categoria/sex-shop"
-        className="ka-btn group relative flex min-h-[86px] items-center gap-3 overflow-hidden rounded-[22px] border border-[#f8b4cb]/70 px-3.5 py-3.5 text-white shadow-[0_18px_38px_rgba(190,24,93,0.30)] ring-1 ring-white/35"
+        className="ka-btn group relative flex min-h-[102px] w-full items-center gap-3 overflow-hidden rounded-[30px] border border-white/25 px-4 py-4 text-white shadow-[0_24px_54px_rgba(126,9,49,0.36)] ring-1 ring-pink-100/45"
         style={{
           backgroundImage:
-            "linear-gradient(105deg, rgba(98, 8, 39, 0.96) 0%, rgba(202, 18, 91, 0.92) 48%, rgba(87, 9, 39, 0.90) 100%), url('/banners/ka-intima-hero-premium-mobile.webp')",
+            "radial-gradient(circle at 18% 18%, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 32%), linear-gradient(116deg, rgba(64, 5, 29, 0.98) 0%, rgba(178, 15, 78, 0.96) 42%, rgba(255, 79, 135, 0.72) 62%, rgba(75, 5, 33, 0.96) 100%), url('/banners/ka-intima-hero-premium-mobile.webp')",
           backgroundPosition: "center",
           backgroundSize: "cover",
         }}
         aria-label="Entrar no Sex Shop - Lingerie e produtos especiais"
       >
-        <span className="ka-story-spotlight-shine opacity-60" aria-hidden="true" />
-        <span className="pointer-events-none absolute -right-8 -top-6 h-28 w-28 rounded-full bg-pink-200/20 blur-2xl" aria-hidden="true" />
-        <span className="pointer-events-none absolute bottom-0 left-14 h-px w-36 bg-gradient-to-r from-transparent via-white/55 to-transparent" aria-hidden="true" />
+        <span className="ka-story-spotlight-shine opacity-70" aria-hidden="true" />
+        <span className="pointer-events-none absolute -left-8 -top-10 h-32 w-32 rounded-full bg-white/16 blur-2xl" aria-hidden="true" />
+        <span className="pointer-events-none absolute -right-7 -top-8 h-36 w-36 rounded-full bg-pink-200/24 blur-2xl transition-transform duration-500 group-hover:scale-110" aria-hidden="true" />
+        <span className="pointer-events-none absolute bottom-0 left-10 h-px w-56 bg-gradient-to-r from-transparent via-white/65 to-transparent" aria-hidden="true" />
+        <span className="pointer-events-none absolute -bottom-9 right-10 h-24 w-24 rounded-[38%_62%_48%_52%] border border-white/16 bg-white/8 backdrop-blur-sm" aria-hidden="true" />
+        <span className="pointer-events-none absolute right-[72px] top-4 h-10 w-10 rounded-full border border-white/12 bg-white/10" aria-hidden="true" />
 
-        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/14 shadow-[inset_0_0_18px_rgba(255,255,255,0.18),0_10px_22px_rgba(80,0,32,0.22)] backdrop-blur">
-          <HeartIcon className="h-6 w-6 text-pink-100 drop-shadow-[0_0_8px_rgba(255,255,255,0.65)]" />
+        <span className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-[22px] border border-white/25 bg-white/16 shadow-[inset_0_0_22px_rgba(255,255,255,0.20),0_14px_26px_rgba(70,0,30,0.26)] backdrop-blur-md transition-transform duration-300 group-hover:scale-105">
+          <HeartIcon className="h-7 w-7 text-pink-50 drop-shadow-[0_0_10px_rgba(255,255,255,0.72)]" />
         </span>
 
         <span className="relative min-w-0 flex-1">
-          <span className="block truncate font-playfair text-[22px] font-bold leading-tight tracking-normal text-white drop-shadow-sm">
+          <span className="mb-1 inline-flex rounded-full border border-white/18 bg-white/12 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-pink-50 backdrop-blur">
+            Area especial
+          </span>
+          <span className="block truncate font-playfair text-[25px] font-bold leading-tight tracking-normal text-white drop-shadow-sm">
             Entrar no Sex Shop
           </span>
-          <span className="mt-0.5 block truncate text-[12px] font-semibold leading-snug text-pink-50/95">
+          <span className="mt-1 block truncate text-[13px] font-semibold leading-snug text-pink-50/95">
             Lingerie e produtos especiais
           </span>
         </span>
 
-        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/88 text-[#c9155c] shadow-[0_10px_20px_rgba(80,0,32,0.22)] transition-transform duration-300 group-hover:translate-x-0.5">
-          <ChevronRightIcon className="h-4 w-4" />
+        <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#b30f51] shadow-[0_14px_28px_rgba(80,0,32,0.28)] transition-transform duration-300 group-hover:translate-x-1 group-hover:scale-105">
+          <ChevronRightIcon className="h-5 w-5" />
         </span>
       </Link>
 
-      <div className="mx-auto mt-2 flex max-w-[286px] items-center justify-center overflow-hidden rounded-full border border-pink-100 bg-white/94 text-[#b51655] shadow-[0_10px_24px_rgba(236,72,153,0.12)] backdrop-blur">
+      <div className="mx-auto mt-2 flex max-w-[330px] items-center justify-center overflow-hidden rounded-full border border-pink-100 bg-white/94 text-[#b51655] shadow-[0_12px_28px_rgba(236,72,153,0.13)] backdrop-blur">
         <Link
           href="/categoria/lingerie"
           className="flex min-h-11 flex-1 items-center justify-center gap-1.5 px-3 text-[13px] font-black"

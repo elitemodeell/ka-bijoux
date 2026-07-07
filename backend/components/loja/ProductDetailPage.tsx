@@ -281,8 +281,10 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
         <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_480px] lg:items-start lg:gap-12">
 
           {/* Images */}
-          <div className="min-w-0">
-            <div className="relative aspect-square max-h-[560px] overflow-hidden rounded-3xl border border-pink-100 bg-white shadow-[0_20px_60px_rgba(201,66,119,0.12)]">
+          <div className="-mx-2 min-w-0 sm:mx-0">
+            <div className="group/gallery relative aspect-[4/5] max-h-[680px] overflow-hidden rounded-[32px] border border-pink-100/80 bg-[#17070C] shadow-[0_24px_70px_rgba(23,7,12,0.16)] sm:aspect-square lg:aspect-[4/5]">
+              <span className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-[#17070C]/42 via-transparent to-white/8" aria-hidden="true" />
+              <span className="pointer-events-none absolute -right-16 -top-20 z-10 h-48 w-48 rounded-full bg-pink-200/18 blur-3xl" aria-hidden="true" />
               {imageUrl ? (
                 <ProductVariantImage
                   src={imageUrl}
@@ -292,41 +294,70 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                   priority
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   frameClassName="h-full w-full"
-                  imageClassName="object-contain p-6 sm:p-10"
+                  imageClassName="object-cover transition-transform duration-700 group-hover/gallery:scale-[1.035]"
                 />
               ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-white text-pink-300">
+                <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-[#fff0f6] to-white text-pink-300">
                   <span className="text-6xl font-black">KA</span>
                   <span className="mt-2 text-sm font-bold">KA Bijoux</span>
                 </div>
               )}
 
               {discountPct && (
-                <div className="absolute left-3 top-3 flex flex-col items-center justify-center h-14 w-14 rounded-full bg-gradient-to-br from-rose-600 to-pink-500 text-center shadow-[0_6px_16px_rgba(225,29,72,0.4)] ring-[3px] ring-white/50">
+                <div className="absolute left-3 top-3 z-20 flex h-14 w-14 flex-col items-center justify-center rounded-full bg-gradient-to-br from-rose-600 to-pink-500 text-center shadow-[0_10px_24px_rgba(225,29,72,0.42)] ring-[3px] ring-white/45">
                   <span className="block text-[8px] font-black uppercase leading-none text-rose-100">até</span>
                   <span className="block text-[18px] font-black leading-none text-white">{discountPct}%</span>
                   <span className="block text-[7px] font-black uppercase leading-none text-rose-100">off</span>
                 </div>
               )}
 
-              <button
-                type="button"
-                onClick={() => setFavorited((f) => !f)}
-                className={`absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full border border-white/80 bg-white/95 backdrop-blur shadow-md transition-all duration-200 hover:scale-110 ${favorited ? "text-rose-500" : "text-gray-400 hover:text-rose-400"}`}
-                aria-label="Adicionar aos favoritos"
-              >
-                <HeartIcon filled={favorited} />
-              </button>
+              <div className="absolute right-3 top-3 z-20 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFavorited((f) => !f)}
+                  className={`flex h-11 w-11 items-center justify-center rounded-full border border-white/60 bg-white/85 shadow-[0_12px_28px_rgba(23,7,12,0.16)] backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-white ${favorited ? "text-rose-500" : "text-gray-600 hover:text-rose-500"}`}
+                  aria-label="Adicionar aos favoritos"
+                >
+                  <HeartIcon filled={favorited} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/60 bg-white/85 text-gray-600 shadow-[0_12px_28px_rgba(23,7,12,0.16)] backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-white hover:text-pink-500"
+                  aria-label="Compartilhar produto"
+                >
+                  <ShareIcon />
+                </button>
+              </div>
+
+              {images.length > 1 && (
+                <>
+                  <div className="absolute bottom-3 left-3 z-20 rounded-full border border-white/35 bg-black/35 px-3 py-1.5 text-xs font-black text-white shadow-sm backdrop-blur-md">
+                    {selectedImage + 1} / {images.length}
+                  </div>
+                  <div className="absolute inset-x-0 bottom-4 z-20 flex justify-center gap-1.5">
+                    {images.map((img, i) => (
+                      <button
+                        key={`dot-${img}-${i}`}
+                        type="button"
+                        onClick={() => setSelectedImage(i)}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${selectedImage === i ? "w-6 bg-white shadow-[0_0_12px_rgba(255,255,255,0.65)]" : "w-1.5 bg-white/55"}`}
+                        aria-label={`Ir para foto ${i + 1}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             {images.length > 1 && (
-              <div className="mt-3 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {images.map((img, i) => (
                   <button
                     key={`${img}-${i}`}
                     type="button"
                     onClick={() => setSelectedImage(i)}
-                    className={`h-[72px] w-[72px] shrink-0 overflow-hidden rounded-2xl border-2 bg-white p-1 transition-all duration-200 ${selectedImage === i ? "border-pink-500 shadow-[0_0_0_3px_rgba(236,72,153,0.15)]" : "border-pink-100 hover:border-pink-300"}`}
+                    className={`h-[78px] w-[78px] shrink-0 snap-start overflow-hidden rounded-[18px] border-2 bg-white transition-all duration-300 ${selectedImage === i ? "border-pink-500 shadow-[0_0_0_4px_rgba(236,72,153,0.14)]" : "border-pink-100 opacity-80 hover:border-pink-300 hover:opacity-100"}`}
                     aria-label={`Ver foto ${i + 1}`}
                   >
                     <ProductVariantImage
@@ -334,9 +365,9 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                       alt=""
                       productName={product.name}
                       sku={selectedVariant?.sku ?? product.sku}
-                      sizes="72px"
-                      frameClassName="h-full w-full rounded-xl"
-                      imageClassName="rounded-xl object-contain"
+                      sizes="78px"
+                      frameClassName="h-full w-full rounded-[16px]"
+                      imageClassName="rounded-[16px] object-cover transition-transform duration-300 hover:scale-105"
                     />
                   </button>
                 ))}
@@ -366,14 +397,6 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                         Indisponível
                       </span>
                     )}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <button type="button" onClick={handleShare} className="flex h-9 w-9 items-center justify-center rounded-full border border-pink-100 bg-white/90 text-gray-400 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-pink-200 hover:text-pink-500 hover:shadow-md" aria-label="Compartilhar">
-                      <ShareIcon />
-                    </button>
-                    <button type="button" onClick={() => setFavorited((f) => !f)} className={`flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${favorited ? "border-rose-200 bg-rose-50 text-rose-500" : "border-pink-100 bg-white/90 text-gray-400 hover:border-rose-200 hover:text-rose-400"}`} aria-label="Favoritar">
-                      <HeartIcon filled={favorited} size={15} />
-                    </button>
                   </div>
                 </div>
 
