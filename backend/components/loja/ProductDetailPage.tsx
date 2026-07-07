@@ -108,44 +108,6 @@ const DEMO_REVIEWS = [
   },
 ];
 
-const STORE_BENEFITS = [
-  {
-    icon: "🚚",
-    title: "Enviamos para todo o Brasil",
-    text: "Entrega pelos Correios com acompanhamento do pedido.",
-    tone: "from-pink-600 to-rose-500",
-  },
-  {
-    icon: "🎁",
-    title: "Mimos em todos os pedidos",
-    text: "Um cuidado KA Bijoux para tornar a compra mais especial.",
-    tone: "from-[#17070C] to-[#5b1832]",
-  },
-  {
-    icon: "💳",
-    title: "Pix e Cartão",
-    text: "Escolha a forma de pagamento na finalização.",
-    tone: "from-white to-pink-50",
-  },
-  {
-    icon: "🛍️",
-    title: "Loja física em Itaúna",
-    text: "Retire na loja ou combine atendimento local.",
-    tone: "from-white to-rose-50",
-  },
-  {
-    icon: "🔒",
-    title: "Compra segura",
-    text: "Atendimento cuidadoso do pedido ao recebimento.",
-    tone: "from-white to-pink-50",
-  },
-];
-
-const DELIVERY_OPTIONS = [
-  { icon: <StoreIcon />, title: "Retirada na loja", text: "Separe seu pedido e retire em Itaúna." },
-  { icon: <DeliveryIcon />, title: "Mototáxi", text: "Entrega local em Itaúna por R$ 10,00." },
-  { icon: <TruckIcon />, title: "Correios", text: "Envio para todo o Brasil com rastreio." },
-];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -512,19 +474,10 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                   </button>
                 </div>
 
-                <DeliveryExperience />
-
-                <div className="mt-4 flex items-center justify-center gap-2 rounded-full bg-[#17070C] px-4 py-2.5 text-[11px] font-bold text-white/90">
-                  <ShieldIcon />
-                  <span>Compra segura e atendimento KA Bijoux</span>
-                </div>
               </div>
             </div>
           </aside>
         </section>
-
-        {/* ── Benefits bar ──────────────────────────────────── */}
-        <BenefitShowcase />
 
         {/* ── Adult warning ─────────────────────────────────── */}
         {isAdult && (
@@ -623,95 +576,6 @@ function RelatedSection({ title, products, href }: { title: string; products: Re
   );
 }
 
-function BenefitShowcase() {
-  const [feature, ...items] = STORE_BENEFITS;
-  if (!feature) return null;
-
-  return (
-    <section className="mt-8">
-      <div className="mb-4 flex items-end justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-500">Compra KA Bijoux</p>
-          <h2 className="mt-1 text-xl font-black text-gray-950">Cuidado em cada detalhe</h2>
-        </div>
-        <span className="hidden rounded-full border border-pink-100 bg-white px-4 py-2 text-xs font-bold text-[#7c4256] shadow-sm sm:inline-flex">
-          Atendimento feito com carinho
-        </span>
-      </div>
-
-      <div className="grid gap-3 lg:grid-cols-[1.15fr_1.85fr]">
-        <article className={`group relative overflow-hidden rounded-[28px] bg-gradient-to-br ${feature.tone} p-5 text-white shadow-[0_22px_48px_rgba(219,39,119,0.18)] transition-all duration-300 hover:-translate-y-1`}>
-          <span className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/20 blur-2xl" aria-hidden="true" />
-          <div className="relative flex items-start gap-4">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-3xl shadow-inner transition-transform duration-300 group-hover:scale-105">
-              {feature.icon}
-            </span>
-            <div>
-              <h3 className="text-lg font-black leading-tight">{feature.title}</h3>
-              <p className="mt-2 text-sm font-medium leading-relaxed text-white/90">{feature.text}</p>
-            </div>
-          </div>
-        </article>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          {items.map((item, index) => {
-            const dark = index === 0;
-            return (
-              <article
-                key={item.title}
-                className={`group flex min-h-[116px] items-start gap-3 rounded-[24px] border p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_36px_rgba(23,7,12,0.08)] ${
-                  dark
-                    ? `border-white/10 bg-gradient-to-br ${item.tone} text-white`
-                    : `border-pink-100 bg-gradient-to-br ${item.tone} text-gray-900`
-                }`}
-              >
-                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-2xl transition-transform duration-300 group-hover:scale-110 ${dark ? "bg-white/20" : "bg-pink-50"}`}>
-                  {item.icon}
-                </span>
-                <span>
-                  <span className="block text-sm font-black leading-tight">{item.title}</span>
-                  <span className={`mt-1.5 block text-xs font-semibold leading-relaxed ${dark ? "text-white/80" : "text-gray-500"}`}>
-                    {item.text}
-                  </span>
-                </span>
-              </article>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function DeliveryExperience() {
-  return (
-    <section className="mt-5 overflow-hidden rounded-[24px] border border-pink-100 bg-white shadow-[0_14px_34px_rgba(201,66,119,0.08)]">
-      <div className="flex items-center gap-3 bg-gradient-to-r from-[#17070C] to-[#5d2038] px-4 py-4 text-white">
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/20 text-pink-100">
-          <TruckIcon />
-        </span>
-        <div>
-          <p className="text-sm font-black">Como você recebe</p>
-          <p className="text-xs font-medium text-white/70">Escolha a melhor opção ao finalizar o pedido.</p>
-        </div>
-      </div>
-
-      <div className="divide-y divide-pink-50">
-        {DELIVERY_OPTIONS.map((item, index) => (
-          <div key={item.title} className={`group flex items-center gap-3 px-4 py-3.5 transition-colors duration-300 ${index === 0 ? "bg-pink-50/50" : "bg-white hover:bg-pink-50/50"}`}>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-pink-500 shadow-sm ring-1 ring-pink-100 transition-transform duration-300 group-hover:scale-105">
-              {item.icon}
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-black text-gray-900">{item.title}</span>
-              <span className="mt-0.5 block text-xs font-semibold leading-relaxed text-gray-500">{item.text}</span>
-            </span>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
 
 type ProductInfoTabsProps = {
   activeTab: TabId;
@@ -790,31 +654,14 @@ function ProductInfoTabs({
 
 function DescriptionTab({ description, benefits }: { description: string; benefits: string | null }) {
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <article className="relative overflow-hidden rounded-[30px] border border-pink-100 bg-white p-6 shadow-[0_20px_50px_rgba(23,7,12,0.06)] sm:p-8">
-        <span className="absolute left-0 top-8 h-20 w-1 rounded-r-full bg-pink-500" aria-hidden="true" />
-        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-500">Descrição</p>
-        <h3 className="mt-2 max-w-2xl text-2xl font-black leading-tight text-gray-950">Conheça os detalhes antes de comprar</h3>
-        <div className="mt-5 max-w-3xl">
-          <RichText value={description} />
+    <div className="rounded-[30px] border border-pink-100 bg-white p-6 shadow-[0_20px_50px_rgba(23,7,12,0.06)] sm:p-8">
+      <RichText value={description} />
+      {benefits && (
+        <div className="mt-5 border-t border-pink-100 pt-5">
+          <p className="mb-3 text-sm font-black text-gray-900">Benefícios</p>
+          <RichText value={benefits} />
         </div>
-      </article>
-
-      <aside className="rounded-[30px] bg-[#17070C] p-6 text-white shadow-[0_20px_50px_rgba(23,7,12,0.16)]">
-        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-500/20 text-2xl">✨</span>
-        <h3 className="mt-4 text-lg font-black">Detalhe KA Bijoux</h3>
-        <p className="mt-2 text-sm font-medium leading-relaxed text-white/74">
-          A página reúne as informações importantes para comprar com tranquilidade, sem termos técnicos desnecessários.
-        </p>
-        {benefits && (
-          <div className="mt-5 rounded-2xl border border-white/10 bg-white/10 p-4">
-            <p className="text-sm font-black text-pink-100">O que esse produto entrega</p>
-            <div className="mt-2 text-white/80">
-              <RichText value={benefits} tone="dark" />
-            </div>
-          </div>
-        )}
-      </aside>
+      )}
     </div>
   );
 }
@@ -1049,18 +896,6 @@ function SparkleIcon() {
       <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z" />
     </svg>
   );
-}
-
-function StoreIcon() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10h18" /><path d="M5 10v10h14V10" /><path d="m4 4-1 6h18l-1-6Z" /><path d="M9 20v-6h6v6" /></svg>;
-}
-
-function DeliveryIcon() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /><path d="M5 18H3V8h11l3 4h3v6h-1" /><path d="M9 18h6" /></svg>;
-}
-
-function TruckIcon() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7h11v10H3z" /><path d="M14 10h4l3 3v4h-7" /><circle cx="7" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>;
 }
 
 function ShieldIcon() {
