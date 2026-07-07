@@ -80,7 +80,7 @@ const FAQS = [
   },
   {
     q: "Quais são as formas de pagamento?",
-    a: "PIX, cartão de crédito e outras formas de pagamento disponíveis na finalização do pedido.",
+    a: "PIX, cartão de crédito e outras formas de pagamento oferecidas na finalização do pedido.",
   },
 ];
 
@@ -108,13 +108,43 @@ const DEMO_REVIEWS = [
   },
 ];
 
-const BENEFITS = [
-  { icon: "🚚", label: "Entrega rápida" },
-  { icon: "🎁", label: "Mimos exclusivos" },
-  { icon: "💳", label: "Pix e cartão" },
-  { icon: "🛡️", label: "Compra segura" },
-  { icon: "⭐", label: "Curadoria selecionada" },
-  { icon: "📦", label: "Embalagem especial" },
+const STORE_BENEFITS = [
+  {
+    icon: "🚚",
+    title: "Enviamos para todo o Brasil",
+    text: "Entrega pelos Correios com acompanhamento do pedido.",
+    tone: "from-pink-600 to-rose-500",
+  },
+  {
+    icon: "🎁",
+    title: "Mimos em todos os pedidos",
+    text: "Um cuidado KA Bijoux para tornar a compra mais especial.",
+    tone: "from-[#17070C] to-[#5b1832]",
+  },
+  {
+    icon: "💳",
+    title: "Pix e Cartão",
+    text: "Escolha a forma de pagamento na finalização.",
+    tone: "from-white to-pink-50",
+  },
+  {
+    icon: "🛍️",
+    title: "Loja física em Itaúna",
+    text: "Retire na loja ou combine atendimento local.",
+    tone: "from-white to-rose-50",
+  },
+  {
+    icon: "🔒",
+    title: "Compra segura",
+    text: "Atendimento cuidadoso do pedido ao recebimento.",
+    tone: "from-white to-pink-50",
+  },
+];
+
+const DELIVERY_OPTIONS = [
+  { icon: <StoreIcon />, title: "Retirada na loja", text: "Separe seu pedido e retire em Itaúna." },
+  { icon: <DeliveryIcon />, title: "Mototáxi", text: "Entrega local em Itaúna por R$ 10,00." },
+  { icon: <TruckIcon />, title: "Correios", text: "Envio para todo o Brasil com rastreio." },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -160,7 +190,6 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const categorySlug = product.categorySlug ?? "produtos";
   const productSubcategoryName = product.subcategoryName ?? subcategoryName;
   const available = product.stock > 0;
-  const lowStock = product.stock > 0 && product.stock <= 5;
   const isAdult = product.isAdult ?? isAdultProduct(categorySlug, product.subcategorySlug, productSubcategoryName, product.name);
   const publicBrand = publicText(product.brand);
 
@@ -183,7 +212,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
     ...(product.details ?? []),
     ...(isAdult ? ["Uso: Adulto (18+)"] : []),
     ...(purpose ? [`Finalidade: ${purpose}`] : []),
-    ...(optionLabels.length ? [`Opções disponíveis: ${optionLabels.join(", ")}`] : []),
+    ...(optionLabels.length ? [`Opções do produto: ${optionLabels.join(", ")}`] : []),
   ].map(publicText).filter((v): v is string => Boolean(v))));
 
   const relatedProducts = useMemo(() => {
@@ -283,7 +312,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
               <button
                 type="button"
                 onClick={() => setFavorited((f) => !f)}
-                className={`absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full border border-white/80 bg-white/92 backdrop-blur shadow-md transition-all duration-200 hover:scale-110 ${favorited ? "text-rose-500" : "text-gray-400 hover:text-rose-400"}`}
+                className={`absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full border border-white/80 bg-white/95 backdrop-blur shadow-md transition-all duration-200 hover:scale-110 ${favorited ? "text-rose-500" : "text-gray-400 hover:text-rose-400"}`}
                 aria-label="Adicionar aos favoritos"
               >
                 <HeartIcon filled={favorited} />
@@ -317,198 +346,162 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
 
           {/* Purchase Panel */}
           <aside className="lg:sticky lg:top-[90px]">
-            <div className="rounded-3xl border border-pink-100/80 bg-white/95 p-5 shadow-[0_20px_54px_rgba(201,66,119,0.10)] backdrop-blur-sm sm:p-6">
+            <div className="relative overflow-hidden rounded-[30px] border border-pink-100/80 bg-white p-5 shadow-[0_24px_70px_rgba(23,7,12,0.10)] backdrop-blur-sm sm:p-6">
+              <span className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-pink-200/30 blur-3xl" aria-hidden="true" />
+              <span className="pointer-events-none absolute bottom-0 left-0 h-28 w-full bg-gradient-to-t from-pink-50/70 to-transparent" aria-hidden="true" />
 
-              {/* Brand + actions */}
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="rounded-full bg-pink-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-pink-600">KA Bijoux</span>
-                  {isAdult && <span className="rounded-full bg-[#5d2038] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">18+</span>}
-                </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button type="button" onClick={handleShare} className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-100 bg-white text-gray-400 hover:text-pink-500 hover:border-pink-200 transition-colors" aria-label="Compartilhar">
-                    <ShareIcon />
-                  </button>
-                  <button type="button" onClick={() => setFavorited((f) => !f)} className={`flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${favorited ? "border-rose-200 bg-rose-50 text-rose-500" : "border-gray-100 bg-white text-gray-400 hover:text-rose-400 hover:border-rose-200"}`} aria-label="Favoritar">
-                    <HeartIcon filled={favorited} size={14} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Product name */}
-              <h1 className="text-2xl font-black leading-tight tracking-tight text-gray-950 sm:text-[28px] line-clamp-3">
-                {product.name}
-              </h1>
-
-              {/* Rating row */}
-              <div className="mt-2.5 flex items-center gap-2">
-                <div className="flex gap-0.5">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <span key={s} className={`text-sm ${s <= 4 ? "text-amber-400" : "text-amber-200"}`}>★</span>
-                  ))}
-                </div>
-                <span className="text-sm font-bold text-gray-700">4.8</span>
-                <span className="text-xs text-gray-400">• 247 avaliações</span>
-                <button onClick={() => setActiveTab("Avaliações")} className="text-xs text-pink-500 font-semibold hover:underline ml-auto">
-                  Ver todas →
-                </button>
-              </div>
-
-              {/* Price block */}
-              <div className="mt-4 rounded-2xl bg-gradient-to-br from-pink-50 to-rose-50 border border-pink-100 p-4">
-                {promotionalPrice ? (
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="text-sm font-semibold text-gray-400 line-through">{fmt(product.price)}</span>
-                    {discountPct && (
-                      <span className="rounded-lg bg-rose-500 px-2 py-0.5 text-xs font-black text-white">{discountPct}% OFF</span>
+              <div className="relative">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-[#17070C] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_10px_22px_rgba(23,7,12,0.14)]">KA Bijoux</span>
+                    {isAdult && <span className="rounded-full border border-[#5d2038]/20 bg-[#5d2038] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white">18+</span>}
+                    {available ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700">
+                        <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                        Em estoque
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-red-100 bg-red-50 px-3 py-1 text-[11px] font-black text-red-600">
+                        <span className="h-2 w-2 rounded-full bg-red-500" />
+                        Indisponível
+                      </span>
                     )}
                   </div>
-                ) : null}
-
-                <div className="flex items-baseline gap-2">
-                  <span className="text-[32px] font-black text-pink-600 leading-none">{fmt(finalPrice)}</span>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <button type="button" onClick={handleShare} className="flex h-9 w-9 items-center justify-center rounded-full border border-pink-100 bg-white/90 text-gray-400 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-pink-200 hover:text-pink-500 hover:shadow-md" aria-label="Compartilhar">
+                      <ShareIcon />
+                    </button>
+                    <button type="button" onClick={() => setFavorited((f) => !f)} className={`flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${favorited ? "border-rose-200 bg-rose-50 text-rose-500" : "border-pink-100 bg-white/90 text-gray-400 hover:border-rose-200 hover:text-rose-400"}`} aria-label="Favoritar">
+                      <HeartIcon filled={favorited} size={15} />
+                    </button>
+                  </div>
                 </div>
 
-                {installment.eligible && installment.installmentValue && (
-                  <p className="mt-1 text-sm font-semibold text-gray-500">
-                    ou {installment.label} de {fmt(installment.installmentValue)} sem juros
-                  </p>
-                )}
+                <h1 className="text-2xl font-black leading-tight tracking-tight text-gray-950 sm:text-[29px]">
+                  {product.name}
+                </h1>
 
-              </div>
-
-              {/* Stock badge */}
-              <div className="mt-3 flex items-center gap-2">
-                {available ? (
-                  lowStock ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-bold text-amber-700">
-                      <span className="h-2 w-2 rounded-full bg-amber-500" />
-                      Apenas {product.stock} restantes!
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-700">
-                      <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-                      Em estoque
-                    </span>
-                  )
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs font-bold text-red-600">
-                    <span className="h-2 w-2 rounded-full bg-red-500" />
-                    Sem estoque
-                  </span>
-                )}
-                {shared && (
-                  <span className="text-xs text-emerald-600 font-semibold animate-pulse">Link copiado!</span>
-                )}
-              </div>
-
-              {/* Variations */}
-              {variations.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-[11px] font-black uppercase tracking-[0.15em] text-gray-500 mb-2.5">Opções disponíveis</p>
-                  <div className="flex flex-wrap gap-2">
-                    {variations.map((v, i) => (
-                      <button
-                        key={`${v.slug}-${i}`}
-                        type="button"
-                        onClick={() => setSelectedVariation(i)}
-                        disabled={v.active === false}
-                        className={`min-h-10 rounded-xl border px-3 text-xs font-bold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-40 ${selectedVariation === i ? "border-pink-500 bg-pink-50 text-pink-600 shadow-[0_0_0_3px_rgba(236,72,153,0.12)]" : "border-gray-200 bg-white text-gray-700 hover:border-pink-300"}`}
-                      >
-                        {v.color && (
-                          <span className="mr-1.5 inline-block h-3 w-3 rounded-full border border-black/10 align-middle" style={{ backgroundColor: v.color }} />
-                        )}
-                        {v.label}
-                      </button>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div className="flex gap-0.5">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <span key={s} className={`text-sm ${s <= 4 ? "text-amber-400" : "text-amber-200"}`}>★</span>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* Quantity + stock info */}
-              <div className="mt-4 flex items-center gap-4">
-                <div className="inline-flex h-11 items-center gap-0 overflow-hidden rounded-full border border-pink-200 bg-white shadow-sm">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="flex h-11 w-11 items-center justify-center text-xl font-black text-pink-600 hover:bg-pink-50 active:bg-pink-100 transition-colors"
-                    aria-label="Diminuir quantidade"
-                  >
-                    −
-                  </button>
-                  <span className="min-w-[2.5rem] text-center text-base font-black text-gray-900">{quantity}</span>
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((q) => Math.min(Math.max(product.stock, 1), q + 1))}
-                    className="flex h-11 w-11 items-center justify-center text-xl font-black text-pink-600 hover:bg-pink-50 active:bg-pink-100 transition-colors"
-                    aria-label="Aumentar quantidade"
-                  >
-                    +
+                  <span className="text-sm font-black text-gray-800">4.8</span>
+                  <span className="text-xs font-semibold text-gray-400">247 avaliações</span>
+                  <button onClick={() => setActiveTab("Avaliações")} className="ml-auto text-xs font-black text-pink-500 transition-colors hover:text-[#17070C]">
+                    Ver avaliações
                   </button>
                 </div>
-                <span className="text-xs font-semibold text-gray-400">
-                  {available ? `${product.stock} disponíveis` : "Sem estoque"}
-                </span>
-              </div>
 
-              {/* CTA Buttons */}
-              <div className="mt-5 hidden flex-col gap-2.5 md:flex">
-                <button
-                  type="button"
-                  onClick={handleBuyNow}
-                  disabled={!available}
-                  className="w-full min-h-[52px] rounded-2xl bg-gradient-to-r from-pink-600 to-pink-400 text-white font-black text-base shadow-[0_12px_28px_rgba(219,39,119,0.25)] transition-all duration-200 hover:shadow-[0_16px_36px_rgba(219,39,119,0.35)] hover:from-pink-500 hover:to-pink-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Comprar agora
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddToCart}
-                  disabled={!available}
-                  className="w-full min-h-[48px] rounded-2xl border-2 border-pink-400 bg-white text-pink-600 font-black text-base transition-all duration-200 hover:bg-pink-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {cartAdded ? "✓ Adicionado ao carrinho!" : "Adicionar ao carrinho"}
-                </button>
-              </div>
-
-              {/* Delivery cards */}
-              <div className="mt-5 grid grid-cols-2 gap-2">
-                {[
-                  { icon: <StoreIcon />, title: "Retirada na loja", text: "Disponível em estoque" },
-                  { icon: <DeliveryIcon />, title: "Mototáxi", text: "Itaúna – R$ 10,00" },
-                  { icon: <TruckIcon />, title: "Correios", text: "Para todo o Brasil" },
-                  { icon: <ShieldIcon />, title: "Compra segura", text: "Pagamento protegido" },
-                ].map((item) => (
-                  <div key={item.title} className="flex flex-col items-center gap-1.5 rounded-xl border border-pink-100 bg-pink-50/40 p-3 text-center">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-pink-500 shadow-sm">
-                      {item.icon}
-                    </span>
-                    <span className="text-[11px] font-black text-gray-800 leading-tight">{item.title}</span>
-                    <span className="text-[10px] text-gray-500 leading-tight">{item.text}</span>
+                <div className="mt-5 overflow-hidden rounded-[24px] border border-pink-100 bg-gradient-to-br from-white via-[#fff7fa] to-[#fff0f6] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8b5c6d]">Preço KA Bijoux</p>
+                  {promotionalPrice ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-400 line-through">{fmt(product.price)}</span>
+                      {discountPct && (
+                        <span className="rounded-full bg-[#17070C] px-2.5 py-1 text-[11px] font-black text-white">{discountPct}% OFF</span>
+                      )}
+                    </div>
+                  ) : null}
+                  <div className="mt-1 flex items-end gap-2">
+                    <span className="text-[34px] font-black leading-none text-pink-600">{fmt(finalPrice)}</span>
                   </div>
-                ))}
-              </div>
+                  {installment.eligible && installment.installmentValue && (
+                    <p className="mt-2 text-sm font-semibold text-gray-600">
+                      {installment.label} de {fmt(installment.installmentValue)} sem juros
+                    </p>
+                  )}
+                </div>
 
-              {/* Security footer */}
-              <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-gray-400">
-                <ShieldIcon />
-                <span>Compra 100% segura · Embalagem discreta</span>
+                {shared && (
+                  <p className="mt-3 text-xs font-bold text-emerald-600">Link do produto copiado.</p>
+                )}
+
+                {variations.length > 0 && (
+                  <div className="mt-5">
+                    <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-gray-500">Escolha a opção</p>
+                    <div className="flex flex-wrap gap-2">
+                      {variations.map((v, i) => (
+                        <button
+                          key={`${v.slug}-${i}`}
+                          type="button"
+                          onClick={() => setSelectedVariation(i)}
+                          disabled={v.active === false}
+                          className={`min-h-11 rounded-2xl border px-3.5 text-xs font-black transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-40 ${
+                            selectedVariation === i
+                              ? "border-pink-500 bg-pink-50 text-pink-600 shadow-[0_0_0_4px_rgba(236,72,153,0.10)]"
+                              : "border-gray-200 bg-white text-gray-700 hover:-translate-y-0.5 hover:border-pink-300 hover:shadow-sm"
+                          }`}
+                        >
+                          {v.color && (
+                            <span className="mr-1.5 inline-block h-3 w-3 rounded-full border border-black/10 align-middle" style={{ backgroundColor: v.color }} />
+                          )}
+                          {v.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-pink-100 bg-white/80 p-3">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-gray-400">Quantidade</p>
+                    <p className="mt-0.5 text-xs font-semibold text-gray-500">Escolha quantos itens adicionar.</p>
+                  </div>
+                  <div className="inline-flex h-11 items-center overflow-hidden rounded-full border border-pink-200 bg-white shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      className="flex h-11 w-11 items-center justify-center text-xl font-black text-pink-600 transition-colors hover:bg-pink-50 active:bg-pink-100"
+                      aria-label="Diminuir quantidade"
+                    >
+                      -
+                    </button>
+                    <span className="min-w-[2.5rem] text-center text-base font-black text-gray-900">{quantity}</span>
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((q) => Math.min(Math.max(product.stock, 1), q + 1))}
+                      className="flex h-11 w-11 items-center justify-center text-xl font-black text-pink-600 transition-colors hover:bg-pink-50 active:bg-pink-100"
+                      aria-label="Aumentar quantidade"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-5 hidden flex-col gap-2.5 md:flex">
+                  <button
+                    type="button"
+                    onClick={handleBuyNow}
+                    disabled={!available}
+                    className="ka-btn w-full min-h-[54px] rounded-2xl bg-gradient-to-r from-pink-600 to-pink-400 text-base font-black text-white shadow-[0_14px_34px_rgba(219,39,119,0.26)] transition-all duration-300 hover:shadow-[0_18px_42px_rgba(219,39,119,0.34)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Comprar agora
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddToCart}
+                    disabled={!available}
+                    className="min-h-[50px] w-full rounded-2xl border-2 border-pink-400 bg-white text-base font-black text-pink-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-pink-50 hover:shadow-[0_12px_26px_rgba(236,72,153,0.14)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {cartAdded ? "Adicionado ao carrinho" : "Adicionar ao carrinho"}
+                  </button>
+                </div>
+
+                <DeliveryExperience />
+
+                <div className="mt-4 flex items-center justify-center gap-2 rounded-full bg-[#17070C] px-4 py-2.5 text-[11px] font-bold text-white/90">
+                  <ShieldIcon />
+                  <span>Compra segura e atendimento KA Bijoux</span>
+                </div>
               </div>
             </div>
           </aside>
         </section>
 
         {/* ── Benefits bar ──────────────────────────────────── */}
-        <div className="mt-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex gap-3 pb-1 sm:justify-center">
-            {BENEFITS.map((b) => (
-              <div key={b.label} className="flex shrink-0 items-center gap-2 rounded-full border border-pink-100 bg-white px-4 py-2 shadow-sm">
-                <span className="text-base">{b.icon}</span>
-                <span className="whitespace-nowrap text-xs font-bold text-gray-700">{b.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <BenefitShowcase />
 
         {/* ── Adult warning ─────────────────────────────────── */}
         {isAdult && (
@@ -521,194 +514,20 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
           </div>
         )}
 
-        {/* ── Product Info Tabs ──────────────────────────────── */}
-        <section className="mt-8">
-          <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex border-b border-gray-200">
-              {TAB_IDS.map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={`relative whitespace-nowrap px-4 py-3 text-sm font-bold transition-colors duration-200 ${
-                    activeTab === tab
-                      ? "text-pink-600 after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:rounded-t-full after:bg-pink-500"
-                      : "text-gray-500 hover:text-gray-800"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-pink-100 bg-white p-5 shadow-sm sm:p-6 min-h-[180px] transition-all duration-300">
-
-            {activeTab === "Descrição" && (
-              <div className="space-y-4">
-                <RichText value={description} />
-                {benefits && (
-                  <div>
-                    <p className="text-sm font-black text-gray-900 mb-2">Benefícios</p>
-                    <RichText value={benefits} />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === "Características" && (
-              <div>
-                <table className="w-full text-sm">
-                  <tbody>
-                    {characteristicItems.map((item, i) => {
-                      const [label, ...rest] = item.split(": ");
-                      const value = rest.join(": ");
-                      return (
-                        <tr key={item} className={i % 2 === 0 ? "bg-pink-50/40" : "bg-white"}>
-                          <td className="rounded-l-xl px-4 py-3 font-bold text-gray-500 w-2/5">{label}</td>
-                          <td className="rounded-r-xl px-4 py-3 font-semibold text-gray-800">{value}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {activeTab === "Modo de Uso" && (
-              <div className="space-y-5">
-                {howToUse && (
-                  <div>
-                    <p className="text-sm font-black text-gray-900 mb-2">Modo de uso</p>
-                    <RichText value={howToUse} />
-                  </div>
-                )}
-                {material && (
-                  <div>
-                    <p className="text-sm font-black text-gray-900 mb-2">Material e composição</p>
-                    <RichText value={material} />
-                  </div>
-                )}
-                {care && (
-                  <div>
-                    <p className="text-sm font-black text-gray-900 mb-2">Cuidados</p>
-                    <RichText value={care} />
-                  </div>
-                )}
-                {packageContents && (
-                  <div>
-                    <p className="text-sm font-black text-gray-900 mb-2">Conteúdo da embalagem</p>
-                    <RichText value={packageContents} />
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm font-black text-gray-900 mb-2">Higienização</p>
-                  <ul className="space-y-2">
-                    {(isAdult
-                      ? [
-                          "Higienize antes e após o uso, quando aplicável.",
-                          "Use água e sabão neutro somente se a embalagem permitir.",
-                          "Não mergulhe componentes elétricos ou recarregáveis.",
-                          "Seque completamente e guarde em local limpo e seco.",
-                        ]
-                      : ["Siga as instruções de limpeza indicadas na embalagem do fabricante."]
-                    ).map((item) => (
-                      <li key={item} className="flex gap-2.5 text-sm text-gray-600">
-                        <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-pink-400" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "Avaliações" && (
-              <div>
-                {/* Rating summary */}
-                <div className="flex items-start gap-6 pb-6 mb-6 border-b border-pink-100">
-                  <div className="text-center">
-                    <div className="text-5xl font-black text-gray-900">4.8</div>
-                    <div className="flex justify-center gap-0.5 mt-1">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <span key={s} className={`text-lg ${s <= 4 ? "text-amber-400" : "text-amber-200"}`}>★</span>
-                      ))}
-                    </div>
-                    <div className="text-xs text-gray-400 mt-1">247 avaliações</div>
-                  </div>
-                  <div className="flex-1 space-y-1.5">
-                    {[5, 4, 3, 2, 1].map((star) => {
-                      const pct = star === 5 ? 72 : star === 4 ? 20 : star === 3 ? 5 : star === 2 ? 2 : 1;
-                      return (
-                        <div key={star} className="flex items-center gap-2 text-xs">
-                          <span className="w-3 text-right font-semibold text-gray-500">{star}</span>
-                          <span className="text-amber-400">★</span>
-                          <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-                            <div className="h-full rounded-full bg-amber-400" style={{ width: `${pct}%` }} />
-                          </div>
-                          <span className="w-6 text-gray-400 font-semibold">{pct}%</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Review cards */}
-                <div className="space-y-4">
-                  {DEMO_REVIEWS.map((review) => (
-                    <div key={review.name} className="rounded-2xl border border-pink-100 bg-pink-50/30 p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-pink-600 text-xs font-black text-white">
-                          {review.avatar}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 flex-wrap">
-                            <p className="text-sm font-bold text-gray-800">{review.name}</p>
-                            <span className="text-xs text-gray-400">{review.date}</span>
-                          </div>
-                          <div className="flex gap-0.5 mt-0.5">
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <span key={s} className={`text-xs ${s <= review.rating ? "text-amber-400" : "text-gray-200"}`}>★</span>
-                            ))}
-                          </div>
-                          <p className="mt-1.5 text-sm text-gray-600 leading-relaxed">{review.text}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <button type="button" className="mt-5 w-full rounded-2xl border border-pink-200 bg-white py-3 text-sm font-bold text-pink-600 hover:bg-pink-50 transition-colors">
-                  Ver todas as avaliações →
-                </button>
-              </div>
-            )}
-
-            {activeTab === "Perguntas" && (
-              <div className="space-y-2">
-                {FAQS.map((faq, i) => (
-                  <div key={i} className="rounded-2xl border border-pink-100 overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                      className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left"
-                    >
-                      <span className="text-sm font-bold text-gray-800">{faq.q}</span>
-                      <span className={`flex-shrink-0 text-pink-500 transition-transform duration-200 ${openFaq === i ? "rotate-180" : ""}`}>
-                        <ChevronIcon />
-                      </span>
-                    </button>
-                    {openFaq === i && (
-                      <div className="border-t border-pink-50 px-4 pb-4 pt-3">
-                        <p className="text-sm leading-relaxed text-gray-600">{faq.a}</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
+        <ProductInfoTabs
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          description={description}
+          benefits={benefits}
+          characteristicItems={characteristicItems}
+          howToUse={howToUse}
+          material={material}
+          care={care}
+          packageContents={packageContents}
+          isAdult={isAdult}
+          openFaq={openFaq}
+          onFaqToggle={(index) => setOpenFaq(openFaq === index ? null : index)}
+        />
 
         {/* ── Related products ──────────────────────────────── */}
         {relatedProducts.length > 0 && (
@@ -781,12 +600,392 @@ function RelatedSection({ title, products, href }: { title: string; products: Re
   );
 }
 
-function RichText({ value }: { value: string }) {
+function BenefitShowcase() {
+  const [feature, ...items] = STORE_BENEFITS;
+  if (!feature) return null;
+
+  return (
+    <section className="mt-8">
+      <div className="mb-4 flex items-end justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-500">Compra KA Bijoux</p>
+          <h2 className="mt-1 text-xl font-black text-gray-950">Cuidado em cada detalhe</h2>
+        </div>
+        <span className="hidden rounded-full border border-pink-100 bg-white px-4 py-2 text-xs font-bold text-[#7c4256] shadow-sm sm:inline-flex">
+          Atendimento feito com carinho
+        </span>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-[1.15fr_1.85fr]">
+        <article className={`group relative overflow-hidden rounded-[28px] bg-gradient-to-br ${feature.tone} p-5 text-white shadow-[0_22px_48px_rgba(219,39,119,0.18)] transition-all duration-300 hover:-translate-y-1`}>
+          <span className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/20 blur-2xl" aria-hidden="true" />
+          <div className="relative flex items-start gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-3xl shadow-inner transition-transform duration-300 group-hover:scale-105">
+              {feature.icon}
+            </span>
+            <div>
+              <h3 className="text-lg font-black leading-tight">{feature.title}</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-white/90">{feature.text}</p>
+            </div>
+          </div>
+        </article>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {items.map((item, index) => {
+            const dark = index === 0;
+            return (
+              <article
+                key={item.title}
+                className={`group flex min-h-[116px] items-start gap-3 rounded-[24px] border p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_36px_rgba(23,7,12,0.08)] ${
+                  dark
+                    ? `border-white/10 bg-gradient-to-br ${item.tone} text-white`
+                    : `border-pink-100 bg-gradient-to-br ${item.tone} text-gray-900`
+                }`}
+              >
+                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-2xl transition-transform duration-300 group-hover:scale-110 ${dark ? "bg-white/20" : "bg-pink-50"}`}>
+                  {item.icon}
+                </span>
+                <span>
+                  <span className="block text-sm font-black leading-tight">{item.title}</span>
+                  <span className={`mt-1.5 block text-xs font-semibold leading-relaxed ${dark ? "text-white/80" : "text-gray-500"}`}>
+                    {item.text}
+                  </span>
+                </span>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DeliveryExperience() {
+  return (
+    <section className="mt-5 overflow-hidden rounded-[24px] border border-pink-100 bg-white shadow-[0_14px_34px_rgba(201,66,119,0.08)]">
+      <div className="flex items-center gap-3 bg-gradient-to-r from-[#17070C] to-[#5d2038] px-4 py-4 text-white">
+        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/20 text-pink-100">
+          <TruckIcon />
+        </span>
+        <div>
+          <p className="text-sm font-black">Como você recebe</p>
+          <p className="text-xs font-medium text-white/70">Escolha a melhor opção ao finalizar o pedido.</p>
+        </div>
+      </div>
+
+      <div className="divide-y divide-pink-50">
+        {DELIVERY_OPTIONS.map((item, index) => (
+          <div key={item.title} className={`group flex items-center gap-3 px-4 py-3.5 transition-colors duration-300 ${index === 0 ? "bg-pink-50/50" : "bg-white hover:bg-pink-50/50"}`}>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-pink-500 shadow-sm ring-1 ring-pink-100 transition-transform duration-300 group-hover:scale-105">
+              {item.icon}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-black text-gray-900">{item.title}</span>
+              <span className="mt-0.5 block text-xs font-semibold leading-relaxed text-gray-500">{item.text}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+type ProductInfoTabsProps = {
+  activeTab: TabId;
+  onChange: (tab: TabId) => void;
+  description: string;
+  benefits: string | null;
+  characteristicItems: string[];
+  howToUse: string | null;
+  material: string | null;
+  care: string | null;
+  packageContents: string | null;
+  isAdult: boolean;
+  openFaq: number | null;
+  onFaqToggle: (index: number) => void;
+};
+
+function ProductInfoTabs({
+  activeTab,
+  onChange,
+  description,
+  benefits,
+  characteristicItems,
+  howToUse,
+  material,
+  care,
+  packageContents,
+  isAdult,
+  openFaq,
+  onFaqToggle,
+}: ProductInfoTabsProps) {
+  return (
+    <section className="mt-10">
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-500">Detalhes do produto</p>
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-gray-950">Tudo para escolher melhor</h2>
+        </div>
+        <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
+          <div className="flex min-w-max rounded-full border border-pink-100 bg-white p-1 shadow-[0_14px_30px_rgba(201,66,119,0.08)]">
+            {TAB_IDS.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => onChange(tab)}
+                className={`relative min-h-10 whitespace-nowrap rounded-full px-4 text-sm font-black transition-all duration-300 ${
+                  activeTab === tab
+                    ? "bg-[#17070C] text-white shadow-[0_10px_22px_rgba(23,7,12,0.18)]"
+                    : "text-gray-500 hover:bg-pink-50 hover:text-pink-600"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div key={activeTab} className="ka-fade-up">
+        {activeTab === "Descrição" && <DescriptionTab description={description} benefits={benefits} />}
+        {activeTab === "Características" && <CharacteristicsTab items={characteristicItems} />}
+        {activeTab === "Modo de Uso" && (
+          <UsageTab
+            howToUse={howToUse}
+            material={material}
+            care={care}
+            packageContents={packageContents}
+            isAdult={isAdult}
+          />
+        )}
+        {activeTab === "Avaliações" && <ReviewsTab />}
+        {activeTab === "Perguntas" && <QuestionsTab openFaq={openFaq} onFaqToggle={onFaqToggle} />}
+      </div>
+    </section>
+  );
+}
+
+function DescriptionTab({ description, benefits }: { description: string; benefits: string | null }) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <article className="relative overflow-hidden rounded-[30px] border border-pink-100 bg-white p-6 shadow-[0_20px_50px_rgba(23,7,12,0.06)] sm:p-8">
+        <span className="absolute left-0 top-8 h-20 w-1 rounded-r-full bg-pink-500" aria-hidden="true" />
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-500">Descrição</p>
+        <h3 className="mt-2 max-w-2xl text-2xl font-black leading-tight text-gray-950">Conheça os detalhes antes de comprar</h3>
+        <div className="mt-5 max-w-3xl">
+          <RichText value={description} />
+        </div>
+      </article>
+
+      <aside className="rounded-[30px] bg-[#17070C] p-6 text-white shadow-[0_20px_50px_rgba(23,7,12,0.16)]">
+        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-500/20 text-2xl">✨</span>
+        <h3 className="mt-4 text-lg font-black">Detalhe KA Bijoux</h3>
+        <p className="mt-2 text-sm font-medium leading-relaxed text-white/74">
+          A página reúne as informações importantes para comprar com tranquilidade, sem termos técnicos desnecessários.
+        </p>
+        {benefits && (
+          <div className="mt-5 rounded-2xl border border-white/10 bg-white/10 p-4">
+            <p className="text-sm font-black text-pink-100">O que esse produto entrega</p>
+            <div className="mt-2 text-white/80">
+              <RichText value={benefits} tone="dark" />
+            </div>
+          </div>
+        )}
+      </aside>
+    </div>
+  );
+}
+
+function CharacteristicsTab({ items }: { items: string[] }) {
+  return (
+    <div className="rounded-[30px] border border-pink-100 bg-white p-5 shadow-[0_20px_50px_rgba(23,7,12,0.06)] sm:p-6">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-500">Características</p>
+          <h3 className="mt-1 text-xl font-black text-gray-950">Informações principais</h3>
+        </div>
+        <span className="hidden h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-pink-500 sm:flex">
+          <SparkleIcon />
+        </span>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {items.map((item) => {
+          const [label, ...rest] = item.split(": ");
+          const value = rest.join(": ") || item;
+          return (
+            <div key={item} className="group rounded-2xl border border-pink-100 bg-gradient-to-br from-white to-pink-50/50 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-pink-200 hover:shadow-sm">
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-pink-500">{rest.length ? label : "Detalhe"}</p>
+              <p className="mt-1.5 text-sm font-bold leading-relaxed text-gray-800">{value}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function UsageTab({
+  howToUse,
+  material,
+  care,
+  packageContents,
+  isAdult,
+}: {
+  howToUse: string | null;
+  material: string | null;
+  care: string | null;
+  packageContents: string | null;
+  isAdult: boolean;
+}) {
+  const cleaningTips = isAdult
+    ? [
+        "Higienize antes e após o uso, quando aplicável.",
+        "Use água e sabão neutro somente se a embalagem permitir.",
+        "Não mergulhe componentes elétricos ou recarregáveis.",
+        "Seque completamente e guarde em local limpo e seco.",
+      ]
+    : ["Siga as instruções de limpeza indicadas na embalagem do fabricante."];
+  const sections = [
+    { title: "Modo de uso", value: howToUse },
+    { title: "Material e composição", value: material },
+    { title: "Cuidados", value: care },
+    { title: "Conteúdo da embalagem", value: packageContents },
+  ].filter((section): section is { title: string; value: string } => Boolean(section.value));
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="rounded-[30px] bg-gradient-to-br from-[#17070C] to-[#5d2038] p-6 text-white shadow-[0_20px_50px_rgba(23,7,12,0.18)]">
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-100">Cuidados</p>
+        <h3 className="mt-2 text-2xl font-black">Use com atenção</h3>
+        <ul className="mt-5 space-y-3">
+          {cleaningTips.map((item, index) => (
+            <li key={item} className="flex gap-3 text-sm font-medium leading-relaxed text-white/80">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-black text-pink-100">{index + 1}</span>
+              {item}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="space-y-3">
+        {sections.map((section, index) => (
+          <article key={section.title} className="group rounded-[24px] border border-pink-100 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(23,7,12,0.08)]">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-sm font-black text-pink-600">{index + 1}</span>
+              <div>
+                <h3 className="text-sm font-black text-gray-950">{section.title}</h3>
+                <div className="mt-2">
+                  <RichText value={section.value} />
+                </div>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ReviewsTab() {
+  return (
+    <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
+      <aside className="rounded-[30px] bg-gradient-to-br from-white to-pink-50 p-6 shadow-[0_20px_50px_rgba(23,7,12,0.06)] ring-1 ring-pink-100">
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-500">Avaliações</p>
+        <div className="mt-4 flex items-end gap-3">
+          <span className="text-6xl font-black leading-none text-gray-950">4.8</span>
+          <span className="pb-2 text-sm font-bold text-gray-500">de 5</span>
+        </div>
+        <div className="mt-3 flex gap-0.5">
+          {[1, 2, 3, 4, 5].map((s) => (
+            <span key={s} className={`text-xl ${s <= 4 ? "text-amber-400" : "text-amber-200"}`}>★</span>
+          ))}
+        </div>
+        <p className="mt-2 text-sm font-semibold text-gray-500">247 clientes avaliaram a experiência.</p>
+        <div className="mt-5 space-y-2">
+          {[5, 4, 3, 2, 1].map((star) => {
+            const pct = star === 5 ? 72 : star === 4 ? 20 : star === 3 ? 5 : star === 2 ? 2 : 1;
+            return (
+              <div key={star} className="flex items-center gap-2 text-xs">
+                <span className="w-3 text-right font-black text-gray-500">{star}</span>
+                <span className="text-amber-400">★</span>
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-white">
+                  <div className="h-full rounded-full bg-gradient-to-r from-amber-300 to-amber-500" style={{ width: `${pct}%` }} />
+                </div>
+                <span className="w-7 font-bold text-gray-400">{pct}%</span>
+              </div>
+            );
+          })}
+        </div>
+      </aside>
+
+      <div className="space-y-3">
+        {DEMO_REVIEWS.map((review, index) => (
+          <article key={review.name} className={`group rounded-[26px] border p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(23,7,12,0.08)] ${
+            index === 1 ? "border-[#17070C]/10 bg-[#17070C] text-white" : "border-pink-100 bg-white text-gray-900"
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-400 to-pink-600 text-xs font-black text-white shadow-sm">
+                {review.avatar}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-black">{review.name}</p>
+                  <span className={`text-xs font-semibold ${index === 1 ? "text-white/60" : "text-gray-400"}`}>{review.date}</span>
+                </div>
+                <div className="mt-1 flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <span key={s} className={`text-xs ${s <= review.rating ? "text-amber-400" : index === 1 ? "text-white/20" : "text-gray-200"}`}>★</span>
+                  ))}
+                </div>
+                <p className={`mt-2 text-sm leading-relaxed ${index === 1 ? "text-white/75" : "text-gray-600"}`}>{review.text}</p>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QuestionsTab({ openFaq, onFaqToggle }: { openFaq: number | null; onFaqToggle: (index: number) => void }) {
+  return (
+    <div className="rounded-[30px] border border-pink-100 bg-white p-4 shadow-[0_20px_50px_rgba(23,7,12,0.06)] sm:p-5">
+      <div className="mb-4 px-1">
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-500">Dúvidas frequentes</p>
+        <h3 className="mt-1 text-xl font-black text-gray-950">Respostas rápidas para comprar tranquila</h3>
+      </div>
+      <div className="space-y-3">
+        {FAQS.map((faq, i) => (
+          <div key={faq.q} className="overflow-hidden rounded-2xl border border-pink-100 bg-gradient-to-br from-white to-pink-50/40">
+            <button
+              type="button"
+              onClick={() => onFaqToggle(i)}
+              className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition-colors hover:bg-white/70"
+            >
+              <span className="text-sm font-black text-gray-900">{faq.q}</span>
+              <span className={`shrink-0 text-pink-500 transition-transform duration-300 ${openFaq === i ? "rotate-180" : ""}`}>
+                <ChevronIcon />
+              </span>
+            </button>
+            {openFaq === i && (
+              <div className="border-t border-pink-100/70 px-4 pb-4 pt-3">
+                <p className="text-sm leading-relaxed text-gray-600">{faq.a}</p>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RichText({ value, tone = "light" }: { value: string; tone?: "light" | "dark" }) {
   const paragraphs = value.split(/\n{2,}|\r?\n/).map((p) => p.trim()).filter(Boolean);
   return (
     <div className="space-y-3">
       {paragraphs.map((p, i) => (
-        <p key={i} className="text-sm leading-7 text-gray-600">{p}</p>
+        <p key={i} className={`text-[15px] leading-8 ${tone === "dark" ? "text-white/80" : "text-gray-600"}`}>{p}</p>
       ))}
     </div>
   );
@@ -816,6 +1015,15 @@ function ChevronIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function SparkleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z" />
+      <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z" />
     </svg>
   );
 }
@@ -874,7 +1082,7 @@ function buildCommercialDescription(product: ProductDetailProduct, categoryName:
   if (isAdult) {
     return `${name} faz parte da Linha Adulto KA Bijoux, uma seleção pensada para proporcionar novas experiências com discrição e cuidado. O produto é enviado em embalagem reservada e deve ser utilizado conforme as orientações presentes no rótulo ou na embalagem.`;
   }
-  return `${name} foi selecionado para a vitrine KA Bijoux por sua proposta prática e versátil. Uma escolha pensada para complementar sua rotina com o estilo e o cuidado presentes em toda a nossa curadoria.`;
+  return `${name} foi escolhido para a vitrine KA Bijoux por sua proposta prática e versátil. Uma opção para complementar sua rotina com estilo, cuidado e facilidade.`;
 }
 
 function publicText(value?: string | null) {
