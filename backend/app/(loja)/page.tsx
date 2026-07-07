@@ -65,8 +65,19 @@ async function getHomeSections(): Promise<HomeSections> {
   const fallback = getBlingProductCards({ limit: 100, requireImage: true, catalogLine: "normal" });
   const productPool = mergeUniqueProducts(main, featured, newProds, promo, fallback);
 
+  const usedIds = new Set<string>();
+
   function takeSection(priority: ProductCardProduct[], n: number): ProductCardProduct[] {
-    return mergeUniqueProducts(priority, productPool).slice(0, n);
+    const ordered = mergeUniqueProducts(priority, productPool);
+    const result: ProductCardProduct[] = [];
+    for (const p of ordered) {
+      if (!usedIds.has(p.id)) {
+        result.push(p);
+        usedIds.add(p.id);
+        if (result.length >= n) break;
+      }
+    }
+    return result;
   }
 
   const ofertasRelampago  = takeSection([...promo, ...featured, ...main], 8);
@@ -120,7 +131,7 @@ export default async function HomePage() {
             </Link>
           </AnimatedSection>
 
-          <ProductRail
+          <SectionGrid
             products={ofertasRelampago}
             badgeOptions={["Imperd\u00edvel", "Oferta", "Super Pre\u00e7o", "Corre!", "Aproveite"]}
             keyPrefix="offer"
@@ -128,7 +139,6 @@ export default async function HomePage() {
             badgeSeal
             moreHref="/produtos"
             moreLabel="Ver todos os produtos"
-            desktopClassName="sm:grid-cols-4 lg:grid-cols-4 sm:gap-5"
           />
         </div>
       </section>
@@ -154,14 +164,13 @@ export default async function HomePage() {
             </Link>
           </AnimatedSection>
 
-          <ProductRail
+          <SectionGrid
             products={achadinhos}
             badgeOptions={["Achadinho", "Queridinho", "Boa Compra", "Favorito"]}
             keyPrefix="ach"
             revealStep={55}
             moreHref="/produtos"
             moreLabel="Ver mais achadinhos"
-            desktopClassName="sm:grid-cols-4 lg:grid-cols-4 sm:gap-5"
           />
         </div>
       </section>
@@ -223,14 +232,13 @@ export default async function HomePage() {
             </Link>
           </AnimatedSection>
 
-          <ProductRail
+          <SectionGrid
             products={novidades}
             badgeOptions={["Novo", "Lan\u00e7amento", "Chegou"]}
             keyPrefix="new"
             revealStep={60}
             moreHref="/produtos?new=true"
             moreLabel="Ver todas as novidades"
-            desktopClassName="sm:grid-cols-4 lg:grid-cols-4 sm:gap-5"
           />
         </div>
       </section>
@@ -255,14 +263,13 @@ export default async function HomePage() {
             </Link>
           </AnimatedSection>
 
-          <ProductRail
+          <SectionGrid
             products={maisVendidos}
             badgeOptions={["Mais Vendido", "Destaque", "Top"]}
             keyPrefix="mv"
             revealStep={45}
             moreHref="/produtos?ordem=mais-vendidos"
             moreLabel="Ver mais vendidos"
-            desktopClassName="sm:grid-cols-4 lg:grid-cols-5 sm:gap-5"
           />
         </div>
       </section>
@@ -287,14 +294,13 @@ export default async function HomePage() {
             </Link>
           </AnimatedSection>
 
-          <ProductRail
+          <SectionGrid
             products={paraPresentes}
             badgeOptions={["Presente", "Especial", "Mimo", "Encanto"]}
             keyPrefix="gft"
             revealStep={60}
             moreHref="/produtos"
-            moreLabel="Ver opcoes para presentear"
-            desktopClassName="sm:grid-cols-4 lg:grid-cols-4 sm:gap-5"
+            moreLabel="Ver opções para presentear"
           />
         </div>
       </section>
@@ -319,14 +325,13 @@ export default async function HomePage() {
             </Link>
           </AnimatedSection>
 
-          <ProductRail
+          <SectionGrid
             products={belezaAutocuidado}
             badgeOptions={["Top Beleza", "Favorita", "Tend\u00eancia"]}
             keyPrefix="bel"
             revealStep={60}
             moreHref="/produtos"
             moreLabel="Ver mais beleza"
-            desktopClassName="sm:grid-cols-4 lg:grid-cols-4 sm:gap-5"
           />
         </div>
       </section>
@@ -388,7 +393,7 @@ export default async function HomePage() {
   );
 }
 
-type ProductRailProps = {
+type SectionGridProps = {
   products: ProductCardProduct[];
   badgeOptions: string[];
   moreHref: string;
@@ -397,10 +402,9 @@ type ProductRailProps = {
   revealStep?: number;
   priorityCount?: number;
   badgeSeal?: boolean;
-  desktopClassName?: string;
 };
 
-function ProductRail({
+function SectionGrid({
   products,
   badgeOptions,
   moreHref,
@@ -409,26 +413,21 @@ function ProductRail({
   revealStep = 50,
   priorityCount = 0,
   badgeSeal = false,
-  desktopClassName = "sm:grid-cols-4 lg:grid-cols-4 sm:gap-5",
-}: ProductRailProps) {
+}: SectionGridProps) {
   return (
     <>
-      <div className={`-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 [scrollbar-width:none] sm:mx-0 sm:grid sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden ${desktopClassName}`}>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5">
         {products.map((product, i) => (
-          <div
+          <ProductCard
             key={`${keyPrefix}-${product.id}`}
-            className="w-[72vw] min-w-[252px] max-w-[304px] shrink-0 snap-start sm:w-auto sm:min-w-0 sm:max-w-none"
-          >
-            <ProductCard
-              product={{
-                ...product,
-                badge: pickBadge(product.id, badgeOptions),
-              }}
-              revealDelay={i * revealStep}
-              priority={i < priorityCount}
-              badgeSeal={badgeSeal}
-            />
-          </div>
+            product={{
+              ...product,
+              badge: pickBadge(product.id, badgeOptions),
+            }}
+            revealDelay={i * revealStep}
+            priority={i < priorityCount}
+            badgeSeal={badgeSeal}
+          />
         ))}
       </div>
 
@@ -438,7 +437,7 @@ function ProductRail({
           className="ka-btn inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-pink-400 px-6 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(236,72,153,0.24)]"
         >
           {moreLabel}
-          <span aria-hidden="true">-&gt;</span>
+          <span aria-hidden="true">→</span>
         </Link>
       </div>
     </>

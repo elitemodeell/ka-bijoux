@@ -23,7 +23,7 @@ export type SeasonalCampaign = {
 
 export const feriasBannerHref = "/produtos?new=true";
 
-export const feriasBannerImage = "/banners/banner-ferias-com-estilo.png";
+export const feriasBannerImage = "/banners/banner-ferias-com-estilo.webp";
 
 export const activeSeasonalCampaign: SeasonalCampaign = {
   id: "ferias-com-estilo",

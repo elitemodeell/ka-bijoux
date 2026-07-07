@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import ProductDetailPage from "@/components/loja/ProductDetailPage";
 import productContentOverrides from "@/data/product-content-overrides.json";
@@ -22,7 +23,7 @@ import {
 } from "@/lib/bling-catalog";
 import { getProductCatalogLine, matchesCatalogLine } from "@/lib/product-line";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 type PageProps = {
   params: { slug: string };
@@ -124,6 +125,8 @@ type RelatedDbProduct = Prisma.ProductGetPayload<{
   };
 }>;
 
+type StaticRelatedProduct = NonNullable<ReturnType<typeof getStaticProduct>>;
+
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     promise,
@@ -148,7 +151,7 @@ async function fetchDbProduct(lookup: ProductLookup): Promise<DbProduct | null> 
         include: detailProductInclude,
         take: 10,
       }),
-      2500
+      1200
     );
     const product = [...products].sort(
       (a, b) => scoreDbCandidate(b, lookup) - scoreDbCandidate(a, lookup)
@@ -226,7 +229,7 @@ function scoreDbCandidate(product: DetailDbRecord, lookup: ProductLookup) {
   return score;
 }
 
-async function getCanonicalProduct(slug: string) {
+const getCanonicalProduct = cache(async function getCanonicalProduct(slug: string) {
   const blingBySlug = getBlingProductBySlug(slug);
   const staticBySlug = getStaticProduct(slug);
   const staticBlingProduct = staticBySlug
@@ -261,7 +264,7 @@ async function getCanonicalProduct(slug: string) {
   }) ?? slug;
 
   return { dbProduct, blingProduct, staticProduct, canonicalSlug };
-}
+});
 
 function normalizeProductText(value: string) {
   return value
@@ -447,6 +450,11 @@ export default async function ProdutoPage({ params }: PageProps) {
   });
   const subcategoryName = getSubcategoryName(staticProduct.subcategorySlug);
   const subcategoryPathSlug = getSubcategoryPathSlug(staticProduct.subcategorySlug);
+  const relatedProducts = staticProduct.relatedSlugs
+    .map((slug) => getStaticProduct(slug))
+    .filter((product): product is StaticRelatedProduct => Boolean(product))
+    .map((product) => mapStaticRelatedProduct(product, "KA Bijoux", "produtos"))
+    .slice(0, 8);
 
   return (
     <ProductDetailPage
@@ -458,11 +466,38 @@ export default async function ProdutoPage({ params }: PageProps) {
         categoryName: "KA Bijoux",
         categorySlug: "produtos",
         subcategoryName,
+        relatedProducts,
       }}
       subcategoryName={subcategoryName}
       subcategoryPathSlug={subcategoryPathSlug}
     />
   );
+}
+
+function mapStaticRelatedProduct(
+  product: StaticRelatedProduct,
+  categoryName: string,
+  categorySlug: string
+): ProductCardProduct {
+  return {
+    id: product.sku || product.slug,
+    name: product.name,
+    slug: product.slug,
+    price: product.price,
+    image: toPublicImageUrl(product.imageFile),
+    images: [{ url: toPublicImageUrl(product.imageFile), alt: product.name }],
+    badge: product.badge ?? null,
+    stock: product.stock,
+    sku: product.sku,
+    description: product.shortDescription,
+    category: { name: categoryName, slug: categorySlug },
+    subcategory: {
+      name: getSubcategoryName(product.subcategorySlug),
+      slug: product.subcategorySlug,
+    },
+    catalogLine: "adult",
+    isAdult: true,
+  };
 }
 
 function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | null {

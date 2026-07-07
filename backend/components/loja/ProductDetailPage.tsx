@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { StaticProduct, StaticProductVariant } from "@/lib/static-sex-shop-catalog";
-import { getStaticProduct } from "@/lib/static-sex-shop-catalog";
 import { addCartItem } from "@/lib/client-cart";
 import { getDiscountPercentage, getInstallmentInfo, getValidPromotionalPrice } from "@/lib/store-rules";
 import ProductCard from "@/components/loja/ProductCard";
@@ -81,7 +80,7 @@ const FAQS = [
   },
   {
     q: "Quais são as formas de pagamento?",
-    a: "PIX com 5% de desconto, cartão de crédito em até 3× sem juros, e outras formas disponíveis na finalização do pedido.",
+    a: "PIX, cartão de crédito e outras formas de pagamento disponíveis na finalização do pedido.",
   },
 ];
 
@@ -156,7 +155,6 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const promotionalPrice = getValidPromotionalPrice(product.price, product.promotionalPrice);
   const finalPrice = promotionalPrice ?? product.price;
   const discountPct = getDiscountPercentage({ originalPrice: product.price, currentPrice: promotionalPrice });
-  const pixPrice = finalPrice * 0.95;
   const installment = getInstallmentInfo(finalPrice);
   const categoryName = product.categoryName ?? "KA Bijoux";
   const categorySlug = product.categorySlug ?? "produtos";
@@ -189,24 +187,8 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   ].map(publicText).filter((v): v is string => Boolean(v))));
 
   const relatedProducts = useMemo(() => {
-    if (product.relatedProducts?.length) return product.relatedProducts;
-    return product.relatedSlugs
-      .map((slug) => getStaticProduct(slug))
-      .filter(Boolean)
-      .map((r) => ({
-        id: r!.sku || r!.slug,
-        name: r!.name,
-        price: r!.price,
-        image: `/uploads/products/${r!.imageFile}`,
-        slug: r!.slug,
-        badge: r!.badge,
-        stock: r!.stock,
-        sku: r!.sku,
-        description: r!.shortDescription,
-        subcategory: { name: productSubcategoryName, slug: r!.subcategorySlug },
-        category: { name: categoryName, slug: categorySlug },
-      }));
-  }, [categoryName, categorySlug, product.relatedProducts, product.relatedSlugs, productSubcategoryName]);
+    return product.relatedProducts ?? [];
+  }, [product.relatedProducts]);
 
   function cartPayload() {
     return {
@@ -393,12 +375,6 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                   </p>
                 )}
 
-                {/* PIX */}
-                <div className="mt-3 flex items-center gap-2.5 rounded-xl bg-white border border-emerald-100 px-3 py-2.5">
-                  <span className="flex-shrink-0 rounded-md bg-emerald-500 px-1.5 py-0.5 text-[10px] font-black tracking-wide text-white">PIX</span>
-                  <span className="font-black text-emerald-700 text-base">{fmt(pixPrice)}</span>
-                  <span className="text-xs font-semibold text-emerald-600 ml-auto">5% de desconto</span>
-                </div>
               </div>
 
               {/* Stock badge */}

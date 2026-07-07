@@ -94,13 +94,14 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
   return (
     <div
       ref={cardRef}
-      className="ka-product-card ka-product-reveal group flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-card"
+      className="ka-product-card ka-product-reveal group flex flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
     >
-      <div className="ka-zoom relative aspect-square overflow-hidden bg-[#FFF5F7]">
+      {/* Image area */}
+      <div className="relative aspect-square overflow-hidden bg-[#FFF5F7]">
         <button
           type="button"
           onClick={openQuickShop}
-          className="block h-full w-full text-left"
+          className="block h-full w-full"
           aria-label={`Ver detalhes de ${name}`}
         >
           {image && !imgError ? (
@@ -109,46 +110,46 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
               alt={name}
               productName={name}
               sku={normalized.sku}
-              frameClassName="ka-product-img h-full w-full"
-              imageClassName="object-contain"
+              frameClassName="h-full w-full"
+              imageClassName="object-cover transition-transform duration-300 group-hover:scale-105"
               onError={() => setImgError(true)}
-              sizes="(max-width: 640px) 72vw, (max-width: 1024px) 33vw, 25vw"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
               priority={priority}
             />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-pink-100">
-              <span className="mb-2 text-4xl text-pink-300">KA</span>
-              <span className="text-xs font-medium text-pink-300">KA Bijoux</span>
+              <span className="mb-1 text-3xl text-pink-300">KA</span>
+              <span className="text-[10px] font-medium text-pink-300">KA Bijoux</span>
             </div>
           )}
         </button>
 
-        {/* Badge — seal visual para Ofertas ou pill padrão para demais seções */}
+        {/* Badge */}
         {badgeSeal ? (
           discount ? (
-            <div className="pointer-events-none absolute left-2 top-2 z-20 flex h-[58px] w-[58px] flex-col items-center justify-center rounded-full bg-gradient-to-br from-rose-600 to-pink-500 text-center shadow-[0_6px_16px_rgba(225,29,72,0.45)] ring-[3px] ring-white/50">
-              <span className="block text-[8px] font-black uppercase leading-none text-rose-100">até</span>
-              <span className="block text-[20px] font-black leading-none text-white">{discount}%</span>
-              <span className="block text-[7px] font-black uppercase leading-none text-rose-100">off</span>
+            <div className="pointer-events-none absolute left-2 top-2 z-20 flex h-[50px] w-[50px] flex-col items-center justify-center rounded-full bg-gradient-to-br from-rose-600 to-pink-500 text-center shadow-[0_4px_12px_rgba(225,29,72,0.40)] ring-2 ring-white/50">
+              <span className="block text-[7px] font-black uppercase leading-none text-rose-100">até</span>
+              <span className="block text-[17px] font-black leading-none text-white">{discount}%</span>
+              <span className="block text-[6px] font-black uppercase leading-none text-rose-100">off</span>
             </div>
           ) : (
-            <div className="pointer-events-none absolute left-0 top-3 z-20">
-              <span className="block rounded-r-lg bg-gradient-to-r from-rose-600 to-pink-500 px-2.5 py-[5px] text-[10px] font-black uppercase leading-none tracking-wide text-white shadow-[0_4px_12px_rgba(225,29,72,0.35)]">
+            <div className="pointer-events-none absolute left-0 top-2.5 z-20">
+              <span className="block rounded-r-lg bg-gradient-to-r from-rose-600 to-pink-500 px-2 py-[4px] text-[9px] font-black uppercase leading-none tracking-wide text-white shadow-[0_3px_8px_rgba(225,29,72,0.35)]">
                 {badge ?? "Oferta"}
               </span>
             </div>
           )
         ) : (
-          <div className="absolute left-2.5 top-2.5 flex flex-col gap-1.5">
+          <div className="absolute left-2 top-2 flex flex-col gap-1">
             {badge && (
-              <span className="rounded-full bg-pink-500 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
+              <span className="rounded-full bg-pink-500 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
                 {badge}
               </span>
             )}
             {discount && (
               <span
                 data-product-discount={discount}
-                className="rounded-full bg-gradient-to-r from-pink-700 to-pink-500 px-2.5 py-1 text-xs font-semibold text-white shadow-[0_6px_16px_rgba(190,24,93,0.24)]"
+                className="rounded-full bg-gradient-to-r from-pink-700 to-pink-500 px-2 py-0.5 text-[10px] font-semibold text-white"
               >
                 -{discount}%
               </span>
@@ -156,77 +157,56 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
           </div>
         )}
 
+        {/* Floating cart button */}
         <button
           type="button"
           onClick={handleAddToCart}
-          className={`absolute right-2.5 top-2.5 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/80 bg-white/92 text-pink-500 shadow-[0_10px_26px_rgba(236,72,153,0.22)] backdrop-blur transition-all hover:scale-105 hover:bg-pink-500 hover:text-white ${
+          className={`absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/80 bg-white/90 text-pink-500 shadow-sm backdrop-blur transition-all hover:bg-pink-500 hover:text-white ${
             cartAdded ? "bg-pink-500 text-white" : ""
           }`}
           aria-label={`Adicionar ${name} ao carrinho`}
-          title="Adicionar ao carrinho"
         >
           {cartAdded ? <CheckIcon /> : <CartIcon />}
         </button>
-
-        <div className="pointer-events-none absolute inset-0 flex items-end justify-center bg-black/0 pb-4 opacity-0 transition-all duration-300 group-hover:bg-black/5 group-hover:opacity-100">
-          <span className="rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-gray-700 shadow-sm backdrop-blur-sm">
-            Ver produto
-          </span>
-        </div>
       </div>
 
-      <div className="flex flex-1 flex-col p-4">
+      {/* Info area */}
+      <div className="flex flex-1 flex-col p-2.5">
         {product.slug ? (
           <Link href={`/produto/${product.slug}`} className="text-left">
-            <h3 className="mb-2 line-clamp-2 text-sm font-semibold leading-snug text-gray-800 transition-colors hover:text-pink-500">
+            <h3 className="line-clamp-2 text-[12px] font-semibold leading-snug text-gray-800 transition-colors hover:text-pink-500">
               {name}
             </h3>
           </Link>
         ) : (
           <button type="button" onClick={openQuickShop} className="text-left">
-            <h3 className="mb-2 line-clamp-2 text-sm font-semibold leading-snug text-gray-800 transition-colors hover:text-pink-500">
+            <h3 className="line-clamp-2 text-[12px] font-semibold leading-snug text-gray-800 transition-colors hover:text-pink-500">
               {name}
             </h3>
           </button>
         )}
 
-        <div className="mt-auto">
-          <div className="mb-3 flex items-baseline gap-2">
+        <div className="mt-auto pt-2">
+          <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
             {promo ? (
               <>
-                <span className="text-base font-bold text-pink-500">{fmt(promo)}</span>
-                <span className="text-xs text-gray-400 line-through">{fmt(price)}</span>
+                <span className="text-[14px] font-bold text-pink-500">{fmt(promo)}</span>
+                <span className="text-[10px] text-gray-400 line-through">{fmt(price)}</span>
               </>
             ) : (
-              <span className="text-base font-bold text-gray-800">{fmt(price)}</span>
+              <span className="text-[14px] font-bold text-gray-800">{fmt(price)}</span>
             )}
           </div>
           {installment.eligible && (
-            <p className="mb-3 text-[11px] font-semibold text-gray-500">
-              {installment.label}
-            </p>
+            <p className="mt-0.5 text-[10px] text-gray-500">{installment.label}</p>
           )}
-
-          <div className="grid grid-cols-[1fr_42px] gap-2">
-            <button
-              type="button"
-              onClick={openQuickShop}
-              className="ka-btn ka-pulse-glow flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-pink-500 to-pink-400 py-2.5 text-sm font-semibold text-white"
-            >
-              Comprar
-            </button>
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              className={`flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-pink-100 bg-pink-50 text-pink-500 transition-colors hover:bg-pink-500 hover:text-white ${
-                cartAdded ? "bg-pink-500 text-white" : ""
-              }`}
-              aria-label={`Adicionar ${name} ao carrinho`}
-              title="Adicionar ao carrinho"
-            >
-              {cartAdded ? <CheckIcon /> : <CartIcon />}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={openQuickShop}
+            className="ka-btn mt-2 w-full rounded-lg bg-gradient-to-r from-pink-500 to-pink-400 py-2 text-[12px] font-bold text-white"
+          >
+            Comprar
+          </button>
         </div>
       </div>
     </div>

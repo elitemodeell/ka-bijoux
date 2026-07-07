@@ -105,7 +105,7 @@ export default function SexShopPage({ searchParams = {} }: { searchParams?: Sear
           className="relative min-h-[420px] overflow-hidden rounded-[30px] border border-[#ead3d7] bg-[#f8e1df] shadow-[0_22px_60px_rgba(116,62,80,0.16)] sm:min-h-[480px]"
           style={{
             backgroundImage:
-              "linear-gradient(90deg, rgba(255,246,244,0.96) 0%, rgba(255,246,244,0.78) 38%, rgba(255,246,244,0.18) 68%), url('/banners/ka-intima-hero-premium.png')",
+              "linear-gradient(90deg, rgba(255,246,244,0.96) 0%, rgba(255,246,244,0.78) 38%, rgba(255,246,244,0.18) 68%), url('/banners/ka-intima-hero-premium.webp')",
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}

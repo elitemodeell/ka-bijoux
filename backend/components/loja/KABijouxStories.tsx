@@ -27,8 +27,8 @@ const heroSlides = [
     subtitle: "Ofertas para viajar, sair e se cuidar",
     cta: "Quero Aproveitar",
     href: "/produtos?new=true",
-    image: "/banners/banner-ferias-com-estilo.png",
-    mobileImage: "/banners/banner-ferias-com-estilo.png",
+    image: "/banners/banner-ferias-com-estilo.webp",
+    mobileImage: "/banners/banner-ferias-com-estilo-mobile.webp",
     objectPosition: "center",
   },
   {
@@ -36,8 +36,8 @@ const heroSlides = [
     subtitle: "Capinhas, bolsas, óculos e acessórios para todos os momentos",
     cta: "Comprar Agora",
     href: "/produtos",
-    image: "/banners/banner-mala-pronta-look-completo.png",
-    mobileImage: "/banners/banner-mala-pronta-look-completo.png",
+    image: "/banners/banner-mala-pronta-look-completo.webp",
+    mobileImage: "/banners/banner-mala-pronta-look-completo-mobile.webp",
     objectPosition: "center",
   },
   {
@@ -45,8 +45,8 @@ const heroSlides = [
     subtitle: "Acessórios e bijuterias com alegria, charme e verão",
     cta: "Ver Ofertas",
     href: "/categoria/bijuterias",
-    image: "/banners/banner-destino-ferias.png",
-    mobileImage: "/banners/banner-destino-ferias.png",
+    image: "/banners/banner-destino-ferias.webp",
+    mobileImage: "/banners/banner-destino-ferias-mobile.webp",
     objectPosition: "center",
   },
   {
@@ -54,8 +54,8 @@ const heroSlides = [
     subtitle: "Peças delicadas para deixar seu visual ainda mais bonito",
     cta: "Quero Brilhar",
     href: "/categoria/bijuterias",
-    image: "/banners/banner-brilhe-nas-ferias.png",
-    mobileImage: "/banners/banner-brilhe-nas-ferias.png",
+    image: "/banners/banner-brilhe-nas-ferias.webp",
+    mobileImage: "/banners/banner-brilhe-nas-ferias-mobile.webp",
     objectPosition: "center",
   },
 ];
@@ -537,7 +537,7 @@ function SexShopMobileAccess() {
         className="ka-btn group relative flex min-h-[86px] items-center gap-3 overflow-hidden rounded-[22px] border border-[#f8b4cb]/70 px-3.5 py-3.5 text-white shadow-[0_18px_38px_rgba(190,24,93,0.30)] ring-1 ring-white/35"
         style={{
           backgroundImage:
-            "linear-gradient(105deg, rgba(98, 8, 39, 0.96) 0%, rgba(202, 18, 91, 0.92) 48%, rgba(87, 9, 39, 0.90) 100%), url('/banners/ka-intima-hero-premium.png')",
+            "linear-gradient(105deg, rgba(98, 8, 39, 0.96) 0%, rgba(202, 18, 91, 0.92) 48%, rgba(87, 9, 39, 0.90) 100%), url('/banners/ka-intima-hero-premium-mobile.webp')",
           backgroundPosition: "center",
           backgroundSize: "cover",
         }}
@@ -676,9 +676,11 @@ function FeriasBanner() {
       <Link href={feriasBannerHref} className="group block" aria-label="Férias com Estilo — Quero aproveitar">
         <div className="overflow-hidden rounded-none sm:rounded-[28px] shadow-none sm:shadow-[0_24px_70px_rgba(236,72,153,0.20)] transition-transform duration-300 sm:group-hover:scale-[1.005]">
           <img
-            src="/banners/banner-destino-ferias.png"
+            src="/banners/banner-destino-ferias.webp"
             alt="Destino Férias — Ofertas especiais para curtir seus melhores momentos"
-            loading="eager"
+            width={1400}
+            height={1050}
+            loading="lazy"
             decoding="async"
             className="w-full object-cover"
           />
