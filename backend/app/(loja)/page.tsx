@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AnnouncementBar from "@/components/loja/AnnouncementBar";
-import CategoryGrid from "@/components/loja/CategoryGrid";
 import ProductCard from "@/components/loja/ProductCard";
 import AnimatedSection from "@/components/loja/AnimatedSection";
 import KABijouxStories from "@/components/loja/KABijouxStories";
@@ -254,20 +253,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── O que você procura? (Categorias) ─────────────── */}
-      <section className="bg-white py-12 sm:py-16 md:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <AnimatedSection className="mb-8 text-center sm:mb-12">
-            <h2 className="font-playfair text-4xl font-bold text-gray-900 mb-4">
-              O que você procura?
-            </h2>
-            <div className="ka-divider mx-auto" />
-          </AnimatedSection>
-          <CategoryGrid />
-        </div>
-      </section>
-
-      {/* ── Novidades ─────────────────────────────────────── */}
+{/* ── Novidades ─────────────────────────────────────── */}
       <section className="py-14 bg-ka-subtle sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <AnimatedSection className="text-center mb-10">
