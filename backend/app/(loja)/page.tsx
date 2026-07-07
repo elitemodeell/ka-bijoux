@@ -15,8 +15,16 @@ export const metadata: Metadata = {
 
 interface HomeSections {
   ofertasRelampago: ProductCardProduct[];
-  principaisProdutos: ProductCardProduct[];
+  achadinhos: ProductCardProduct[];
   novidades: ProductCardProduct[];
+  maisVendidos: ProductCardProduct[];
+  paraPresentes: ProductCardProduct[];
+  belezaAutocuidado: ProductCardProduct[];
+}
+
+function pickBadge(id: string, options: string[]): string {
+  const n = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return options[n % options.length];
 }
 
 async function fetchPool(url: string): Promise<ProductCardProduct[]> {
@@ -37,61 +45,65 @@ async function getHomeSections(): Promise<HomeSections> {
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
   const q = "withImage=true&line=normal";
 
-  // Busca 3 pools em paralelo com filtros diferentes
-  const [main, featured, newProds] = await Promise.all([
-    fetchPool(`${base}/api/products?pageSize=20&${q}`),
-    fetchPool(`${base}/api/products?pageSize=8&${q}&featured=true`),
-    fetchPool(`${base}/api/products?pageSize=8&${q}&new=true`),
+  const [main, featured, newProds, promo] = await Promise.all([
+    fetchPool(`${base}/api/products?pageSize=60&${q}`),
+    fetchPool(`${base}/api/products?pageSize=12&${q}&featured=true`),
+    fetchPool(`${base}/api/products?pageSize=12&${q}&new=true`),
+    fetchPool(`${base}/api/products?pageSize=12&${q}&promo=true`),
   ]);
 
-  // Se tudo falhou, usa catálogo Bling estático com slices diferentes
-  if (!main.length && !featured.length && !newProds.length) {
-    const fallback = getBlingProductCards({ limit: 24, requireImage: true, catalogLine: "normal" });
+  if (!main.length && !featured.length && !newProds.length && !promo.length) {
+    const fb = getBlingProductCards({ limit: 60, requireImage: true, catalogLine: "normal" });
     return {
-      ofertasRelampago: fallback.slice(0, 4),
-      novidades: fallback.slice(4, 8),
-      principaisProdutos: fallback.slice(8, 12),
+      ofertasRelampago: fb.slice(0, 8),
+      achadinhos: fb.slice(8, 16),
+      novidades: fb.slice(16, 24),
+      maisVendidos: fb.slice(24, 34),
+      paraPresentes: fb.slice(34, 42),
+      belezaAutocuidado: fb.slice(42, 50),
     };
   }
 
-  // Deduplicação: cada seção consome IDs únicos
-  const usedIds = new Set<string>();
+  const used = new Set<string>();
 
   function takeUnique(priority: ProductCardProduct[], n: number): ProductCardProduct[] {
     const result: ProductCardProduct[] = [];
-    // Tenta priority primeiro, depois preenche com main
     for (const p of [...priority, ...main]) {
       if (result.length >= n) break;
-      if (!usedIds.has(p.id)) {
-        result.push(p);
-        usedIds.add(p.id);
-      }
+      if (!used.has(p.id)) { result.push(p); used.add(p.id); }
     }
     return result;
   }
 
-  // Ordem importa: Ofertas consume primeiro, Novidades e Principais ficam com produtos diferentes
-  const ofertasRelampago  = takeUnique(main,                     4);
-  const novidades         = takeUnique([...newProds, ...main],   4);
-  const principaisProdutos = takeUnique([...featured, ...main],  4);
+  const ofertasRelampago  = takeUnique([...promo, ...main],     8);
+  const achadinhos        = takeUnique(main,                    8);
+  const novidades         = takeUnique([...newProds, ...main],  8);
+  const maisVendidos      = takeUnique([...featured, ...main], 10);
+  const paraPresentes     = takeUnique(main,                    8);
+  const belezaAutocuidado = takeUnique(main,                    8);
 
-  return { ofertasRelampago, novidades, principaisProdutos };
+  return { ofertasRelampago, achadinhos, novidades, maisVendidos, paraPresentes, belezaAutocuidado };
 }
 
 export default async function HomePage() {
-  const { ofertasRelampago, principaisProdutos, novidades } = await getHomeSections();
+  const {
+    ofertasRelampago,
+    achadinhos,
+    novidades,
+    maisVendidos,
+    paraPresentes,
+    belezaAutocuidado,
+  } = await getHomeSections();
 
   return (
     <main className="overflow-x-hidden">
 
-      {/* ── Barra de anúncios ──────────────────────────────── */}
       <AnnouncementBar />
 
       <section className="bg-white pt-[72px] md:pt-[26px]">
         <KABijouxStories />
       </section>
 
-      {/* ── Categorias rápidas ────────────────────────────── */}
       <QuickCategoryBar />
 
       {/* ── Ofertas Relâmpago ─────────────────────────────── */}
@@ -114,12 +126,17 @@ export default async function HomePage() {
             </Link>
           </AnimatedSection>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-5">
             {ofertasRelampago.map((product, i) => (
               <ProductCard
                 key={product.id}
-                product={{ ...product, badge: product.promo ? "Oferta" : "Imperdível" }}
-                revealDelay={i * 60}
+                product={{
+                  ...product,
+                  badge: pickBadge(product.id, ["Imperdível", "Oferta", "Super Preço", "Corre!", "Aproveite"]),
+                }}
+                revealDelay={i * 50}
+                priority={i < 2}
+                badgeSeal
               />
             ))}
           </div>
@@ -135,7 +152,43 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Promoção Banner ────────────────────────────────── */}
+      {/* ── Achadinhos KA Bijoux ──────────────────────────── */}
+      <section className="py-10 bg-white sm:py-14">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <AnimatedSection className="flex items-end justify-between mb-6 sm:mb-10">
+            <div>
+              <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-2 block">
+                Achados da semana
+              </span>
+              <h2 className="font-playfair text-3xl font-bold text-gray-900 sm:text-4xl">
+                Achadinhos KA Bijoux 💖
+              </h2>
+              <p className="text-gray-500 text-sm mt-1">Produtos lindos para comprar sem pensar muito.</p>
+            </div>
+            <Link
+              href="/produtos"
+              className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200 flex-shrink-0"
+            >
+              Ver mais →
+            </Link>
+          </AnimatedSection>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-5">
+            {achadinhos.map((product, i) => (
+              <ProductCard
+                key={`ach-${product.id}`}
+                product={{
+                  ...product,
+                  badge: pickBadge(product.id, ["Achadinho", "Queridinho", "Boa Compra", "Favorito"]),
+                }}
+                revealDelay={i * 55}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Faixa info ────────────────────────────────────── */}
       <section className="py-6 bg-gradient-to-r from-pink-600 via-pink-500 to-pink-400">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
@@ -172,7 +225,42 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Principais Produtos ───────────────────────────── */}
+      {/* ── Novidades ─────────────────────────────────────── */}
+      <section className="py-14 bg-ka-subtle sm:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <AnimatedSection className="flex items-end justify-between mb-8 sm:mb-12">
+            <div>
+              <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-2 block">
+                Chegando agora
+              </span>
+              <h2 className="font-playfair text-3xl font-bold text-gray-900 sm:text-4xl">
+                Novidades 🆕
+              </h2>
+            </div>
+            <Link
+              href="/produtos?new=true"
+              className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200 flex-shrink-0"
+            >
+              Ver todas →
+            </Link>
+          </AnimatedSection>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-5">
+            {novidades.map((product, i) => (
+              <ProductCard
+                key={`new-${product.id}`}
+                product={{
+                  ...product,
+                  badge: pickBadge(product.id, ["Novo", "Lançamento", "Chegou"]),
+                }}
+                revealDelay={i * 60}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Mais Vendidos ─────────────────────────────────── */}
       <section className="py-14 bg-white sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <AnimatedSection className="flex items-end justify-between mb-8 sm:mb-12">
@@ -181,7 +269,7 @@ export default async function HomePage() {
                 Top da semana
               </span>
               <h2 className="font-playfair text-3xl font-bold text-gray-900 sm:text-4xl">
-                Principais Produtos ⭐
+                Mais Vendidos ⭐
               </h2>
             </div>
             <Link
@@ -192,37 +280,85 @@ export default async function HomePage() {
             </Link>
           </AnimatedSection>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-            {principaisProdutos.map((product, i) => (
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5">
+            {maisVendidos.map((product, i) => (
               <ProductCard
-                key={`best-${product.id}`}
-                product={{ ...product, badge: "Destaque" }}
-                revealDelay={i * 70}
+                key={`mv-${product.id}`}
+                product={{
+                  ...product,
+                  badge: pickBadge(product.id, ["Mais Vendido", "Destaque", "Top"]),
+                }}
+                revealDelay={i * 45}
               />
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Novidades ─────────────────────────────────────── */}
+      {/* ── Para Presentear ───────────────────────────────── */}
       <section className="py-14 bg-ka-subtle sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <AnimatedSection className="text-center mb-10">
-            <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-3 block">
-              Chegando agora
-            </span>
-            <h2 className="font-playfair text-3xl font-bold text-gray-900 mb-4 sm:text-4xl">
-              Novidades 🆕
-            </h2>
-            <div className="ka-divider mx-auto" />
+          <AnimatedSection className="flex items-end justify-between mb-8 sm:mb-12">
+            <div>
+              <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-2 block">
+                Ideias de presente
+              </span>
+              <h2 className="font-playfair text-3xl font-bold text-gray-900 sm:text-4xl">
+                Para Presentear 🎁
+              </h2>
+            </div>
+            <Link
+              href="/produtos"
+              className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200 flex-shrink-0"
+            >
+              Ver mais →
+            </Link>
           </AnimatedSection>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-            {novidades.map((product, i) => (
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-5">
+            {paraPresentes.map((product, i) => (
               <ProductCard
-                key={`new-${product.id}`}
-                product={{ ...product, badge: "Novo" }}
-                revealDelay={i * 80}
+                key={`gft-${product.id}`}
+                product={{
+                  ...product,
+                  badge: pickBadge(product.id, ["Presente", "Especial", "Mimo", "Encanto"]),
+                }}
+                revealDelay={i * 60}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Beleza e Autocuidado ──────────────────────────── */}
+      <section className="py-14 bg-white sm:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <AnimatedSection className="flex items-end justify-between mb-8 sm:mb-12">
+            <div>
+              <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-2 block">
+                Beleza e bem-estar
+              </span>
+              <h2 className="font-playfair text-3xl font-bold text-gray-900 sm:text-4xl">
+                Beleza e Autocuidado ✨
+              </h2>
+            </div>
+            <Link
+              href="/produtos"
+              className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200 flex-shrink-0"
+            >
+              Ver mais →
+            </Link>
+          </AnimatedSection>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-5">
+            {belezaAutocuidado.map((product, i) => (
+              <ProductCard
+                key={`bel-${product.id}`}
+                product={{
+                  ...product,
+                  badge: pickBadge(product.id, ["Top Beleza", "Favorita", "Tendência"]),
+                }}
+                revealDelay={i * 60}
               />
             ))}
           </div>
@@ -230,7 +366,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── Depoimentos ────────────────────────────────────── */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-ka-subtle">
         <div className="max-w-7xl mx-auto px-6">
           <AnimatedSection className="text-center mb-14">
             <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-3 block">

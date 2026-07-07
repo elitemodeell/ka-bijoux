@@ -35,9 +35,10 @@ interface Props {
   product: Product;
   revealDelay?: number;
   priority?: boolean;
+  badgeSeal?: boolean;
 }
 
-function ProductCard({ product, revealDelay = 0, priority = false }: Props) {
+function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = false }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [imgError, setImgError] = useState(false);
   const [cartAdded, setCartAdded] = useState(false);
@@ -109,7 +110,7 @@ function ProductCard({ product, revealDelay = 0, priority = false }: Props) {
               productName={name}
               sku={normalized.sku}
               frameClassName="ka-product-img h-full w-full"
-              imageClassName="object-contain p-2.5"
+              imageClassName="object-contain"
               onError={() => setImgError(true)}
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               priority={priority}
@@ -122,21 +123,38 @@ function ProductCard({ product, revealDelay = 0, priority = false }: Props) {
           )}
         </button>
 
-        <div className="absolute left-2.5 top-2.5 flex flex-col gap-1.5">
-          {badge && (
-            <span className="rounded-full bg-pink-500 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
-              {badge}
-            </span>
-          )}
-          {discount && (
-            <span
-              data-product-discount={discount}
-              className="rounded-full bg-gradient-to-r from-pink-700 to-pink-500 px-2.5 py-1 text-xs font-semibold text-white shadow-[0_6px_16px_rgba(190,24,93,0.24)]"
-            >
-              -{discount}%
-            </span>
-          )}
-        </div>
+        {/* Badge — seal visual para Ofertas ou pill padrão para demais seções */}
+        {badgeSeal ? (
+          discount ? (
+            <div className="pointer-events-none absolute left-2 top-2 z-20 flex h-[58px] w-[58px] flex-col items-center justify-center rounded-full bg-gradient-to-br from-rose-600 to-pink-500 text-center shadow-[0_6px_16px_rgba(225,29,72,0.45)] ring-[3px] ring-white/50">
+              <span className="block text-[8px] font-black uppercase leading-none text-rose-100">até</span>
+              <span className="block text-[20px] font-black leading-none text-white">{discount}%</span>
+              <span className="block text-[7px] font-black uppercase leading-none text-rose-100">off</span>
+            </div>
+          ) : (
+            <div className="pointer-events-none absolute left-0 top-3 z-20">
+              <span className="block rounded-r-lg bg-gradient-to-r from-rose-600 to-pink-500 px-2.5 py-[5px] text-[10px] font-black uppercase leading-none tracking-wide text-white shadow-[0_4px_12px_rgba(225,29,72,0.35)]">
+                {badge ?? "Oferta"}
+              </span>
+            </div>
+          )
+        ) : (
+          <div className="absolute left-2.5 top-2.5 flex flex-col gap-1.5">
+            {badge && (
+              <span className="rounded-full bg-pink-500 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
+                {badge}
+              </span>
+            )}
+            {discount && (
+              <span
+                data-product-discount={discount}
+                className="rounded-full bg-gradient-to-r from-pink-700 to-pink-500 px-2.5 py-1 text-xs font-semibold text-white shadow-[0_6px_16px_rgba(190,24,93,0.24)]"
+              >
+                -{discount}%
+              </span>
+            )}
+          </div>
+        )}
 
         <button
           type="button"
