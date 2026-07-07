@@ -13,112 +13,17 @@ export const metadata: Metadata = {
     "Descubra bijuterias, óculos de sol, capinhas e acessórios com estilo. Entrega para todo o Brasil. KA Bijoux — elegância que combina com você.",
 };
 
-/* ── Demo products (mostrados enquanto o banco não está ativo) ── */
-const DEMO_PRODUCTS = [
-  {
-    id: "1",
-    name: "Brinco Laço Dourado",
-    price: 39.90,
-    promo: null,
-    badge: "Novo",
-    image: "/imagens/foto-03.jpeg",
-  },
-  {
-    id: "2",
-    name: "Kit de Bijuterias no Porta-Joias",
-    price: 79.90,
-    promo: null,
-    badge: "Destaque",
-    image: "/imagens/foto-05.jpeg",
-  },
-  {
-    id: "3",
-    name: "Conjunto Colar e Brincos Dourados",
-    price: 89.90,
-    promo: null,
-    badge: "Novo",
-    image: "/imagens/foto-06.jpeg",
-  },
-  {
-    id: "4",
-    name: "Óculos de Sol Retangular",
-    price: 69.90,
-    promo: null,
-    badge: null,
-    image: "/imagens/foto-08.jpeg",
-  },
-  {
-    id: "5",
-    name: "Capinha Butterfly Rosa",
-    price: 34.90,
-    promo: 29.90,
-    badge: "Destaque",
-    image: "/imagens/produto-01.jpg",
-  },
-  {
-    id: "6",
-    name: "Óculos Round Vintage",
-    price: 89.90,
-    promo: null,
-    badge: "Novo",
-    image: "/imagens/produto-03.jpg",
-  },
-  {
-    id: "7",
-    name: "Kit Shampoo e Condicionador Studio Hair",
-    price: 49.90,
-    promo: null,
-    badge: null,
-    image: "/imagens/banner-01.jpg",
-  },
-  {
-    id: "8",
-    name: "Perfume D-One Eau de Parfum",
-    price: 64.90,
-    promo: null,
-    badge: "Destaque",
-    image: "/imagens/foto-07.jpeg",
-  },
-  {
-    id: "9",
-    name: "Esfoliante Hidratante Baba Soul",
-    price: 29.90,
-    promo: null,
-    badge: "Novo",
-    image: "/imagens/foto-10.jpeg",
-  },
-  {
-    id: "10",
-    name: "Kit Esfoliante Hidratante Kiwi",
-    price: 34.90,
-    promo: null,
-    badge: null,
-    image: "/imagens/foto-11.jpeg",
-  },
-  {
-    id: "11",
-    name: "Kit Escovas de Cabelo",
-    price: 39.90,
-    promo: null,
-    badge: "Destaque",
-    image: "/imagens/foto-12.jpeg",
-  },
-  {
-    id: "12",
-    name: "Kit Skincare Facial",
-    price: 54.90,
-    promo: null,
-    badge: "Novo",
-    image: "/imagens/foto-13.jpeg",
-  },
-];
+interface HomeSections {
+  ofertasRelampago: ProductCardProduct[];
+  principaisProdutos: ProductCardProduct[];
+  novidades: ProductCardProduct[];
+}
 
-async function getFeaturedProducts(): Promise<ProductCardProduct[]> {
+async function fetchPool(url: string): Promise<ProductCardProduct[]> {
   try {
-    const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
-    const res = await fetch(`${base}/api/products?pageSize=8&withImage=true&line=normal`, {
+    const res = await fetch(url, {
       next: { revalidate: 60 },
-      signal: AbortSignal.timeout(1000),
+      signal: AbortSignal.timeout(1500),
     });
     if (!res.ok) return [];
     const json = await res.json();
@@ -128,11 +33,53 @@ async function getFeaturedProducts(): Promise<ProductCardProduct[]> {
   }
 }
 
+async function getHomeSections(): Promise<HomeSections> {
+  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const q = "withImage=true&line=normal";
+
+  // Busca 3 pools em paralelo com filtros diferentes
+  const [main, featured, newProds] = await Promise.all([
+    fetchPool(`${base}/api/products?pageSize=20&${q}`),
+    fetchPool(`${base}/api/products?pageSize=8&${q}&featured=true`),
+    fetchPool(`${base}/api/products?pageSize=8&${q}&new=true`),
+  ]);
+
+  // Se tudo falhou, usa catálogo Bling estático com slices diferentes
+  if (!main.length && !featured.length && !newProds.length) {
+    const fallback = getBlingProductCards({ limit: 24, requireImage: true, catalogLine: "normal" });
+    return {
+      ofertasRelampago: fallback.slice(0, 4),
+      novidades: fallback.slice(4, 8),
+      principaisProdutos: fallback.slice(8, 12),
+    };
+  }
+
+  // Deduplicação: cada seção consome IDs únicos
+  const usedIds = new Set<string>();
+
+  function takeUnique(priority: ProductCardProduct[], n: number): ProductCardProduct[] {
+    const result: ProductCardProduct[] = [];
+    // Tenta priority primeiro, depois preenche com main
+    for (const p of [...priority, ...main]) {
+      if (result.length >= n) break;
+      if (!usedIds.has(p.id)) {
+        result.push(p);
+        usedIds.add(p.id);
+      }
+    }
+    return result;
+  }
+
+  // Ordem importa: Ofertas consume primeiro, Novidades e Principais ficam com produtos diferentes
+  const ofertasRelampago  = takeUnique(main,                     4);
+  const novidades         = takeUnique([...newProds, ...main],   4);
+  const principaisProdutos = takeUnique([...featured, ...main],  4);
+
+  return { ofertasRelampago, novidades, principaisProdutos };
+}
+
 export default async function HomePage() {
-  const liveProducts = await getFeaturedProducts();
-  const products = liveProducts.length
-    ? liveProducts
-    : getBlingProductCards({ limit: 8, requireImage: true, catalogLine: "normal" });
+  const { ofertasRelampago, principaisProdutos, novidades } = await getHomeSections();
 
   return (
     <main className="overflow-x-hidden">
@@ -160,7 +107,7 @@ export default async function HomePage() {
               </h2>
             </div>
             <Link
-              href="/produtos?promo=true"
+              href="/produtos"
               className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200 flex-shrink-0"
             >
               Ver mais →
@@ -168,8 +115,12 @@ export default async function HomePage() {
           </AnimatedSection>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-            {products.slice(0, 8).map((product: ProductCardProduct, i: number) => (
-              <ProductCard key={product.id} product={product} revealDelay={i * 60} />
+            {ofertasRelampago.map((product, i) => (
+              <ProductCard
+                key={product.id}
+                product={{ ...product, badge: product.promo ? "Oferta" : "Imperdível" }}
+                revealDelay={i * 60}
+              />
             ))}
           </div>
 
@@ -242,7 +193,7 @@ export default async function HomePage() {
           </AnimatedSection>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-            {products.slice(4, 8).map((product: ProductCardProduct, i: number) => (
+            {principaisProdutos.map((product, i) => (
               <ProductCard
                 key={`best-${product.id}`}
                 product={{ ...product, badge: "Destaque" }}
@@ -253,7 +204,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-{/* ── Novidades ─────────────────────────────────────── */}
+      {/* ── Novidades ─────────────────────────────────────── */}
       <section className="py-14 bg-ka-subtle sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <AnimatedSection className="text-center mb-10">
@@ -267,7 +218,7 @@ export default async function HomePage() {
           </AnimatedSection>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-            {products.slice(0, 4).map((product: ProductCardProduct, i: number) => (
+            {novidades.map((product, i) => (
               <ProductCard
                 key={`new-${product.id}`}
                 product={{ ...product, badge: "Novo" }}
@@ -303,12 +254,10 @@ export default async function HomePage() {
 
       {/* ── CTA Final ─────────────────────────────────────── */}
       <section className="py-24 bg-gradient-to-br from-[#1A0A0F] via-[#2D0A18] to-[#1A0A0F] relative overflow-hidden">
-        {/* Background decoration */}
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-10"
           style={{ background: "radial-gradient(circle, #FF4D6D 0%, transparent 70%)" }}
         />
-
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
           <AnimatedSection>
             <span className="text-pink-400 text-sm font-semibold tracking-widest uppercase mb-4 block">
@@ -336,8 +285,6 @@ export default async function HomePage() {
     </main>
   );
 }
-
-/* ── Testimonials data ─────────────────────────────────────────── */
 
 const TESTIMONIALS = [
   {
