@@ -58,9 +58,6 @@ type Props = {
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
-const TAB_IDS = ["Descrição", "Características", "Modo de Uso", "Avaliações", "Perguntas"] as const;
-type TabId = (typeof TAB_IDS)[number];
-
 const FAQS = [
   {
     q: "Como funciona a entrega?",
@@ -116,7 +113,6 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const [cartAdded, setCartAdded] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariation, setSelectedVariation] = useState(0);
-  const [activeTab, setActiveTab] = useState<TabId>("Descrição");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [favorited, setFavorited] = useState(false);
   const [shared, setShared] = useState(false);
@@ -374,9 +370,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                   </div>
                   <span className="text-sm font-black text-gray-800">4.8</span>
                   <span className="text-xs font-semibold text-gray-400">247 avaliações</span>
-                  <button onClick={() => setActiveTab("Avaliações")} className="ml-auto text-xs font-black text-pink-500 transition-colors hover:text-[#17070C]">
-                    Ver avaliações
-                  </button>
+                  <span className="ml-auto text-xs font-semibold text-gray-400">247 avaliações</span>
                 </div>
 
                 <div className="mt-5 overflow-hidden rounded-[24px] border border-pink-100 bg-gradient-to-br from-white via-[#fff7fa] to-[#fff0f6] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
@@ -491,8 +485,6 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
         )}
 
         <ProductInfoTabs
-          activeTab={activeTab}
-          onChange={setActiveTab}
           description={description}
           benefits={benefits}
           characteristicItems={characteristicItems}
@@ -578,8 +570,6 @@ function RelatedSection({ title, products, href }: { title: string; products: Re
 
 
 type ProductInfoTabsProps = {
-  activeTab: TabId;
-  onChange: (tab: TabId) => void;
   description: string;
   benefits: string | null;
   characteristicItems: string[];
@@ -593,8 +583,6 @@ type ProductInfoTabsProps = {
 };
 
 function ProductInfoTabs({
-  activeTab,
-  onChange,
   description,
   benefits,
   characteristicItems,
@@ -606,55 +594,36 @@ function ProductInfoTabs({
   openFaq,
   onFaqToggle,
 }: ProductInfoTabsProps) {
+  const hasUsage = !!(howToUse || material || care || packageContents);
   return (
-    <section className="mt-10">
-      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-500">Detalhes do produto</p>
-          <h2 className="mt-1 text-2xl font-black tracking-tight text-gray-950">Tudo para escolher melhor</h2>
-        </div>
-        <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
-          <div className="flex min-w-max rounded-full border border-pink-100 bg-white p-1 shadow-[0_14px_30px_rgba(201,66,119,0.08)]">
-            {TAB_IDS.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => onChange(tab)}
-                className={`relative min-h-10 whitespace-nowrap rounded-full px-4 text-sm font-black transition-all duration-300 ${
-                  activeTab === tab
-                    ? "bg-[#17070C] text-white shadow-[0_10px_22px_rgba(23,7,12,0.18)]"
-                    : "text-gray-500 hover:bg-pink-50 hover:text-pink-600"
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+    <div className="mt-8 space-y-4">
+      <DescriptionTab description={description} benefits={benefits} />
+      <CharacteristicsTab items={characteristicItems} />
+      {hasUsage && (
+        <UsageTab
+          howToUse={howToUse}
+          material={material}
+          care={care}
+          packageContents={packageContents}
+          isAdult={isAdult}
+        />
+      )}
+      <ReviewsTab />
+      <QuestionsTab openFaq={openFaq} onFaqToggle={onFaqToggle} />
+    </div>
+  );
+}
 
-      <div key={activeTab} className="ka-fade-up">
-        {activeTab === "Descrição" && <DescriptionTab description={description} benefits={benefits} />}
-        {activeTab === "Características" && <CharacteristicsTab items={characteristicItems} />}
-        {activeTab === "Modo de Uso" && (
-          <UsageTab
-            howToUse={howToUse}
-            material={material}
-            care={care}
-            packageContents={packageContents}
-            isAdult={isAdult}
-          />
-        )}
-        {activeTab === "Avaliações" && <ReviewsTab />}
-        {activeTab === "Perguntas" && <QuestionsTab openFaq={openFaq} onFaqToggle={onFaqToggle} />}
-      </div>
-    </section>
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <p className="mb-4 text-[11px] font-black uppercase tracking-[0.18em] text-pink-500">{label}</p>
   );
 }
 
 function DescriptionTab({ description, benefits }: { description: string; benefits: string | null }) {
   return (
-    <div className="rounded-[30px] border border-pink-100 bg-white p-6 shadow-[0_20px_50px_rgba(23,7,12,0.06)] sm:p-8">
+    <div className="rounded-[30px] border border-pink-100 bg-white p-5 shadow-[0_20px_50px_rgba(23,7,12,0.06)] sm:p-6">
+      <SectionHeader label="Descrição" />
       <RichText value={description} />
       {benefits && (
         <div className="mt-5 border-t border-pink-100 pt-5">
@@ -669,15 +638,7 @@ function DescriptionTab({ description, benefits }: { description: string; benefi
 function CharacteristicsTab({ items }: { items: string[] }) {
   return (
     <div className="rounded-[30px] border border-pink-100 bg-white p-5 shadow-[0_20px_50px_rgba(23,7,12,0.06)] sm:p-6">
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-500">Características</p>
-          <h3 className="mt-1 text-xl font-black text-gray-950">Informações principais</h3>
-        </div>
-        <span className="hidden h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-pink-500 sm:flex">
-          <SparkleIcon />
-        </span>
-      </div>
+      <SectionHeader label="Características" />
 
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map((item) => {
@@ -724,10 +685,12 @@ function UsageTab({
   ].filter((section): section is { title: string; value: string } => Boolean(section.value));
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-      <div className="rounded-[30px] bg-gradient-to-br from-[#17070C] to-[#5d2038] p-6 text-white shadow-[0_20px_50px_rgba(23,7,12,0.18)]">
+    <div className="rounded-[30px] border border-pink-100 bg-white p-5 shadow-[0_20px_50px_rgba(23,7,12,0.06)] sm:p-6">
+      <SectionHeader label="Modo de Uso" />
+      <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="rounded-[24px] bg-gradient-to-br from-[#17070C] to-[#5d2038] p-5 text-white">
         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-100">Cuidados</p>
-        <h3 className="mt-2 text-2xl font-black">Use com atenção</h3>
+        <h3 className="mt-1.5 text-lg font-black">Use com atenção</h3>
         <ul className="mt-5 space-y-3">
           {cleaningTips.map((item, index) => (
             <li key={item} className="flex gap-3 text-sm font-medium leading-relaxed text-white/80">
@@ -753,15 +716,17 @@ function UsageTab({
           </article>
         ))}
       </div>
+      </div>
     </div>
   );
 }
 
 function ReviewsTab() {
   return (
+    <div className="rounded-[30px] border border-pink-100 bg-white p-5 shadow-[0_20px_50px_rgba(23,7,12,0.06)] sm:p-6">
+      <SectionHeader label="Avaliações" />
     <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
-      <aside className="rounded-[30px] bg-gradient-to-br from-white to-pink-50 p-6 shadow-[0_20px_50px_rgba(23,7,12,0.06)] ring-1 ring-pink-100">
-        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-500">Avaliações</p>
+      <aside className="rounded-[24px] bg-gradient-to-br from-white to-pink-50 p-5 ring-1 ring-pink-100">
         <div className="mt-4 flex items-end gap-3">
           <span className="text-6xl font-black leading-none text-gray-950">4.8</span>
           <span className="pb-2 text-sm font-bold text-gray-500">de 5</span>
@@ -814,17 +779,15 @@ function ReviewsTab() {
           </article>
         ))}
       </div>
+      </div>
     </div>
   );
 }
 
 function QuestionsTab({ openFaq, onFaqToggle }: { openFaq: number | null; onFaqToggle: (index: number) => void }) {
   return (
-    <div className="rounded-[30px] border border-pink-100 bg-white p-4 shadow-[0_20px_50px_rgba(23,7,12,0.06)] sm:p-5">
-      <div className="mb-4 px-1">
-        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-500">Dúvidas frequentes</p>
-        <h3 className="mt-1 text-xl font-black text-gray-950">Respostas rápidas para comprar tranquila</h3>
-      </div>
+    <div className="rounded-[30px] border border-pink-100 bg-white p-5 shadow-[0_20px_50px_rgba(23,7,12,0.06)] sm:p-6">
+      <SectionHeader label="Perguntas frequentes" />
       <div className="space-y-3">
         {FAQS.map((faq, i) => (
           <div key={faq.q} className="overflow-hidden rounded-2xl border border-pink-100 bg-gradient-to-br from-white to-pink-50/40">
