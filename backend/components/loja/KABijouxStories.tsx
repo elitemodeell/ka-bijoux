@@ -84,13 +84,13 @@ const fallbackGroups: StoryGroup[] = [
     ],
   },
   {
-    id: "demo-lancamentos",
-    title: "Lançamentos",
+    id: "demo-achadinhos",
+    title: "Achadinhos",
     cover: storyHighlightCovers.lancamentos,
     isActive: true,
     sortOrder: 3,
     items: [
-      createStoryVideo("demo-lancamentos-1", "/videos/stories/demo-ka-bijoux/story-whatsapp-video-03.mp4", 1),
+      createStoryVideo("demo-achadinhos-1", "/videos/stories/demo-ka-bijoux/story-whatsapp-video-03.mp4", 1),
     ],
   },
   {
@@ -101,16 +101,6 @@ const fallbackGroups: StoryGroup[] = [
     sortOrder: 4,
     items: [
       createStoryVideo("demo-clientes-1", "/videos/stories/demo-ka-bijoux/story-whatsapp-video-04.mp4", 1),
-    ],
-  },
-  {
-    id: "demo-ofertas",
-    title: "Ofertas",
-    cover: storyHighlightCovers.ofertas,
-    isActive: true,
-    sortOrder: 5,
-    items: [
-      createStoryVideo("demo-ofertas-1", "/videos/stories/demo-ka-bijoux/story-whatsapp-video-05.mp4", 1),
     ],
   },
 ];
@@ -551,6 +541,11 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
       <div className="relative overflow-hidden rounded-[20px] border border-pink-100/80 bg-gradient-to-br from-white via-pink-50 to-rose-50 px-3 py-3 shadow-[0_8px_24px_rgba(255,77,109,0.10)] sm:rounded-[28px] sm:p-5 lg:p-6">
         <span className="ka-story-spotlight-shine" aria-hidden="true" />
 
+        <div className="mb-2 sm:hidden">
+          <p className="text-[15px] font-bold text-gray-800">Acompanhe nossos stories ✨</p>
+          <p className="mt-0.5 text-[12px] text-gray-500">Toque para ver novidades, promoções, achadinhos e inspirações</p>
+        </div>
+
         <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-7">
           <div className="hidden sm:block text-center lg:w-[310px] lg:shrink-0 lg:text-left">
             <p className="ka-story-attention-label mx-auto inline-flex items-center justify-center rounded-full border border-pink-200/80 bg-white/88 px-4 py-2 text-[12px] font-black uppercase tracking-[0.16em] text-pink-600 shadow-sm backdrop-blur lg:mx-0">
@@ -611,9 +606,9 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
 
 function FeriasBanner() {
   return (
-    <section className="mx-auto mt-6 max-w-7xl px-4 sm:mt-8 sm:px-6" aria-label="Férias com Estilo">
+    <section className="mt-4 px-0 sm:mx-auto sm:mt-8 sm:max-w-7xl sm:px-6" aria-label="Férias com Estilo">
       <Link href={feriasBannerHref} className="group block" aria-label="Férias com Estilo — Quero aproveitar">
-        <div className="overflow-hidden rounded-[28px] shadow-[0_24px_70px_rgba(236,72,153,0.20)] transition-transform duration-300 group-hover:scale-[1.005]">
+        <div className="overflow-hidden rounded-none sm:rounded-[28px] shadow-none sm:shadow-[0_24px_70px_rgba(236,72,153,0.20)] transition-transform duration-300 sm:group-hover:scale-[1.005]">
           <img
             src="/banners/banner-destino-ferias.png"
             alt="Destino Férias — Ofertas especiais para curtir seus melhores momentos"
@@ -702,9 +697,9 @@ function MainHeroCarousel() {
   }
 
   return (
-    <div className="px-2 pt-2 pb-0 sm:px-4">
+    <div className="px-0 pt-0 pb-0 sm:px-4">
       <div
-        className="relative overflow-hidden rounded-[24px] shadow-[0_8px_32px_rgba(236,72,153,0.18)] aspect-[4/3] sm:aspect-[16/7] lg:aspect-[16/6]"
+        className="relative overflow-hidden rounded-none sm:rounded-[24px] shadow-none sm:shadow-[0_8px_32px_rgba(236,72,153,0.18)] aspect-[4/3] sm:aspect-[16/7] lg:aspect-[16/6]"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
