@@ -5,8 +5,8 @@ import type { TouchEvent } from "react";
 import Link from "next/link";
 import { DEFAULT_STORY_COVER, type StoryGroup, type StoryItem } from "@/types/stories";
 import {
-  copaBannerHref,
-  copaBannerImage,
+  feriasBannerHref,
+  feriasBannerImage,
 } from "@/lib/campaign-media";
 
 const seenStorageKey = "ka-bijoux-seen-stories";
@@ -23,39 +23,39 @@ const storyHighlightCoverEntries = Object.entries(storyHighlightCovers);
 
 const heroSlides = [
   {
-    title: "Copa do Prazer",
-    subtitle: "Produtos que vão elevar a sua experiência.",
+    title: "Férias com Estilo",
+    subtitle: "Ofertas para viajar, sair e se cuidar",
     cta: "Quero Aproveitar",
-    href: "/categoria/sex-shop",
-    image: "/banners/banner-copa-do-prazer-2.png",
-    mobileImage: "/banners/banner-copa-do-prazer-2026-vertical.jpg",
-    objectPosition: "center",
-  },
-  {
-    title: "Novidades KA Bijoux",
-    subtitle: "Os acessórios que estão conquistando Itaúna.",
-    cta: "Ver Novidades",
     href: "/produtos?new=true",
-    image: "/banners/banner-ka-bijoux-novidades.png",
-    mobileImage: "/banners/mobile/banner-ka-bijoux-novidades-mobile.png",
+    image: "/banners/banner-ferias-com-estilo.png",
+    mobileImage: "/banners/banner-ferias-com-estilo.png",
     objectPosition: "center",
   },
   {
-    title: "Lançamentos Lingerie",
-    subtitle: "Lingeries que despertam desejos.",
-    cta: "Ver Lingerie",
-    href: "/categoria/lingerie",
-    image: "/banners/banner-lingeries-desejos.png",
-    mobileImage: "/banners/mobile/banner-lingeries-desejos-mobile-modelos.jpg",
+    title: "Mala Pronta, Look Completo",
+    subtitle: "Capinhas, bolsas, óculos e acessórios para todos os momentos",
+    cta: "Comprar Agora",
+    href: "/produtos",
+    image: "/banners/banner-mala-pronta-look-completo.png",
+    mobileImage: "/banners/banner-mala-pronta-look-completo.png",
     objectPosition: "center",
   },
   {
-    title: "Promoções Especiais",
-    subtitle: "Ofertas imperdíveis para você aproveitar agora.",
-    cta: "Ver Promoções",
-    href: "/categoria/sex-shop/geis-e-cremes",
-    image: "/banners/banner-close-love-oferta.png",
-    mobileImage: "/banners/mobile/banner-close-love-oferta-mobile.png",
+    title: "Destino: Férias",
+    subtitle: "Acessórios e bijuterias com alegria, charme e verão",
+    cta: "Ver Ofertas",
+    href: "/categoria/bijuterias",
+    image: "/banners/banner-destino-ferias.png",
+    mobileImage: "/banners/banner-destino-ferias.png",
+    objectPosition: "center",
+  },
+  {
+    title: "Brilhe nas Férias",
+    subtitle: "Peças delicadas para deixar seu visual ainda mais bonito",
+    cta: "Quero Brilhar",
+    href: "/categoria/bijuterias",
+    image: "/banners/banner-brilhe-nas-ferias.png",
+    mobileImage: "/banners/banner-brilhe-nas-ferias.png",
     objectPosition: "center",
   },
 ];
@@ -443,8 +443,8 @@ export default function KABijouxStories() {
           onOpenGroup={openGroup}
           seenIds={seenIds}
         />
-        <CopaDoPrazerBanner />
-        <CopaPromoStrip />
+        <FeriasBanner />
+        <FeriasPromoStrip />
       </div>
 
       {activeGroup && activeItem && (
@@ -609,18 +609,17 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
   );
 }
 
-function CopaDoPrazerBanner() {
+function FeriasBanner() {
   return (
-    <section className="mx-auto mt-6 max-w-7xl px-4 sm:mt-8 sm:px-6" aria-label="Copa do Prazer">
-      <Link href={copaBannerHref} className="group block" aria-label="Copa do Prazer 2026 — Quero aproveitar">
+    <section className="mx-auto mt-6 max-w-7xl px-4 sm:mt-8 sm:px-6" aria-label="Férias com Estilo">
+      <Link href={feriasBannerHref} className="group block" aria-label="Férias com Estilo — Quero aproveitar">
         <div className="overflow-hidden rounded-[28px] shadow-[0_24px_70px_rgba(236,72,153,0.20)] transition-transform duration-300 group-hover:scale-[1.005]">
-          {/* portrait image: full height on mobile, capped on desktop */}
           <img
-            src={copaBannerImage}
-            alt="Copa do Prazer 2026 — Promoções campeãs para você aproveitar"
+            src="/banners/banner-destino-ferias.png"
+            alt="Destino Férias — Ofertas especiais para curtir seus melhores momentos"
             loading="eager"
             decoding="async"
-            className="w-full object-cover object-top sm:max-h-[600px] lg:max-h-[700px]"
+            className="w-full object-cover"
           />
         </div>
       </Link>
@@ -628,28 +627,28 @@ function CopaDoPrazerBanner() {
   );
 }
 
-function CopaPromoStrip() {
+function FeriasPromoStrip() {
   return (
-    <section className="mx-auto mt-4 max-w-7xl px-4 sm:mt-5 sm:px-6" aria-label="Campeões de vendas">
+    <section className="mx-auto mt-4 max-w-7xl px-4 sm:mt-5 sm:px-6" aria-label="Férias com Estilo">
       <Link
-        href={copaBannerHref}
-        className="ka-copa-promo-strip group flex flex-col gap-4 rounded-[24px] bg-gradient-to-r from-pink-700 via-pink-500 to-pink-400 p-5 text-white shadow-[0_20px_54px_rgba(236,72,153,0.24)] sm:flex-row sm:items-center sm:justify-between sm:p-6"
+        href={feriasBannerHref}
+        className="group flex flex-col gap-4 rounded-[24px] bg-gradient-to-r from-pink-600 via-rose-500 to-orange-400 p-5 text-white shadow-[0_20px_54px_rgba(236,72,153,0.24)] sm:flex-row sm:items-center sm:justify-between sm:p-6"
       >
         <span className="flex items-center gap-4">
           <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/12 text-4xl shadow-inner backdrop-blur" aria-hidden="true">
-            🏆
+            ✈️
           </span>
           <span>
             <span className="block text-xl font-black uppercase leading-tight sm:text-2xl">
-              A COPA DO PRAZER JÁ COMEÇOU!
+              FÉRIAS COM ESTILO!
             </span>
             <span className="mt-1 block text-sm font-semibold text-yellow-100 sm:text-base">
-              Confira nossos campeões de vendas
+              Ofertas para viajar, sair e se cuidar
             </span>
           </span>
         </span>
         <span className="ka-btn inline-flex min-h-12 items-center justify-center gap-3 rounded-2xl bg-white px-6 py-3 text-sm font-black uppercase tracking-wide text-pink-600 shadow-[0_14px_30px_rgba(0,0,0,0.14)] sm:min-w-[190px]">
-          EU QUERO
+          QUERO APROVEITAR
           <span className="text-xl leading-none transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true">→</span>
         </span>
       </Link>
@@ -705,7 +704,7 @@ function MainHeroCarousel() {
   return (
     <div className="px-2 pt-2 pb-0 sm:px-4">
       <div
-        className="relative overflow-hidden rounded-[24px] shadow-[0_8px_32px_rgba(236,72,153,0.18)] aspect-[16/9] sm:aspect-[16/7] lg:aspect-[16/6]"
+        className="relative overflow-hidden rounded-[24px] shadow-[0_8px_32px_rgba(236,72,153,0.18)] aspect-[4/3] sm:aspect-[16/7] lg:aspect-[16/6]"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

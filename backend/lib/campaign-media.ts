@@ -21,25 +21,25 @@ export type SeasonalCampaign = {
   }>;
 };
 
-export const copaBannerHref = "/categoria/sex-shop";
+export const feriasBannerHref = "/produtos?new=true";
 
-export const copaBannerImage = "/banners/banner-copa-do-prazer-2026-vertical.jpg";
+export const feriasBannerImage = "/banners/banner-ferias-com-estilo.png";
 
 export const activeSeasonalCampaign: SeasonalCampaign = {
-  id: "copa-do-prazer",
-  eyebrow: "Copa do Prazer — Entrou em Campo!",
-  title: "Copa do Prazer",
-  titleLines: ["Copa do", "Prazer!"],
-  subtitle: "Produtos selecionados para elevar sua experiência com uma campanha especial.",
+  id: "ferias-com-estilo",
+  eyebrow: "Férias com Estilo — Chegou a hora!",
+  title: "Férias com Estilo",
+  titleLines: ["Férias", "com Estilo!"],
+  subtitle: "Acessórios, bijuterias, capinhas e bolsas para viajar, sair e se cuidar.",
   ctaLabel: "Quero aproveitar",
-  ctaHref: "/categoria/sex-shop",
-  image: copaBannerImage,
-  accent: "Frete grátis acima de R$150",
+  ctaHref: "/produtos?new=true",
+  image: feriasBannerImage,
+  accent: "Envio para todo o Brasil",
   shortcuts: [
-    { label: "Geis & Cremes", href: "/categoria/sex-shop/geis-e-cremes" },
-    { label: "Vibradores", href: "/categoria/sex-shop/vibradores" },
-    { label: "Lubrificantes", href: "/categoria/sex-shop/lubrificantes" },
-    { label: "Lingerie", href: "/categoria/lingerie" },
-    { label: "Ver tudo", href: "/categoria/sex-shop" },
+    { label: "Bijuterias", href: "/categoria/bijuterias" },
+    { label: "Capinhas", href: "/categoria/capinhas-acessorios-celular" },
+    { label: "Bolsas", href: "/categoria/bolsas-necessaires" },
+    { label: "Óculos", href: "/categoria/oculos" },
+    { label: "Ver tudo", href: "/produtos" },
   ],
 };
