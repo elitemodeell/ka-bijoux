@@ -41,46 +41,40 @@ async function fetchPool(url: string): Promise<ProductCardProduct[]> {
   }
 }
 
+function mergeUniqueProducts(...pools: ProductCardProduct[][]): ProductCardProduct[] {
+  const products = new Map<string, ProductCardProduct>();
+
+  for (const product of pools.flat()) {
+    if (!products.has(product.id)) products.set(product.id, product);
+  }
+
+  return Array.from(products.values());
+}
+
 async function getHomeSections(): Promise<HomeSections> {
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
   const q = "withImage=true&line=normal";
 
   const [main, featured, newProds, promo] = await Promise.all([
-    fetchPool(`${base}/api/products?pageSize=60&${q}`),
-    fetchPool(`${base}/api/products?pageSize=12&${q}&featured=true`),
-    fetchPool(`${base}/api/products?pageSize=12&${q}&new=true`),
-    fetchPool(`${base}/api/products?pageSize=12&${q}&promo=true`),
+    fetchPool(`${base}/api/products?pageSize=80&${q}`),
+    fetchPool(`${base}/api/products?pageSize=24&${q}&featured=true`),
+    fetchPool(`${base}/api/products?pageSize=24&${q}&new=true`),
+    fetchPool(`${base}/api/products?pageSize=24&${q}&promo=true`),
   ]);
 
-  if (!main.length && !featured.length && !newProds.length && !promo.length) {
-    const fb = getBlingProductCards({ limit: 60, requireImage: true, catalogLine: "normal" });
-    return {
-      ofertasRelampago: fb.slice(0, 8),
-      achadinhos: fb.slice(8, 16),
-      novidades: fb.slice(16, 24),
-      maisVendidos: fb.slice(24, 34),
-      paraPresentes: fb.slice(34, 42),
-      belezaAutocuidado: fb.slice(42, 50),
-    };
+  const fallback = getBlingProductCards({ limit: 100, requireImage: true, catalogLine: "normal" });
+  const productPool = mergeUniqueProducts(main, featured, newProds, promo, fallback);
+
+  function takeSection(priority: ProductCardProduct[], n: number): ProductCardProduct[] {
+    return mergeUniqueProducts(priority, productPool).slice(0, n);
   }
 
-  const used = new Set<string>();
-
-  function takeUnique(priority: ProductCardProduct[], n: number): ProductCardProduct[] {
-    const result: ProductCardProduct[] = [];
-    for (const p of [...priority, ...main]) {
-      if (result.length >= n) break;
-      if (!used.has(p.id)) { result.push(p); used.add(p.id); }
-    }
-    return result;
-  }
-
-  const ofertasRelampago  = takeUnique([...promo, ...main],     8);
-  const achadinhos        = takeUnique(main,                    8);
-  const novidades         = takeUnique([...newProds, ...main],  8);
-  const maisVendidos      = takeUnique([...featured, ...main], 10);
-  const paraPresentes     = takeUnique(main,                    8);
-  const belezaAutocuidado = takeUnique(main,                    8);
+  const ofertasRelampago  = takeSection([...promo, ...featured, ...main], 8);
+  const achadinhos        = takeSection(main, 8);
+  const novidades         = takeSection([...newProds, ...main], 8);
+  const maisVendidos      = takeSection([...featured, ...main], 10);
+  const paraPresentes     = takeSection(main, 8);
+  const belezaAutocuidado = takeSection(main, 8);
 
   return { ofertasRelampago, achadinhos, novidades, maisVendidos, paraPresentes, belezaAutocuidado };
 }
@@ -126,29 +120,16 @@ export default async function HomePage() {
             </Link>
           </AnimatedSection>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-5">
-            {ofertasRelampago.map((product, i) => (
-              <ProductCard
-                key={product.id}
-                product={{
-                  ...product,
-                  badge: pickBadge(product.id, ["Imperdível", "Oferta", "Super Preço", "Corre!", "Aproveite"]),
-                }}
-                revealDelay={i * 50}
-                priority={i < 2}
-                badgeSeal
-              />
-            ))}
-          </div>
-
-          <div className="text-center mt-8">
-            <Link
-              href="/produtos"
-              className="ka-btn inline-flex items-center gap-2 bg-gradient-to-r from-pink-500 to-pink-400 text-white font-semibold px-7 py-3.5 rounded-2xl"
-            >
-              Ver todos os produtos →
-            </Link>
-          </div>
+          <ProductRail
+            products={ofertasRelampago}
+            badgeOptions={["Imperd\u00edvel", "Oferta", "Super Pre\u00e7o", "Corre!", "Aproveite"]}
+            keyPrefix="offer"
+            priorityCount={2}
+            badgeSeal
+            moreHref="/produtos"
+            moreLabel="Ver todos os produtos"
+            desktopClassName="sm:grid-cols-4 lg:grid-cols-4 sm:gap-5"
+          />
         </div>
       </section>
 
@@ -173,18 +154,15 @@ export default async function HomePage() {
             </Link>
           </AnimatedSection>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-5">
-            {achadinhos.map((product, i) => (
-              <ProductCard
-                key={`ach-${product.id}`}
-                product={{
-                  ...product,
-                  badge: pickBadge(product.id, ["Achadinho", "Queridinho", "Boa Compra", "Favorito"]),
-                }}
-                revealDelay={i * 55}
-              />
-            ))}
-          </div>
+          <ProductRail
+            products={achadinhos}
+            badgeOptions={["Achadinho", "Queridinho", "Boa Compra", "Favorito"]}
+            keyPrefix="ach"
+            revealStep={55}
+            moreHref="/produtos"
+            moreLabel="Ver mais achadinhos"
+            desktopClassName="sm:grid-cols-4 lg:grid-cols-4 sm:gap-5"
+          />
         </div>
       </section>
 
@@ -245,18 +223,15 @@ export default async function HomePage() {
             </Link>
           </AnimatedSection>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-5">
-            {novidades.map((product, i) => (
-              <ProductCard
-                key={`new-${product.id}`}
-                product={{
-                  ...product,
-                  badge: pickBadge(product.id, ["Novo", "Lançamento", "Chegou"]),
-                }}
-                revealDelay={i * 60}
-              />
-            ))}
-          </div>
+          <ProductRail
+            products={novidades}
+            badgeOptions={["Novo", "Lan\u00e7amento", "Chegou"]}
+            keyPrefix="new"
+            revealStep={60}
+            moreHref="/produtos?new=true"
+            moreLabel="Ver todas as novidades"
+            desktopClassName="sm:grid-cols-4 lg:grid-cols-4 sm:gap-5"
+          />
         </div>
       </section>
 
@@ -280,18 +255,15 @@ export default async function HomePage() {
             </Link>
           </AnimatedSection>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5">
-            {maisVendidos.map((product, i) => (
-              <ProductCard
-                key={`mv-${product.id}`}
-                product={{
-                  ...product,
-                  badge: pickBadge(product.id, ["Mais Vendido", "Destaque", "Top"]),
-                }}
-                revealDelay={i * 45}
-              />
-            ))}
-          </div>
+          <ProductRail
+            products={maisVendidos}
+            badgeOptions={["Mais Vendido", "Destaque", "Top"]}
+            keyPrefix="mv"
+            revealStep={45}
+            moreHref="/produtos?ordem=mais-vendidos"
+            moreLabel="Ver mais vendidos"
+            desktopClassName="sm:grid-cols-4 lg:grid-cols-5 sm:gap-5"
+          />
         </div>
       </section>
 
@@ -315,18 +287,15 @@ export default async function HomePage() {
             </Link>
           </AnimatedSection>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-5">
-            {paraPresentes.map((product, i) => (
-              <ProductCard
-                key={`gft-${product.id}`}
-                product={{
-                  ...product,
-                  badge: pickBadge(product.id, ["Presente", "Especial", "Mimo", "Encanto"]),
-                }}
-                revealDelay={i * 60}
-              />
-            ))}
-          </div>
+          <ProductRail
+            products={paraPresentes}
+            badgeOptions={["Presente", "Especial", "Mimo", "Encanto"]}
+            keyPrefix="gft"
+            revealStep={60}
+            moreHref="/produtos"
+            moreLabel="Ver opcoes para presentear"
+            desktopClassName="sm:grid-cols-4 lg:grid-cols-4 sm:gap-5"
+          />
         </div>
       </section>
 
@@ -350,18 +319,15 @@ export default async function HomePage() {
             </Link>
           </AnimatedSection>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-5">
-            {belezaAutocuidado.map((product, i) => (
-              <ProductCard
-                key={`bel-${product.id}`}
-                product={{
-                  ...product,
-                  badge: pickBadge(product.id, ["Top Beleza", "Favorita", "Tendência"]),
-                }}
-                revealDelay={i * 60}
-              />
-            ))}
-          </div>
+          <ProductRail
+            products={belezaAutocuidado}
+            badgeOptions={["Top Beleza", "Favorita", "Tend\u00eancia"]}
+            keyPrefix="bel"
+            revealStep={60}
+            moreHref="/produtos"
+            moreLabel="Ver mais beleza"
+            desktopClassName="sm:grid-cols-4 lg:grid-cols-4 sm:gap-5"
+          />
         </div>
       </section>
 
@@ -419,6 +385,63 @@ export default async function HomePage() {
       </section>
 
     </main>
+  );
+}
+
+type ProductRailProps = {
+  products: ProductCardProduct[];
+  badgeOptions: string[];
+  moreHref: string;
+  moreLabel: string;
+  keyPrefix?: string;
+  revealStep?: number;
+  priorityCount?: number;
+  badgeSeal?: boolean;
+  desktopClassName?: string;
+};
+
+function ProductRail({
+  products,
+  badgeOptions,
+  moreHref,
+  moreLabel,
+  keyPrefix = "product",
+  revealStep = 50,
+  priorityCount = 0,
+  badgeSeal = false,
+  desktopClassName = "sm:grid-cols-4 lg:grid-cols-4 sm:gap-5",
+}: ProductRailProps) {
+  return (
+    <>
+      <div className={`-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 [scrollbar-width:none] sm:mx-0 sm:grid sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden ${desktopClassName}`}>
+        {products.map((product, i) => (
+          <div
+            key={`${keyPrefix}-${product.id}`}
+            className="w-[72vw] min-w-[252px] max-w-[304px] shrink-0 snap-start sm:w-auto sm:min-w-0 sm:max-w-none"
+          >
+            <ProductCard
+              product={{
+                ...product,
+                badge: pickBadge(product.id, badgeOptions),
+              }}
+              revealDelay={i * revealStep}
+              priority={i < priorityCount}
+              badgeSeal={badgeSeal}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 flex justify-center sm:mt-8">
+        <Link
+          href={moreHref}
+          className="ka-btn inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-pink-400 px-6 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(236,72,153,0.24)]"
+        >
+          {moreLabel}
+          <span aria-hidden="true">-&gt;</span>
+        </Link>
+      </div>
+    </>
   );
 }
 

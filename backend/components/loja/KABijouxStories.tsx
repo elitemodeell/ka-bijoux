@@ -426,6 +426,7 @@ export default function KABijouxStories() {
       </div>
 
       <div className="relative z-10 pb-10 pt-0 sm:pb-12 sm:pt-3">
+        <SexShopMobileAccess />
         <MainHeroCarousel />
         <StorySpotlight
           groups={visibleGroups}
@@ -528,6 +529,63 @@ export default function KABijouxStories() {
   );
 }
 
+function SexShopMobileAccess() {
+  return (
+    <section className="mx-auto mb-3 mt-2 max-w-md px-4 sm:hidden" aria-label="Acesso ao Sex Shop">
+      <Link
+        href="/categoria/sex-shop"
+        className="ka-btn group relative flex min-h-[86px] items-center gap-3 overflow-hidden rounded-[22px] border border-[#f8b4cb]/70 px-3.5 py-3.5 text-white shadow-[0_18px_38px_rgba(190,24,93,0.30)] ring-1 ring-white/35"
+        style={{
+          backgroundImage:
+            "linear-gradient(105deg, rgba(98, 8, 39, 0.96) 0%, rgba(202, 18, 91, 0.92) 48%, rgba(87, 9, 39, 0.90) 100%), url('/banners/ka-intima-hero-premium.png')",
+          backgroundPosition: "center",
+          backgroundSize: "cover",
+        }}
+        aria-label="Entrar no Sex Shop - Lingerie e produtos especiais"
+      >
+        <span className="ka-story-spotlight-shine opacity-60" aria-hidden="true" />
+        <span className="pointer-events-none absolute -right-8 -top-6 h-28 w-28 rounded-full bg-pink-200/20 blur-2xl" aria-hidden="true" />
+        <span className="pointer-events-none absolute bottom-0 left-14 h-px w-36 bg-gradient-to-r from-transparent via-white/55 to-transparent" aria-hidden="true" />
+
+        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/14 shadow-[inset_0_0_18px_rgba(255,255,255,0.18),0_10px_22px_rgba(80,0,32,0.22)] backdrop-blur">
+          <HeartIcon className="h-6 w-6 text-pink-100 drop-shadow-[0_0_8px_rgba(255,255,255,0.65)]" />
+        </span>
+
+        <span className="relative min-w-0 flex-1">
+          <span className="block truncate font-playfair text-[22px] font-bold leading-tight tracking-normal text-white drop-shadow-sm">
+            Entrar no Sex Shop
+          </span>
+          <span className="mt-0.5 block truncate text-[12px] font-semibold leading-snug text-pink-50/95">
+            Lingerie e produtos especiais
+          </span>
+        </span>
+
+        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/88 text-[#c9155c] shadow-[0_10px_20px_rgba(80,0,32,0.22)] transition-transform duration-300 group-hover:translate-x-0.5">
+          <ChevronRightIcon className="h-4 w-4" />
+        </span>
+      </Link>
+
+      <div className="mx-auto mt-2 flex max-w-[286px] items-center justify-center overflow-hidden rounded-full border border-pink-100 bg-white/94 text-[#b51655] shadow-[0_10px_24px_rgba(236,72,153,0.12)] backdrop-blur">
+        <Link
+          href="/categoria/lingerie"
+          className="flex min-h-11 flex-1 items-center justify-center gap-1.5 px-3 text-[13px] font-black"
+        >
+          <HeartIcon className="h-3.5 w-3.5 text-pink-400" />
+          Lingerie
+        </Link>
+        <span className="h-5 w-px bg-pink-100" aria-hidden="true" />
+        <Link
+          href="/categoria/sex-shop"
+          className="flex min-h-11 flex-1 items-center justify-center gap-1.5 px-3 text-[13px] font-black"
+        >
+          Moda &Iacute;ntima
+          <ChevronRightIcon className="h-3.5 w-3.5 text-pink-400" />
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 type StorySpotlightProps = {
   groups: StoryGroup[];
   loading: boolean;
@@ -537,13 +595,21 @@ type StorySpotlightProps = {
 
 function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotlightProps) {
   return (
-    <section className="mx-auto mt-3 max-w-7xl px-4 sm:mt-6 sm:px-6" aria-label="Stories KA Bijoux">
-      <div className="relative overflow-hidden rounded-[20px] border border-pink-100/80 bg-gradient-to-br from-white via-pink-50 to-rose-50 px-3 py-3 shadow-[0_8px_24px_rgba(255,77,109,0.10)] sm:rounded-[28px] sm:p-5 lg:p-6">
+    <section className="mx-auto mt-4 max-w-7xl px-4 sm:mt-6 sm:px-6" aria-label="Stories KA Bijoux">
+      <div className="relative overflow-hidden rounded-[26px] border border-pink-200/90 bg-gradient-to-br from-white via-[#ffeaf2] to-[#fff7fb] px-3.5 py-4 shadow-[0_18px_42px_rgba(236,72,153,0.18)] ring-1 ring-white/75 sm:rounded-[28px] sm:p-5 lg:p-6">
         <span className="ka-story-spotlight-shine" aria-hidden="true" />
 
-        <div className="mb-2 sm:hidden">
-          <p className="text-[15px] font-bold text-gray-800">Acompanhe nossos stories ✨</p>
-          <p className="mt-0.5 text-[12px] text-gray-500">Toque para ver novidades, promoções, achadinhos e inspirações</p>
+        <div className="mb-4 flex items-start justify-between gap-3 sm:hidden">
+          <div className="min-w-0">
+            <span className="inline-flex items-center rounded-full bg-pink-500 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-[0_8px_18px_rgba(236,72,153,0.28)]">
+              Toque para ver
+            </span>
+            <p className="mt-2 text-[20px] font-black leading-tight text-gray-900">Acompanhe nossos stories</p>
+            <p className="mt-1 text-[12px] font-semibold leading-snug text-[#8a4b5d]">Novidades, promo&ccedil;&otilde;es e achadinhos em destaque.</p>
+          </div>
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-pink-500 shadow-[0_12px_26px_rgba(236,72,153,0.20)] ring-4 ring-pink-100/80" aria-hidden="true">
+            <StoryPlayIcon className="h-5 w-5" />
+          </span>
         </div>
 
         <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-7">
@@ -561,11 +627,11 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
           </div>
 
           <div className="overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:flex-1">
-            <div className="flex min-w-max snap-x snap-mandatory items-start gap-5 px-1 sm:gap-7 lg:min-w-0 lg:justify-center">
+            <div className="flex min-w-max snap-x snap-mandatory items-start gap-4 px-1 sm:gap-7 lg:min-w-0 lg:justify-center">
               {loading
                 ? Array.from({ length: 5 }).map((_, index) => (
-                    <div key={index} className="w-[88px] shrink-0 animate-pulse text-center sm:w-[96px]">
-                      <div className="mx-auto h-20 w-20 rounded-full bg-pink-100 sm:h-24 sm:w-24" />
+                    <div key={index} className="w-[96px] shrink-0 animate-pulse text-center sm:w-[104px]">
+                      <div className="mx-auto h-[88px] w-[88px] rounded-full bg-pink-100 sm:h-24 sm:w-24" />
                       <div className="mx-auto mt-3 h-3 w-16 rounded-full bg-pink-100/80" />
                     </div>
                   ))
@@ -578,11 +644,11 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
                         key={group.id}
                         type="button"
                         onClick={() => onOpenGroup(index)}
-                        className="group w-[88px] shrink-0 snap-start text-center outline-none sm:w-[96px]"
+                        className="group w-[96px] shrink-0 snap-start text-center outline-none sm:w-[104px]"
                         aria-label={`Abrir story ${group.title}`}
                       >
                         <span
-                          className={`ka-story-ring mx-auto flex h-20 w-20 items-center justify-center rounded-full p-[4px] transition-transform duration-300 group-hover:scale-[1.04] sm:h-24 sm:w-24 ${
+                          className={`ka-story-ring mx-auto flex h-[88px] w-[88px] items-center justify-center rounded-full p-[4px] transition-transform duration-300 group-hover:scale-[1.04] sm:h-24 sm:w-24 ${
                             hasSeen ? "ka-story-ring-seen" : "ka-story-ring-unseen"
                           }`}
                         >
@@ -590,7 +656,7 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
                             <StoryCover media={coverMedia} title={group.title} />
                           </span>
                         </span>
-                        <span className="mt-3 block truncate text-[12px] font-bold leading-tight text-gray-800 sm:text-[13px]">
+                        <span className="mt-3 block truncate text-[13px] font-black leading-tight text-gray-900 sm:text-[13px]">
                           {group.title}
                         </span>
                       </button>
@@ -850,6 +916,31 @@ function StoryCover({ media, title }: { media: StoryCoverMedia; title: string })
         onError={() => setFailed(true)}
       />
     </span>
+  );
+}
+
+function StoryPlayIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="m10 8 6 4-6 4V8Z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function HeartIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m9 18 6-6-6-6" />
+    </svg>
   );
 }
 

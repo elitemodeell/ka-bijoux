@@ -112,7 +112,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
               frameClassName="ka-product-img h-full w-full"
               imageClassName="object-contain"
               onError={() => setImgError(true)}
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              sizes="(max-width: 640px) 72vw, (max-width: 1024px) 33vw, 25vw"
               priority={priority}
             />
           ) : (
