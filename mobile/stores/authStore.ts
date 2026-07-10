@@ -16,9 +16,10 @@ interface AuthState {
   isLoading: boolean;
 
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { name: string; email: string; phone?: string; password: string }) => Promise<void>;
+  register: (data: { name: string; email: string; phone?: string; password: string; acceptedTerms: boolean }) => Promise<void>;
   logout: () => Promise<void>;
   loadSession: () => Promise<void>;
+  setCustomer: (customer: Customer) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -65,5 +66,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     await SecureStore.deleteItemAsync("ka-token");
     await SecureStore.deleteItemAsync("ka-customer");
     set({ token: null, customer: null });
+  },
+
+  setCustomer: async (customer) => {
+    await SecureStore.setItemAsync("ka-customer", JSON.stringify(customer));
+    set({ customer });
   },
 }));

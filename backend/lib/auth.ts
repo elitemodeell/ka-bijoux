@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import jwt from "jsonwebtoken";
 import { prisma } from "./prisma";
 
-const JWT_SECRET = process.env.JWT_SECRET || "ka-bijoux-secret-dev";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error("JWT_SECRET não configurado nas variáveis de ambiente");
 
 export interface CustomerPayload {
   id: string;
@@ -17,19 +18,19 @@ export interface AdminPayload {
 }
 
 export function signCustomerToken(payload: CustomerPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign(payload, JWT_SECRET!, { expiresIn: "7d" });
 }
 
 export function signAdminToken(payload: AdminPayload): string {
-  return jwt.sign(payload, JWT_SECRET + "-admin", { expiresIn: "24h" });
+  return jwt.sign(payload, JWT_SECRET! + "-admin", { expiresIn: "24h" });
 }
 
 export function verifyCustomerToken(token: string): CustomerPayload {
-  return jwt.verify(token, JWT_SECRET) as CustomerPayload;
+  return jwt.verify(token, JWT_SECRET!) as CustomerPayload;
 }
 
 export function verifyAdminToken(token: string): AdminPayload {
-  return jwt.verify(token, JWT_SECRET + "-admin") as AdminPayload;
+  return jwt.verify(token, JWT_SECRET! + "-admin") as AdminPayload;
 }
 
 export async function getCustomerFromRequest(

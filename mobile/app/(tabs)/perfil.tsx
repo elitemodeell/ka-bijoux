@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,10 +13,12 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { icon: "bag-outline",      label: "Meus Pedidos",   route: "/pedidos" },
-  { icon: "heart-outline",    label: "Favoritos",      route: "/favoritos" },
-  { icon: "location-outline", label: "Endereços",      route: "/endereco" },
-  { icon: "lock-closed-outline", label: "Alterar Senha", route: "/(auth)/alterar-senha" },
+  { icon: "person-outline",      label: "Editar Perfil",    route: "/conta/editar-perfil" },
+  { icon: "bag-outline",         label: "Meus Pedidos",     route: "/pedidos" },
+  { icon: "heart-outline",       label: "Favoritos",        route: "/favoritos" },
+  { icon: "notifications-outline", label: "Notificações",   route: "/notificacoes" },
+  { icon: "location-outline",    label: "Endereços",        route: "/endereco" },
+  { icon: "lock-closed-outline", label: "Alterar Senha",    route: "/(auth)/alterar-senha" },
 ];
 
 export default function PerfilScreen() {
@@ -100,6 +102,21 @@ export default function PerfilScreen() {
           >
             <Ionicons name="document-text-outline" size={16} color={Colors.textMuted} />
             <Text style={styles.deleteText}>Política de Privacidade</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.deleteBtn}
+            onPress={async () => {
+              try {
+                const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://kabijoux.com.br";
+                await Linking.openURL(`${BASE_URL}/api/customers/me/export`);
+              } catch {
+                Alert.alert("Erro", "Não foi possível abrir o link de exportação.");
+              }
+            }}
+          >
+            <Ionicons name="download-outline" size={16} color={Colors.textMuted} />
+            <Text style={styles.deleteText}>Exportar meus dados (LGPD)</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

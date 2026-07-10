@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Share } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +20,13 @@ export default function ConfirmacaoScreen() {
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const [order, setOrder] = useState<Order | null>(null);
+  const [pixCopied, setPixCopied] = useState(false);
+
+  async function copyPixCode(code: string) {
+    await Share.share({ message: code, title: "Código Pix — KA Bijoux" });
+    setPixCopied(true);
+    setTimeout(() => setPixCopied(false), 3000);
+  }
 
   useEffect(() => {
     if (orderId) {
@@ -73,6 +80,19 @@ export default function ConfirmacaoScreen() {
                     {order.payment.pixCode}
                   </Text>
                 </View>
+                <TouchableOpacity
+                  style={[styles.copyButton, pixCopied && styles.copyButtonDone]}
+                  onPress={() => copyPixCode(order.payment!.pixCode!)}
+                >
+                  <Ionicons
+                    name={pixCopied ? "checkmark-circle" : "copy-outline"}
+                    size={18}
+                    color={pixCopied ? Colors.success : Colors.primary}
+                  />
+                  <Text style={[styles.copyButtonText, pixCopied && styles.copyButtonTextDone]}>
+                    {pixCopied ? "Código copiado!" : "Copiar código Pix"}
+                  </Text>
+                </TouchableOpacity>
                 <Text style={styles.pixExpiry}>
                   ⏱️ Expira em 30 minutos
                 </Text>
@@ -144,6 +164,15 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.pinkLight,
   },
   pixCodeText: { fontSize: FontSizes.xs, color: Colors.textPrimary, fontFamily: "monospace", lineHeight: 18 },
+  copyButton: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, backgroundColor: Colors.pinkLight,
+    borderRadius: BorderRadius.lg, paddingVertical: 10, paddingHorizontal: 16,
+    borderWidth: 1.5, borderColor: Colors.primary,
+  },
+  copyButtonDone: { backgroundColor: "#e8f5e9", borderColor: Colors.success },
+  copyButtonText: { fontSize: FontSizes.sm, fontWeight: "700", color: Colors.primary },
+  copyButtonTextDone: { color: Colors.success },
   pixExpiry: { fontSize: FontSizes.xs, color: Colors.warning, fontWeight: "600" },
   infoBox: {
     marginTop: 12, backgroundColor: Colors.infoLight,

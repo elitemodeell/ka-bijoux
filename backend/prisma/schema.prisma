@@ -37,10 +37,12 @@ model Customer {
   phone        String?
   cpf          String?   @unique
   passwordHash String
-  active       Boolean   @default(true)
-  pushToken    String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  active                Boolean   @default(true)
+  pushToken             String?
+  passwordResetCode     String?
+  passwordResetExpires  DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   addresses     Address[]
   orders        Order[]
@@ -148,6 +150,10 @@ model Product {
   orderItems  OrderItem[]
   favorites   Favorite[]
 
+  @@index([categoryId])
+  @@index([active, publicationStatus])
+  @@index([featured, active])
+  @@index([createdAt])
   @@map("products")
 }
 
@@ -272,6 +278,10 @@ model Order {
   payment Payment?
   statusHistory OrderStatusHistory[]
 
+  @@index([customerId])
+  @@index([status])
+  @@index([customerId, status])
+  @@index([createdAt])
   @@map("orders")
 }
 
@@ -428,6 +438,20 @@ enum NotificationType {
   ENTREGUE
   PROMOCAO
   SISTEMA
+}
+
+// ─── ConsentLog ───────────────────────────────────────────────────────────────
+
+model ConsentLog {
+  id         String   @id @default(cuid())
+  customerId String
+  version    String
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([customerId])
+  @@map("consent_logs")
 }
 
 // ─── StoreSettings ────────────────────────────────────────────────────────────

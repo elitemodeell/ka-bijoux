@@ -6,11 +6,16 @@ import { prisma } from "@/lib/prisma";
 import { signCustomerToken } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
 
+const CONSENT_VERSION = "2026-07";
+
 const schema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   phone: z.string().optional(),
   password: z.string().min(6),
+  acceptedTerms: z.boolean().refine((v) => v === true, {
+    message: "É necessário aceitar os Termos de Uso e a Política de Privacidade.",
+  }),
 });
 
 export async function POST(req: NextRequest) {
@@ -31,6 +36,21 @@ export async function POST(req: NextRequest) {
         passwordHash,
       },
       select: { id: true, name: true, email: true, phone: true, createdAt: true },
+    });
+
+    // Registrar consentimento LGPD
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+      ?? req.headers.get("x-real-ip")
+      ?? undefined;
+    const userAgent = req.headers.get("user-agent") ?? undefined;
+
+    await prisma.consentLog.create({
+      data: {
+        customerId: customer.id,
+        version: CONSENT_VERSION,
+        ip,
+        userAgent,
+      },
     });
 
     const token = signCustomerToken({ id: customer.id, email: customer.email, name: customer.name });

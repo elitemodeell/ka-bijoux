@@ -23,6 +23,7 @@ export interface PaymentResult {
 }
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://kabijoux.com.br";
+const APP_SCHEME = process.env.NEXT_PUBLIC_APP_SCHEME ?? "kabijoux";
 
 async function getMpClient() {
   const { default: MercadoPagoConfig } = await import("mercadopago");
@@ -109,9 +110,9 @@ async function processMercadoPagoCheckoutPro(request: PaymentRequest): Promise<P
         email: request.customer.email,
       },
       back_urls: {
-        success: `${APP_URL}/checkout/sucesso`,
-        failure: `${APP_URL}/checkout/falha`,
-        pending: `${APP_URL}/checkout/pendente`,
+        success: `${APP_SCHEME}://checkout/sucesso`,
+        failure: `${APP_SCHEME}://checkout/falha`,
+        pending: `${APP_SCHEME}://checkout/pendente`,
       },
       notification_url: `${APP_URL}/api/payment/webhook`,
       external_reference: request.orderNumber,

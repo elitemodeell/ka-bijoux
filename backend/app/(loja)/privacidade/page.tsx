@@ -87,7 +87,7 @@ export default function PrivacidadePage() {
     <main className="mx-auto max-w-3xl px-6 py-16">
       <h1 className="mb-2 text-3xl font-black text-gray-900">Política de Privacidade</h1>
       <p className="mb-10 text-sm text-gray-500">
-        KA Bijoux — CNPJ a definir · Itaúna, MG · Última atualização: junho de 2026
+        KA Bijoux · Itaúna, MG · Última atualização: julho de 2026
       </p>
 
       <div className="space-y-10">

@@ -1,18 +1,22 @@
 import { useState } from "react";
 import {
   View, Text, TextInput, StyleSheet, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView,
+  KeyboardAvoidingView, Platform, ScrollView, Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { Colors, FontSizes, Spacing, BorderRadius } from "@/constants/theme";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/Button";
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://kabijoux.com.br";
 
 export default function CadastroScreen() {
   const router = useRouter();
   const { register } = useAuthStore();
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirm: "" });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -20,11 +24,18 @@ export default function CadastroScreen() {
     if (!form.name || !form.email || !form.password) { setError("Preencha nome, e-mail e senha."); return; }
     if (form.password.length < 6) { setError("A senha precisa ter pelo menos 6 caracteres."); return; }
     if (form.password !== form.confirm) { setError("As senhas não conferem."); return; }
+    if (!acceptedTerms) { setError("Você precisa aceitar os Termos de Uso e a Política de Privacidade para criar uma conta."); return; }
 
     setLoading(true);
     setError("");
     try {
-      await register({ name: form.name, email: form.email.trim(), phone: form.phone || undefined, password: form.password });
+      await register({
+        name: form.name,
+        email: form.email.trim(),
+        phone: form.phone || undefined,
+        password: form.password,
+        acceptedTerms: true,
+      });
       router.back();
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
@@ -35,11 +46,11 @@ export default function CadastroScreen() {
   }
 
   const fields = [
-    { key: "name",     label: "Nome completo *",  placeholder: "Seu nome",          type: "default",       autocomplete: "name" },
-    { key: "email",    label: "E-mail *",          placeholder: "seu@email.com",      type: "email-address", autocomplete: "email" },
-    { key: "phone",    label: "Telefone",          placeholder: "(37) 99999-9999",    type: "phone-pad",     autocomplete: "tel" },
-    { key: "password", label: "Senha *",           placeholder: "Mínimo 6 caracteres",type: "default",       autocomplete: "new-password", secure: true },
-    { key: "confirm",  label: "Confirmar senha *", placeholder: "Repita a senha",     type: "default",       autocomplete: "new-password", secure: true },
+    { key: "name",     label: "Nome completo *",   placeholder: "Seu nome",           type: "default",       secure: false },
+    { key: "email",    label: "E-mail *",           placeholder: "seu@email.com",       type: "email-address", secure: false },
+    { key: "phone",    label: "Telefone",           placeholder: "(37) 99999-9999",     type: "phone-pad",     secure: false },
+    { key: "password", label: "Senha *",            placeholder: "Mínimo 6 caracteres", type: "default",       secure: true  },
+    { key: "confirm",  label: "Confirmar senha *",  placeholder: "Repita a senha",      type: "default",       secure: true  },
   ] as const;
 
   return (
@@ -69,14 +80,41 @@ export default function CadastroScreen() {
                   placeholder={field.placeholder}
                   placeholderTextColor={Colors.textLight}
                   keyboardType={field.type as "default" | "email-address" | "phone-pad"}
-                  secureTextEntry={"secure" in field ? field.secure : false}
-                  autoCapitalize={field.type === "email-address" ? "none" : "words"}
+                  secureTextEntry={field.secure}
+                  autoCapitalize={field.type === "email-address" ? "none" : field.key === "name" ? "words" : "none"}
                   style={styles.input}
                 />
               </View>
             ))}
 
-            <Button label="Criar conta" onPress={handleRegister} loading={loading} fullWidth size="lg" style={{ marginTop: 8 }} />
+            {/* Aceite dos termos (obrigatório LGPD / App Store) */}
+            <TouchableOpacity
+              style={styles.termsRow}
+              onPress={() => setAcceptedTerms((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
+                {acceptedTerms && <Ionicons name="checkmark" size={14} color="#fff" />}
+              </View>
+              <Text style={styles.termsText}>
+                Li e aceito os{" "}
+                <Text
+                  style={styles.termsLink}
+                  onPress={() => Linking.openURL(`${API_URL}/termos`)}
+                >
+                  Termos de Uso
+                </Text>
+                {" "}e a{" "}
+                <Text
+                  style={styles.termsLink}
+                  onPress={() => Linking.openURL(`${API_URL}/privacidade`)}
+                >
+                  Política de Privacidade
+                </Text>
+              </Text>
+            </TouchableOpacity>
+
+            <Button label="Criar conta" onPress={handleRegister} loading={loading} fullWidth size="lg" style={{ marginTop: 4 }} />
           </View>
 
           <View style={styles.footer}>
@@ -110,6 +148,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14,
     fontSize: FontSizes.base, color: Colors.textPrimary,
   },
+  termsRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  checkbox: {
+    width: 22, height: 22, borderRadius: 6,
+    borderWidth: 2, borderColor: Colors.border,
+    alignItems: "center", justifyContent: "center",
+    marginTop: 1, flexShrink: 0,
+  },
+  checkboxChecked: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  termsText: { flex: 1, fontSize: FontSizes.xs, color: Colors.textMuted, lineHeight: 18 },
+  termsLink: { color: Colors.primary, fontWeight: "600" },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 24 },
   footerText: { color: Colors.textMuted, fontSize: FontSizes.sm },
   footerLink: { color: Colors.primary, fontWeight: "700", fontSize: FontSizes.sm },

@@ -35,8 +35,14 @@ export const authApi = {
   login: (email: string, password: string) =>
     api.post("/api/auth/login", { email, password }),
 
-  register: (data: { name: string; email: string; phone?: string; password: string }) =>
+  register: (data: { name: string; email: string; phone?: string; password: string; acceptedTerms: boolean }) =>
     api.post("/api/auth/register", data),
+
+  forgotPassword: (email: string) =>
+    api.post("/api/auth/forgot-password", { email }),
+
+  resetPassword: (email: string, code: string, newPassword: string) =>
+    api.post("/api/auth/reset-password", { email, code, newPassword }),
 };
 
 // ─── Products ─────────────────────────────────────────────────────────────────
@@ -91,6 +97,22 @@ export const ordersApi = {
   list: () => api.get("/api/orders"),
 
   getById: (id: string) => api.get(`/api/orders/${id}`),
+};
+
+// ─── Customer Profile ─────────────────────────────────────────────────────────
+
+export const customerApi = {
+  getMe: () => api.get("/api/customers/me"),
+  updateMe: (data: { name?: string; phone?: string }) =>
+    api.patch("/api/customers/me", data),
+};
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export const notificationsApi = {
+  list: () => api.get("/api/customers/me/notifications"),
+  markRead: (id: string) => api.patch(`/api/customers/me/notifications/${id}`),
+  markAllRead: () => api.patch("/api/customers/me/notifications"),
 };
 
 // ─── Addresses ────────────────────────────────────────────────────────────────
