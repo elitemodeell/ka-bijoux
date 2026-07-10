@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { signCustomerToken } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
+import { rateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 
 const schema = z.object({
   email: z.string().email(),
@@ -12,6 +13,9 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const limited = await rateLimit(req, RATE_LIMITS.auth);
+  if (limited) return limited;
+
   try {
     const body = await req.json();
     const { email, password } = schema.parse(body);

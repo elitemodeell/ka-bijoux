@@ -1,7 +1,7 @@
 // ─── Tema visual KA Bijoux ───────────────────────────────────────────────────
 // Identidade: Rosa, branco, feminino, moderno, premium, comercial
 
-export const Colors = {
+export const LightColors = {
   // Rosa — cor principal
   primary:      "#FF4D6D",
   primaryLight: "#FF6B8A",
@@ -15,9 +15,9 @@ export const Colors = {
 
   // Brancos e cinzas
   white:         "#FFFFFF",
-  background:    "#FFF9FA",   // fundo principal do app
-  surface:       "#FFFFFF",   // cards
-  surfaceAlt:    "#F8F8F8",   // fundo secundário
+  background:    "#FFF9FA",
+  surface:       "#FFFFFF",
+  surfaceAlt:    "#F8F8F8",
 
   // Borders & dividers
   border:       "#F0E4E8",
@@ -44,6 +44,46 @@ export const Colors = {
   tabInactive:  "#C9B8BD",
   tabBackground:"#FFFFFF",
 };
+
+export const DarkColors = {
+  primary:      "#FF4D6D",
+  primaryLight: "#FF6B8A",
+  primarySoft:  "#3D0F1A",
+  primaryDark:  "#C8274A",
+
+  pinkLight:  "#7A2A3A",
+  pinkSoft:   "#2D1019",
+  pinkPale:   "#1E0810",
+
+  white:         "#FFFFFF",
+  background:    "#12080B",
+  surface:       "#1E1014",
+  surfaceAlt:    "#271419",
+
+  border:       "#3A1E26",
+  borderLight:  "#2A1319",
+
+  textPrimary:  "#FAF0F3",
+  textSecondary:"#C9A8B4",
+  textMuted:    "#8A6570",
+  textLight:    "#6A4A54",
+
+  success:      "#22C55E",
+  successLight: "#0D2818",
+  warning:      "#F59E0B",
+  warningLight: "#2D2008",
+  error:        "#EF4444",
+  errorLight:   "#2D1010",
+  info:         "#3B82F6",
+  infoLight:    "#0D1E3D",
+
+  tabActive:    "#FF4D6D",
+  tabInactive:  "#6A4A54",
+  tabBackground:"#1E1014",
+};
+
+// Exportação de compatibilidade — código existente usa Colors diretamente
+export const Colors = LightColors;
 
 export const Fonts = {
   regular:    "System",

@@ -7,7 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/stores/authStore";
-import { Colors } from "@/constants/theme";
+import { useTheme } from "@/lib/useTheme";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -42,6 +42,7 @@ function PushHandler() {
 
 export default function RootLayout() {
   const { loadSession, isLoading } = useAuthStore();
+  const { isDark, Colors } = useTheme();
 
   useEffect(() => {
     loadSession().then(() => SplashScreen.hideAsync());
@@ -52,7 +53,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style="dark" backgroundColor={Colors.background} />
+        <StatusBar style={isDark ? "light" : "dark"} backgroundColor={Colors.background} />
         <PushHandler />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
@@ -66,6 +67,7 @@ export default function RootLayout() {
           <Stack.Screen name="notificacoes" options={{ presentation: "card" }} />
           <Stack.Screen name="conta/editar-perfil" options={{ presentation: "card" }} />
           <Stack.Screen name="conta/excluir" options={{ presentation: "card" }} />
+          <Stack.Screen name="avaliar/[productId]" options={{ presentation: "modal" }} />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

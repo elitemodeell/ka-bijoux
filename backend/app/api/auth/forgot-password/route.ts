@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { apiSuccess, apiError } from "@/lib/utils";
+import { rateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 
 const schema = z.object({ email: z.string().email() });
 
@@ -48,6 +49,9 @@ async function sendResetEmail(email: string, name: string, code: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = await rateLimit(req, RATE_LIMITS.forgotPassword);
+  if (limited) return limited;
+
   try {
     const body = await req.json();
     const { email } = schema.parse(body);

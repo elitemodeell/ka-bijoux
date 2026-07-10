@@ -49,6 +49,7 @@ model Customer {
   cart          Cart?
   favorites     Favorite[]
   notifications Notification[]
+  reviews       Review[]
 
   @@map("customers")
 }
@@ -149,6 +150,7 @@ model Product {
   cartItems   CartItem[]
   orderItems  OrderItem[]
   favorites   Favorite[]
+  reviews     Review[]
 
   @@index([categoryId])
   @@index([active, publicationStatus])
@@ -438,6 +440,26 @@ enum NotificationType {
   ENTREGUE
   PROMOCAO
   SISTEMA
+}
+
+// ─── Review ───────────────────────────────────────────────────────────────────
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String?  @db.Text
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+
+  @@unique([customerId, productId])
+  @@index([productId, approved])
+  @@map("reviews")
 }
 
 // ─── ConsentLog ───────────────────────────────────────────────────────────────

@@ -115,6 +115,14 @@ export const notificationsApi = {
   markAllRead: () => api.patch("/api/customers/me/notifications"),
 };
 
+// ─── Reviews ──────────────────────────────────────────────────────────────────
+
+export const reviewsApi = {
+  list: (productId: string) => api.get(`/api/products/${productId}/reviews`),
+  create: (productId: string, rating: number, comment?: string) =>
+    api.post(`/api/products/${productId}/reviews`, { rating, comment }),
+};
+
 // ─── Addresses ────────────────────────────────────────────────────────────────
 
 export const addressesApi = {

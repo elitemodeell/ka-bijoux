@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "@/constants/theme";
+import { useTheme } from "@/lib/useTheme";
 import { useCartStore } from "@/stores/cartStore";
 
 function TabIcon({ name, focused, label, badge }: {
@@ -33,12 +33,13 @@ function TabIcon({ name, focused, label, badge }: {
 
 export default function TabsLayout() {
   const { itemCount } = useCartStore();
+  const { Colors } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [styles.tabBar, { backgroundColor: Colors.tabBackground, borderTopColor: Colors.border }],
         tabBarShowLabel: false,
       }}
     >

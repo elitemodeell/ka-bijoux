@@ -22,6 +22,7 @@ type OrderDetail = {
   createdAt: string;
   items: Array<{
     id: string;
+    productId: string;
     productName: string;
     variationName?: string;
     quantity: number;
@@ -254,6 +255,30 @@ export default function PedidoDetalheScreen() {
           </View>
         )}
 
+        {/* Avaliar produtos (apenas pedidos entregues) */}
+        {order.status === "ENTREGUE" && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Avalie seus produtos</Text>
+            <Text style={styles.addrText}>Sua opinião ajuda outros clientes!</Text>
+            <View style={{ gap: 8, marginTop: 10 }}>
+              {order.items.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.reviewBtn}
+                  onPress={() => router.push({
+                    pathname: "/avaliar/[productId]",
+                    params: { productId: item.productId, productName: item.productName },
+                  } as Parameters<typeof router.push>[0])}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.reviewBtnText} numberOfLines={1}>{item.productName}</Text>
+                  <Text style={styles.reviewBtnAction}>Avaliar ⭐</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* Histórico */}
         {order.statusHistory.length > 0 && (
           <View style={styles.card}>
@@ -306,6 +331,13 @@ const styles = StyleSheet.create({
   },
   title:     { flex: 1, fontSize: FontSizes.base, fontWeight: "800", color: Colors.textPrimary, textAlign: "center" },
   errorText: { fontSize: FontSizes.base, color: Colors.textMuted },
+  reviewBtn: {
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    backgroundColor: Colors.pinkSoft, borderRadius: BorderRadius.lg,
+    paddingHorizontal: 14, paddingVertical: 10,
+  },
+  reviewBtnText: { fontSize: FontSizes.sm, color: Colors.textPrimary, fontWeight: "500", flex: 1 },
+  reviewBtnAction: { fontSize: FontSizes.sm, color: Colors.primary, fontWeight: "700", marginLeft: 8 },
   content:   { paddingHorizontal: Spacing.base, gap: 12 },
 
   statusBanner: {

@@ -41,6 +41,23 @@ CREATE INDEX IF NOT EXISTS "orders_status_idx"            ON "orders" ("status")
 CREATE INDEX IF NOT EXISTS "orders_customerId_status_idx" ON "orders" ("customerId", "status");
 CREATE INDEX IF NOT EXISTS "orders_createdAt_idx"         ON "orders" ("createdAt");
 
+-- 5. Tabela de avaliações de produtos
+CREATE TABLE IF NOT EXISTS "reviews" (
+  "id"         TEXT        NOT NULL DEFAULT gen_random_uuid()::text,
+  "rating"     INTEGER     NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  "comment"    TEXT,
+  "approved"   BOOLEAN     NOT NULL DEFAULT FALSE,
+  "createdAt"  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  "updatedAt"  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  "customerId" TEXT        NOT NULL,
+  "productId"  TEXT        NOT NULL,
+
+  CONSTRAINT "reviews_pkey"                   PRIMARY KEY ("id"),
+  CONSTRAINT "reviews_customerId_productId_key" UNIQUE ("customerId", "productId")
+);
+
+CREATE INDEX IF NOT EXISTS "reviews_productId_approved_idx" ON "reviews" ("productId", "approved");
+
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Verificação
 -- ─────────────────────────────────────────────────────────────────────────────
