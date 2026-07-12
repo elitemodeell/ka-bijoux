@@ -18,6 +18,9 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://backend-one-rho-29.vercel.app"
       }
     },
     "production": {
