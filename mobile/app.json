@@ -32,14 +32,7 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#FF4D6D"
-        }
-      ]
+      "expo-font"
     ],
     "scheme": "kabijoux",
     "extra": {
