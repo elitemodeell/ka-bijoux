@@ -1,0 +1,7 @@
+# Backend e dependências desnecessárias para o build mobile
+backend/
+shared/
+node_modules/
+.git/
+*.log
+.DS_Store

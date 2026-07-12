@@ -1,8 +1,12 @@
 {
   "cli": {
-    "version": ">= 10.0.0"
+    "version": ">= 10.0.0",
+    "appVersionSource": "local"
   },
   "build": {
+    "base": {
+      "workingDirectory": "mobile"
+    },
     "development": {
       "developmentClient": true,
       "distribution": "internal",
@@ -23,8 +27,7 @@
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
-      },
-      "channel": "production"
+      }
     }
   },
   "submit": {
