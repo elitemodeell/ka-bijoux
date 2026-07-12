@@ -43,7 +43,7 @@
     "scheme": "kabijoux",
     "extra": {
       "router": { "origin": false },
-      "eas": { "projectId": "your-eas-project-id" }
+      "eas": { "projectId": "0d5ab81a-3a19-47f3-96e6-90d8e2767e93" }
     }
   }
 }
