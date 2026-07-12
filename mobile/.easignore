@@ -1,0 +1,9 @@
+# Ignorar node_modules locais (EAS instala na nuvem)
+node_modules/
+
+# Ignorar arquivos de dev
+.expo/
+android/
+ios/
+*.log
+.DS_Store

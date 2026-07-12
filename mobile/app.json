@@ -2,6 +2,7 @@
   "expo": {
     "name": "KA Bijoux",
     "slug": "ka-bijoux",
+    "owner": "ka-bijoux",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -23,7 +24,7 @@
       },
       "package": "com.kabijoux.app",
       "versionCode": 1,
-      "permissions": ["NOTIFICATIONS", "INTERNET"]
+      "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE"]
     },
     "web": {
       "favicon": "./assets/favicon.png",
