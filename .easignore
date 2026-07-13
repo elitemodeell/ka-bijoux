@@ -1,7 +1,21 @@
-# Backend e dependências desnecessárias para o build mobile
+# Dependências — não enviar para EAS
+**/node_modules/
+
+# Backend e shared — não são usados no build mobile
 backend/
 shared/
-node_modules/
+
+# Git e OS
 .git/
-*.log
 .DS_Store
+
+# Logs e env
+*.log
+.env
+.env.local
+
+# Build artifacts
+backend/.next/
+.expo/
+dist/
+web-build/
