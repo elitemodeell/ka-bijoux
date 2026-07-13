@@ -2,6 +2,7 @@ import { Tabs } from "expo-router";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/lib/useTheme";
+import { Colors } from "@/constants/theme";
 import { useCartStore } from "@/stores/cartStore";
 
 function TabIcon({ name, focused, label, badge }: {

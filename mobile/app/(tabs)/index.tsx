@@ -13,9 +13,9 @@ import { useCartStore } from "@/stores/cartStore";
 import { useAuthStore } from "@/stores/authStore";
 
 const BANNERS = [
-  { id: "1", text: "🎀 Novidades da Semana", sub: "Bijuterias e Acessórios", bg: Colors.primary },
+  { id: "1", text: "🎀 Novidades da Semana", sub: "Bijuterias e Acessórios", bg: "#FF4D6D" },
   { id: "2", text: "💄 Beleza & Presentes",  sub: "A partir de R$ 19,90",  bg: "#E83E5A" },
-  { id: "3", text: "🕶️ Verão em Alta",      sub: "Óculos e Acessórios",    bg: Colors.primaryDark },
+  { id: "3", text: "🕶️ Verão em Alta",      sub: "Óculos e Acessórios",    bg: "#C8274A" },
 ];
 
 export default function HomeScreen() {
