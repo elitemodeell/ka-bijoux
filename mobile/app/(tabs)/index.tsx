@@ -479,7 +479,7 @@ function QuickCategoryGrid({ onNav }: { onNav: (r: string) => void }) {
 // ProductSection — grade 2 colunas
 // ────────────────────────────────────────────────────────────────
 type Prod = {
-  id: string; name: string; price: number;
+  id: string; slug?: string | null; name: string; price: number;
   promotionalPrice?: number | null; stock: number;
   images: Array<{ url: string }>; isNew?: boolean; featured?: boolean;
 };

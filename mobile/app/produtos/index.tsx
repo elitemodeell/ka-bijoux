@@ -11,7 +11,7 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { productsApi } from "@/services/api";
 
 type Product = {
-  id: string; name: string; price: number; promotionalPrice?: number | null;
+  id: string; slug?: string | null; name: string; price: number; promotionalPrice?: number | null;
   stock: number; images: Array<{ url: string }>; isNew?: boolean; featured?: boolean;
 };
 

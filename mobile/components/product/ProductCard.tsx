@@ -18,6 +18,7 @@ type Variation = {
 interface ProductCardProps {
   product: {
     id: string;
+    slug?: string | null;
     name: string;
     price: number;
     promotionalPrice?: number | null;
@@ -68,10 +69,12 @@ export function ProductCard({ product }: ProductCardProps) {
   const visibleSwatches = variations.slice(0, MAX_SWATCHES);
   const extraCount = Math.max(0, variations.length - MAX_SWATCHES);
 
+  const productKey = product.slug ?? product.id;
+
   async function handleAddToCart() {
     if (!isAvailable) return;
     if (hasVariations) {
-      router.push(`/produto/${product.id}`);
+      router.push(`/produto/${productKey}`);
       return;
     }
     await addItem(product.id, 1);
@@ -85,7 +88,7 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => router.push(`/produto/${product.id}`)}
+      onPress={() => router.push(`/produto/${productKey}`)}
       activeOpacity={0.9}
     >
       {/* Imagem */}

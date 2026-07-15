@@ -55,8 +55,11 @@ export default function ProdutoScreen() {
   const [activeTab, setActiveTab] = useState<"desc" | "beneficios" | "como" | "faq">("desc");
 
   useEffect(() => {
+    const url = `/api/products/${id}`;
+    console.log("[ProdutoScreen] param recebido:", id, "| URL:", url);
     productsApi.getById(id)
       .then((res) => {
+        console.log("[ProdutoScreen] resposta status:", res.status, "| produto:", res.data?.data?.product?.name);
         const data = res.data.data;
         const p: Product = data.product;
         setProduct(p);
@@ -64,6 +67,9 @@ export default function ProdutoScreen() {
 
         const def = p.variations.find((v) => v.isDefault) ?? null;
         if (def && def.stock > 0) setSelectedVariation(def.id);
+      })
+      .catch((err) => {
+        console.log("[ProdutoScreen] ERRO:", err.response?.status, err.response?.data?.error ?? err.message);
       })
       .finally(() => setLoading(false));
   }, [id]);

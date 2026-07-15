@@ -79,6 +79,7 @@ const CATEGORY_CARDS = [
 
 type Product = {
   id: string;
+  slug?: string | null;
   name: string;
   price: number;
   promotionalPrice?: number | null;
