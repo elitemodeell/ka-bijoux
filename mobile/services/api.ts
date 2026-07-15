@@ -5,7 +5,7 @@ const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
 
 export const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  timeout: 30000,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -121,6 +121,12 @@ export const reviewsApi = {
   list: (productId: string) => api.get(`/api/products/${productId}/reviews`),
   create: (productId: string, rating: number, comment?: string) =>
     api.post(`/api/products/${productId}/reviews`, { rating, comment }),
+};
+
+// ─── Stories ──────────────────────────────────────────────────────────────────
+
+export const storiesApi = {
+  list: () => api.get("/api/stories"),
 };
 
 // ─── Addresses ────────────────────────────────────────────────────────────────

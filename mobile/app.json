@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FF4D6D"
+      "backgroundColor": "#17070C"
     },
     "ios": {
       "supportsTablet": true,
@@ -20,7 +20,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FF4D6D"
+        "backgroundColor": "#17070C"
       },
       "package": "com.kabijoux.app",
       "versionCode": 1,

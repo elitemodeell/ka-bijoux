@@ -32,6 +32,12 @@ interface ProductCardProps {
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
+const SITE = process.env.EXPO_PUBLIC_API_URL ?? "https://ka-bijoux-backend.vercel.app";
+function resolveUrl(url?: string | null): string | null {
+  if (!url) return null;
+  return url.startsWith("http") ? url : `${SITE}${url}`;
+}
+
 const MAX_SWATCHES = 4;
 
 export function ProductCard({ product }: ProductCardProps) {
@@ -45,9 +51,9 @@ export function ProductCard({ product }: ProductCardProps) {
   const [activeVariation, setActiveVariation] = useState<Variation | null>(defaultVariation);
 
   const mainImageUrl =
-    (activeVariation?.imageUrl) ??
-    product.images[0]?.url ??
-    "https://placehold.co/300x300/FFB6C1/FFFFFF?text=KA";
+    resolveUrl(activeVariation?.imageUrl) ??
+    resolveUrl(product.images[0]?.url) ??
+    null;
 
   const isAvailable = hasVariations
     ? variations.some((v) => v.stock > 0)

@@ -6,6 +6,8 @@ import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/t
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/Button";
 
+const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? "https://kabijoux.com.br";
+
 interface MenuItem {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
@@ -98,7 +100,7 @@ export default function PerfilScreen() {
 
           <TouchableOpacity
             style={styles.deleteBtn}
-            onPress={() => Linking.openURL("https://kabijoux.com.br/privacidade")}
+            onPress={() => Linking.openURL(`${SITE_URL}/privacidade`)}
           >
             <Ionicons name="document-text-outline" size={16} color={Colors.textMuted} />
             <Text style={styles.deleteText}>Política de Privacidade</Text>
@@ -108,7 +110,7 @@ export default function PerfilScreen() {
             style={styles.deleteBtn}
             onPress={async () => {
               try {
-                const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://kabijoux.com.br";
+                const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://ka-bijoux-backend.vercel.app";
                 await Linking.openURL(`${BASE_URL}/api/customers/me/export`);
               } catch {
                 Alert.alert("Erro", "Não foi possível abrir o link de exportação.");

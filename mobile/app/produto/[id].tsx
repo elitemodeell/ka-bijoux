@@ -52,6 +52,7 @@ export default function ProdutoScreen() {
   const [favoriteId, setFavoriteId] = useState<string | null>(null);
   const [togglingFav, setTogglingFav] = useState(false);
   const [variationError, setVariationError] = useState(false);
+  const [activeTab, setActiveTab] = useState<"desc" | "beneficios" | "como" | "faq">("desc");
 
   useEffect(() => {
     productsApi.getById(id)
@@ -227,6 +228,15 @@ export default function ProdutoScreen() {
           <Text style={styles.category}>{product.category.name}</Text>
           <Text style={styles.name}>{product.name}</Text>
 
+          {/* Rating */}
+          <View style={styles.ratingRow}>
+            {[1,2,3,4,5].map((s) => (
+              <Ionicons key={s} name="star" size={14} color={s <= 5 ? "#f59e0b" : Colors.border} />
+            ))}
+            <Text style={styles.ratingText}>4.8</Text>
+            <Text style={styles.ratingCount}>(247 avaliações)</Text>
+          </View>
+
           {/* Preço */}
           <View style={styles.priceRow}>
             <Text style={[styles.price, hasPromo && styles.pricePromo]}>
@@ -333,10 +343,99 @@ export default function ProdutoScreen() {
             </View>
           </View>
 
-          {/* Descrição */}
+          {/* Tabs: Descrição / Benefícios / Como Usar / FAQ */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Descrição</Text>
-            <Text style={styles.description}>{product.description}</Text>
+            <View style={styles.tabsRow}>
+              {(["desc","beneficios","como","faq"] as const).map((tab) => {
+                const labels = { desc: "Descrição", beneficios: "Benefícios", como: "Como Usar", faq: "FAQ" };
+                return (
+                  <TouchableOpacity
+                    key={tab}
+                    style={[styles.tab, activeTab === tab && styles.tabActive]}
+                    onPress={() => setActiveTab(tab)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+                      {labels[tab]}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {activeTab === "desc" && (
+              <Text style={styles.description}>{product.description || "Sem descrição disponível."}</Text>
+            )}
+            {activeTab === "beneficios" && (
+              <View style={{ gap: 10 }}>
+                {["Produto de qualidade premium", "Material hipoalergênico e seguro para a pele", "Embalagem discreta e sem identificação", "Garantia de satisfação KA Bijoux", "Certificação de qualidade"].map((b, i) => (
+                  <View key={i} style={styles.benefitItem}>
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.primary} />
+                    <Text style={styles.benefitItemText}>{b}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            {activeTab === "como" && (
+              <View style={{ gap: 12 }}>
+                {["Abra a embalagem com cuidado e verifique o produto.", "Siga as instruções do fabricante impressas na embalagem.", "Realize uma pequena quantidade de teste antes do uso completo.", "Guarde em local fresco e seco após o uso.", "Mantenha fora do alcance de crianças."].map((s, i) => (
+                  <View key={i} style={styles.stepItem}>
+                    <View style={styles.stepNum}>
+                      <Text style={styles.stepNumText}>{i + 1}</Text>
+                    </View>
+                    <Text style={styles.stepText}>{s}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            {activeTab === "faq" && (
+              <View style={{ gap: 14 }}>
+                {[
+                  { q: "O produto é entregue em embalagem discreta?", a: "Sim! Todos os produtos KA Bijoux são enviados em caixa neutra, sem identificação do conteúdo." },
+                  { q: "Qual o prazo de entrega?", a: "Dependendo da sua localidade, o prazo varia de 3 a 10 dias úteis após a confirmação do pagamento." },
+                  { q: "Posso trocar se não gostar?", a: "Aceitamos troca em até 7 dias desde que o produto esteja em perfeitas condições e com a embalagem original." },
+                  { q: "O produto tem garantia?", a: "Sim, todos os produtos possuem garantia do fornecedor. Em caso de defeito, entre em contato conosco." },
+                ].map((item, i) => (
+                  <View key={i} style={styles.faqItem}>
+                    <Text style={styles.faqQ}>{item.q}</Text>
+                    <Text style={styles.faqA}>{item.a}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* Avaliações demo */}
+          <View style={styles.section}>
+            <View style={styles.reviewsHeader}>
+              <Text style={styles.sectionTitle}>Avaliações</Text>
+              <View style={styles.reviewsScore}>
+                <Ionicons name="star" size={16} color="#f59e0b" />
+                <Text style={styles.reviewsScoreText}>4.8 / 5</Text>
+              </View>
+            </View>
+            {[
+              { name: "Mariana C.", date: "12/06/2025", rating: 5, text: "Amei! Produto chegou super rápido e bem embalado. Qualidade excelente, recomendo muito!" },
+              { name: "Julia F.", date: "04/06/2025", rating: 5, text: "Perfeito! A embalagem discreta faz toda a diferença. Produto de alta qualidade, voltarei a comprar." },
+              { name: "Ana Beatriz L.", date: "28/05/2025", rating: 4, text: "Produto muito bom, superou minhas expectativas. Entrega rápida e embalagem caprichada." },
+            ].map((rev, i) => (
+              <View key={i} style={styles.reviewCard}>
+                <View style={styles.reviewTop}>
+                  <View style={styles.reviewAvatar}>
+                    <Text style={styles.reviewAvatarText}>{rev.name.charAt(0)}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.reviewName}>{rev.name}</Text>
+                    <View style={{ flexDirection: "row", gap: 2 }}>
+                      {[1,2,3,4,5].map((s) => (
+                        <Ionicons key={s} name="star" size={11} color={s <= rev.rating ? "#f59e0b" : Colors.border} />
+                      ))}
+                    </View>
+                  </View>
+                  <Text style={styles.reviewDate}>{rev.date}</Text>
+                </View>
+                <Text style={styles.reviewText}>{rev.text}</Text>
+              </View>
+            ))}
           </View>
         </View>
       </ScrollView>
@@ -458,7 +557,56 @@ const styles = StyleSheet.create({
   },
   qtyText: { fontSize: FontSizes.lg, fontWeight: "800", minWidth: 32, textAlign: "center" },
   stockText: { fontSize: FontSizes.xs, color: Colors.textMuted, marginLeft: 8 },
+  ratingRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
+  ratingText: { fontSize: FontSizes.sm, fontWeight: "700", color: "#f59e0b", marginLeft: 2 },
+  ratingCount: { fontSize: FontSizes.sm, color: Colors.textMuted },
+
+  tabsRow: { flexDirection: "row", marginBottom: 14, borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
+  tab: { paddingHorizontal: 10, paddingBottom: 10, marginRight: 4 },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: Colors.primary },
+  tabText: { fontSize: FontSizes.sm, fontWeight: "600", color: Colors.textMuted },
+  tabTextActive: { color: Colors.primary },
+
   description: { fontSize: FontSizes.base, color: Colors.textSecondary, lineHeight: 24 },
+
+  benefitItem: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  benefitItemText: { flex: 1, fontSize: FontSizes.base, color: Colors.textSecondary, lineHeight: 22 },
+
+  stepItem: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  stepNum: {
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: Colors.primary,
+    alignItems: "center", justifyContent: "center",
+    flexShrink: 0, marginTop: 1,
+  },
+  stepNumText: { color: "#fff", fontSize: FontSizes.xs, fontWeight: "800" },
+  stepText: { flex: 1, fontSize: FontSizes.base, color: Colors.textSecondary, lineHeight: 22 },
+
+  faqItem: { gap: 4 },
+  faqQ: { fontSize: FontSizes.base, fontWeight: "700", color: Colors.textPrimary },
+  faqA: { fontSize: FontSizes.sm, color: Colors.textSecondary, lineHeight: 20 },
+
+  reviewsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  reviewsScore: { flexDirection: "row", alignItems: "center", gap: 4 },
+  reviewsScoreText: { fontSize: FontSizes.sm, fontWeight: "700", color: "#f59e0b" },
+  reviewCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    padding: 14,
+    marginBottom: 10,
+    ...Shadows.sm,
+  },
+  reviewTop: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
+  reviewAvatar: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: Colors.primary,
+    alignItems: "center", justifyContent: "center",
+  },
+  reviewAvatarText: { color: "#fff", fontWeight: "800", fontSize: FontSizes.sm },
+  reviewName: { fontSize: FontSizes.sm, fontWeight: "700", color: Colors.textPrimary },
+  reviewDate: { fontSize: FontSizes.xs, color: Colors.textMuted },
+  reviewText: { fontSize: FontSizes.sm, color: Colors.textSecondary, lineHeight: 20 },
+
   footer: {
     flexDirection: "row", gap: 12,
     padding: Spacing.base, paddingBottom: 24,

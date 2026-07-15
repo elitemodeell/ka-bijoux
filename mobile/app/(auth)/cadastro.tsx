@@ -10,7 +10,7 @@ import { Colors, FontSizes, Spacing, BorderRadius } from "@/constants/theme";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/Button";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://kabijoux.com.br";
+const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? "https://kabijoux.com.br";
 
 export default function CadastroScreen() {
   const router = useRouter();
@@ -100,14 +100,14 @@ export default function CadastroScreen() {
                 Li e aceito os{" "}
                 <Text
                   style={styles.termsLink}
-                  onPress={() => Linking.openURL(`${API_URL}/termos`)}
+                  onPress={() => Linking.openURL(`${SITE_URL}/termos`)}
                 >
                   Termos de Uso
                 </Text>
                 {" "}e a{" "}
                 <Text
                   style={styles.termsLink}
-                  onPress={() => Linking.openURL(`${API_URL}/privacidade`)}
+                  onPress={() => Linking.openURL(`${SITE_URL}/privacidade`)}
                 >
                   Política de Privacidade
                 </Text>

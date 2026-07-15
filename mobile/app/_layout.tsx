@@ -36,6 +36,7 @@ export default function RootLayout() {
           <Stack.Screen name="conta/editar-perfil" options={{ presentation: "card" }} />
           <Stack.Screen name="conta/excluir" options={{ presentation: "card" }} />
           <Stack.Screen name="avaliar/[productId]" options={{ presentation: "modal" }} />
+          <Stack.Screen name="categoria/sex-shop/index" options={{ presentation: "card" }} />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>
