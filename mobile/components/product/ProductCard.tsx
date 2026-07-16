@@ -69,7 +69,9 @@ export function ProductCard({ product }: ProductCardProps) {
   const visibleSwatches = variations.slice(0, MAX_SWATCHES);
   const extraCount = Math.max(0, variations.length - MAX_SWATCHES);
 
-  const productKey = product.slug ?? product.id;
+  // Use real UUID for DB products. After dedupeProductCards fix, DB products
+  // preserve their UUID; only Bling-only products still have "bling-" prefix.
+  const productKey = !product.id.startsWith("bling-") ? product.id : (product.slug ?? product.id);
 
   async function handleAddToCart() {
     if (!isAvailable) return;
