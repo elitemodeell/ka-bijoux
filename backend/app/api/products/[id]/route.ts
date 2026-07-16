@@ -4,7 +4,7 @@ import { ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus 
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
-import { isAdultImageUrl } from "@/lib/bling-catalog";
+import { isAdultImageUrl, getBlingProductBySlug, findBlingProductForSource } from "@/lib/bling-catalog";
 
 const productInclude = {
   category: true,
@@ -23,7 +23,50 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       include: productInclude,
     });
 
-    if (!product) return apiError("Produto nao encontrado.", 404);
+    if (!product) {
+      // Fallback: produto pode existir apenas no catálogo Bling (não importado ao DB ainda)
+      const blingId = params.id.startsWith("bling-") ? params.id.slice(6) : null;
+      const blingProduct = blingId
+        ? findBlingProductForSource({ blingId })
+        : getBlingProductBySlug(params.id);
+
+      if (!blingProduct || !blingProduct.active) return apiError("Produto nao encontrado.", 404);
+
+      const blingMapped = {
+        id: blingProduct.id,
+        name: blingProduct.name,
+        slug: blingProduct.slug,
+        description: blingProduct.description ?? blingProduct.staticLongDescription ?? "",
+        price: blingProduct.price,
+        promotionalPrice: null,
+        promo: null,
+        stock: blingProduct.stock,
+        badge: blingProduct.badge ?? null,
+        blingId: blingProduct.blingId,
+        sku: blingProduct.sku,
+        active: blingProduct.active,
+        featured: false,
+        isNew: false,
+        images: (blingProduct.images ?? []).map((img, i) => ({
+          id: `${blingProduct.id}-img-${i}`,
+          url: img.url,
+          alt: img.alt ?? blingProduct.name,
+          order: i,
+          productId: blingProduct.id,
+        })),
+        category: {
+          id: blingProduct.category.slug,
+          name: blingProduct.category.name,
+          slug: blingProduct.category.slug,
+        },
+        subcategory: blingProduct.subcategory
+          ? { id: blingProduct.subcategory.slug, name: blingProduct.subcategory.name, slug: blingProduct.subcategory.slug }
+          : null,
+        variations: [],
+      };
+
+      return apiSuccess({ product: blingMapped, related: [] });
+    }
 
     const related = await prisma.product.findMany({
       where: { categoryId: product.categoryId, active: true, id: { not: product.id } },
