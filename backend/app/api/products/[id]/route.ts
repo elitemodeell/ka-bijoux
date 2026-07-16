@@ -4,7 +4,7 @@ import { ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus 
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
-import { isAdultImageUrl } from "@/lib/bling-catalog";
+import { isAdultImageUrl, getBlingProductBySlug, findBlingProductForSource } from "@/lib/bling-catalog";
 
 const productInclude = {
   category: true,
@@ -18,10 +18,34 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     let isAdmin = false;
     try { await requireAdmin(req); isAdmin = true; } catch { /* public request */ }
 
-    const product = await prisma.product.findFirst({
-      where: { OR: [{ id: params.id }, { slug: params.id }], ...(isAdmin ? {} : { active: true }) },
+    const activeFilter = isAdmin ? {} : { active: true };
+
+    // First: direct lookup by UUID or slug
+    let product = await prisma.product.findFirst({
+      where: { OR: [{ id: params.id }, { slug: params.id }], ...activeFilter },
       include: productInclude,
     });
+
+    // Second: if not found, check Bling catalog for this slug to get blingId/sku,
+    // then retry the DB query — same strategy the website uses
+    if (!product) {
+      const blingId = params.id.startsWith("bling-") ? params.id.slice(6) : null;
+      const blingEntry = blingId
+        ? findBlingProductForSource({ blingId })
+        : getBlingProductBySlug(params.id);
+
+      if (blingEntry) {
+        const orFilters: { blingId?: string; sku?: string; slug?: string }[] = [];
+        if (blingEntry.blingId) orFilters.push({ blingId: blingEntry.blingId });
+        if (blingEntry.sku) orFilters.push({ sku: blingEntry.sku });
+        if (orFilters.length) {
+          product = await prisma.product.findFirst({
+            where: { OR: orFilters, ...activeFilter },
+            include: productInclude,
+          });
+        }
+      }
+    }
 
     if (!product) return apiError("Produto nao encontrado.", 404);
 
