@@ -333,11 +333,11 @@ export function dedupeProductCards(products: ProductCardProduct[]) {
     const catalogProduct = findBlingProductForSource(product);
     const canonicalProduct = {
       ...product,
-      // Preserve the source product's id — DB products keep their UUID so the
-      // detail API can always find them. Only Bling-only products have "bling-" ids.
+      // Preserve source id and slug — DB products keep their UUID and DB slug
+      // so the detail API can find them reliably. Only Bling-only products
+      // have "bling-" ids and computed slugs.
       blingId: catalogProduct?.blingId ?? product.blingId,
       sku: catalogProduct?.sku ?? product.sku,
-      slug: catalogProduct?.slug ?? product.slug,
       catalogLine: catalogProduct?.catalogLine ?? product.catalogLine,
       isAdult: catalogProduct?.isAdult ?? product.isAdult,
     };

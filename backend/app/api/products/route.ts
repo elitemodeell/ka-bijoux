@@ -211,12 +211,7 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof 
   return {
     id: product.id,
     name: bling?.name ?? product.name,
-    slug: getCanonicalProductSlug({
-      blingId: bling?.blingId ?? product.blingId,
-      sku: bling?.sku ?? product.sku,
-      slug: product.slug,
-      name: bling?.name ?? product.name,
-    }) ?? product.slug,
+    slug: product.slug,
     description: product.description || bling?.description,
     price: bling?.price ?? Number(product.price),
     promotionalPrice,
