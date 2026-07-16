@@ -70,7 +70,23 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       };
     });
 
-    return apiSuccess({ product: filteredProduct, related: filteredRelated });
+    // Apply Bling catalog overlays: display name and current price
+    // (same strategy the website uses — DB may have stale name/price from import)
+    const blingEntry = findBlingProductForSource({
+      blingId: product.blingId,
+      sku: product.sku,
+      slug: product.slug,
+      name: product.name,
+    });
+
+    const enrichedProduct = {
+      ...filteredProduct,
+      name: blingEntry?.name ?? product.name,
+      price: blingEntry ? blingEntry.price : Number(product.price),
+      promotionalPrice: blingEntry ? null : (product.promotionalPrice ? Number(product.promotionalPrice) : null),
+    };
+
+    return apiSuccess({ product: enrichedProduct, related: filteredRelated });
   } catch {
     return apiError("Erro ao buscar produto.", 500);
   }
