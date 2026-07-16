@@ -32,9 +32,19 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      "expo-updates"
     ],
     "scheme": "kabijoux",
+    "updates": {
+      "url": "https://u.expo.dev/0d5ab81a-3a19-47f3-96e6-90d8e2767e93",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "extra": {
       "router": { "origin": false },
       "eas": { "projectId": "0d5ab81a-3a19-47f3-96e6-90d8e2767e93" }

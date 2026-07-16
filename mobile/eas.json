@@ -7,28 +7,40 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      },
-      "ios": {
-        "simulator": true
-      }
-    },
-    "preview": {
-      "distribution": "internal",
+      "channel": "development",
       "android": {
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://backend-one-rho-29.vercel.app"
+        "EXPO_PUBLIC_API_URL": "https://ka-bijoux-backend.vercel.app",
+        "EXPO_PUBLIC_SITE_URL": "https://kabijoux.com.br"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://ka-bijoux-backend.vercel.app",
+        "EXPO_PUBLIC_SITE_URL": "https://kabijoux.com.br"
       }
     },
     "production": {
       "autoIncrement": true,
+      "channel": "production",
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://ka-bijoux-backend.vercel.app",
+        "EXPO_PUBLIC_SITE_URL": "https://kabijoux.com.br"
       }
     }
+  },
+  "update": {
+    "channel": "production"
   },
   "submit": {
     "production": {

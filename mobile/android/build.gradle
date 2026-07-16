@@ -24,6 +24,13 @@ buildscript {
 apply plugin: "com.facebook.react.rootproject"
 
 allprojects {
+    // Force newer sqlite-jdbc that correctly resolves tmpdir on Windows
+    configurations.configureEach {
+        resolutionStrategy {
+            force "org.xerial:sqlite-jdbc:3.45.3.0"
+        }
+    }
+
     repositories {
         maven {
             // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
