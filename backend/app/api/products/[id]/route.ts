@@ -79,11 +79,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       name: product.name,
     });
 
+    // Bling catalog description is the curated short description; use it when it
+    // is not just the generic placeholder ("Informacoes tecnicas pendentes...").
+    const blingDesc = blingEntry?.description ?? null;
+    const blingDescUsable = blingDesc && !blingDesc.includes("Informacoes tecnicas pendentes");
+
     const enrichedProduct = {
       ...filteredProduct,
       name: blingEntry?.name ?? product.name,
       price: blingEntry ? blingEntry.price : Number(product.price),
       promotionalPrice: blingEntry ? null : (product.promotionalPrice ? Number(product.promotionalPrice) : null),
+      description: blingDescUsable ? blingDesc : (product.description ?? blingDesc ?? null),
     };
 
     return apiSuccess({ product: enrichedProduct, related: filteredRelated });
