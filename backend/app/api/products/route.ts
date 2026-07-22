@@ -74,11 +74,12 @@ export async function GET(req: NextRequest) {
     if (isNew) where.isNew = true;
     if (promo) where.promotionalPrice = { not: null };
     if (search) {
+      const searchTerms = buildSearchTerms(search);
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
         { sku: { contains: search, mode: "insensitive" } },
-        { searchTags: { has: search } },
+        { searchTags: { hasSome: searchTerms } },
       ];
     }
     if (exactPrice && exactPrice !== "all") {
@@ -318,6 +319,22 @@ function sortProducts(products: ProductCardProduct[], sort?: string | null) {
   }
 
   return [...products].sort((a, b) => (a.sourceOrder ?? 100000) - (b.sourceOrder ?? 100000));
+}
+
+function buildSearchTerms(value: string) {
+  const original = value.trim();
+  const normalized = normalizeSearchQuery(original);
+  const tokens = normalized.split(/\s+/).filter((token) => token.length >= 2);
+  return Array.from(new Set([original, normalized, ...tokens].filter(Boolean)));
+}
+
+function normalizeSearchQuery(value: string | null | undefined) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 const imageSchema = z.object({

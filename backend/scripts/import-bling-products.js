@@ -594,7 +594,54 @@ function getPublicationStatus({ blingActive, hasImage, hasDescription }) {
 
 function buildSearchTags(name, categorySlug, subcategorySlug) {
   const tokens = tokenize(name);
-  return Array.from(new Set([...tokens, categorySlug, subcategorySlug].filter(Boolean))).slice(0, 24);
+  const aliases = buildSearchAliases(name, categorySlug);
+  return Array.from(new Set([...tokens, ...aliases, categorySlug, subcategorySlug].filter(Boolean))).slice(0, 40);
+}
+
+function buildSearchAliases(name, categorySlug) {
+  const n = normalizeSearch(name);
+  const tags = [n];
+
+  if (categorySlug === "capinhas-acessorios-celular" || /\b(celular|iphone|ip\s*(?:xr|\d{1,2})|usb|cabo|fonte|carreg|fone|smartwatch|smart watch)\b/.test(n)) {
+    tags.push("celular", "acessorio celular", "acessorios celular");
+  }
+
+  if (/\b(silicone|case|capinha|capa|iphone|ip\s*(?:xr|\d{1,2}))\b/.test(n)) {
+    tags.push("capa", "capinha", "case", "capa celular", "case celular");
+  }
+
+  if (/\b(corda|cordao|pulseira de celular|fita salva celular)\b/.test(n)) {
+    tags.push("cordao", "cordao celular", "alca", "alca celular", "alcas", "lanyard");
+  }
+
+  if (/\b(usb c|tipo c|type c|usbc)\b/.test(n)) {
+    tags.push("usb c", "tipo c", "type c", "usbc");
+  }
+
+  if (/\blightning\b/.test(n)) {
+    tags.push("lightning", "iphone", "apple");
+  }
+
+  tags.push(...extractPhoneSearchAliases(n));
+  return tags.map(normalizeSearch).filter(Boolean);
+}
+
+function extractPhoneSearchAliases(normalizedName) {
+  const aliases = [];
+  if (/\bip\s*xr\b|\biphone\s*xr\b|\bipxr\b|\biphonexr\b/.test(normalizedName)) {
+    aliases.push("ip xr", "ipxr", "iphone xr", "iphonexr");
+  }
+
+  const match = normalizedName.match(/\b(?:ip|iphone)\s*(\d{1,2})\s*(pro max|pro|plus)?\b/);
+  if (match) {
+    const number = match[1];
+    const suffix = match[2] ?? "";
+    const spaced = suffix ? `${number} ${suffix}` : number;
+    const compact = `${number}${suffix.replace(/\s+/g, "")}`;
+    aliases.push(`ip ${spaced}`, `ip${compact}`, `iphone ${spaced}`, `iphone${compact}`);
+  }
+
+  return aliases;
 }
 
 function hasTrustedDescription(value) {

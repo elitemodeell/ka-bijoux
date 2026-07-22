@@ -77,6 +77,71 @@ function inferCategorySlug(name) {
   return null;
 }
 
+function buildSearchTags(name, categorySlug, subcategorySlug) {
+  const tokens = tokenize(name);
+  const aliases = buildSearchAliases(name, categorySlug);
+  return Array.from(new Set([...tokens, ...aliases, categorySlug, subcategorySlug].filter(Boolean))).slice(0, 40);
+}
+
+function buildSearchAliases(name, categorySlug) {
+  const n = normalize(name);
+  const tags = [n];
+
+  if (categorySlug === "capinhas-acessorios-celular" || /\b(celular|iphone|ip\s*(?:xr|\d{1,2})|usb|cabo|fonte|carreg|fone|smartwatch|smart watch)\b/.test(n)) {
+    tags.push("celular", "acessorio celular", "acessorios celular");
+  }
+
+  if (/\b(silicone|case|capinha|capa|iphone|ip\s*(?:xr|\d{1,2}))\b/.test(n)) {
+    tags.push("capa", "capinha", "case", "capa celular", "case celular");
+  }
+
+  if (/\b(corda|cordao|pulseira de celular|fita salva celular)\b/.test(n)) {
+    tags.push("cordao", "cordao celular", "alca", "alca celular", "alcas", "lanyard");
+  }
+
+  if (/\b(usb c|tipo c|type c|usbc)\b/.test(n)) {
+    tags.push("usb c", "tipo c", "type c", "usbc");
+  }
+
+  if (/\blightning\b/.test(n)) {
+    tags.push("lightning", "iphone", "apple");
+  }
+
+  tags.push(...extractPhoneSearchAliases(n));
+  return tags.map(normalize).filter(Boolean);
+}
+
+function extractPhoneSearchAliases(normalizedName) {
+  const aliases = [];
+  if (/\bip\s*xr\b|\biphone\s*xr\b|\bipxr\b|\biphonexr\b/.test(normalizedName)) {
+    aliases.push("ip xr", "ipxr", "iphone xr", "iphonexr");
+  }
+
+  const match = normalizedName.match(/\b(?:ip|iphone)\s*(\d{1,2})\s*(pro max|pro|plus)?\b/);
+  if (match) {
+    const number = match[1];
+    const suffix = match[2] ?? "";
+    const spaced = suffix ? `${number} ${suffix}` : number;
+    const compact = `${number}${suffix.replace(/\s+/g, "")}`;
+    aliases.push(`ip ${spaced}`, `ip${compact}`, `iphone ${spaced}`, `iphone${compact}`);
+  }
+
+  return aliases;
+}
+
+function tokenize(value) {
+  const stopwords = new Set(["de", "da", "do", "das", "dos", "com", "cor", "para", "e", "a", "o", "em", "ml", "g"]);
+  return normalize(value)
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 2 && !stopwords.has(token));
+}
+
+function areSameTags(a, b) {
+  if (a.length !== b.length) return false;
+  return a.every((value, index) => value === b[index]);
+}
+
 function buildDescription(name, categoryName) {
   const n = normalize(`${name} ${categoryName}`);
   const color = extractColor(name);
@@ -182,7 +247,7 @@ async function main() {
       active: true,
       images: { some: { url: { contains: "/produtos-novos/" } } },
     },
-    include: { category: true, images: true },
+      include: { category: true, subcategory: true, images: true },
     orderBy: { createdAt: "desc" },
     take: 1000,
   });
@@ -202,8 +267,11 @@ async function main() {
     if (inferredSlug && inferredSlug !== product.category?.slug && categoryBySlug.has(inferredSlug)) {
       data.categoryId = categoryBySlug.get(inferredSlug);
       data.subcategoryId = null;
-      data.searchTags = Array.from(new Set([...(product.searchTags ?? []), inferredSlug]));
     }
+
+    const categorySlug = inferredSlug ?? product.category?.slug ?? null;
+    const nextTags = buildSearchTags(product.name, categorySlug, product.subcategory?.slug ?? null);
+    if (!areSameTags(product.searchTags ?? [], nextTags)) data.searchTags = nextTags;
 
     if (Object.keys(data).length) {
       updates.push({ product, data });
