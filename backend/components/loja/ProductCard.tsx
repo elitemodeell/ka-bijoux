@@ -111,7 +111,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
               productName={name}
               sku={normalized.sku}
               frameClassName="h-full w-full"
-              imageClassName="object-cover transition-transform duration-300 group-hover:scale-105"
+              imageClassName="object-contain p-1 transition-transform duration-300 group-hover:scale-[1.02]"
               onError={() => setImgError(true)}
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
               priority={priority}

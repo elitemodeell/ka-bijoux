@@ -23,7 +23,10 @@ import {
 } from "@/lib/bling-catalog";
 import { getProductCatalogLine, matchesCatalogLine } from "@/lib/product-line";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const DETAIL_DB_TIMEOUT_MS = 5000;
 
 type PageProps = {
   params: { slug: string };
@@ -151,7 +154,7 @@ async function fetchDbProduct(lookup: ProductLookup): Promise<DbProduct | null> 
         include: detailProductInclude,
         take: 10,
       }),
-      1200
+      DETAIL_DB_TIMEOUT_MS
     );
     const product = [...products].sort(
       (a, b) => scoreDbCandidate(b, lookup) - scoreDbCandidate(a, lookup)
@@ -392,9 +395,9 @@ export default async function ProdutoPage({ params }: PageProps) {
       ean: dbProduct.ean ?? undefined,
       price: blingProduct?.price ?? Number(dbProduct.price),
       promotionalPrice: blingProduct ? null : dbProduct.promotionalPrice ? Number(dbProduct.promotionalPrice) : null,
-      categoryName: contentOverride?.categoryName ?? dbProduct.category?.name ?? blingProduct?.category.name ?? "KA Bijoux",
+      categoryName: dbProduct.category?.name ?? contentOverride?.categoryName ?? blingProduct?.category.name ?? "KA Bijoux",
       categorySlug: dbProduct.category?.slug ?? blingProduct?.category.slug ?? "produtos",
-      subcategoryName: contentOverride?.subcategoryName ?? subcategoryName,
+      subcategoryName: dbProduct.subcategory?.name ?? contentOverride?.subcategoryName ?? subcategoryName,
       subcategorySlug: dbProduct.subcategory?.slug ?? blingProduct?.subcategory?.slug ?? "",
       imageFile: overrideGalleryImages[0] ?? "",
       galleryImages: overrideGalleryImages,

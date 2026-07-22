@@ -158,7 +158,7 @@ export default function Footer() {
       <button
         type="button"
         onClick={backToTop}
-        className={`fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#FF4F87] text-white shadow-[0_14px_36px_rgba(255,79,135,0.38)] transition-all duration-300 hover:-translate-y-1 hover:scale-105 hover:shadow-[0_18px_44px_rgba(255,79,135,0.52)] focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-[#17070C] ${
+        className={`fixed bottom-32 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#FF4F87] text-white shadow-[0_14px_36px_rgba(255,79,135,0.38)] transition-all duration-300 hover:-translate-y-1 hover:scale-105 hover:shadow-[0_18px_44px_rgba(255,79,135,0.52)] focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-[#17070C] md:bottom-5 ${
           showBackToTop ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
         }`}
         aria-label="Voltar ao topo"

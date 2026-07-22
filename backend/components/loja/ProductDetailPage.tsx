@@ -116,6 +116,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [favorited, setFavorited] = useState(false);
   const [shared, setShared] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const variations = product.variations ?? product.variants ?? [];
   const selectedVariant = variations[selectedVariation] ?? null;
@@ -137,9 +138,10 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
     ));
   }, [product.galleryImages, product.imageFile, selectedVariant]);
 
-  useEffect(() => { setSelectedImage(0); }, [selectedVariation]);
-
   const imageUrl = images[selectedImage] ?? "";
+
+  useEffect(() => { setSelectedImage(0); }, [selectedVariation]);
+  useEffect(() => { setImageError(false); }, [imageUrl]);
   const promotionalPrice = getValidPromotionalPrice(product.price, product.promotionalPrice);
   const finalPrice = promotionalPrice ?? product.price;
   const discountPct = getDiscountPercentage({ originalPrice: product.price, currentPrice: promotionalPrice });
@@ -215,7 +217,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32 text-gray-900 pt-[120px] md:pb-20 md:pt-[74px]">
+    <div className="min-h-screen bg-gray-50 pb-[176px] text-gray-900 pt-[120px] md:pb-20 md:pt-[74px]">
 
       {/* ── Breadcrumb ─────────────────────────────────────── */}
       <nav className="mx-auto max-w-7xl px-4 pb-4 sm:px-6">
@@ -240,19 +242,20 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
 
           {/* Images */}
           <div className="-mx-2 min-w-0 sm:mx-0">
-            <div className="group/gallery relative aspect-[4/5] max-h-[680px] overflow-hidden rounded-[32px] border border-pink-100/80 bg-[#17070C] shadow-[0_24px_70px_rgba(23,7,12,0.16)] sm:aspect-square lg:aspect-[4/5]">
+            <div className="group/gallery relative aspect-[4/5] max-h-[680px] overflow-hidden rounded-[32px] border border-pink-100/80 bg-white shadow-[0_24px_70px_rgba(23,7,12,0.16)] sm:aspect-square lg:aspect-[4/5]">
               <span className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-[#17070C]/42 via-transparent to-white/8" aria-hidden="true" />
               <span className="pointer-events-none absolute -right-16 -top-20 z-10 h-48 w-48 rounded-full bg-pink-200/18 blur-3xl" aria-hidden="true" />
-              {imageUrl ? (
+              {imageUrl && !imageError ? (
                 <ProductVariantImage
                   src={imageUrl}
                   alt={product.name}
                   productName={selectedVariant ? `${product.name} ${selectedVariant.label}` : product.name}
                   sku={selectedVariant?.sku ?? product.sku}
                   priority
+                  onError={() => setImageError(true)}
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   frameClassName="h-full w-full"
-                  imageClassName="object-cover transition-transform duration-700 group-hover/gallery:scale-[1.035]"
+                  imageClassName="object-contain transition-transform duration-700 group-hover/gallery:scale-[1.015]"
                 />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-[#fff0f6] to-white text-pink-300">
@@ -325,7 +328,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                       sku={selectedVariant?.sku ?? product.sku}
                       sizes="78px"
                       frameClassName="h-full w-full rounded-[16px]"
-                      imageClassName="rounded-[16px] object-cover transition-transform duration-300 hover:scale-105"
+                      imageClassName="rounded-[16px] object-contain p-1 transition-transform duration-300 hover:scale-[1.02]"
                     />
                   </button>
                 ))}
@@ -344,17 +347,12 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[#17070C] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_10px_22px_rgba(23,7,12,0.14)]">KA Bijoux</span>
                     {isAdult && <span className="rounded-full border border-[#5d2038]/20 bg-[#5d2038] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white">18+</span>}
-                    {available ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700">
-                        <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-                        Em estoque
-                      </span>
-                    ) : (
+                    {!available ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-red-100 bg-red-50 px-3 py-1 text-[11px] font-black text-red-600">
                         <span className="h-2 w-2 rounded-full bg-red-500" />
                         Indisponível
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
@@ -508,7 +506,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
       </main>
 
       {/* ── Mobile sticky CTA ─────────────────────────────── */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-pink-100 bg-white/96 px-3 py-3 shadow-[0_-16px_38px_rgba(201,66,119,0.13)] backdrop-blur md:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-pink-100 bg-white/96 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-16px_38px_rgba(201,66,119,0.13)] backdrop-blur md:hidden">
         <div className="mx-auto max-w-lg">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-baseline gap-2">
@@ -532,7 +530,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
               type="button"
               onClick={handleBuyNow}
               disabled={!available}
-              className="min-h-12 rounded-2xl bg-gradient-to-r from-pink-600 to-pink-400 text-white font-black text-sm shadow-[0_12px_28px_rgba(219,39,119,0.25)] transition-all disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.97]"
+              className="min-h-12 whitespace-nowrap rounded-2xl bg-gradient-to-r from-pink-600 to-pink-400 px-2 text-white font-black text-[13px] shadow-[0_12px_28px_rgba(219,39,119,0.25)] transition-all disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.97]"
             >
               Comprar agora
             </button>
@@ -903,7 +901,60 @@ function buildCommercialDescription(product: ProductDetailProduct, categoryName:
   if (isAdult) {
     return `${name} faz parte da Linha Adulto KA Bijoux, uma seleção pensada para proporcionar novas experiências com discrição e cuidado. O produto é enviado em embalagem reservada e deve ser utilizado conforme as orientações presentes no rótulo ou na embalagem.`;
   }
-  return `${name} foi escolhido para a vitrine KA Bijoux por sua proposta prática e versátil. Uma opção para complementar sua rotina com estilo, cuidado e facilidade.`;
+  return buildSafeProductDescription(name, categoryName);
+}
+
+function buildSafeProductDescription(name: string, categoryName: string) {
+  const normalized = normalize(`${name} ${categoryName}`);
+  const color = extractColor(name);
+  const colorText = color ? ` na cor ${color.toLowerCase()}` : "";
+  const model = extractPhoneModel(name);
+  const power = name.match(/\b\d+\s*w\b/i)?.[0]?.toUpperCase().replace(/\s+/g, "");
+
+  if (/\b(case|capinha|capa|silicone|iphone|ip\s*\d+|ip\s*xr)\b/.test(normalized)) {
+    const modelText = model ? ` para ${model}` : "";
+    return `${name} é uma capa para celular${modelText}${colorText}, indicada para proteger o aparelho no uso diário e renovar o visual. Verifique o modelo do celular antes da compra para garantir o encaixe correto.`;
+  }
+
+  if (/\b(pelicula|pelic)\b/.test(normalized)) {
+    const modelText = model ? ` para ${model}` : "";
+    return `${name} é um acessório de proteção${modelText}, pensado para ajudar a preservar a área indicada no próprio nome do produto. Confirme o modelo do aparelho antes da compra e aplique com a superfície limpa e seca.`;
+  }
+
+  if (/\b(cabo|fonte|carregador|adaptador|conversor|usb|tipo c|type c|v8|micro usb)\b/.test(normalized)) {
+    const powerText = power ? ` com potência informada de ${power}` : "";
+    return `${name} é um acessório de carregamento ou conexão${powerText}, útil para o dia a dia, trabalho e viagens. Antes de usar, confira se o conector é compatível com o seu aparelho e evite forçar encaixes.`;
+  }
+
+  if (/\b(fone|headphone|bluetooth|p1|p2)\b/.test(normalized)) {
+    return `${name} é um acessório de áudio para ouvir músicas, vídeos e chamadas no dia a dia. Confira o tipo de conexão indicado no nome do produto e mantenha o item protegido de umidade, quedas e calor excessivo.`;
+  }
+
+  if (/\b(smartwatch|smart watch|pulseira smart)\b/.test(normalized)) {
+    return `${name} é uma pulseira para smartwatch pensada para trocar o visual do relógio inteligente com praticidade. A compatibilidade depende do modelo e do encaixe do aparelho, por isso confira as medidas antes da compra.`;
+  }
+
+  if (/\b(suporte|ventosa|fita salva celular|pulseira de celular|corda de celular|cordao de celular)\b/.test(normalized)) {
+    return `${name} é um acessório para celular feito para facilitar o uso, transporte ou apoio do aparelho na rotina. Use conforme a finalidade indicada no nome do produto e confira o encaixe antes de utilizar.`;
+  }
+
+  if (/\b(controle|controle universal|smart tv|ar condic)\b/.test(normalized)) {
+    return `${name} é um controle de reposição ou uso complementar para aparelhos compatíveis. Confira a aplicação indicada no nome do produto e teste as funções básicas após configurar ou inserir as pilhas adequadas.`;
+  }
+
+  if (/\b(caneta|caderno|lapis|papel|estojo)\b/.test(normalized)) {
+    return `${name} é um item de papelaria para apoiar tarefas do dia a dia, estudos ou organização. Guarde em local seco e utilize conforme a função indicada no próprio produto.`;
+  }
+
+  if (/\b(placa|decor|quadro|porta retrato|flor|vaso)\b/.test(normalized)) {
+    return `${name} é um item decorativo para compor ambientes, vitrines ou espaços de uso diário. Posicione em local adequado e evite exposição a umidade ou calor excessivo.`;
+  }
+
+  if (/\b(brinco|colar|pulseira|bracelete|broche|anel|pingente|argola)\b/.test(normalized)) {
+    return `${name} é um acessório para complementar o visual em produções casuais ou especiais. Para conservar melhor, evite contato com água, perfumes, cremes e produtos químicos.`;
+  }
+
+  return `${name} é um produto para uso diário com proposta funcional e visual alinhado ao cadastro atual. Confira nome, fotos, preço e categoria antes da compra para confirmar se atende ao que você precisa.`;
 }
 
 function publicText(value?: string | null) {
@@ -916,6 +967,9 @@ function publicText(value?: string | null) {
     "necessita revisao", "revisao", "revisao manual", "revisao pendente",
     "campo em revisao", "informacao indisponivel", "informacoes tecnicas pendentes",
     "descricao detalhada pendente", "importado da bling", "produto selecionado pela ka bijoux",
+    "produto ka bijoux com nome", "foi escolhido para a vitrine ka bijoux",
+    "foi selecionado para a vitrine ka bijoux", "proposta pratica e versatil",
+    "uma opcao para complementar sua rotina",
   ];
   return blocked.some((t) => normalized.includes(t)) ? null : text;
 }
@@ -938,6 +992,17 @@ function getProductPurpose(name: string, categoryName: string, isAdult: boolean)
   if (normalized.includes("bullet") || normalized.includes("vibrador")) return "Acessório íntimo para exploração de novas sensações";
   if (/gel|creme|lubrificante|oleo/.test(normalized)) return "Cuidado, bem-estar e conforto íntimo";
   if (isAdult) return "Produto de uso adulto";
+  return null;
+}
+
+function extractPhoneModel(name: string) {
+  const normalized = normalize(name);
+  const match = normalized.match(/\bip\s*(\d{1,2})\s*(pro max|pro|plus)?\b/) ?? normalized.match(/\biphone\s*(\d{1,2})\s*(pro max|pro|plus)?\b/);
+  if (match) {
+    const suffix = match[2] ? ` ${match[2].replace(/\b\w/g, (letter) => letter.toUpperCase())}` : "";
+    return `iPhone ${match[1]}${suffix}`;
+  }
+  if (/\bip\s*xr\b|\biphone\s*xr\b/.test(normalized)) return "iPhone XR";
   return null;
 }
 

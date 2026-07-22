@@ -647,13 +647,13 @@ function inferCategory(name: string, blingCategory?: string) {
     return { categorySlug: "sex-shop", subcategorySlug: inferAdultSubcategory(normalizedName) };
   }
 
-  if (fromBling) return fromBling;
-
   const n = normalizeSearch(name);
 
-  if (/\b(case|capinha|capa|iphone|ip\s*\d+|pelicula|carregador|fone|cabo)\b/.test(n)) {
+  if (/\b(case|capinha|capa|silicone|iphone|ip\s*(?:xr|\d{1,2}\s*(?:pro\s*max|pro|max|plus)?)|pelicula|pelic|carregador|carreg|fonte|fone|headphone|cabo|usb|tipo c|type c|v8|micro usb|adaptador|conversor|smartwatch|smart watch|suporte p celular|suporte para celular|ventosa p celular|ventosa para celular|pulseira de celular|corda de celular|cordao de celular|fita salva celular|sim card|tag rastreadora|pen drive)\b/.test(n)) {
     return { categorySlug: "capinhas-acessorios-celular", subcategorySlug: null };
   }
+
+  if (fromBling) return fromBling;
 
   if (/\b(cachecol|gorro|luva|inverno|touca)\b/.test(n)) {
     return { categorySlug: "acessorios-inverno", subcategorySlug: null };
