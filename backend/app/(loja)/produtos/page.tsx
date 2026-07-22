@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import ProductListingPage from "@/components/loja/ProductListingPage";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "Produtos",
   description: "Vitrine completa da KA Bijoux com filtros simples por categoria, promocoes e novidades.",

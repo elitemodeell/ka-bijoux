@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { unstable_cache } from "next/cache";
 import { Prisma } from "@prisma/client";
 import ProductCard from "@/components/loja/ProductCard";
 import { prisma } from "@/lib/prisma";
@@ -46,8 +45,9 @@ const productInclude = {
 };
 
 
-const LISTING_PAGE_SIZE = 20;
-const LISTING_DB_LIMIT = 60;
+const LISTING_PAGE_SIZE = 50;
+const LISTING_DB_LIMIT = 1000;
+const LISTING_DB_TIMEOUT_MS = 5000;
 
 export default async function ProductListingPage({
   title,
@@ -318,9 +318,8 @@ type LiveProductParams = {
   catalogLine: CatalogLine;
 };
 
-// Busca e merge do banco + Bling — resultado cacheado 60s por combinação de filtros
-const fetchMergedProducts = unstable_cache(
-  async (params: LiveProductParams): Promise<ProductCardProduct[]> => {
+// Busca e merge do banco + Bling em tempo real para refletir importacoes recentes.
+async function fetchMergedProducts(params: LiveProductParams): Promise<ProductCardProduct[]> {
     const { categorySlug, subcategorySlug, selectedPrice, sort, promo, onlyNew, query, catalogLine } = params;
     const filters: CatalogFilters = { categorySlug, subcategorySlug, selectedPrice, sort, promo, onlyNew, query, catalogLine };
 
@@ -351,17 +350,14 @@ const fetchMergedProducts = unstable_cache(
       .filter((product) => matchesCatalogLine(toProductLineSource(product), catalogLine));
 
     return mergeWithBlingCatalog(dbProducts, filters);
-  },
-  ["products-listing"],
-  { revalidate: 60, tags: ["products"] }
-);
+}
 
 async function getLiveProducts(params: LiveProductParams & { page: number }) {
   const { page, ...filterParams } = params;
   const filters: CatalogFilters = filterParams;
 
   try {
-    const allProducts = await withTimeout(fetchMergedProducts(filterParams), 1500);
+    const allProducts = await withTimeout(fetchMergedProducts(filterParams), LISTING_DB_TIMEOUT_MS);
     return paginateProducts(allProducts, page);
   } catch {
     return paginateProducts(getBlingProductCards(filters), page);
