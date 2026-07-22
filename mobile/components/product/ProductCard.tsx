@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors, BorderRadius, FontSizes, Shadows } from "@/constants/theme";
 import { useCartStore } from "@/stores/cartStore";
+import { useAuthStore } from "@/stores/authStore";
 import { Ionicons } from "@expo/vector-icons";
 
 type Variation = {
@@ -44,6 +45,7 @@ const MAX_SWATCHES = 4;
 export function ProductCard({ product }: ProductCardProps) {
   const router = useRouter();
   const { addItem, isLoading } = useCartStore();
+  const { customer } = useAuthStore();
 
   const variations = product.variations ?? [];
   const hasVariations = variations.length > 0;
@@ -75,11 +77,19 @@ export function ProductCard({ product }: ProductCardProps) {
 
   async function handleAddToCart() {
     if (!isAvailable) return;
+    if (!customer) {
+      router.push("/(auth)/login");
+      return;
+    }
     if (hasVariations) {
       router.push(`/produto/${productKey}`);
       return;
     }
-    await addItem(product.id, 1);
+    try {
+      await addItem(product.id, 1);
+    } catch {
+      Alert.alert("Erro", "Nao foi possivel adicionar o produto ao carrinho.");
+    }
   }
 
   function handleSwatchPress(v: Variation) {
@@ -95,11 +105,17 @@ export function ProductCard({ product }: ProductCardProps) {
     >
       {/* Imagem */}
       <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: mainImageUrl }}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        {mainImageUrl ? (
+          <Image
+            source={{ uri: mainImageUrl }}
+            style={styles.image}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.image, styles.imagePlaceholder]}>
+            <Ionicons name="image-outline" size={32} color={Colors.border} />
+          </View>
+        )}
 
         {/* Badges */}
         <View style={styles.badges}>
@@ -136,7 +152,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 ]}
               >
                 {v.imageUrl ? (
-                  <Image source={{ uri: v.imageUrl }} style={styles.swatchImage} />
+                  <Image source={{ uri: resolveUrl(v.imageUrl)! }} style={styles.swatchImage} />
                 ) : (
                   <View style={[styles.swatchDot, v.stock === 0 && styles.swatchDotUnavailable]} />
                 )}
@@ -205,6 +221,10 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: "100%",
+  },
+  imagePlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   badges: {
     position: "absolute",

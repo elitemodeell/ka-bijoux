@@ -1,7 +1,7 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://ka-bijoux-backend.vercel.app";
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -49,13 +49,13 @@ export const authApi = {
 
 export const productsApi = {
   list: (params?: Record<string, string | number | boolean>) =>
-    api.get("/api/products", { params }),
+    api.get("/api/products", { params: { withImage: true, ...params } }),
 
   getById: (id: string) =>
     api.get(`/api/products/${id}`),
 
-  search: (query: string, params?: Record<string, string | number>) =>
-    api.get("/api/products", { params: { q: query, ...params } }),
+  search: (query: string, params?: Record<string, string | number | boolean>) =>
+    api.get("/api/products", { params: { withImage: true, q: query, ...params } }),
 };
 
 // ─── Categories ───────────────────────────────────────────────────────────────
@@ -134,7 +134,7 @@ export const storiesApi = {
 export const addressesApi = {
   list: () => api.get("/api/customers/me/addresses"),
 
-  create: (data: Record<string, string | boolean>) =>
+  create: (data: Record<string, string | boolean | undefined>) =>
     api.post("/api/customers/me/addresses", data),
 
   setDefault: (id: string) =>

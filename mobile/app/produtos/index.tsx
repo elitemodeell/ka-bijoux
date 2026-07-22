@@ -16,7 +16,7 @@ type Product = {
 };
 
 const SORT_OPTIONS = [
-  { label: "Novidades",    value: "new" },
+  { label: "Novidades",    value: "createdAt" },
   { label: "Menor preço", value: "price_asc" },
   { label: "Maior preço", value: "price_desc" },
   { label: "Mais vendidos", value: "best_sellers" },
@@ -26,13 +26,16 @@ const PAGE_SIZE = 20;
 
 export default function ProdutosScreen() {
   const router = useRouter();
-  const { category, title } = useLocalSearchParams<{ category?: string; title?: string }>();
+  const { category, title, promo, new: newParam, q } = useLocalSearchParams<{ category?: string; title?: string; promo?: string; new?: string; q?: string }>();
+  const isPromo = promo === "true";
+  const isNew = newParam === "true";
+  const query = typeof q === "string" ? q.trim() : "";
 
   const [products, setProducts]     = useState<Product[]>([]);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [sort, setSort]             = useState("new");
+  const [sort, setSort]             = useState("createdAt");
   const [page, setPage]             = useState(1);
   const [hasMore, setHasMore]       = useState(true);
 
@@ -42,6 +45,9 @@ export default function ProdutosScreen() {
         page: p, pageSize: PAGE_SIZE, sort: currentSort,
       };
       if (category) params.category = category;
+      if (isPromo) params.promo = true;
+      if (isNew) params.new = true;
+      if (query) params.q = query;
 
       const res = await productsApi.list(params);
       const data = res.data.data;
@@ -65,23 +71,23 @@ export default function ProdutosScreen() {
     setHasMore(true);
     fetchProducts(1, sort, true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, sort]);
+  }, [category, sort, isPromo, isNew, query]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchProducts(1, sort, true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sort, category]);
+  }, [sort, category, isPromo, isNew, query]);
 
   const loadMore = useCallback(() => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     fetchProducts(page + 1, sort, false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadingMore, hasMore, page, sort, category]);
+  }, [loadingMore, hasMore, page, sort, category, isPromo, isNew, query]);
 
   const screenTitle = title
-    ?? (category ? category.replace(/-/g, " ") : "Produtos");
+    ?? (query ? `Busca: ${query}` : isPromo ? "Promoções" : isNew ? "Novidades" : category ? category.replace(/-/g, " ") : "Produtos");
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>

@@ -32,6 +32,7 @@ const productInclude = {
 
 
 const API_FETCH_LIMIT = 80;
+const DB_QUERY_TIMEOUT_MS = 5000;
 
 export async function GET(req: NextRequest) {
   try {
@@ -86,6 +87,7 @@ export async function GET(req: NextRequest) {
       if (minPrice) where.price.gte = Number(minPrice);
       if (maxPrice) where.price.lte = Number(maxPrice);
     }
+    if (withImage) where.images = { some: {} };
 
     const orderBy: Prisma.ProductOrderByWithRelationInput =
       sort === "price_asc" || sort === "menor-preco"
@@ -106,7 +108,7 @@ export async function GET(req: NextRequest) {
         skip: 0,
         take: Math.min(API_FETCH_LIMIT, Math.max(take * 2, skip + take)),
       }),
-      1000
+      DB_QUERY_TIMEOUT_MS
     );
 
     const dbProducts = products

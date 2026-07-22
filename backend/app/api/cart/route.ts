@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
+import { buildProductIdentityFilters } from "@/lib/product-identity";
 
 const cartInclude = {
   items: {
@@ -62,8 +63,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { productId, variationId, quantity } = addItemSchema.parse(body);
 
-    const product = await prisma.product.findUnique({
-      where: { id: productId, active: true },
+    const productFilters = buildProductIdentityFilters(productId);
+    const product = await prisma.product.findFirst({
+      where: { active: true, OR: productFilters },
       include: { variations: true },
     });
     if (!product) return apiError("Produto não encontrado.", 404);
@@ -81,7 +83,7 @@ export async function POST(req: NextRequest) {
       : Number(product.promotionalPrice ?? product.price);
 
     const existingItem = cart.items.find(
-      (i) => i.productId === productId && i.variationId === (variationId ?? null)
+      (i) => i.productId === product.id && i.variationId === (variationId ?? null)
     );
 
     if (existingItem) {
@@ -93,7 +95,7 @@ export async function POST(req: NextRequest) {
       });
     } else {
       await prisma.cartItem.create({
-        data: { cartId: cart.id, productId, variationId, quantity, unitPrice },
+        data: { cartId: cart.id, productId: product.id, variationId, quantity, unitPrice },
       });
     }
 

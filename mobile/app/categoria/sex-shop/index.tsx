@@ -132,6 +132,7 @@ export default function SexShopScreen() {
         pageSize: PAGE_SIZE,
         page: nextPage,
         sort: currentSort,
+        withImage: true,
       };
       if (currentFilter === "promo") params.promo = true;
       if (currentFilter === "new") params.new = true;
@@ -335,19 +336,27 @@ function HeroBenefit({ icon, title, sub }: { icon: keyof typeof Ionicons.glyphMa
 }
 
 function CategoryCard({ card }: { card: typeof CATEGORY_CARDS[number] }) {
-  return (
-    <View style={[styles.catCard, card.wide && styles.catCardWide, { backgroundColor: card.bg }]}>
-      <Image
-        source={{ uri: `${SITE}${card.image}` }}
-        style={styles.catImage}
-        resizeMode="contain"
-      />
-      <View style={styles.catInfo}>
-        <Text style={styles.catTitle}>{card.title}</Text>
-        <Text style={styles.catSubtitle}>{card.subtitle}</Text>
+  if (card.wide) {
+    return (
+      <View style={[styles.catCard, styles.catCardWide, { backgroundColor: card.bg }]}>
+        <Image source={{ uri: `${SITE}${card.image}` }} style={styles.catImage} resizeMode="contain" />
+        <View style={styles.catInfo}>
+          <Text style={styles.catTitle}>{card.title}</Text>
+          <Text style={styles.catSubtitle}>{card.subtitle}</Text>
+        </View>
+        <View style={styles.catArrow}>
+          <Ionicons name="chevron-forward" size={18} color="#7d4b5d" />
+        </View>
       </View>
-      <View style={styles.catArrow}>
-        <Ionicons name="chevron-forward" size={18} color="#7d4b5d" />
+    );
+  }
+  return (
+    <View style={[styles.catCard, { backgroundColor: card.bg }]}>
+      <Image source={{ uri: `${SITE}${card.image}` }} style={styles.catImageSmall} resizeMode="contain" />
+      <Text style={styles.catTitle} numberOfLines={2}>{card.title}</Text>
+      <Text style={styles.catSubtitle} numberOfLines={1}>{card.subtitle}</Text>
+      <View style={styles.catArrowSmall}>
+        <Ionicons name="chevron-forward" size={14} color="#7d4b5d" />
       </View>
     </View>
   );
@@ -430,21 +439,22 @@ const styles = StyleSheet.create({
 
   catCard: {
     width: "47.5%",
-    minHeight: 100,
+    minHeight: 110,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "#dfbdc5",
     padding: 12,
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
     ...Shadows.sm,
   },
-  catCardWide: { width: "100%" },
+  catCardWide: { width: "100%", flexDirection: "row", alignItems: "center", gap: 8 },
   catImage: { width: 64, height: 64 },
+  catImageSmall: { width: 52, height: 52 },
   catInfo: { flex: 1 },
-  catTitle: { fontSize: FontSizes.base, fontWeight: "700", color: "#654067", lineHeight: 20 },
-  catSubtitle: { fontSize: FontSizes.xs, color: "#6f4f75", marginTop: 2 },
+  catTitle: { fontSize: FontSizes.base, fontWeight: "700", color: "#654067", lineHeight: 20, textAlign: "center" },
+  catSubtitle: { fontSize: FontSizes.xs, color: "#6f4f75", marginTop: 2, textAlign: "center" },
   catArrow: {
     width: 36, height: 36,
     borderRadius: 18,
@@ -453,6 +463,16 @@ const styles = StyleSheet.create({
     borderColor: "#e4c6c7",
     alignItems: "center",
     justifyContent: "center",
+  },
+  catArrowSmall: {
+    width: 28, height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.76)",
+    borderWidth: 1,
+    borderColor: "#e4c6c7",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
   },
 
   filtersWrap: {

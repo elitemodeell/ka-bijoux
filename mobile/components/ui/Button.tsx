@@ -9,7 +9,7 @@ interface ButtonProps {
   disabled?: boolean;
   style?: ViewStyle;
   size?: "sm" | "md" | "lg";
-  variant?: "primary" | "outline" | "ghost";
+  variant?: "primary" | "outline" | "ghost" | "danger";
   fullWidth?: boolean;
 }
 
@@ -68,6 +68,29 @@ export function Button({
           <ActivityIndicator color={Colors.primary} size="small" />
         ) : (
           <Text style={[styles.label, { fontSize, color: Colors.primary }]}>{label}</Text>
+        )}
+      </TouchableOpacity>
+    );
+  }
+
+  if (variant === "danger") {
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={isDisabled}
+        activeOpacity={0.78}
+        style={[
+          styles.base,
+          { height, paddingHorizontal: px, backgroundColor: Colors.error },
+          isDisabled && styles.disabled,
+          widthStyle,
+          style,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" size="small" />
+        ) : (
+          <Text style={[styles.label, { fontSize, color: "#fff" }]}>{label}</Text>
         )}
       </TouchableOpacity>
     );
