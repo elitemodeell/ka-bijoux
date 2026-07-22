@@ -321,7 +321,17 @@ type LiveProductParams = {
 // Busca e merge do banco + Bling em tempo real para refletir importacoes recentes.
 async function fetchMergedProducts(params: LiveProductParams): Promise<ProductCardProduct[]> {
     const { categorySlug, subcategorySlug, selectedPrice, sort, promo, onlyNew, query, catalogLine } = params;
-    const filters: CatalogFilters = { categorySlug, subcategorySlug, selectedPrice, sort, promo, onlyNew, query, catalogLine };
+    const filters: CatalogFilters = {
+      categorySlug,
+      subcategorySlug,
+      selectedPrice,
+      sort,
+      promo,
+      onlyNew,
+      query,
+      catalogLine,
+      requireImage: true,
+    };
 
     const where: Prisma.ProductWhereInput = { active: true };
     if (categorySlug) where.category = { slug: categorySlug };
@@ -347,6 +357,7 @@ async function fetchMergedProducts(params: LiveProductParams): Promise<ProductCa
     const dbProducts = products
       .map((product) => mapDbProductToCard(product))
       .filter((product): product is ProductCardProduct => Boolean(product))
+      .filter((product) => Boolean(product.image))
       .filter((product) => matchesCatalogLine(toProductLineSource(product), catalogLine));
 
     return mergeWithBlingCatalog(dbProducts, filters);

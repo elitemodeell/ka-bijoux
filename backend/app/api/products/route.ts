@@ -1,4 +1,5 @@
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import { NextRequest } from "next/server";
 import { Prisma, ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
@@ -31,7 +32,7 @@ const productInclude = {
 };
 
 
-const API_FETCH_LIMIT = 80;
+const API_FETCH_LIMIT = 1000;
 const DB_QUERY_TIMEOUT_MS = 5000;
 
 export async function GET(req: NextRequest) {
@@ -114,6 +115,7 @@ export async function GET(req: NextRequest) {
     const dbProducts = products
       .map((product) => mapDbProductToCard(product))
       .filter((product): product is ProductCardProduct => Boolean(product))
+      .filter((product) => !withImage || Boolean(product.image))
       .filter((product) => matchesCatalogLine(toProductLineSource(product), catalogLine));
     const merged = mergeWithBlingCatalog(dbProducts, filters);
     const pageProducts = merged.slice(skip, skip + take);
