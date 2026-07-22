@@ -353,14 +353,29 @@ async function fetchMergedProducts(params: LiveProductParams): Promise<ProductCa
     const orderBy: Prisma.ProductOrderByWithRelationInput =
       sort === "price_asc" ? { price: "asc" } : sort === "price_desc" ? { price: "desc" } : { createdAt: "desc" };
 
-    const products = await prisma.product.findMany({ where, include: productInclude, orderBy, take: LISTING_DB_LIMIT });
+    const [products, allDbIdentityKeys] = await Promise.all([
+      prisma.product.findMany({ where, include: productInclude, orderBy, take: LISTING_DB_LIMIT }),
+      getAllDbProductIdentityKeys(),
+    ]);
     const dbProducts = products
       .map((product) => mapDbProductToCard(product))
       .filter((product): product is ProductCardProduct => Boolean(product))
       .filter((product) => Boolean(product.image))
       .filter((product) => matchesCatalogLine(toProductLineSource(product), catalogLine));
 
-    return mergeWithBlingCatalog(dbProducts, filters);
+    return mergeWithBlingCatalog(dbProducts, filters, allDbIdentityKeys);
+}
+
+async function getAllDbProductIdentityKeys() {
+  const products = await prisma.product.findMany({
+    select: { blingId: true, sku: true, slug: true, name: true },
+    take: LISTING_DB_LIMIT,
+  });
+  const keys = new Set<string>();
+  for (const product of products) {
+    getProductIdentityKeys(product).forEach((key) => keys.add(key));
+  }
+  return keys;
 }
 
 async function getLiveProducts(params: LiveProductParams & { page: number }) {
@@ -438,11 +453,15 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof 
   } satisfies ProductCardProduct;
 }
 
-function mergeWithBlingCatalog(dbProducts: ProductCardProduct[], filters: CatalogFilters) {
+function mergeWithBlingCatalog(
+  dbProducts: ProductCardProduct[],
+  filters: CatalogFilters,
+  allDbIdentityKeys = new Set<string>()
+) {
   const canonicalDbProducts = dedupeProductCards(dbProducts).filter((product) =>
     matchesCatalogLine(toProductLineSource(product), filters.catalogLine)
   );
-  const seen = new Set<string>();
+  const seen = new Set<string>(allDbIdentityKeys);
   for (const product of canonicalDbProducts) {
     getProductIdentityKeys(product).forEach((key) => seen.add(key));
   }

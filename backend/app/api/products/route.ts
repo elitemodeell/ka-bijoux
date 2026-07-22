@@ -88,8 +88,6 @@ export async function GET(req: NextRequest) {
       if (minPrice) where.price.gte = Number(minPrice);
       if (maxPrice) where.price.lte = Number(maxPrice);
     }
-    if (withImage) where.images = { some: {} };
-
     const orderBy: Prisma.ProductOrderByWithRelationInput =
       sort === "price_asc" || sort === "menor-preco"
         ? { price: "asc" }
@@ -101,14 +99,17 @@ export async function GET(req: NextRequest) {
 
     const { skip, take } = paginate(page, pageSize);
 
-    const products = await withTimeout(
-      prisma.product.findMany({
-        where,
-        include: productInclude,
-        orderBy,
-        skip: 0,
-        take: API_FETCH_LIMIT,
-      }),
+    const [products, allDbIdentityKeys] = await withTimeout(
+      Promise.all([
+        prisma.product.findMany({
+          where,
+          include: productInclude,
+          orderBy,
+          skip: 0,
+          take: API_FETCH_LIMIT,
+        }),
+        getAllDbProductIdentityKeys(),
+      ]),
       DB_QUERY_TIMEOUT_MS
     );
 
@@ -117,7 +118,7 @@ export async function GET(req: NextRequest) {
       .filter((product): product is ProductCardProduct => Boolean(product))
       .filter((product) => !withImage || Boolean(product.image))
       .filter((product) => matchesCatalogLine(toProductLineSource(product), catalogLine));
-    const merged = mergeWithBlingCatalog(dbProducts, filters);
+    const merged = mergeWithBlingCatalog(dbProducts, filters, allDbIdentityKeys);
     const pageProducts = merged.slice(skip, skip + take);
 
     return apiSuccess({
@@ -237,11 +238,27 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof 
   } satisfies ProductCardProduct;
 }
 
-function mergeWithBlingCatalog(dbProducts: ProductCardProduct[], filters: CatalogFilters) {
+async function getAllDbProductIdentityKeys() {
+  const products = await prisma.product.findMany({
+    select: { blingId: true, sku: true, slug: true, name: true },
+    take: API_FETCH_LIMIT,
+  });
+  const keys = new Set<string>();
+  for (const product of products) {
+    getProductIdentityKeys(product).forEach((key) => keys.add(key));
+  }
+  return keys;
+}
+
+function mergeWithBlingCatalog(
+  dbProducts: ProductCardProduct[],
+  filters: CatalogFilters,
+  allDbIdentityKeys = new Set<string>()
+) {
   const canonicalDbProducts = dedupeProductCards(dbProducts).filter((product) =>
     matchesCatalogLine(toProductLineSource(product), filters.catalogLine)
   );
-  const seen = new Set<string>();
+  const seen = new Set<string>(allDbIdentityKeys);
   for (const product of canonicalDbProducts) {
     getProductIdentityKeys(product).forEach((key) => seen.add(key));
   }
