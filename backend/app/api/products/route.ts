@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
         include: productInclude,
         orderBy,
         skip: 0,
-        take: Math.min(API_FETCH_LIMIT, Math.max(take * 2, skip + take)),
+        take: API_FETCH_LIMIT,
       }),
       DB_QUERY_TIMEOUT_MS
     );
