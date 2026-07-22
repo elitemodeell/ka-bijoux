@@ -911,17 +911,28 @@ function buildSafeProductDescription(name: string, categoryName: string) {
   const model = extractPhoneModel(name);
   const power = name.match(/\b\d+\s*w\b/i)?.[0]?.toUpperCase().replace(/\s+/g, "");
 
-  if (/\b(case|capinha|capa|silicone|iphone|ip\s*\d+|ip\s*xr)\b/.test(normalized)) {
-    const modelText = model ? ` para ${model}` : "";
-    return `${name} é uma capa para celular${modelText}${colorText}, indicada para proteger o aparelho no uso diário e renovar o visual. Verifique o modelo do celular antes da compra para garantir o encaixe correto.`;
-  }
-
   if (/\b(pelicula|pelic)\b/.test(normalized)) {
     const modelText = model ? ` para ${model}` : "";
     return `${name} é um acessório de proteção${modelText}, pensado para ajudar a preservar a área indicada no próprio nome do produto. Confirme o modelo do aparelho antes da compra e aplique com a superfície limpa e seca.`;
   }
 
-  if (/\b(cabo|fonte|carregador|adaptador|conversor|usb|tipo c|type c|v8|micro usb)\b/.test(normalized)) {
+  if (/\b(organizador de cabos|kit cabos)\b/.test(normalized)) {
+    return `${name} é um acessório para organizar ou compor cabos no dia a dia, ajudando a manter carregadores e conexões mais práticos de usar e guardar. Confira a foto e o nome do produto para confirmar o tipo de cabo ou organizador incluído.`;
+  }
+
+  if (/\b(sim card|chip)\b/.test(normalized)) {
+    return `${name} é um acessório para chip de celular, útil para adaptar, guardar ou organizar cartões SIM conforme a finalidade indicada no produto. Confira o formato antes de usar para evitar danos ao chip ou ao aparelho.`;
+  }
+
+  if (/\b(tag rastreadora|rastreador)\b/.test(normalized)) {
+    return `${name} é um acessório de rastreamento para ajudar a localizar itens pessoais compatíveis no dia a dia. Confira as instruções de pareamento e compatibilidade antes de usar.`;
+  }
+
+  if (/\b(pen drive|pendrive)\b/.test(normalized)) {
+    return `${name} é um dispositivo portátil para armazenar, transportar ou reproduzir arquivos compatíveis. Conecte apenas em entradas USB adequadas e remova com segurança quando possível.`;
+  }
+
+  if (/\b(cabos?|fonte|carregador|adaptador|conversor|usb|tipo c|type c|v8|micro usb)\b/.test(normalized)) {
     const powerText = power ? ` com potência informada de ${power}` : "";
     return `${name} é um acessório de carregamento ou conexão${powerText}, útil para o dia a dia, trabalho e viagens. Antes de usar, confira se o conector é compatível com o seu aparelho e evite forçar encaixes.`;
   }
@@ -936,6 +947,11 @@ function buildSafeProductDescription(name: string, categoryName: string) {
 
   if (/\b(suporte|ventosa|fita salva celular|pulseira de celular|corda de celular|cordao de celular)\b/.test(normalized)) {
     return `${name} é um acessório para celular feito para facilitar o uso, transporte ou apoio do aparelho na rotina. Use conforme a finalidade indicada no nome do produto e confira o encaixe antes de utilizar.`;
+  }
+
+  if (isPhoneCaseName(normalized)) {
+    const modelText = model ? ` para ${model}` : "";
+    return `${name} é uma capa para celular${modelText}${colorText}, indicada para proteger o aparelho no uso diário e renovar o visual. Verifique o modelo do celular antes da compra para garantir o encaixe correto.`;
   }
 
   if (/\b(controle|controle universal|smart tv|ar condic)\b/.test(normalized)) {
@@ -955,6 +971,10 @@ function buildSafeProductDescription(name: string, categoryName: string) {
   }
 
   return `${name} é um produto para uso diário com proposta funcional e visual alinhado ao cadastro atual. Confira nome, fotos, preço e categoria antes da compra para confirmar se atende ao que você precisa.`;
+}
+
+function isPhoneCaseName(normalized: string) {
+  return /\b(case|capinha|capa)\b/.test(normalized) || (/\bsilicone\b/.test(normalized) && /\b(celular|iphone|ip\s*(?:xr|\d{1,2}))\b/.test(normalized));
 }
 
 function publicText(value?: string | null) {

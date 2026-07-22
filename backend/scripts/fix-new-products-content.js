@@ -11,6 +11,8 @@ const GENERIC_TERMS = [
   "proposta pratica e versatil",
   "proposta prática e versátil",
   "uma opcao para complementar sua rotina",
+  "produto para uso diario com proposta funcional",
+  "visual alinhado ao cadastro atual",
   "uma opção para complementar sua rotina",
 ];
 
@@ -70,11 +72,22 @@ function inferCategorySlug(name) {
   if (/\b(caneta|caderno|lapis|papel|estojo)\b/.test(n)) return "papelaria";
   if (/\b(placa|decor|quadro|porta retrato|flor|vaso)\b/.test(n)) return "decoracao";
   if (/\b(controle|smart tv|ar condic)\b/.test(n)) return "utilidades-domesticas";
-  if (/\b(case|capinha|capa|silicone|iphone|ip\s*(?:xr|\d{1,2}\s*(?:pro\s*max|pro|max|plus)?)|pelicula|pelic|carregador|carreg|fonte|fone|headphone|cabo|usb|tipo c|type c|v8|micro usb|adaptador|conversor|smartwatch|smart watch|suporte p celular|suporte para celular|ventosa p celular|ventosa para celular|pulseira de celular|corda de celular|cordao de celular|fita salva celular|sim card|tag rastreadora|pen drive)\b/.test(n)) {
+  if (isPhoneAccessoryName(n)) {
     return "capinhas-acessorios-celular";
   }
   if (/\b(brinco|colar|pulseira|bracelete|broche|anel|pingente|argola)\b/.test(n)) return "bijuterias";
   return null;
+}
+
+function isPhoneAccessoryName(n) {
+  return (
+    isPhoneCaseName(n) ||
+    /\b(pelicula|pelic|carregador|carreg|fonte|fone|headphone|cabos?|usb|tipo c|type c|v8|micro usb|adaptador|conversor|smartwatch|smart watch|suporte p celular|suporte para celular|ventosa p celular|ventosa para celular|pulseira de celular|corda de celular|cordao de celular|fita salva celular|sim card|tag rastreadora|pen drive)\b/.test(n)
+  );
+}
+
+function isPhoneCaseName(n) {
+  return /\b(case|capinha|capa)\b/.test(n) || (/\bsilicone\b/.test(n) && /\b(celular|iphone|ip\s*(?:xr|\d{1,2}\s*(?:pro\s*max|pro|max|plus)?))\b/.test(n));
 }
 
 function buildSearchTags(name, categorySlug, subcategorySlug) {
@@ -87,11 +100,11 @@ function buildSearchAliases(name, categorySlug) {
   const n = normalize(name);
   const tags = [n];
 
-  if (categorySlug === "capinhas-acessorios-celular" || /\b(celular|iphone|ip\s*(?:xr|\d{1,2})|usb|cabo|fonte|carreg|fone|smartwatch|smart watch)\b/.test(n)) {
+  if (categorySlug === "capinhas-acessorios-celular" || /\b(celular|iphone|ip\s*(?:xr|\d{1,2})|usb|cabos?|fonte|carreg|fone|smartwatch|smart watch)\b/.test(n)) {
     tags.push("celular", "acessorio celular", "acessorios celular");
   }
 
-  if (/\b(silicone|case|capinha|capa|iphone|ip\s*(?:xr|\d{1,2}))\b/.test(n)) {
+  if (isPhoneCaseName(n)) {
     tags.push("capa", "capinha", "case", "capa celular", "case celular");
   }
 
@@ -149,15 +162,23 @@ function buildDescription(name, categoryName) {
   const model = extractPhoneModel(name);
   const power = powerFromName(name);
 
-  if (/\b(case|capinha|capa|silicone|iphone|ip\s*\d+|ip\s*xr)\b/.test(n)) {
-    const modelText = model ? ` para ${model}` : "";
-    return `${name} é uma capa para celular${modelText}${colorText}, indicada para proteger o aparelho no uso diário e renovar o visual. Verifique o modelo do celular antes da compra para garantir o encaixe correto.`;
-  }
   if (/\b(pelicula|pelic)\b/.test(n)) {
     const modelText = model ? ` para ${model}` : "";
     return `${name} é um acessório de proteção${modelText}, pensado para ajudar a preservar a área indicada no próprio nome do produto. Confirme o modelo do aparelho antes da compra e aplique com a superfície limpa e seca.`;
   }
-  if (/\b(cabo|fonte|carregador|adaptador|conversor|usb|tipo c|type c|v8|micro usb)\b/.test(n)) {
+  if (/\b(organizador de cabos|kit cabos)\b/.test(n)) {
+    return `${name} é um acessório para organizar ou compor cabos no dia a dia, ajudando a manter carregadores e conexões mais práticos de usar e guardar. Confira a foto e o nome do produto para confirmar o tipo de cabo ou organizador incluído.`;
+  }
+  if (/\b(sim card|chip)\b/.test(n)) {
+    return `${name} é um acessório para chip de celular, útil para adaptar, guardar ou organizar cartões SIM conforme a finalidade indicada no produto. Confira o formato antes de usar para evitar danos ao chip ou ao aparelho.`;
+  }
+  if (/\b(tag rastreadora|rastreador)\b/.test(n)) {
+    return `${name} é um acessório de rastreamento para ajudar a localizar itens pessoais compatíveis no dia a dia. Confira as instruções de pareamento e compatibilidade antes de usar.`;
+  }
+  if (/\b(pen drive|pendrive)\b/.test(n)) {
+    return `${name} é um dispositivo portátil para armazenar, transportar ou reproduzir arquivos compatíveis. Conecte apenas em entradas USB adequadas e remova com segurança quando possível.`;
+  }
+  if (/\b(cabos?|fonte|carregador|adaptador|conversor|usb|tipo c|type c|v8|micro usb)\b/.test(n)) {
     const powerText = power ? ` com potência informada de ${power}` : "";
     return `${name} é um acessório de carregamento ou conexão${powerText}, útil para o dia a dia, trabalho e viagens. Antes de usar, confira se o conector é compatível com o seu aparelho e evite forçar encaixes.`;
   }
@@ -169,6 +190,10 @@ function buildDescription(name, categoryName) {
   }
   if (/\b(suporte|ventosa|fita salva celular|pulseira de celular|corda de celular|cordao de celular)\b/.test(n)) {
     return `${name} é um acessório para celular feito para facilitar o uso, transporte ou apoio do aparelho na rotina. Use conforme a finalidade indicada no nome do produto e confira o encaixe antes de utilizar.`;
+  }
+  if (isPhoneCaseName(n)) {
+    const modelText = model ? ` para ${model}` : "";
+    return `${name} é uma capa para celular${modelText}${colorText}, indicada para proteger o aparelho no uso diário e renovar o visual. Verifique o modelo do celular antes da compra para garantir o encaixe correto.`;
   }
   if (/\b(controle|controle universal|smart tv|ar condic)\b/.test(n)) {
     return `${name} é um controle de reposição ou uso complementar para aparelhos compatíveis. Confira a aplicação indicada no nome do produto e teste as funções básicas após configurar ou inserir as pilhas adequadas.`;
@@ -187,10 +212,10 @@ function buildDescription(name, categoryName) {
 
 function buildBenefits(name) {
   const n = normalize(name);
-  if (/\b(case|capinha|capa|silicone|iphone|ip\s*\d+|ip\s*xr|pelicula|pelic)\b/.test(n)) {
+  if (isPhoneCaseName(n) || /\b(pelicula|pelic)\b/.test(n)) {
     return "Ajuda a proteger o aparelho no uso diário, facilita a identificação do modelo pela foto e deixa o visual do celular mais organizado.";
   }
-  if (/\b(cabo|fonte|carregador|adaptador|conversor|usb|tipo c|type c|v8|micro usb)\b/.test(n)) {
+  if (/\b(cabos?|fonte|carregador|adaptador|conversor|usb|tipo c|type c|v8|micro usb)\b/.test(n)) {
     return "Facilita a rotina de carregamento ou conexão, é simples de transportar e ajuda a manter um acessório reserva sempre à mão.";
   }
   if (/\b(fone|headphone|bluetooth|p1|p2)\b/.test(n)) {
@@ -204,13 +229,13 @@ function buildBenefits(name) {
 
 function buildHowToUse(name) {
   const n = normalize(name);
-  if (/\b(case|capinha|capa|silicone|iphone|ip\s*\d+|ip\s*xr)\b/.test(n)) {
+  if (isPhoneCaseName(n)) {
     return "Confira o modelo do celular, alinhe os recortes da capa e encaixe sem forçar botões, câmera ou conectores.";
   }
   if (/\b(pelicula|pelic)\b/.test(n)) {
     return "Limpe bem a superfície, alinhe a película com cuidado e pressione levemente para fixar, seguindo as instruções da embalagem.";
   }
-  if (/\b(cabo|fonte|carregador|adaptador|conversor|usb|tipo c|type c|v8|micro usb)\b/.test(n)) {
+  if (/\b(cabos?|fonte|carregador|adaptador|conversor|usb|tipo c|type c|v8|micro usb)\b/.test(n)) {
     return "Conecte ao aparelho compatível sem forçar o encaixe. Desconecte puxando pelo conector, não pelo cabo.";
   }
   if (/\b(fone|headphone|bluetooth|p1|p2)\b/.test(n)) {
@@ -224,13 +249,28 @@ function buildHowToUse(name) {
 
 function buildCare(name) {
   const n = normalize(name);
-  if (/\b(cabo|fonte|carregador|adaptador|conversor|usb|tipo c|type c|v8|micro usb|fone|bluetooth|controle|smart tv|ar condic|pen drive|tag rastreadora)\b/.test(n)) {
+  if (/\b(cabos?|fonte|carregador|adaptador|conversor|usb|tipo c|type c|v8|micro usb|fone|bluetooth|controle|smart tv|ar condic|pen drive|tag rastreadora)\b/.test(n)) {
     return "Evite contato com água, quedas, calor excessivo e uso com conectores danificados. Guarde em local seco.";
   }
   if (/\b(brinco|colar|pulseira|bracelete|broche|anel|pingente|argola)\b/.test(n)) {
     return "Evite contato com água, perfumes, cremes e produtos químicos. Guarde separado para preservar o acabamento.";
   }
   return "Mantenha em local seco, limpo e protegido de calor excessivo. Limpe suavemente quando necessário.";
+}
+
+function isDescriptionOutOfSync(product) {
+  const name = normalize(product.name);
+  const description = normalize(product.description);
+  if (!description) return true;
+  if (/\b(cabos?|fonte|carregador|adaptador|conversor|usb|tipo c|type c|v8|micro usb)\b/.test(name) && description.includes("capa para celular")) return true;
+  if (/\b(pelicula|pelic)\b/.test(name) && description.includes("capa para celular")) return true;
+  if (isPhoneCaseName(name) && !description.includes("capa para celular")) return true;
+  if (/\b(cabos?|fonte|carregador|adaptador|conversor|usb|tipo c|type c|v8|micro usb)\b/.test(name) && !/\b(carregamento|conexao|conector|cabos?|fonte)\b/.test(description)) return true;
+  if (/\b(pelicula|pelic)\b/.test(name) && !/\b(protecao|pelicula|aplique)\b/.test(description)) return true;
+  if (/\b(fone|headphone|bluetooth|p1|p2)\b/.test(name) && !/\b(audio|musicas|chamadas|pareie)\b/.test(description)) return true;
+  if (/\b(smartwatch|smart watch|pulseira smart)\b/.test(name) && !/\b(smartwatch|relogio inteligente)\b/.test(description)) return true;
+  if (/\b(suporte|ventosa|fita salva celular|pulseira de celular|corda de celular|cordao de celular)\b/.test(name) && !/\b(celular|aparelho|transporte|apoio)\b/.test(description)) return true;
+  return false;
 }
 
 function buildPackageContents(name) {
@@ -255,7 +295,7 @@ async function main() {
   const updates = [];
   for (const product of products) {
     const data = {};
-    if (isGenericProduct(product)) {
+    if (isGenericProduct(product) || isDescriptionOutOfSync(product)) {
       data.description = buildDescription(product.name, product.category?.name ?? "");
       data.benefits = buildBenefits(product.name);
       data.howToUse = buildHowToUse(product.name);

@@ -505,7 +505,7 @@ function inferCategory(name, blingCategory) {
   const fromBling = mapBlingCategory(blingCategory);
   const n = normalizeSearch(name);
 
-  if (/\b(case|capinha|capa|silicone|iphone|ip\s*(?:xr|\d{1,2}\s*(?:pro\s*max|pro|max|plus)?)|pelicula|pelic|carregador|carreg|fonte|fone|headphone|cabo|usb|tipo c|type c|v8|micro usb|adaptador|conversor|smartwatch|smart watch|suporte p celular|suporte para celular|ventosa p celular|ventosa para celular|pulseira de celular|corda de celular|cordao de celular|fita salva celular|sim card|tag rastreadora|pen drive)\b/.test(n)) {
+  if (isPhoneAccessoryName(n)) {
     return { categorySlug: "capinhas-acessorios-celular", subcategorySlug: null };
   }
 
@@ -536,6 +536,17 @@ function inferCategory(name, blingCategory) {
   }
 
   return { categorySlug: "bijuterias", subcategorySlug: null };
+}
+
+function isPhoneAccessoryName(n) {
+  return (
+    isPhoneCaseName(n) ||
+    /\b(pelicula|pelic|carregador|carreg|fonte|fone|headphone|cabos?|usb|tipo c|type c|v8|micro usb|adaptador|conversor|smartwatch|smart watch|suporte p celular|suporte para celular|ventosa p celular|ventosa para celular|pulseira de celular|corda de celular|cordao de celular|fita salva celular|sim card|tag rastreadora|pen drive)\b/.test(n)
+  );
+}
+
+function isPhoneCaseName(n) {
+  return /\b(case|capinha|capa)\b/.test(n) || (/\bsilicone\b/.test(n) && /\b(celular|iphone|ip\s*(?:xr|\d{1,2}\s*(?:pro\s*max|pro|max|plus)?))\b/.test(n));
 }
 
 function mapBlingCategory(value) {
@@ -602,11 +613,11 @@ function buildSearchAliases(name, categorySlug) {
   const n = normalizeSearch(name);
   const tags = [n];
 
-  if (categorySlug === "capinhas-acessorios-celular" || /\b(celular|iphone|ip\s*(?:xr|\d{1,2})|usb|cabo|fonte|carreg|fone|smartwatch|smart watch)\b/.test(n)) {
+  if (categorySlug === "capinhas-acessorios-celular" || /\b(celular|iphone|ip\s*(?:xr|\d{1,2})|usb|cabos?|fonte|carreg|fone|smartwatch|smart watch)\b/.test(n)) {
     tags.push("celular", "acessorio celular", "acessorios celular");
   }
 
-  if (/\b(silicone|case|capinha|capa|iphone|ip\s*(?:xr|\d{1,2}))\b/.test(n)) {
+  if (isPhoneCaseName(n)) {
     tags.push("capa", "capinha", "case", "capa celular", "case celular");
   }
 

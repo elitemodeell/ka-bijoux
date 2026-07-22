@@ -649,7 +649,7 @@ function inferCategory(name: string, blingCategory?: string) {
 
   const n = normalizeSearch(name);
 
-  if (/\b(case|capinha|capa|silicone|iphone|ip\s*(?:xr|\d{1,2}\s*(?:pro\s*max|pro|max|plus)?)|pelicula|pelic|carregador|carreg|fonte|fone|headphone|cabo|usb|tipo c|type c|v8|micro usb|adaptador|conversor|smartwatch|smart watch|suporte p celular|suporte para celular|ventosa p celular|ventosa para celular|pulseira de celular|corda de celular|cordao de celular|fita salva celular|sim card|tag rastreadora|pen drive)\b/.test(n)) {
+  if (isPhoneAccessoryName(n)) {
     return { categorySlug: "capinhas-acessorios-celular", subcategorySlug: null };
   }
 
@@ -704,6 +704,17 @@ function inferCategory(name: string, blingCategory?: string) {
   }
 
   return { categorySlug: "bijuterias", subcategorySlug: null };
+}
+
+function isPhoneAccessoryName(n: string) {
+  return (
+    isPhoneCaseName(n) ||
+    /\b(pelicula|pelic|carregador|carreg|fonte|fone|headphone|cabos?|usb|tipo c|type c|v8|micro usb|adaptador|conversor|smartwatch|smart watch|suporte p celular|suporte para celular|ventosa p celular|ventosa para celular|pulseira de celular|corda de celular|cordao de celular|fita salva celular|sim card|tag rastreadora|pen drive)\b/.test(n)
+  );
+}
+
+function isPhoneCaseName(n: string) {
+  return /\b(case|capinha|capa)\b/.test(n) || (/\bsilicone\b/.test(n) && /\b(celular|iphone|ip\s*(?:xr|\d{1,2}\s*(?:pro\s*max|pro|max|plus)?))\b/.test(n));
 }
 
 function mapBlingCategory(value?: string) {
