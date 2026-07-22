@@ -324,7 +324,7 @@ function sortProducts(products: ProductCardProduct[], sort?: string | null) {
 function buildSearchTerms(value: string) {
   const original = value.trim();
   const normalized = normalizeSearchQuery(original);
-  const tokens = normalized.split(/\s+/).filter((token) => token.length >= 2);
+  const tokens = normalized.includes(" ") ? [] : normalized.split(/\s+/).filter((token) => token.length >= 2);
   return Array.from(new Set([original, normalized, ...tokens].filter(Boolean)));
 }
 
