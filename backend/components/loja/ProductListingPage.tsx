@@ -52,13 +52,9 @@ type PremiumCategoryExperience = {
   kind: PremiumCategoryKind;
   title: string;
   description: string;
-  fallbackImages: string[];
-  themeClass: string;
-  highlights: Array<{
-    title: string;
-    description: string;
-    icon: HighlightIconName;
-  }>;
+  heroImage: string;
+  heroWidth: number;
+  heroHeight: number;
 };
 
 const PREMIUM_CATEGORY_EXPERIENCES: Record<PremiumCategoryKind, PremiumCategoryExperience> = {
@@ -66,77 +62,41 @@ const PREMIUM_CATEGORY_EXPERIENCES: Record<PremiumCategoryKind, PremiumCategoryE
     kind: "novidades",
     title: "Novidades",
     description: "Descubra os produtos que acabaram de chegar e encontre novos favoritos para completar sua rotina com estilo.",
-    fallbackImages: [
-      "/images/stories/highlights/novidades.jpg",
-      "/images/stories/novidades-cover.jpg",
-      "/images/stories/bastidores-cover.jpg",
-    ],
-    themeClass: "from-[#fff6f1] via-[#fffafd] to-[#f4efff]",
-    highlights: [
-      { title: "Recém-chegados", description: "seleção atual", icon: "sparkles" },
-      { title: "Tendências", description: "do momento", icon: "trend" },
-      { title: "Descobertas", description: "para você", icon: "gift" },
-    ],
+    heroImage: "/images/category-heroes/categoria-novidades.png",
+    heroWidth: 1448,
+    heroHeight: 1086,
   },
   promocoes: {
     kind: "promocoes",
     title: "Promoções",
     description: "Os melhores descontos, achadinhos e ofertas especiais da KA Bijoux reunidos em uma vitrine elegante.",
-    fallbackImages: [
-      "/images/stories/highlights/ofertas.jpg",
-      "/images/stories/promocoes-cover.jpg",
-      "/images/stories/demo-ka-bijoux/story-whatsapp-image-02.jpeg",
-    ],
-    themeClass: "from-[#fff3f5] via-[#fffaf5] to-[#fff0d9]",
-    highlights: [
-      { title: "Ofertas reais", description: "para aproveitar", icon: "tag" },
-      { title: "Preços especiais", description: "por tempo limitado", icon: "sparkles" },
-      { title: "Achadinhos", description: "que valem a pena", icon: "gift" },
-    ],
+    heroImage: "/images/category-heroes/categoria-promocoes.png",
+    heroWidth: 1536,
+    heroHeight: 1024,
   },
   lancamentos: {
     kind: "lancamentos",
     title: "Lançamentos",
     description: "Peças e acessórios que acabaram de chegar para renovar sua seleção e destacar seu estilo.",
-    fallbackImages: [
-      "/images/stories/highlights/lancamentos.jpg",
-      "/images/stories/lancamentos-cover.jpg",
-      "/images/stories/pulseiras-cover.jpg",
-    ],
-    themeClass: "from-[#f6f1ff] via-[#fffafd] to-[#ffedf4]",
-    highlights: [
-      { title: "Coleção nova", description: "acabou de chegar", icon: "sparkles" },
-      { title: "Estilo atual", description: "novas escolhas", icon: "trend" },
-      { title: "Em destaque", description: "na KA Bijoux", icon: "diamond" },
-    ],
+    heroImage: "/images/category-heroes/categoria-lancamentos.png",
+    heroWidth: 1448,
+    heroHeight: 1086,
   },
   bijuterias: {
     kind: "bijuterias",
     title: "Bijuterias",
     description: "Peças delicadas e estilosas para compor seu visual em qualquer ocasião, do básico ao marcante.",
-    fallbackImages: [
-      "/images/stories/brincos-cover.jpg",
-      "/images/stories/pulseiras-cover.jpg",
-      "/images/categories/bijuterias.jpg",
-    ],
-    themeClass: "from-[#fff9ee] via-[#fff9fc] to-[#f3efff]",
-    highlights: [
-      { title: "Delicadeza", description: "em cada detalhe", icon: "diamond" },
-      { title: "Versatilidade", description: "para seus looks", icon: "sparkles" },
-      { title: "Para presentear", description: "com carinho", icon: "gift" },
-    ],
+    heroImage: "/images/category-heroes/categoria-bijuterias.png",
+    heroWidth: 1448,
+    heroHeight: 1086,
   },
   capinhas: {
     kind: "capinhas",
     title: "Capinhas e acessórios de celular",
     description: "Proteção, estilo e praticidade para seu celular, com capinhas e acessórios que combinam com você.",
-    fallbackImages: ["/images/categories/capinhas-acessorios-celular.jpg"],
-    themeClass: "from-[#fff3f7] via-[#fffafd] to-[#f1efff]",
-    highlights: [
-      { title: "Proteção", description: "que importa", icon: "shield" },
-      { title: "Estilo", description: "que combina", icon: "sparkles" },
-      { title: "Acessórios", description: "para sua rotina", icon: "trend" },
-    ],
+    heroImage: "/images/category-heroes/categoria-capinhas.png",
+    heroWidth: 1448,
+    heroHeight: 1086,
   },
 };
 
@@ -199,7 +159,7 @@ export default async function ProductListingPage({
           (premiumExperience ? (
             <>
               <PremiumBreadcrumb title={premiumExperience.title} />
-              <PremiumCategoryHero experience={premiumExperience} products={products} />
+              <PremiumCategoryHero experience={premiumExperience} />
             </>
           ) : (
             <div className="rounded-[28px] bg-gradient-to-br from-pink-50 via-white to-white px-5 py-8 sm:px-8">
@@ -460,141 +420,23 @@ function PremiumBreadcrumb({ title }: { title: string }) {
   );
 }
 
-function PremiumCategoryHero({
-  experience,
-  products,
-}: {
-  experience: PremiumCategoryExperience;
-  products: ProductCardProduct[];
-}) {
-  const images = getHeroProductImages(products, experience.fallbackImages, experience.title, experience.kind);
-
+function PremiumCategoryHero({ experience }: { experience: PremiumCategoryExperience }) {
   return (
     <section
-      className={`relative overflow-hidden rounded-[30px] border border-pink-100 bg-gradient-to-br ${experience.themeClass} shadow-[0_22px_54px_rgba(122,35,75,0.11)]`}
-      aria-labelledby="premium-category-title"
+      className="mx-auto w-full"
+      style={{ maxWidth: experience.heroWidth }}
+      aria-label={`Apresentação de ${experience.title}`}
     >
-      <span className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" aria-hidden="true" />
-      <span className="pointer-events-none absolute right-5 top-5 text-pink-300/80" aria-hidden="true">
-        <DecorativeSparkles />
-      </span>
-
-      <div className="relative grid min-[380px]:grid-cols-[minmax(0,1.06fr)_minmax(0,.94fr)]">
-        <div className="relative z-10 px-5 pb-4 pt-6 min-[380px]:py-7 min-[380px]:pl-6 min-[380px]:pr-2 sm:px-10 sm:py-10">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-pink-500 sm:text-xs">KA Bijoux</p>
-          <h1 id="premium-category-title" className="mt-2 font-playfair text-[31px] font-bold leading-[1.02] text-[#151925] sm:text-5xl">
-            {experience.title}
-          </h1>
-          <p className="mt-3 max-w-xl text-[11px] font-medium leading-relaxed text-[#626977] sm:mt-5 sm:text-base">
-            {experience.description}
-          </p>
-        </div>
-
-        <HeroProductCollage images={images} title={experience.title} />
-      </div>
-
-      <div className="relative grid grid-cols-3 border-t border-white/80 bg-white/48 backdrop-blur-sm">
-        {experience.highlights.map((highlight, index) => (
-          <div
-            key={highlight.title}
-            className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-2.5 text-center min-[380px]:flex-row min-[380px]:gap-1.5 min-[380px]:px-2 min-[380px]:py-3 min-[380px]:text-left sm:gap-3 sm:px-5 sm:py-4 ${
-              index > 0 ? "border-l border-pink-100/80" : ""
-            }`}
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-pink-200 bg-white/90 text-pink-500 shadow-[0_6px_16px_rgba(236,72,153,0.12)] sm:h-11 sm:w-11">
-              <HighlightIcon name={highlight.icon} />
-            </span>
-            <span className="min-w-0">
-              <span className="block break-words text-[8px] font-black leading-tight text-[#303543] min-[380px]:text-[9px] sm:text-sm">{highlight.title}</span>
-              <span className="mt-0.5 block break-words text-[7px] font-medium leading-tight text-gray-500 min-[380px]:text-[8px] sm:text-xs">{highlight.description}</span>
-            </span>
-          </div>
-        ))}
-      </div>
+      <img
+        src={experience.heroImage}
+        alt={`KA Bijoux - ${experience.title}`}
+        width={experience.heroWidth}
+        height={experience.heroHeight}
+        className="block h-auto w-full object-contain"
+        loading="eager"
+        decoding="async"
+      />
     </section>
-  );
-}
-
-function getHeroProductImages(
-  products: ProductCardProduct[],
-  fallbackImages: string[],
-  fallbackAlt: string,
-  kind: PremiumCategoryKind
-) {
-  const seen = new Set<string>();
-  const images: Array<{ src: string; alt: string }> = [];
-
-  function addProduct(product: ProductCardProduct | undefined) {
-    if (!product) return;
-    const src = product.image || product.images?.[0]?.url;
-    if (!src || seen.has(src)) return;
-    seen.add(src);
-    images.push({ src, alt: product.name });
-  }
-
-  const preferredPatterns =
-    kind === "capinhas"
-      ? [/silicone|capinha|capa |pelic/, /fone|bluetooth|headset/, /carregador|fonte|cabo|suporte/]
-      : kind === "bijuterias"
-        ? [/colar|corrente/, /brinco/, /pulseira|anel/]
-        : [];
-
-  for (const pattern of preferredPatterns) {
-    const match = products.find((product) => pattern.test(normalizeSearch(product.name)));
-    addProduct(match);
-  }
-
-  for (const product of products) {
-    if (images.length === 3) break;
-    addProduct(product);
-  }
-
-  for (const fallbackImage of fallbackImages) {
-    if (images.length === 3) break;
-    if (seen.has(fallbackImage)) continue;
-    seen.add(fallbackImage);
-    images.push({ src: fallbackImage, alt: fallbackAlt });
-  }
-
-  return images;
-}
-
-function HeroProductCollage({
-  images,
-  title,
-}: {
-  images: Array<{ src: string; alt: string }>;
-  title: string;
-}) {
-  const primary = images[0];
-  const secondary = images[1];
-  const tertiary = images[2];
-
-  return (
-    <div className="relative min-h-[220px] overflow-hidden border-t border-white/80 min-[380px]:min-h-[286px] min-[380px]:border-l min-[380px]:border-t-0 sm:min-h-[340px]" aria-label={`Seleção visual de ${title}`}>
-      <span className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.76),rgba(255,232,241,0.26)_48%,rgba(216,200,246,0.24))]" aria-hidden="true" />
-      <span className="absolute inset-x-5 bottom-4 h-px bg-gradient-to-r from-transparent via-[#d6aa66]/55 to-transparent" aria-hidden="true" />
-
-      <figure className="absolute bottom-3 right-3 h-[82%] w-[66%] overflow-hidden rounded-[26px] border border-white bg-white/88 shadow-[0_20px_38px_rgba(122,35,75,0.18)]">
-        <img src={primary.src} alt={primary.alt} className="h-full w-full object-contain p-1.5" loading="eager" />
-      </figure>
-
-      {secondary ? (
-        <figure className="absolute left-3 top-4 h-[45%] w-[43%] -rotate-[5deg] overflow-hidden rounded-[20px] border border-white bg-white/94 shadow-[0_14px_28px_rgba(122,35,75,0.16)]">
-          <img src={secondary.src} alt={secondary.alt} className="h-full w-full object-contain p-1" loading="eager" />
-        </figure>
-      ) : null}
-
-      {tertiary ? (
-        <figure className="absolute bottom-5 left-5 h-[38%] w-[38%] rotate-[4deg] overflow-hidden rounded-[18px] border border-white bg-white/94 shadow-[0_12px_24px_rgba(122,35,75,0.15)]">
-          <img src={tertiary.src} alt={tertiary.alt} className="h-full w-full object-contain p-1" loading="lazy" />
-        </figure>
-      ) : null}
-
-      <span className="absolute right-5 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-[#e8c88b]/55 bg-white/84 font-playfair text-sm font-bold text-[#a56c24] shadow-sm" aria-hidden="true">
-        KA
-      </span>
-    </div>
   );
 }
 
@@ -870,15 +712,6 @@ function FilterTabIcon({ name }: { name: "grid" | "tag" | "star" | "trend" }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
-    </svg>
-  );
-}
-
-function DecorativeSparkles() {
-  return (
-    <svg className="h-9 w-9" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <path d="m13 3 2.2 7.8L23 13l-7.8 2.2L13 23l-2.2-7.8L3 13l7.8-2.2L13 3Z" fill="currentColor" fillOpacity=".14" />
-      <path d="m30 21 1.4 4.6L36 27l-4.6 1.4L30 33l-1.4-4.6L24 27l4.6-1.4L30 21Z" />
     </svg>
   );
 }
