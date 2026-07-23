@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TouchEvent } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { DEFAULT_STORY_COVER, type StoryGroup, type StoryItem } from "@/types/stories";
 import {
   feriasBannerHref,
@@ -736,13 +737,13 @@ function FeriasBanner() {
     <section className="mt-4 px-0 sm:mx-auto sm:mt-8 sm:max-w-7xl sm:px-6" aria-label="Férias com Estilo">
       <Link href={feriasBannerHref} className="group block" aria-label="Férias com Estilo — Quero aproveitar">
         <div className="overflow-hidden rounded-none sm:rounded-[28px] shadow-none sm:shadow-[0_24px_70px_rgba(236,72,153,0.20)] transition-transform duration-300 sm:group-hover:scale-[1.005]">
-          <img
+          <Image
             src="/banners/banner-destino-ferias.webp"
             alt="Destino Férias — Ofertas especiais para curtir seus melhores momentos"
             width={1400}
             height={1050}
-            loading="lazy"
-            decoding="async"
+            sizes="(max-width: 639px) 100vw, (max-width: 1280px) calc(100vw - 48px), 1232px"
+            quality={82}
             className="w-full object-cover"
           />
         </div>
@@ -783,6 +784,7 @@ function FeriasPromoStrip() {
 function MainHeroCarousel() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [loadedSlides, setLoadedSlides] = useState<Set<number>>(() => new Set([0]));
   const touchStartX = useRef<number | null>(null);
   const touchDeltaX = useRef(0);
 
@@ -803,6 +805,27 @@ function MainHeroCarousel() {
     const timeout = window.setTimeout(goNextSlide, HERO_IMAGE_DURATION);
     return () => window.clearTimeout(timeout);
   }, [activeSlide, goNextSlide, paused]);
+
+  useEffect(() => {
+    setLoadedSlides((current) => {
+      if (current.has(activeSlide)) return current;
+      const next = new Set(current);
+      next.add(activeSlide);
+      return next;
+    });
+
+    const preload = window.setTimeout(() => {
+      const nextIndex = (activeSlide + 1) % heroSlides.length;
+      setLoadedSlides((current) => {
+        if (current.has(nextIndex)) return current;
+        const next = new Set(current);
+        next.add(nextIndex);
+        return next;
+      });
+    }, 1200);
+
+    return () => window.clearTimeout(preload);
+  }, [activeSlide]);
 
   function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
     touchStartX.current = event.touches[0]?.clientX ?? null;
@@ -845,17 +868,21 @@ function MainHeroCarousel() {
               aria-label={slide.title}
               tabIndex={index === activeSlide ? 0 : -1}
             >
-              <picture className="block h-full w-full">
-                <source media="(max-width: 639px)" srcSet={slide.mobileImage} />
-                <img
-                  src={slide.image}
-                  alt={slide.title}
-                  className="h-full w-full object-cover"
-                  style={{ objectPosition: slide.objectPosition }}
-                  loading={index === 0 ? "eager" : "lazy"}
-                  decoding="async"
-                />
-              </picture>
+              {loadedSlides.has(index) ? (
+                <picture className="block h-full w-full">
+                  <source media="(max-width: 639px)" srcSet={slide.mobileImage} />
+                  <img
+                    src={slide.image}
+                    alt={slide.title}
+                    className="h-full w-full object-cover"
+                    style={{ objectPosition: slide.objectPosition }}
+                    loading={index === 0 ? "eager" : "lazy"}
+                    decoding="async"
+                  />
+                </picture>
+              ) : (
+                <span className="block h-full w-full bg-pink-50" aria-hidden="true" />
+              )}
 
               <span className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-24 bg-gradient-to-t from-black/45 via-black/12 to-transparent sm:h-28" aria-hidden="true" />
 

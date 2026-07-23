@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Prisma } from "@prisma/client";
 import ProductCard from "@/components/loja/ProductCard";
 import { prisma } from "@/lib/prisma";
@@ -34,15 +35,28 @@ type Props = {
   catalogLine?: CatalogLine;
 };
 
-const productInclude = {
-  category: true,
-  subcategory: true,
-  images: { orderBy: { order: "asc" as const }, take: 1 },
+const productSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  price: true,
+  promotionalPrice: true,
+  stock: true,
+  featured: true,
+  isNew: true,
+  sku: true,
+  blingId: true,
+  category: { select: { name: true, slug: true } },
+  subcategory: { select: { name: true, slug: true } },
+  images: {
+    orderBy: { order: "asc" as const },
+    take: 1,
+    select: { url: true, alt: true },
+  },
 };
 
-
-const LISTING_PAGE_SIZE = 50;
-const LISTING_DB_LIMIT = 1000;
+const LISTING_PAGE_SIZE = 24;
 const LISTING_DB_TIMEOUT_MS = 5000;
 
 type PremiumCategoryKind = "novidades" | "promocoes" | "lancamentos" | "bijuterias" | "capinhas";
@@ -427,14 +441,15 @@ function PremiumCategoryHero({ experience }: { experience: PremiumCategoryExperi
       style={{ maxWidth: experience.heroWidth }}
       aria-label={`Apresentação de ${experience.title}`}
     >
-      <img
+      <Image
         src={experience.heroImage}
         alt={`KA Bijoux - ${experience.title}`}
         width={experience.heroWidth}
         height={experience.heroHeight}
         className="block h-auto w-full object-contain"
-        loading="eager"
-        decoding="async"
+        sizes="(max-width: 1280px) calc(100vw - 32px), 1248px"
+        quality={84}
+        priority
       />
     </section>
   );
@@ -840,57 +855,99 @@ type LiveProductParams = {
   catalogLine: CatalogLine;
 };
 
-// Busca os produtos editados no banco; a Bling entra apenas como apoio de preco.
-async function fetchMergedProducts(params: LiveProductParams): Promise<ProductCardProduct[]> {
-    const { categorySlug, subcategorySlug, selectedPrice, sort, promo, onlyNew, query, catalogLine } = params;
-    const where: Prisma.ProductWhereInput = { active: true };
-    if (categorySlug) where.category = { slug: categorySlug };
-    if (subcategorySlug) where.subcategory = { slug: subcategorySlug };
-    if (selectedPrice) where.price = { equals: Number(selectedPrice) };
-    if (promo) where.promotionalPrice = { not: null };
-    if (onlyNew) where.isNew = true;
-    if (query) {
-      const searchMatches = getSearchMatches(query);
-      where.OR = [
-        { name: { contains: query, mode: "insensitive" } },
-        { description: { contains: query, mode: "insensitive" } },
-        { sku: { contains: query, mode: "insensitive" } },
-        { searchTags: { hasSome: buildSearchTerms(query) } },
-        ...searchMatches.categorySlugs.map((slug) => ({ category: { slug } })),
-        ...searchMatches.subcategorySlugs.map((slug) => ({ subcategory: { slug } })),
-      ];
-    }
+async function getLiveProducts(params: LiveProductParams & { page: number }) {
+  try {
+    const where = buildProductWhere(params);
+    const orderBy = buildProductOrder(params.sort);
+    const requestedPage = Math.max(1, params.page);
+    const requestedSkip = (requestedPage - 1) * LISTING_PAGE_SIZE;
+    const [total, firstProducts] = await withTimeout(
+      Promise.all([
+        prisma.product.count({ where }),
+        prisma.product.findMany({
+          where,
+          select: productSelect,
+          orderBy,
+          skip: requestedSkip,
+          take: LISTING_PAGE_SIZE,
+        }),
+      ]),
+      LISTING_DB_TIMEOUT_MS
+    );
+    const totalPages = Math.max(1, Math.ceil(total / LISTING_PAGE_SIZE));
+    const page = Math.min(requestedPage, totalPages);
+    const dbProducts = page === requestedPage
+      ? firstProducts
+      : await withTimeout(
+          prisma.product.findMany({
+            where,
+            select: productSelect,
+            orderBy,
+            skip: (page - 1) * LISTING_PAGE_SIZE,
+            take: LISTING_PAGE_SIZE,
+          }),
+          LISTING_DB_TIMEOUT_MS
+        );
 
-    const orderBy: Prisma.ProductOrderByWithRelationInput =
-      sort === "price_asc" || sort === "menor-preco"
-        ? { price: "asc" }
-        : sort === "price_desc" || sort === "maior-preco"
-          ? { price: "desc" }
-          : sort === "best_sellers" || sort === "mais-vendidos"
-            ? { soldCount: "desc" }
-            : { createdAt: "desc" };
-
-    const products = await prisma.product.findMany({ where, include: productInclude, orderBy, take: LISTING_DB_LIMIT });
-    const dbProducts = products
+    const products = dbProducts
       .map((product) => mapDbProductToCard(product))
       .filter((product): product is ProductCardProduct => Boolean(product))
       .filter((product) => Boolean(product.image))
-      .filter((product) => matchesCatalogLine(toProductLineSource(product), catalogLine));
-    return sortProducts(dbProducts, sort);
-}
+      .filter((product) => matchesCatalogLine(toProductLineSource(product), params.catalogLine));
 
-async function getLiveProducts(params: LiveProductParams & { page: number }) {
-  const { page, ...filterParams } = params;
-
-  try {
-    const allProducts = await withTimeout(fetchMergedProducts(filterParams), LISTING_DB_TIMEOUT_MS);
-    return paginateProducts(allProducts, page);
+    return { products, total, page, totalPages };
   } catch {
-    return paginateProducts([], page);
+    return { products: [], total: 0, page: 1, totalPages: 1 };
   }
 }
 
-function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof productInclude }>): ProductCardProduct | null {
+function buildProductWhere(params: LiveProductParams): Prisma.ProductWhereInput {
+  const { categorySlug, subcategorySlug, selectedPrice, promo, onlyNew, query, catalogLine } = params;
+  const where: Prisma.ProductWhereInput = {
+    active: true,
+    images: { some: {} },
+  };
+
+  if (categorySlug) {
+    where.category = { slug: categorySlug };
+  } else {
+    where.category = catalogLine === "adult"
+      ? { slug: "sex-shop" }
+      : { slug: { not: "sex-shop" } };
+  }
+  if (subcategorySlug) where.subcategory = { slug: subcategorySlug };
+  if (selectedPrice) where.price = { equals: Number(selectedPrice) };
+  if (promo) where.promotionalPrice = { not: null };
+  if (onlyNew) where.isNew = true;
+  if (query) {
+    const searchMatches = getSearchMatches(query);
+    where.OR = [
+      { name: { contains: query, mode: "insensitive" } },
+      { description: { contains: query, mode: "insensitive" } },
+      { sku: { contains: query, mode: "insensitive" } },
+      { searchTags: { hasSome: buildSearchTerms(query) } },
+      ...searchMatches.categorySlugs.map((slug) => ({ category: { slug } })),
+      ...searchMatches.subcategorySlugs.map((slug) => ({ subcategory: { slug } })),
+    ];
+  }
+
+  return where;
+}
+
+function buildProductOrder(sort: string): Prisma.ProductOrderByWithRelationInput[] {
+  if (sort === "price_asc" || sort === "menor-preco") {
+    return [{ price: "asc" }, { createdAt: "desc" }, { id: "asc" }];
+  }
+  if (sort === "price_desc" || sort === "maior-preco") {
+    return [{ price: "desc" }, { createdAt: "desc" }, { id: "asc" }];
+  }
+  if (sort === "best_sellers" || sort === "mais-vendidos") {
+    return [{ soldCount: "desc" }, { createdAt: "desc" }, { id: "asc" }];
+  }
+  return [{ createdAt: "desc" }, { id: "asc" }];
+}
+
+function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof productSelect }>): ProductCardProduct | null {
   const bling = findBlingProductForSource({
     blingId: product.blingId,
     sku: product.sku,
@@ -952,20 +1009,6 @@ function buildSearchTerms(value: string) {
   return Array.from(new Set([original, normalized, ...tokens].filter(Boolean)));
 }
 
-function paginateProducts(products: ProductCardProduct[], requestedPage: number) {
-  const total = products.length;
-  const totalPages = Math.max(1, Math.ceil(total / LISTING_PAGE_SIZE));
-  const page = Math.min(Math.max(1, requestedPage), totalPages);
-  const start = (page - 1) * LISTING_PAGE_SIZE;
-
-  return {
-    products: products.slice(start, start + LISTING_PAGE_SIZE),
-    total,
-    page,
-    totalPages,
-  };
-}
-
 function toProductLineSource(product: ProductCardProduct) {
   return {
     name: product.name,
@@ -974,22 +1017,6 @@ function toProductLineSource(product: ProductCardProduct) {
     subcategorySlug: product.subcategory?.slug,
     subcategoryName: product.subcategory?.name,
   };
-}
-
-function sortProducts(products: ProductCardProduct[], sort?: string | null) {
-  if (sort === "price_asc" || sort === "menor-preco") {
-    return [...products].sort((a, b) => Number(a.price) - Number(b.price));
-  }
-
-  if (sort === "price_desc" || sort === "maior-preco") {
-    return [...products].sort((a, b) => Number(b.price) - Number(a.price));
-  }
-
-  if (sort === "best_sellers" || sort === "mais-vendidos") {
-    return [...products].sort((a, b) => Number(b.stock ?? 0) - Number(a.stock ?? 0));
-  }
-
-  return [...products].sort((a, b) => (a.sourceOrder ?? 100000) - (b.sourceOrder ?? 100000));
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number) {

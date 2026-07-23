@@ -23,8 +23,7 @@ import {
 } from "@/lib/bling-catalog";
 import { getProductCatalogLine, matchesCatalogLine } from "@/lib/product-line";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 60;
 
 const DETAIL_DB_TIMEOUT_MS = 5000;
 

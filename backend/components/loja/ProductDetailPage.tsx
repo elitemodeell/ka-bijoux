@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { StaticProduct, StaticProductVariant } from "@/lib/static-sex-shop-catalog";
 import { addCartItem } from "@/lib/client-cart";
 import { getDiscountPercentage, getInstallmentInfo, getValidPromotionalPrice } from "@/lib/store-rules";
@@ -109,6 +110,7 @@ const DEMO_REVIEWS = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ProductDetailPage({ product, subcategoryName }: Props) {
+  const router = useRouter();
   const [quantity, setQuantity] = useState(1);
   const [cartAdded, setCartAdded] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -203,7 +205,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   function handleBuyNow() {
     if (!available) return;
     addCartItem(cartPayload(), quantity);
-    window.location.href = "/carrinho";
+    router.push("/carrinho");
   }
 
   function handleShare() {
@@ -337,7 +339,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
           </div>
 
           {/* Purchase Panel */}
-          <aside className="lg:sticky lg:top-[90px]">
+          <aside className="min-w-0 lg:sticky lg:top-[90px]">
             <div className="relative overflow-hidden rounded-[30px] border border-pink-100/80 bg-white p-5 shadow-[0_24px_70px_rgba(23,7,12,0.10)] backdrop-blur-sm sm:p-6">
               <span className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-pink-200/30 blur-3xl" aria-hidden="true" />
               <span className="pointer-events-none absolute bottom-0 left-0 h-28 w-full bg-gradient-to-t from-pink-50/70 to-transparent" aria-hidden="true" />

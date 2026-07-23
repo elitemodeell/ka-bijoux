@@ -3,6 +3,7 @@
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 const WHATSAPP_NUMBER = "5537999999999";
 const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}`;
@@ -179,9 +180,13 @@ function BrandColumn({
   return (
     <div className="text-center lg:text-left">
       <Link href="/" aria-label="KA Bijoux" className="inline-flex justify-center lg:justify-start">
-        <img
+        <Image
           src="/images/brand/ka-bijoux-logo-transparente.png"
           alt="KA Bijoux"
+          width={5311}
+          height={4882}
+          sizes="96px"
+          quality={78}
           className="h-24 w-auto object-contain drop-shadow-[0_0_28px_rgba(255,79,135,0.22)]"
         />
       </Link>

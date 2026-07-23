@@ -156,6 +156,11 @@ model Product {
   @@index([active, publicationStatus])
   @@index([featured, active])
   @@index([createdAt])
+  @@index([categoryId, active, createdAt])
+  @@index([subcategoryId, active, createdAt])
+  @@index([active, isNew, createdAt])
+  @@index([active, soldCount])
+  @@index([active, promotionalPrice])
   @@map("products")
 }
 
@@ -194,6 +199,7 @@ model ProductImage {
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId String
 
+  @@index([productId, order])
   @@map("product_images")
 }
 
@@ -217,6 +223,7 @@ model ProductVariation {
   cartItems  CartItem[]
   orderItems OrderItem[]
 
+  @@index([productId, active, order])
   @@map("product_variations")
 }
 

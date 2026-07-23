@@ -14,6 +14,10 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pt_BR",
   },
+  icons: {
+    icon: "/images/brand/ka-bijoux-logo-header-320.png",
+    apple: "/images/brand/ka-bijoux-logo-header-320.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,12 +1,9 @@
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
 import { NextRequest } from "next/server";
 import { Prisma, ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { apiSuccess, apiError, paginate, slugify } from "@/lib/utils";
+import { apiSuccess, apiError, slugify } from "@/lib/utils";
 import { getPublicCategoryName } from "@/lib/catalog";
 import {
   findBlingProductForSource,
@@ -26,8 +23,40 @@ const productInclude = {
   variations: { where: { active: true }, orderBy: { order: "asc" as const } },
 };
 
+const productListSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  price: true,
+  promotionalPrice: true,
+  stock: true,
+  featured: true,
+  isNew: true,
+  sku: true,
+  blingId: true,
+  category: { select: { name: true, slug: true } },
+  subcategory: { select: { name: true, slug: true } },
+  images: {
+    orderBy: { order: "asc" as const },
+    take: 1,
+    select: { url: true, alt: true },
+  },
+  variations: {
+    where: { active: true },
+    orderBy: { order: "asc" as const },
+    select: {
+      id: true,
+      name: true,
+      value: true,
+      imageUrl: true,
+      stock: true,
+      isDefault: true,
+      order: true,
+    },
+  },
+};
 
-const API_FETCH_LIMIT = 1000;
 const DB_QUERY_TIMEOUT_MS = 5000;
 
 export async function GET(req: NextRequest) {
@@ -53,6 +82,12 @@ export async function GET(req: NextRequest) {
     if (featured) where.featured = true;
     if (isNew) where.isNew = true;
     if (promo) where.promotionalPrice = { not: null };
+    if (!category && catalogLine !== "all") {
+      where.category = catalogLine === "adult"
+        ? { slug: "sex-shop" }
+        : { slug: { not: "sex-shop" } };
+    }
+    if (withImage) where.images = { some: {} };
     if (search) {
       const searchTerms = buildSearchTerms(search);
       where.OR = [
@@ -78,39 +113,42 @@ export async function GET(req: NextRequest) {
             ? { soldCount: "desc" }
             : { createdAt: "desc" };
 
-    const { skip, take } = paginate(page, pageSize);
-
-    const products = await withTimeout(
-      prisma.product.findMany({
-        where,
-        include: productInclude,
-        orderBy,
-        skip: 0,
-        take: API_FETCH_LIMIT,
-      }),
+    const skip = (page - 1) * pageSize;
+    const [total, products] = await withTimeout(
+      Promise.all([
+        prisma.product.count({ where }),
+        prisma.product.findMany({
+          where,
+          select: productListSelect,
+          orderBy: [orderBy, { createdAt: "desc" }, { id: "asc" }],
+          skip,
+          take: pageSize,
+        }),
+      ]),
       DB_QUERY_TIMEOUT_MS
     );
 
-    const dbProducts = sortProducts(products
+    const dbProducts = products
       .map((product) => mapDbProductToCard(product))
       .filter((product): product is ProductCardProduct => Boolean(product))
       .filter((product) => !withImage || Boolean(product.image))
-      .filter((product) => matchesCatalogLine(toProductLineSource(product), catalogLine)), sort);
-    const pageProducts = dbProducts.slice(skip, skip + take);
+      .filter((product) => matchesCatalogLine(toProductLineSource(product), catalogLine));
 
-    return apiSuccess({
-      products: pageProducts,
-      total: dbProducts.length,
+    const response = apiSuccess({
+      products: dbProducts,
+      total,
       page,
       pageSize,
-      totalPages: Math.ceil(dbProducts.length / pageSize),
+      totalPages: Math.ceil(total / pageSize),
     });
+    response.headers.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=120");
+    return response;
   } catch {
     return apiError("Erro ao buscar produtos.", 500);
   }
 }
 
-function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof productInclude }>): ProductCardProduct | null {
+function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof productListSelect }>): ProductCardProduct | null {
   const bling = findBlingProductForSource({
     blingId: product.blingId,
     sku: product.sku,
@@ -205,22 +243,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number) {
       setTimeout(() => reject(new Error("timeout")), ms);
     }),
   ]);
-}
-
-function sortProducts(products: ProductCardProduct[], sort?: string | null) {
-  if (sort === "price_asc" || sort === "menor-preco") {
-    return [...products].sort((a, b) => Number(a.price) - Number(b.price));
-  }
-
-  if (sort === "price_desc" || sort === "maior-preco") {
-    return [...products].sort((a, b) => Number(b.price) - Number(a.price));
-  }
-
-  if (sort === "best_sellers" || sort === "mais-vendidos") {
-    return [...products].sort((a, b) => Number(b.stock ?? 0) - Number(a.stock ?? 0));
-  }
-
-  return [...products].sort((a, b) => (a.sourceOrder ?? 100000) - (b.sourceOrder ?? 100000));
 }
 
 function buildSearchTerms(value: string) {

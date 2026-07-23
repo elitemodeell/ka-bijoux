@@ -77,10 +77,6 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
   }, [revealDelay]);
 
   function openQuickShop() {
-    if (normalized.slug) {
-      window.location.assign(`/produto/${normalized.slug}`);
-      return;
-    }
     window.dispatchEvent(new CustomEvent("ka:quick-shop", { detail: normalized }));
   }
 
@@ -98,31 +94,53 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
     >
       {/* Image area */}
       <div className="relative aspect-square overflow-hidden bg-[#FFF5F7]">
-        <button
-          type="button"
-          onClick={openQuickShop}
-          className="block h-full w-full"
-          aria-label={`Ver detalhes de ${name}`}
-        >
-          {image && !imgError ? (
-            <ProductVariantImage
-              src={image}
-              alt={name}
-              productName={name}
-              sku={normalized.sku}
-              frameClassName="h-full w-full"
-              imageClassName="object-contain p-1 transition-transform duration-300 group-hover:scale-[1.02]"
-              onError={() => setImgError(true)}
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-              priority={priority}
-            />
-          ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-pink-100">
-              <span className="mb-1 text-3xl text-pink-300">KA</span>
-              <span className="text-[10px] font-medium text-pink-300">KA Bijoux</span>
-            </div>
-          )}
-        </button>
+        {normalized.slug ? (
+          <Link
+            href={`/produto/${normalized.slug}`}
+            prefetch={false}
+            className="block h-full w-full"
+            aria-label={`Ver detalhes de ${name}`}
+          >
+            {image && !imgError ? (
+              <ProductVariantImage
+                src={image}
+                alt={name}
+                productName={name}
+                sku={normalized.sku}
+                frameClassName="h-full w-full"
+                imageClassName="object-contain p-1 transition-transform duration-300 group-hover:scale-[1.02]"
+                onError={() => setImgError(true)}
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                priority={priority}
+              />
+            ) : (
+              <ProductImageFallback />
+            )}
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={openQuickShop}
+            className="block h-full w-full"
+            aria-label={`Ver detalhes de ${name}`}
+          >
+            {image && !imgError ? (
+              <ProductVariantImage
+                src={image}
+                alt={name}
+                productName={name}
+                sku={normalized.sku}
+                frameClassName="h-full w-full"
+                imageClassName="object-contain p-1 transition-transform duration-300 group-hover:scale-[1.02]"
+                onError={() => setImgError(true)}
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                priority={priority}
+              />
+            ) : (
+              <ProductImageFallback />
+            )}
+          </button>
+        )}
 
         {/* Badge */}
         {badgeSeal ? (
@@ -173,7 +191,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
       {/* Info area */}
       <div className="flex flex-1 flex-col p-2.5">
         {product.slug ? (
-          <Link href={`/produto/${product.slug}`} className="text-left">
+          <Link href={`/produto/${product.slug}`} prefetch={false} className="text-left">
             <h3 className="line-clamp-2 text-[12px] font-semibold leading-snug text-gray-800 transition-colors hover:text-pink-500">
               {name}
             </h3>
@@ -200,15 +218,34 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
           {installment.eligible && (
             <p className="mt-0.5 text-[10px] text-gray-500">{installment.label}</p>
           )}
-          <button
-            type="button"
-            onClick={openQuickShop}
-            className="ka-btn mt-2 w-full rounded-lg bg-gradient-to-r from-pink-500 to-pink-400 py-2 text-[12px] font-bold text-white"
-          >
-            Comprar
-          </button>
+          {normalized.slug ? (
+            <Link
+              href={`/produto/${normalized.slug}`}
+              prefetch={false}
+              className="ka-btn mt-2 flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-pink-500 to-pink-400 py-2 text-[12px] font-bold text-white"
+            >
+              Comprar
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={openQuickShop}
+              className="ka-btn mt-2 w-full rounded-lg bg-gradient-to-r from-pink-500 to-pink-400 py-2 text-[12px] font-bold text-white"
+            >
+              Comprar
+            </button>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ProductImageFallback() {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-pink-100">
+      <span className="mb-1 text-3xl text-pink-300">KA</span>
+      <span className="text-[10px] font-medium text-pink-300">KA Bijoux</span>
     </div>
   );
 }

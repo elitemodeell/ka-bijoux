@@ -17,15 +17,31 @@ export const metadata: Metadata = {
   description: "Produtos adultos com discrição, qualidade e entrega sigilosa.",
 };
 
+export const revalidate = 60;
+
 type SearchParams = Record<string, string | string[] | undefined>;
 const ADULT_PAGE_SIZE = 20;
-const ADULT_DB_LIMIT = 1000;
 const ADULT_DB_TIMEOUT_MS = 5000;
 
-const adultProductInclude = {
-  category: true,
-  subcategory: true,
-  images: { orderBy: { order: "asc" as const }, take: 1 },
+const adultProductSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  price: true,
+  promotionalPrice: true,
+  stock: true,
+  featured: true,
+  isNew: true,
+  sku: true,
+  blingId: true,
+  category: { select: { name: true, slug: true } },
+  subcategory: { select: { name: true, slug: true } },
+  images: {
+    orderBy: { order: "asc" as const },
+    take: 1,
+    select: { url: true, alt: true },
+  },
 };
 
 const CATEGORY_CARDS = [
@@ -95,11 +111,13 @@ export default async function SexShopPage({ searchParams = {} }: { searchParams?
   const sort = getParam(searchParams.sort) ?? getParam(searchParams.ordem) ?? "createdAt";
   const query = getParam(searchParams.q);
   const requestedPage = Math.max(1, Number.parseInt(getParam(searchParams.page) ?? "1", 10) || 1);
-  const allProducts = await getAdultProducts({ promo, onlyNew, sort, query });
-  const total = allProducts.length;
-  const totalPages = Math.max(1, Math.ceil(total / ADULT_PAGE_SIZE));
-  const page = Math.min(requestedPage, totalPages);
-  const products = allProducts.slice((page - 1) * ADULT_PAGE_SIZE, page * ADULT_PAGE_SIZE);
+  const { products, total, totalPages, page } = await getAdultProducts({
+    promo,
+    onlyNew,
+    sort,
+    query,
+    page: requestedPage,
+  });
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#fff7f5] pb-28 pt-[112px] text-[#5b2638]">
@@ -305,20 +323,22 @@ type AdultProductParams = {
   onlyNew: boolean;
   sort: string;
   query?: string;
+  page: number;
 };
 
 async function getAdultProducts(params: AdultProductParams) {
   try {
     return await withTimeout(fetchAdultProducts(params), ADULT_DB_TIMEOUT_MS);
   } catch {
-    return [] as ProductCardProduct[];
+    return { products: [] as ProductCardProduct[], total: 0, page: 1, totalPages: 1 };
   }
 }
 
-async function fetchAdultProducts({ promo, onlyNew, sort, query }: AdultProductParams) {
+async function fetchAdultProducts({ promo, onlyNew, sort, query, page: requestedPage }: AdultProductParams) {
   const where: Prisma.ProductWhereInput = {
     active: true,
     category: { slug: "sex-shop" },
+    images: { some: {} },
   };
 
   if (promo) where.promotionalPrice = { not: null };
@@ -342,12 +362,27 @@ async function fetchAdultProducts({ promo, onlyNew, sort, query }: AdultProductP
           ? { soldCount: "desc" }
           : { createdAt: "desc" };
 
-  const products = await prisma.product.findMany({
-    where,
-    include: adultProductInclude,
-    orderBy,
-    take: ADULT_DB_LIMIT,
-  });
+  const [total, firstProducts] = await Promise.all([
+    prisma.product.count({ where }),
+    prisma.product.findMany({
+      where,
+      select: adultProductSelect,
+      orderBy: [orderBy, { createdAt: "desc" }, { id: "asc" }],
+      skip: (requestedPage - 1) * ADULT_PAGE_SIZE,
+      take: ADULT_PAGE_SIZE,
+    }),
+  ]);
+  const totalPages = Math.max(1, Math.ceil(total / ADULT_PAGE_SIZE));
+  const page = Math.min(Math.max(1, requestedPage), totalPages);
+  const products = page === requestedPage
+    ? firstProducts
+    : await prisma.product.findMany({
+        where,
+        select: adultProductSelect,
+        orderBy: [orderBy, { createdAt: "desc" }, { id: "asc" }],
+        skip: (page - 1) * ADULT_PAGE_SIZE,
+        take: ADULT_PAGE_SIZE,
+      });
 
   const dbProducts = products
     .map((product) => mapDbAdultProductToCard(product))
@@ -355,11 +390,11 @@ async function fetchAdultProducts({ promo, onlyNew, sort, query }: AdultProductP
     .filter((product) => Boolean(product.image))
     .filter((product) => matchesCatalogLine(toProductLineSource(product), "adult"));
 
-  return sortProducts(dbProducts, sort);
+  return { products: dbProducts, total, page, totalPages };
 }
 
 function mapDbAdultProductToCard(
-  product: Prisma.ProductGetPayload<{ include: typeof adultProductInclude }>
+  product: Prisma.ProductGetPayload<{ select: typeof adultProductSelect }>
 ): ProductCardProduct | null {
   const bling = findBlingProductForSource({
     blingId: product.blingId,
@@ -419,22 +454,6 @@ function toProductLineSource(product: ProductCardProduct) {
     subcategorySlug: product.subcategory?.slug,
     subcategoryName: product.subcategory?.name,
   };
-}
-
-function sortProducts(products: ProductCardProduct[], sort?: string | null) {
-  if (sort === "price_asc" || sort === "menor-preco") {
-    return [...products].sort((a, b) => Number(a.price) - Number(b.price));
-  }
-
-  if (sort === "price_desc" || sort === "maior-preco") {
-    return [...products].sort((a, b) => Number(b.price) - Number(a.price));
-  }
-
-  if (sort === "best_sellers" || sort === "mais-vendidos") {
-    return [...products].sort((a, b) => Number(b.stock ?? 0) - Number(a.stock ?? 0));
-  }
-
-  return products;
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number) {

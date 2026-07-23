@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { getCategoryGroups, getPublicCategoryName } from "@/lib/catalog";
@@ -200,14 +201,16 @@ export default function Navbar() {
         <HeaderSparkles />
 
         <Link href="/" className="ka-logo-sparkle-wrap relative z-20 flex shrink-0 items-center" aria-label="KA Bijoux">
-          <picture>
-            <source srcSet="/images/brand/ka-bijoux-logo-header-640.webp" type="image/webp" />
-            <img
-              src="/images/brand/ka-bijoux-logo-header-320.png"
-              alt="KA Bijoux"
-              className="h-10 w-auto max-w-[72px] object-contain sm:h-11 sm:max-w-[88px] md:h-12 md:max-w-[150px]"
-            />
-          </picture>
+          <Image
+            src="/images/brand/ka-bijoux-logo-header-320.png"
+            alt="KA Bijoux"
+            width={320}
+            height={294}
+            sizes="(max-width: 767px) 88px, 150px"
+            quality={82}
+            priority
+            className="h-10 w-auto max-w-[72px] object-contain sm:h-11 sm:max-w-[88px] md:h-12 md:max-w-[150px]"
+          />
           <span className="ka-logo-twinkle" style={{ left: "72%", top: "10%", animationDelay: "0.4s" }} />
           <span className="ka-logo-twinkle" style={{ left: "6%", top: "72%", animationDelay: "2.6s" }} />
         </Link>
@@ -336,7 +339,15 @@ export default function Navbar() {
           <button type="button" className="absolute inset-0 bg-black/35 backdrop-blur-sm" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} />
           <aside className="ka-mobile-drawer absolute right-0 top-0 flex h-full w-[90vw] max-w-sm flex-col overflow-hidden rounded-l-[28px] bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-pink-50 px-5 py-4">
-              <img src="/images/brand/ka-bijoux-logo-header-320.png" alt="KA Bijoux" className="h-11 w-auto object-contain" />
+              <Image
+                src="/images/brand/ka-bijoux-logo-header-320.png"
+                alt="KA Bijoux"
+                width={320}
+                height={294}
+                sizes="88px"
+                quality={82}
+                className="h-11 w-auto object-contain"
+              />
               <button type="button" onClick={() => setMenuOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-pink-50 text-xl leading-none text-pink-500" aria-label="Fechar menu">
                 x
               </button>

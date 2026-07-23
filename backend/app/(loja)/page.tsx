@@ -15,8 +15,7 @@ import {
 } from "@/lib/bling-catalog";
 import { getProductCatalogLine, matchesCatalogLine } from "@/lib/product-line";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "KA Bijoux — Bijuterias, Óculos e Acessórios Femininos",
