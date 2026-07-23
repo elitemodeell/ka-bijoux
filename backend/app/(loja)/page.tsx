@@ -7,6 +7,9 @@ import KABijouxStories from "@/components/loja/KABijouxStories";
 import QuickCategoryBar from "@/components/loja/QuickCategoryBar";
 import type { ProductCardProduct } from "@/lib/bling-catalog";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "KA Bijoux — Bijuterias, Óculos e Acessórios Femininos",
   description:
@@ -30,8 +33,8 @@ function pickBadge(id: string, options: string[]): string {
 async function fetchPool(url: string): Promise<ProductCardProduct[]> {
   try {
     const res = await fetch(url, {
-      next: { revalidate: 60 },
-      signal: AbortSignal.timeout(1500),
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return [];
     const json = await res.json();
@@ -39,6 +42,12 @@ async function fetchPool(url: string): Promise<ProductCardProduct[]> {
   } catch {
     return [];
   }
+}
+
+function getStorefrontBaseUrl() {
+  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "https://ka-bijoux-backend.vercel.app";
 }
 
 function mergeUniqueProducts(...pools: ProductCardProduct[][]): ProductCardProduct[] {
@@ -52,7 +61,7 @@ function mergeUniqueProducts(...pools: ProductCardProduct[][]): ProductCardProdu
 }
 
 async function getHomeSections(): Promise<HomeSections> {
-  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const base = getStorefrontBaseUrl();
   const q = "withImage=true&line=normal";
 
   const [main, featured, newProds, promo] = await Promise.all([

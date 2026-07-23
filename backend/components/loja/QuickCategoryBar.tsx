@@ -8,8 +8,8 @@ const QUICK_CATS = [
   { label: "Capinhas",   emoji: "📱", href: "/categoria/capinhas-acessorios-celular" },
   { label: "Bolsas",     emoji: "👜", href: "/categoria/bolsas-necessaires" },
   { label: "Maquiagem",  emoji: "💄", href: "/categoria/maquiagem" },
-  { label: "Óculos",     emoji: "🕶️", href: "/categoria/oculos" },
-  { label: "Infantil",   emoji: "🎀", href: "/categoria/roupa-infantil" },
+  { label: "Utilidades", emoji: "🏡", href: "/categoria/utilidades-domesticas" },
+  { label: "Perfumes",   emoji: "🌸", href: "/categoria/perfumaria" },
   { label: "Ver Mais",   emoji: "☰",  href: "/produtos" },
 ];
 
