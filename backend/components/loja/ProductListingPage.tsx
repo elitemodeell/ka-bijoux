@@ -7,6 +7,7 @@ import {
   MOCK_PRODUCTS,
   getCategoryBySlug,
   getPublicCategoryName,
+  type CatalogCategory,
 } from "@/lib/catalog";
 import {
   findBlingProductForSource,
@@ -44,6 +45,101 @@ const LISTING_PAGE_SIZE = 50;
 const LISTING_DB_LIMIT = 1000;
 const LISTING_DB_TIMEOUT_MS = 5000;
 
+type PremiumCategoryKind = "novidades" | "promocoes" | "lancamentos" | "bijuterias" | "capinhas";
+type HighlightIconName = "sparkles" | "tag" | "trend" | "diamond" | "shield" | "gift";
+
+type PremiumCategoryExperience = {
+  kind: PremiumCategoryKind;
+  title: string;
+  description: string;
+  fallbackImages: string[];
+  themeClass: string;
+  highlights: Array<{
+    title: string;
+    description: string;
+    icon: HighlightIconName;
+  }>;
+};
+
+const PREMIUM_CATEGORY_EXPERIENCES: Record<PremiumCategoryKind, PremiumCategoryExperience> = {
+  novidades: {
+    kind: "novidades",
+    title: "Novidades",
+    description: "Descubra os produtos que acabaram de chegar e encontre novos favoritos para completar sua rotina com estilo.",
+    fallbackImages: [
+      "/images/stories/highlights/novidades.jpg",
+      "/images/stories/novidades-cover.jpg",
+      "/images/stories/bastidores-cover.jpg",
+    ],
+    themeClass: "from-[#fff6f1] via-[#fffafd] to-[#f4efff]",
+    highlights: [
+      { title: "Recém-chegados", description: "seleção atual", icon: "sparkles" },
+      { title: "Tendências", description: "do momento", icon: "trend" },
+      { title: "Descobertas", description: "para você", icon: "gift" },
+    ],
+  },
+  promocoes: {
+    kind: "promocoes",
+    title: "Promoções",
+    description: "Os melhores descontos, achadinhos e ofertas especiais da KA Bijoux reunidos em uma vitrine elegante.",
+    fallbackImages: [
+      "/images/stories/highlights/ofertas.jpg",
+      "/images/stories/promocoes-cover.jpg",
+      "/images/stories/demo-ka-bijoux/story-whatsapp-image-02.jpeg",
+    ],
+    themeClass: "from-[#fff3f5] via-[#fffaf5] to-[#fff0d9]",
+    highlights: [
+      { title: "Ofertas reais", description: "para aproveitar", icon: "tag" },
+      { title: "Preços especiais", description: "por tempo limitado", icon: "sparkles" },
+      { title: "Achadinhos", description: "que valem a pena", icon: "gift" },
+    ],
+  },
+  lancamentos: {
+    kind: "lancamentos",
+    title: "Lançamentos",
+    description: "Peças e acessórios que acabaram de chegar para renovar sua seleção e destacar seu estilo.",
+    fallbackImages: [
+      "/images/stories/highlights/lancamentos.jpg",
+      "/images/stories/lancamentos-cover.jpg",
+      "/images/stories/pulseiras-cover.jpg",
+    ],
+    themeClass: "from-[#f6f1ff] via-[#fffafd] to-[#ffedf4]",
+    highlights: [
+      { title: "Coleção nova", description: "acabou de chegar", icon: "sparkles" },
+      { title: "Estilo atual", description: "novas escolhas", icon: "trend" },
+      { title: "Em destaque", description: "na KA Bijoux", icon: "diamond" },
+    ],
+  },
+  bijuterias: {
+    kind: "bijuterias",
+    title: "Bijuterias",
+    description: "Peças delicadas e estilosas para compor seu visual em qualquer ocasião, do básico ao marcante.",
+    fallbackImages: [
+      "/images/stories/brincos-cover.jpg",
+      "/images/stories/pulseiras-cover.jpg",
+      "/images/categories/bijuterias.jpg",
+    ],
+    themeClass: "from-[#fff9ee] via-[#fff9fc] to-[#f3efff]",
+    highlights: [
+      { title: "Delicadeza", description: "em cada detalhe", icon: "diamond" },
+      { title: "Versatilidade", description: "para seus looks", icon: "sparkles" },
+      { title: "Para presentear", description: "com carinho", icon: "gift" },
+    ],
+  },
+  capinhas: {
+    kind: "capinhas",
+    title: "Capinhas e acessórios de celular",
+    description: "Proteção, estilo e praticidade para seu celular, com capinhas e acessórios que combinam com você.",
+    fallbackImages: ["/images/categories/capinhas-acessorios-celular.jpg"],
+    themeClass: "from-[#fff3f7] via-[#fffafd] to-[#f1efff]",
+    highlights: [
+      { title: "Proteção", description: "que importa", icon: "shield" },
+      { title: "Estilo", description: "que combina", icon: "sparkles" },
+      { title: "Acessórios", description: "para sua rotina", icon: "trend" },
+    ],
+  },
+};
+
 export default async function ProductListingPage({
   title,
   description,
@@ -56,7 +152,8 @@ export default async function ProductListingPage({
   catalogLine: requestedCatalogLine,
 }: Props) {
   const selectedPrice = getParam(searchParams.price);
-  const sort = getParam(searchParams.sort) ?? "createdAt";
+  const requestedSort = getParam(searchParams.sort);
+  const sort = requestedSort ?? "createdAt";
   const promo = getParam(searchParams.promo) === "true";
   const onlyNew = getParam(searchParams.new) === "true";
   const query = getParam(searchParams.q);
@@ -83,25 +180,57 @@ export default async function ProductListingPage({
   const visibleCategories = CATALOG_CATEGORIES.filter((item) =>
     catalogLine === "adult" ? item.adult : !item.adult
   );
+  const premiumExperience = embedded
+    ? null
+    : getPremiumCategoryExperience({
+        categorySlug,
+        basePath,
+        promo,
+        onlyNew,
+        requestedSort,
+        selectedSubcategoryName: selectedSubcategory?.name,
+        selectedSubcategoryDescription: selectedSubcategory?.description,
+      });
 
   return (
     <section className={embedded ? "" : "bg-white pt-28 md:pt-28"}>
       <div className={embedded ? "" : "mx-auto max-w-7xl px-4 pb-16"}>
-        {!embedded && (
-          <div className="rounded-[28px] bg-gradient-to-br from-pink-50 via-white to-white px-5 py-8 sm:px-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-pink-400">KA Bijoux</p>
-            <h1 className="mt-2 font-playfair text-4xl font-bold text-gray-950">{title}</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-500">{description}</p>
-            {adultNotice && (
-              <p className="mt-4 inline-flex rounded-full border border-pink-100 bg-white px-4 py-2 text-xs font-semibold text-gray-500">
-                Produtos destinados ao público adulto.
-              </p>
-            )}
-          </div>
-        )}
+        {!embedded &&
+          (premiumExperience ? (
+            <>
+              <PremiumBreadcrumb title={premiumExperience.title} />
+              <PremiumCategoryHero experience={premiumExperience} products={products} />
+            </>
+          ) : (
+            <div className="rounded-[28px] bg-gradient-to-br from-pink-50 via-white to-white px-5 py-8 sm:px-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-pink-400">KA Bijoux</p>
+              <h1 className="mt-2 font-playfair text-4xl font-bold text-gray-950">{title}</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-500">{description}</p>
+              {adultNotice && (
+                <p className="mt-4 inline-flex rounded-full border border-pink-100 bg-white px-4 py-2 text-xs font-semibold text-gray-500">
+                  Produtos destinados ao público adulto.
+                </p>
+              )}
+            </div>
+          ))}
 
-        <div className="mt-6 space-y-5">
-          <div className="rounded-[24px] border border-pink-100 bg-white/95 p-3 shadow-[0_14px_40px_rgba(236,72,153,0.08)] sm:p-5">
+        <div className={`${premiumExperience ? "mt-5" : "mt-6"} space-y-5`}>
+          {premiumExperience ? (
+            <PremiumCategoryFilters
+              basePath={basePath}
+              searchParams={searchParams}
+              category={category}
+              categoryLabel={categoryLabel}
+              currentCategoryLabel={category ? currentCategoryLabel : premiumExperience.title}
+              subcategorySlug={subcategorySlug}
+              visibleCategories={visibleCategories}
+              promo={promo}
+              onlyNew={onlyNew}
+              sort={sort}
+              total={total}
+            />
+          ) : (
+            <div className="rounded-[24px] border border-pink-100 bg-white/95 p-3 shadow-[0_14px_40px_rgba(236,72,153,0.08)] sm:p-5">
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-pink-400">Filtros</p>
@@ -195,20 +324,32 @@ export default async function ProductListingPage({
                 </div>
               ) : null}
             </div>
-          </div>
+            </div>
+          )}
 
           <div>
             {products.length > 0 ? (
-              <div key={productListKey} className="grid animate-[kaProductsFade_260ms_ease-out] grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
+              <div
+                key={productListKey}
+                className={`grid animate-[kaProductsFade_260ms_ease-out] grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 ${
+                  premiumExperience ? "gap-3 sm:gap-5" : "gap-5"
+                }`}
+              >
                 {products.map((product, index) => (
                   <ProductCard key={product.id} product={product} revealDelay={index * 70} priority={index < 4} />
                 ))}
               </div>
             ) : (
               <div className="rounded-[28px] border border-pink-100 bg-pink-50 px-6 py-16 text-center">
-                <p className="font-playfair text-2xl font-bold text-gray-900">Em breve teremos novidades nessa categoria.</p>
+                <p className="font-playfair text-2xl font-bold text-gray-900">
+                  {premiumExperience?.kind === "promocoes"
+                    ? "Nenhuma promoção ativa no momento."
+                    : "Em breve teremos novidades nessa categoria."}
+                </p>
                 <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-gray-500">
-                  Estamos preparando os produtos reais da KA Bijoux para esta vitrine.
+                  {premiumExperience?.kind === "promocoes"
+                    ? "Assim que uma oferta real for cadastrada, ela aparecerá automaticamente nesta vitrine."
+                    : "Estamos preparando os produtos reais da KA Bijoux para esta vitrine."}
                 </p>
                 <Link href="/produtos" className="mt-6 inline-flex rounded-full bg-pink-500 px-6 py-3 text-sm font-bold text-white">
                   Ver todos os produtos
@@ -262,6 +403,549 @@ export default async function ProductListingPage({
   );
 }
 
+function getPremiumCategoryExperience({
+  categorySlug,
+  basePath,
+  promo,
+  onlyNew,
+  requestedSort,
+  selectedSubcategoryName,
+  selectedSubcategoryDescription,
+}: {
+  categorySlug?: string;
+  basePath: string;
+  promo: boolean;
+  onlyNew: boolean;
+  requestedSort?: string;
+  selectedSubcategoryName?: string;
+  selectedSubcategoryDescription?: string;
+}) {
+  let experience: PremiumCategoryExperience | null = null;
+
+  if (categorySlug === "capinhas-acessorios-celular") {
+    experience = PREMIUM_CATEGORY_EXPERIENCES.capinhas;
+  } else if (categorySlug === "bijuterias") {
+    experience = PREMIUM_CATEGORY_EXPERIENCES.bijuterias;
+  } else if (basePath === "/produtos" && promo) {
+    experience = PREMIUM_CATEGORY_EXPERIENCES.promocoes;
+  } else if (basePath === "/produtos" && onlyNew) {
+    experience = PREMIUM_CATEGORY_EXPERIENCES.novidades;
+  } else if (basePath === "/produtos" && requestedSort === "createdAt") {
+    experience = PREMIUM_CATEGORY_EXPERIENCES.lancamentos;
+  }
+
+  if (!experience) return null;
+  if (!selectedSubcategoryName) return experience;
+
+  return {
+    ...experience,
+    title: `${experience.title}: ${selectedSubcategoryName}`,
+    description: selectedSubcategoryDescription || experience.description,
+  };
+}
+
+function PremiumBreadcrumb({ title }: { title: string }) {
+  return (
+    <nav className="mb-4 flex min-w-0 items-start gap-2 text-[11px] font-semibold text-gray-400 sm:items-center sm:text-sm" aria-label="Navegação estrutural">
+      <Link href="/" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-pink-50 hover:text-pink-500" aria-label="Ir para a página inicial">
+        <HomeIcon />
+      </Link>
+      <span className="mt-2 sm:mt-0"><ChevronRightSmall /></span>
+      <Link href="/produtos" className="mt-1.5 shrink-0 transition-colors hover:text-pink-500 sm:mt-0">
+        Categorias
+      </Link>
+      <span className="mt-2 sm:mt-0"><ChevronRightSmall /></span>
+      <span className="mt-1.5 min-w-0 break-words font-black leading-tight text-pink-500 sm:mt-0">{title}</span>
+    </nav>
+  );
+}
+
+function PremiumCategoryHero({
+  experience,
+  products,
+}: {
+  experience: PremiumCategoryExperience;
+  products: ProductCardProduct[];
+}) {
+  const images = getHeroProductImages(products, experience.fallbackImages, experience.title, experience.kind);
+
+  return (
+    <section
+      className={`relative overflow-hidden rounded-[30px] border border-pink-100 bg-gradient-to-br ${experience.themeClass} shadow-[0_22px_54px_rgba(122,35,75,0.11)]`}
+      aria-labelledby="premium-category-title"
+    >
+      <span className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" aria-hidden="true" />
+      <span className="pointer-events-none absolute right-5 top-5 text-pink-300/80" aria-hidden="true">
+        <DecorativeSparkles />
+      </span>
+
+      <div className="relative grid min-[380px]:grid-cols-[minmax(0,1.06fr)_minmax(0,.94fr)]">
+        <div className="relative z-10 px-5 pb-4 pt-6 min-[380px]:py-7 min-[380px]:pl-6 min-[380px]:pr-2 sm:px-10 sm:py-10">
+          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-pink-500 sm:text-xs">KA Bijoux</p>
+          <h1 id="premium-category-title" className="mt-2 font-playfair text-[31px] font-bold leading-[1.02] text-[#151925] sm:text-5xl">
+            {experience.title}
+          </h1>
+          <p className="mt-3 max-w-xl text-[11px] font-medium leading-relaxed text-[#626977] sm:mt-5 sm:text-base">
+            {experience.description}
+          </p>
+        </div>
+
+        <HeroProductCollage images={images} title={experience.title} />
+      </div>
+
+      <div className="relative grid grid-cols-3 border-t border-white/80 bg-white/48 backdrop-blur-sm">
+        {experience.highlights.map((highlight, index) => (
+          <div
+            key={highlight.title}
+            className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1.5 py-2.5 text-center min-[380px]:flex-row min-[380px]:gap-1.5 min-[380px]:px-2 min-[380px]:py-3 min-[380px]:text-left sm:gap-3 sm:px-5 sm:py-4 ${
+              index > 0 ? "border-l border-pink-100/80" : ""
+            }`}
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-pink-200 bg-white/90 text-pink-500 shadow-[0_6px_16px_rgba(236,72,153,0.12)] sm:h-11 sm:w-11">
+              <HighlightIcon name={highlight.icon} />
+            </span>
+            <span className="min-w-0">
+              <span className="block break-words text-[8px] font-black leading-tight text-[#303543] min-[380px]:text-[9px] sm:text-sm">{highlight.title}</span>
+              <span className="mt-0.5 block break-words text-[7px] font-medium leading-tight text-gray-500 min-[380px]:text-[8px] sm:text-xs">{highlight.description}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function getHeroProductImages(
+  products: ProductCardProduct[],
+  fallbackImages: string[],
+  fallbackAlt: string,
+  kind: PremiumCategoryKind
+) {
+  const seen = new Set<string>();
+  const images: Array<{ src: string; alt: string }> = [];
+
+  function addProduct(product: ProductCardProduct | undefined) {
+    if (!product) return;
+    const src = product.image || product.images?.[0]?.url;
+    if (!src || seen.has(src)) return;
+    seen.add(src);
+    images.push({ src, alt: product.name });
+  }
+
+  const preferredPatterns =
+    kind === "capinhas"
+      ? [/silicone|capinha|capa |pelic/, /fone|bluetooth|headset/, /carregador|fonte|cabo|suporte/]
+      : kind === "bijuterias"
+        ? [/colar|corrente/, /brinco/, /pulseira|anel/]
+        : [];
+
+  for (const pattern of preferredPatterns) {
+    const match = products.find((product) => pattern.test(normalizeSearch(product.name)));
+    addProduct(match);
+  }
+
+  for (const product of products) {
+    if (images.length === 3) break;
+    addProduct(product);
+  }
+
+  for (const fallbackImage of fallbackImages) {
+    if (images.length === 3) break;
+    if (seen.has(fallbackImage)) continue;
+    seen.add(fallbackImage);
+    images.push({ src: fallbackImage, alt: fallbackAlt });
+  }
+
+  return images;
+}
+
+function HeroProductCollage({
+  images,
+  title,
+}: {
+  images: Array<{ src: string; alt: string }>;
+  title: string;
+}) {
+  const primary = images[0];
+  const secondary = images[1];
+  const tertiary = images[2];
+
+  return (
+    <div className="relative min-h-[220px] overflow-hidden border-t border-white/80 min-[380px]:min-h-[286px] min-[380px]:border-l min-[380px]:border-t-0 sm:min-h-[340px]" aria-label={`Seleção visual de ${title}`}>
+      <span className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.76),rgba(255,232,241,0.26)_48%,rgba(216,200,246,0.24))]" aria-hidden="true" />
+      <span className="absolute inset-x-5 bottom-4 h-px bg-gradient-to-r from-transparent via-[#d6aa66]/55 to-transparent" aria-hidden="true" />
+
+      <figure className="absolute bottom-3 right-3 h-[82%] w-[66%] overflow-hidden rounded-[26px] border border-white bg-white/88 shadow-[0_20px_38px_rgba(122,35,75,0.18)]">
+        <img src={primary.src} alt={primary.alt} className="h-full w-full object-contain p-1.5" loading="eager" />
+      </figure>
+
+      {secondary ? (
+        <figure className="absolute left-3 top-4 h-[45%] w-[43%] -rotate-[5deg] overflow-hidden rounded-[20px] border border-white bg-white/94 shadow-[0_14px_28px_rgba(122,35,75,0.16)]">
+          <img src={secondary.src} alt={secondary.alt} className="h-full w-full object-contain p-1" loading="eager" />
+        </figure>
+      ) : null}
+
+      {tertiary ? (
+        <figure className="absolute bottom-5 left-5 h-[38%] w-[38%] rotate-[4deg] overflow-hidden rounded-[18px] border border-white bg-white/94 shadow-[0_12px_24px_rgba(122,35,75,0.15)]">
+          <img src={tertiary.src} alt={tertiary.alt} className="h-full w-full object-contain p-1" loading="lazy" />
+        </figure>
+      ) : null}
+
+      <span className="absolute right-5 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-[#e8c88b]/55 bg-white/84 font-playfair text-sm font-bold text-[#a56c24] shadow-sm" aria-hidden="true">
+        KA
+      </span>
+    </div>
+  );
+}
+
+type PremiumCategoryFiltersProps = {
+  basePath: string;
+  searchParams: SearchParams;
+  category: CatalogCategory | null;
+  categoryLabel: string;
+  currentCategoryLabel: string;
+  subcategorySlug?: string;
+  visibleCategories: CatalogCategory[];
+  promo: boolean;
+  onlyNew: boolean;
+  sort: string;
+  total: number;
+};
+
+function PremiumCategoryFilters({
+  basePath,
+  searchParams,
+  category,
+  categoryLabel,
+  currentCategoryLabel,
+  subcategorySlug,
+  visibleCategories,
+  promo,
+  onlyNew,
+  sort,
+  total,
+}: PremiumCategoryFiltersProps) {
+  const bestSellers = sort === "best_sellers" || sort === "mais-vendidos";
+
+  return (
+    <section className="rounded-[28px] border border-pink-100 bg-white/96 p-3 shadow-[0_18px_48px_rgba(122,35,75,0.09)] sm:p-6" aria-label="Filtros de produtos">
+      <p className="px-1 text-[11px] font-black uppercase tracking-[0.22em] text-pink-500 sm:text-xs">Filtros</p>
+
+      <div className="mt-3 grid grid-cols-2 gap-1 rounded-[22px] bg-gradient-to-r from-[#fff0f5] via-[#fff7fa] to-[#f7f0ff] p-1 min-[380px]:grid-cols-4">
+        <PremiumFilterLink
+          href={buildHref(basePath, searchParams, { price: undefined, promo: undefined, new: undefined, sort: undefined, page: undefined })}
+          active={!promo && !onlyNew && !bestSellers}
+          icon="grid"
+        >
+          Todos
+        </PremiumFilterLink>
+        <PremiumFilterLink
+          href={buildHref(basePath, searchParams, { promo: "true", price: undefined, new: undefined, sort: undefined, page: undefined })}
+          active={promo}
+          icon="tag"
+        >
+          Promoções
+        </PremiumFilterLink>
+        <PremiumFilterLink
+          href={buildHref(basePath, searchParams, { new: "true", price: undefined, promo: undefined, sort: undefined, page: undefined })}
+          active={onlyNew}
+          icon="star"
+        >
+          Novidades
+        </PremiumFilterLink>
+        <PremiumFilterLink
+          href={buildHref(basePath, searchParams, { sort: "mais-vendidos", promo: undefined, new: undefined, page: undefined })}
+          active={bestSellers}
+          icon="trend"
+        >
+          Mais vendidos
+        </PremiumFilterLink>
+      </div>
+
+      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_minmax(118px,.56fr)] gap-2">
+        <details className="group min-w-0 rounded-2xl border border-[#eadfe7] bg-[#fffafd] open:col-span-2">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-1.5 px-2.5 text-[10px] font-bold text-[#555d69] [&::-webkit-details-marker]:hidden sm:gap-2 sm:px-3 sm:text-sm">
+            <span className="flex min-w-0 items-center gap-2">
+              <FilterSlidersIcon />
+              <span>Filtros avançados</span>
+            </span>
+            <ChevronDownIcon />
+          </summary>
+          <div className="ka-category-drawer border-t border-pink-100 px-3 pb-3 pt-3">
+            <p className="mb-2 text-[9px] font-black uppercase tracking-[0.16em] text-gray-400">Escolha a categoria</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <CategoryChip href={buildHref("/produtos", searchParams, { price: undefined, page: undefined })} active={!category} compact>
+                Todos
+              </CategoryChip>
+              {visibleCategories.map((item) => (
+                <CategoryChip
+                  key={item.slug}
+                  href={buildHref(`/categoria/${item.slug}`, searchParams, { price: undefined, page: undefined })}
+                  active={category?.slug === item.slug}
+                  compact
+                >
+                  {getPublicCategoryName(item)}
+                </CategoryChip>
+              ))}
+            </div>
+
+            {category?.subcategories?.length ? (
+              <div className="mt-3 border-t border-pink-100 pt-3">
+                <p className="mb-2 text-[9px] font-black uppercase tracking-[0.16em] text-gray-400">Refinar em {categoryLabel}</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <CategoryChip href={buildHref(`/categoria/${category.slug}`, searchParams, { price: undefined, page: undefined })} active={!subcategorySlug} compact>
+                    Todas
+                  </CategoryChip>
+                  {category.subcategories.map((subcategory) => (
+                    <CategoryChip
+                      key={subcategory.slug}
+                      href={buildHref(`/categoria/${category.slug}/${subcategory.pathSlug}`, searchParams, { price: undefined, page: undefined })}
+                      active={subcategorySlug === subcategory.slug}
+                      compact
+                    >
+                      {subcategory.name}
+                    </CategoryChip>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </details>
+
+        <details className="group min-w-0 rounded-2xl border border-[#eadfe7] bg-[#fffafd] open:col-span-2">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-1.5 px-3 text-[11px] font-bold text-[#555d69] [&::-webkit-details-marker]:hidden sm:text-sm">
+            <span className="flex min-w-0 items-center gap-2">
+              <SortIcon />
+              <span className="truncate">Ordenar</span>
+            </span>
+            <ChevronDownIcon />
+          </summary>
+          <div className="ka-category-drawer border-t border-pink-100 p-2">
+            {[
+              { label: "Mais recentes", value: "createdAt" },
+              { label: "Menor preço", value: "menor-preco" },
+              { label: "Maior preço", value: "maior-preco" },
+              { label: "Mais vendidos", value: "mais-vendidos" },
+            ].map((option) => (
+              <Link
+                key={option.value}
+                href={buildHref(basePath, searchParams, { sort: option.value, page: undefined })}
+                className={`block rounded-xl px-3 py-2 text-[11px] font-bold transition-colors ${
+                  sort === option.value ? "bg-pink-500 text-white" : "text-gray-600 hover:bg-pink-50 hover:text-pink-500"
+                }`}
+              >
+                {option.label}
+              </Link>
+            ))}
+          </div>
+        </details>
+      </div>
+
+      <div className="mt-4 flex flex-col gap-3 border-t border-pink-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-col items-start gap-2 min-[380px]:flex-row min-[380px]:items-center">
+          <span className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-2xl bg-gradient-to-r from-[#ffe8f0] to-[#fff0f6] px-3 py-2 text-[10px] font-black leading-tight text-pink-600 sm:rounded-full sm:text-xs">
+            <span className="min-w-0 break-words">Categoria: {currentCategoryLabel}</span>
+            {category ? (
+              <Link href="/produtos" className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-sm leading-none hover:bg-white/80" aria-label="Remover categoria">
+                ×
+              </Link>
+            ) : null}
+          </span>
+          <Link href={basePath} className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold text-pink-500 hover:text-pink-600 sm:text-xs">
+            <TrashIcon />
+            Limpar
+          </Link>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 sm:justify-end">
+          <p className="text-xs font-bold text-[#555d69] sm:text-sm">
+            {total > 0 ? `${total} produto(s) encontrados` : "Nenhum produto encontrado"}
+          </p>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-pink-200 bg-pink-50 text-pink-500" aria-label="Visualização em grade">
+            <GridIcon />
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PremiumFilterLink({
+  href,
+  active,
+  icon,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  icon: "grid" | "tag" | "star" | "trend";
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-[18px] px-1 text-[9px] font-black leading-tight transition-all duration-200 sm:gap-1.5 sm:px-2 sm:text-xs ${
+        active
+          ? "bg-gradient-to-r from-[#ff5b84] to-[#f43f72] text-white shadow-[0_8px_18px_rgba(244,63,114,0.25)]"
+          : "text-[#3f4552] hover:bg-white hover:text-pink-500"
+      }`}
+      aria-current={active ? "page" : undefined}
+    >
+      <FilterTabIcon name={icon} />
+      <span className="text-center leading-[1.05]">{children}</span>
+    </Link>
+  );
+}
+
+function HighlightIcon({ name }: { name: HighlightIconName }) {
+  const className = "h-4 w-4 sm:h-5 sm:w-5";
+
+  if (name === "shield") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M12 3 20 6v5c0 5-3.4 8.2-8 10-4.6-1.8-8-5-8-10V6l8-3Z" />
+        <path d="m8.5 12 2.2 2.2 4.8-5" />
+      </svg>
+    );
+  }
+
+  if (name === "diamond") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="m4 9 4-5h8l4 5-8 11L4 9Z" />
+        <path d="M4 9h16M8 4l4 16 4-16" />
+      </svg>
+    );
+  }
+
+  if (name === "gift") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="8" width="18" height="13" rx="2" />
+        <path d="M12 8v13M3 12h18M12 8H7.5a2.5 2.5 0 1 1 2.2-3.7L12 8Zm0 0h4.5a2.5 2.5 0 1 0-2.2-3.7L12 8Z" />
+      </svg>
+    );
+  }
+
+  if (name === "tag") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M3 4v7l9 9 8-8-9-9H4a1 1 0 0 0-1 1Z" />
+        <circle cx="8" cy="8" r="1.3" />
+      </svg>
+    );
+  }
+
+  if (name === "trend") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="m4 16 5-5 4 4 7-8" />
+        <path d="M15 7h5v5" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m12 2 1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z" />
+      <path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z" />
+    </svg>
+  );
+}
+
+function FilterTabIcon({ name }: { name: "grid" | "tag" | "star" | "trend" }) {
+  const className = "h-4 w-4 shrink-0";
+  if (name === "grid") {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+        <rect x="4" y="4" width="6" height="6" rx="1" />
+        <rect x="14" y="4" width="6" height="6" rx="1" />
+        <rect x="4" y="14" width="6" height="6" rx="1" />
+        <rect x="14" y="14" width="6" height="6" rx="1" />
+      </svg>
+    );
+  }
+  if (name === "tag") return <HighlightIcon name="tag" />;
+  if (name === "trend") return <HighlightIcon name="trend" />;
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+    </svg>
+  );
+}
+
+function DecorativeSparkles() {
+  return (
+    <svg className="h-9 w-9" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <path d="m13 3 2.2 7.8L23 13l-7.8 2.2L13 23l-2.2-7.8L3 13l7.8-2.2L13 3Z" fill="currentColor" fillOpacity=".14" />
+      <path d="m30 21 1.4 4.6L36 27l-4.6 1.4L30 33l-1.4-4.6L24 27l4.6-1.4L30 21Z" />
+    </svg>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m3 11 9-8 9 8" />
+      <path d="M5 10v10h14V10M9 20v-6h6v6" />
+    </svg>
+  );
+}
+
+function ChevronRightSmall() {
+  return (
+    <svg className="h-3.5 w-3.5 shrink-0 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg className="h-4 w-4 shrink-0 transition-transform duration-200 group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function FilterSlidersIcon() {
+  return (
+    <svg className="h-4 w-4 shrink-0 text-pink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M4 6h16M4 12h16M4 18h16" />
+      <circle cx="9" cy="6" r="2" fill="white" />
+      <circle cx="15" cy="12" r="2" fill="white" />
+      <circle cx="7" cy="18" r="2" fill="white" />
+    </svg>
+  );
+}
+
+function SortIcon() {
+  return (
+    <svg className="h-4 w-4 shrink-0 text-pink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 5v14M5 8l3-3 3 3M16 19V5M13 16l3 3 3-3" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" />
+    </svg>
+  );
+}
+
+function GridIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <rect x="4" y="4" width="6" height="6" rx="1" />
+      <rect x="14" y="4" width="6" height="6" rx="1" />
+      <rect x="4" y="14" width="6" height="6" rx="1" />
+      <rect x="14" y="14" width="6" height="6" rx="1" />
+    </svg>
+  );
+}
+
 function FilterLink({
   href,
   active,
@@ -286,15 +970,25 @@ function FilterLink({
   );
 }
 
-function CategoryChip({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+function CategoryChip({
+  href,
+  active,
+  children,
+  compact = false,
+}: {
+  href: string;
+  active: boolean;
+  children: React.ReactNode;
+  compact?: boolean;
+}) {
   return (
     <Link
       href={href}
-      className={`flex min-h-9 min-w-0 items-center justify-center rounded-full border px-3 py-1.5 text-center text-xs font-bold leading-tight transition-colors sm:px-4 sm:py-2 ${
+      className={`flex min-h-9 min-w-0 items-center justify-center rounded-full border py-1.5 text-center font-bold leading-tight transition-colors ${
         active
           ? "border-pink-500 bg-pink-500 text-white"
           : "border-pink-100 bg-white text-gray-700 hover:bg-pink-50 hover:text-pink-500"
-      }`}
+      } ${compact ? "break-words px-1.5 text-[9px] sm:px-3 sm:text-xs" : "px-3 text-xs sm:px-4 sm:py-2"}`}
       aria-current={active ? "page" : undefined}
     >
       {children}
