@@ -631,69 +631,63 @@ type StorySpotlightProps = {
 
 function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotlightProps) {
   return (
-    <section className="mx-auto mt-3 max-w-7xl px-3 sm:mt-5 sm:px-6" aria-label="Stories KA Bijoux">
-      <div className="relative overflow-hidden rounded-[24px] border border-pink-100 bg-gradient-to-br from-white via-[#fff8fb] to-[#fff2f7] px-4 pb-4 pt-4 shadow-[0_12px_28px_rgba(236,72,153,0.10)] ring-1 ring-white/80 sm:rounded-[28px] sm:p-5">
+    <section className="mx-auto mt-3 max-w-7xl px-2.5 sm:mt-5 sm:px-6" aria-label="Stories KA Bijoux">
+      <div className="relative overflow-hidden rounded-[22px] border border-pink-100 bg-gradient-to-br from-white via-[#fff8fb] to-[#fff2f7] px-3 pb-3 pt-3.5 shadow-[0_12px_28px_rgba(236,72,153,0.10)] ring-1 ring-white/80 sm:rounded-[28px] sm:p-5">
         <span className="ka-story-spotlight-shine" aria-hidden="true" />
 
-        <div className="relative z-10 mb-3 flex items-start justify-between gap-3">
+        <div className="relative z-10 mb-3 flex items-start justify-between gap-2 sm:gap-3">
           <div className="min-w-0">
-            <h2 className="font-playfair text-[28px] font-bold leading-none tracking-normal text-[#8a0032] sm:text-4xl">
+            <h2 className="font-playfair text-[25px] font-bold leading-none tracking-normal text-[#8a0032] sm:text-4xl">
               Stories da KA<span className="text-[#ff7a4d]">*</span>
             </h2>
-            <p className="mt-2 max-w-[520px] text-[12px] font-medium leading-snug text-[#3d0f1a] sm:text-base">
+            <p className="mt-1.5 max-w-[520px] text-[11px] font-medium leading-snug text-[#3d0f1a] sm:mt-2 sm:text-base">
               Acompanhe novidades, ofertas, clientes e nossos stories do Instagram.
             </p>
           </div>
-          <span className="mt-1 hidden shrink-0 items-center gap-1.5 text-[11px] font-semibold text-gray-400 sm:inline-flex">
-            Arraste para o lado
-            <SwipeHandIcon className="h-6 w-6 text-gray-300" />
+          <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-[9px] font-semibold leading-tight text-gray-400 sm:mt-1 sm:gap-1.5 sm:text-[11px]">
+            <span className="hidden min-[350px]:inline">Arraste para o lado</span>
+            <SwipeHandIcon className="h-5 w-5 text-gray-300 sm:h-6 sm:w-6" />
           </span>
         </div>
 
         <div className="relative z-10">
-          <span className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 sm:hidden">
-            Arraste para o lado
-            <SwipeHandIcon className="h-5 w-5 text-gray-300" />
-          </span>
-
-          <div className="-mx-4 overflow-x-auto px-4 pb-1 pr-10 [scrollbar-width:none] sm:mx-0 sm:px-0 sm:pr-0 [&::-webkit-scrollbar]:hidden">
-            <div className="flex min-w-max snap-x snap-mandatory items-start gap-4 sm:gap-6 lg:min-w-0 lg:justify-center">
+          <div className="grid grid-cols-4 items-start gap-1 sm:gap-5 lg:mx-auto lg:max-w-[620px]">
               <a
                 href={instagramStoriesUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group w-[90px] shrink-0 snap-start text-center outline-none sm:w-[108px]"
+                className="group min-w-0 text-center outline-none"
                 aria-label="Abrir KA Stories no Instagram"
               >
-                <span className="ka-story-ring ka-story-ring-unseen mx-auto flex h-[78px] w-[78px] items-center justify-center rounded-full p-[3px] transition-transform duration-300 group-hover:scale-[1.04] sm:h-[94px] sm:w-[94px]">
+                <span className="ka-story-ring ka-story-ring-unseen mx-auto flex h-[clamp(58px,17vw,72px)] w-[clamp(58px,17vw,72px)] items-center justify-center rounded-full p-[3px] transition-transform duration-300 group-hover:scale-[1.04] sm:h-[94px] sm:w-[94px]">
                   <span className="relative flex h-full w-full items-center justify-center rounded-full border-[3px] border-white bg-[#fff1f6] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.82)]">
                     <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
                       <img
                         src={storyLogo}
                         alt=""
                         loading="lazy"
-                        className="h-full w-full object-contain p-3.5 sm:p-4"
+                        className="h-full w-full object-contain p-2.5 sm:p-4"
                       />
                     </span>
-                    <span className="absolute -bottom-1 -right-1 z-20 flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-white bg-white text-pink-500 shadow-[0_8px_18px_rgba(236,72,153,0.22)] sm:h-8 sm:w-8">
-                      <InstagramIcon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+                    <span className="absolute -bottom-1 -right-1 z-20 flex h-6 w-6 items-center justify-center rounded-full border-[2px] border-white bg-white text-pink-500 shadow-[0_8px_18px_rgba(236,72,153,0.22)] sm:h-8 sm:w-8 sm:border-[3px]">
+                      <InstagramIcon className="h-3.5 w-3.5 sm:h-[18px] sm:w-[18px]" />
                     </span>
                   </span>
                 </span>
-                <span className="mt-2 block text-[13px] font-bold leading-tight text-[#3d0f1a] sm:text-[14px]">
+                <span className="mt-1.5 block whitespace-nowrap text-[10px] font-bold leading-tight text-[#3d0f1a] min-[370px]:text-[11px] sm:mt-2 sm:text-[14px]">
                   KA Stories
                 </span>
-                <span className="mt-0.5 inline-flex items-center justify-center gap-1 text-[11px] font-medium leading-tight text-gray-400 sm:text-xs">
-                  <InstagramIcon className="h-3 w-3 text-pink-400" />
+                <span className="mt-0.5 inline-flex items-center justify-center gap-0.5 text-[9px] font-medium leading-tight text-gray-400 sm:gap-1 sm:text-xs">
+                  <InstagramIcon className="h-2.5 w-2.5 text-pink-400 sm:h-3 sm:w-3" />
                   Instagram
                 </span>
               </a>
 
               {loading
                 ? Array.from({ length: 3 }).map((_, index) => (
-                    <div key={index} className="w-[90px] shrink-0 animate-pulse text-center sm:w-[108px]">
-                      <div className="mx-auto h-[78px] w-[78px] rounded-full bg-pink-100 sm:h-[94px] sm:w-[94px]" />
-                      <div className="mx-auto mt-2 h-3 w-14 rounded-full bg-pink-100/80" />
+                    <div key={index} className="min-w-0 animate-pulse text-center">
+                      <div className="mx-auto h-[clamp(58px,17vw,72px)] w-[clamp(58px,17vw,72px)] rounded-full bg-pink-100 sm:h-[94px] sm:w-[94px]" />
+                      <div className="mx-auto mt-1.5 h-2.5 w-12 max-w-full rounded-full bg-pink-100/80 sm:mt-2 sm:h-3 sm:w-14" />
                     </div>
                   ))
                 : groups.map((group, index) => {
@@ -705,11 +699,11 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
                         key={group.id}
                         type="button"
                         onClick={() => onOpenGroup(index)}
-                        className="group w-[90px] shrink-0 snap-start text-center outline-none sm:w-[108px]"
+                        className="group min-w-0 text-center outline-none"
                         aria-label={`Abrir story ${group.title}`}
                       >
                         <span
-                          className={`ka-story-ring mx-auto flex h-[78px] w-[78px] items-center justify-center rounded-full p-[3px] transition-transform duration-300 group-hover:scale-[1.04] sm:h-[94px] sm:w-[94px] ${
+                          className={`ka-story-ring mx-auto flex h-[clamp(58px,17vw,72px)] w-[clamp(58px,17vw,72px)] items-center justify-center rounded-full p-[3px] transition-transform duration-300 group-hover:scale-[1.04] sm:h-[94px] sm:w-[94px] ${
                             hasSeen ? "ka-story-ring-seen" : "ka-story-ring-unseen"
                           }`}
                         >
@@ -717,20 +711,19 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
                             <StoryCover media={coverMedia} title={group.title} />
                           </span>
                         </span>
-                        <span className="mt-2 block truncate text-[13px] font-bold leading-tight text-[#3d0f1a] sm:text-[14px]">
+                        <span className="mt-1.5 block truncate text-[10px] font-bold leading-tight text-[#3d0f1a] min-[370px]:text-[11px] sm:mt-2 sm:text-[14px]">
                           {group.title}
                         </span>
                       </button>
                     );
               })}
-            </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-center gap-2" aria-hidden="true">
+          <div className="mt-3 flex items-center justify-center gap-1.5 sm:mt-4 sm:gap-2" aria-hidden="true">
             {Array.from({ length: 4 }).map((_, index) => (
               <span
                 key={index}
-                className={`h-2.5 w-2.5 rounded-full ${
+                className={`h-1.5 w-1.5 rounded-full sm:h-2.5 sm:w-2.5 ${
                   index === 0 ? "bg-pink-500" : "bg-pink-100"
                 }`}
               />
