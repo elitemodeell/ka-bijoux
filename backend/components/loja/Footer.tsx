@@ -43,10 +43,10 @@ const storeLinks = [
 
 const categoryLinks = [
   { label: "Bijuterias", href: "/categoria/bijuterias" },
-  { label: "Óculos", href: "/categoria/oculos" },
   { label: "Capinhas", href: "/categoria/capinhas-acessorios-celular" },
   { label: "Bolsas", href: "/categoria/bolsas-necessaires" },
   { label: "Maquiagem", href: "/categoria/maquiagem" },
+  { label: "Utilidades", href: "/categoria/utilidades-domesticas" },
   { label: "Acessórios", href: "/categoria/acessorios-cabelo" },
   { label: "Perfumes", href: "/categoria/perfumaria" },
   { label: "Ver todas", href: "/produtos" },

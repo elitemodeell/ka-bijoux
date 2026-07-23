@@ -10,7 +10,7 @@ import { getCartCount, subscribeCart } from "@/lib/client-cart";
 const FEATURED_LINKS = [
   { label: "Início", href: "/" },
   { label: "Bijuterias", href: "/categoria/bijuterias" },
-  { label: "Óculos", href: "/categoria/oculos" },
+  { label: "Utilidades", href: "/categoria/utilidades-domesticas" },
   { label: "Capinhas", href: "/categoria/capinhas-acessorios-celular" },
 ];
 
@@ -27,17 +27,32 @@ const MENU_LINKS = [
 ];
 
 const SEARCH_SUGGESTIONS = [
-  "óculos",
   "capinhas",
   "bijuterias",
   "maquiagem",
   "bolsas",
   "necessaires",
   "perfume",
+  "utilidades",
   "brincos",
 ];
 
-const groups = getCategoryGroups();
+const HIDDEN_EMPTY_CATEGORY_SLUGS = new Set([
+  "relogios",
+  "oculos",
+  "pijamas",
+  "roupa-infantil",
+  "acessorios-inverno",
+  "brinquedos",
+  "cintos",
+]);
+
+const groups = getCategoryGroups()
+  .map((group) => ({
+    ...group,
+    categories: group.categories.filter((category) => !HIDDEN_EMPTY_CATEGORY_SLUGS.has(category.slug)),
+  }))
+  .filter((group) => group.categories.length > 0);
 
 export default function Navbar() {
   const router = useRouter();
