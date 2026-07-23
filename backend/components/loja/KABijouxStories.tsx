@@ -11,7 +11,7 @@ import {
 
 const seenStorageKey = "ka-bijoux-seen-stories";
 const storyLogo = "/images/brand/ka-bijoux-logo-story-icon.png";
-const instagramStoriesUrl = "https://www.instagram.com/stories/kabijoux/";
+const instagramProfileUrl = "https://www.instagram.com/kabijoux_?igsh=aGV2Z2dxb252NzF5";
 const HERO_IMAGE_DURATION = 3000;
 const storyHighlightCovers = {
   novidades: "/images/stories/highlights/novidades.jpg",
@@ -644,16 +644,12 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
               Acompanhe novidades, ofertas, clientes e nossos stories do Instagram.
             </p>
           </div>
-          <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-[9px] font-semibold leading-tight text-gray-400 sm:mt-1 sm:gap-1.5 sm:text-[11px]">
-            <span className="hidden min-[350px]:inline">Arraste para o lado</span>
-            <SwipeHandIcon className="h-5 w-5 text-gray-300 sm:h-6 sm:w-6" />
-          </span>
         </div>
 
         <div className="relative z-10">
           <div className="grid grid-cols-4 items-start gap-1 sm:gap-5 lg:mx-auto lg:max-w-[620px]">
               <a
-                href={instagramStoriesUrl}
+                href={instagramProfileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group min-w-0 text-center outline-none"
@@ -1017,18 +1013,6 @@ function InstagramIcon({ className }: { className?: string }) {
       <rect x="3" y="3" width="18" height="18" rx="5" />
       <circle cx="12" cy="12" r="4" />
       <path d="M17.5 6.5h.01" />
-    </svg>
-  );
-}
-
-function SwipeHandIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 15.5V8.2a2.1 2.1 0 0 1 4.2 0v6.1" />
-      <path d="M16.2 14V6.8a2.1 2.1 0 0 1 4.2 0v8.1" />
-      <path d="M20.4 15.2V9.4a2 2 0 0 1 4 0V19" />
-      <path d="M12 16.2 9.8 14a2.1 2.1 0 0 0-3 3l5.9 6.3a8 8 0 0 0 5.8 2.5h1.8a6.1 6.1 0 0 0 6.1-6.1V16" />
-      <path d="M4.5 9.2 2.5 7.1M5.7 5.7 5 2.8M8.9 4.7 10 2" opacity=".55" />
     </svg>
   );
 }
