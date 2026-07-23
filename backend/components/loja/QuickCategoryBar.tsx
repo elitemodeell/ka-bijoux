@@ -13,34 +13,38 @@ export default function QuickCategoryBar() {
   return (
     <nav
       aria-label="Categorias rápidas"
-      className="bg-white border-b border-pink-100 px-3 py-3 sm:py-4 sm:px-6"
+      className="border-b border-pink-100/80 bg-gradient-to-b from-white to-[#fff8fb] px-3 py-3 sm:px-6 sm:py-4"
     >
-      <div className="mx-auto grid max-w-6xl grid-cols-6 items-start justify-items-center gap-x-1 sm:gap-x-6 lg:gap-x-12">
-        {QUICK_CATS.map((cat) => (
-          <Link
-            key={cat.href}
-            href={cat.href}
-            className="group flex min-w-0 flex-col items-center gap-1.5"
-          >
-            <span className="flex h-[50px] w-[50px] items-center justify-center rounded-full bg-gradient-to-br from-pink-50 to-rose-100 text-pink-500 ring-2 ring-pink-200 transition-transform duration-200 group-hover:scale-110 group-active:scale-95 sm:h-[64px] sm:w-[64px]">
-              <CategoryIcon name={cat.icon} />
-            </span>
-            <span className="max-w-full text-center text-[9px] font-bold leading-tight text-gray-800 sm:text-[12px]">
-              {cat.label}
-            </span>
-          </Link>
-        ))}
+      <div className="mx-auto max-w-7xl">
+        <div className="rounded-[24px] border border-pink-100 bg-white/95 p-2.5 shadow-[0_12px_28px_rgba(236,72,153,0.10)] sm:rounded-[28px] sm:p-3">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 sm:gap-3 lg:gap-4">
+            {QUICK_CATS.map((cat) => (
+              <Link
+                key={cat.href}
+                href={cat.href}
+                className="group flex min-h-[82px] min-w-0 flex-col items-center justify-center gap-2 rounded-[20px] bg-gradient-to-br from-[#fff7fb] via-white to-[#fff1f6] px-1.5 py-2 text-center ring-1 ring-pink-100 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(236,72,153,0.14)] active:scale-95 sm:min-h-[92px] sm:rounded-[22px]"
+              >
+                <span className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-white text-pink-500 shadow-[0_8px_18px_rgba(236,72,153,0.12)] ring-2 ring-pink-200 transition-transform duration-200 group-hover:scale-105 sm:h-[52px] sm:w-[52px]">
+                  <CategoryIcon name={cat.icon} />
+                </span>
+                <span className="max-w-full text-center text-[11px] font-black leading-tight text-gray-800 sm:text-[12px]">
+                  {cat.label}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
       </div>
     </nav>
   );
 }
 
 function CategoryIcon({ name }: { name: string }) {
-  const iconClass = "h-7 w-7 sm:h-9 sm:w-9";
+  const iconClass = "h-6 w-6 sm:h-7 sm:w-7";
 
   if (name === "new") {
     return (
-      <span className="flex h-6 w-9 items-center justify-center rounded-[5px] border-2 border-current text-[10px] font-black leading-none sm:h-8 sm:w-12 sm:text-sm">
+      <span className="flex h-5 w-8 items-center justify-center rounded-[5px] border-2 border-current text-[9px] font-black leading-none sm:h-6 sm:w-10 sm:text-xs">
         NEW
       </span>
     );
