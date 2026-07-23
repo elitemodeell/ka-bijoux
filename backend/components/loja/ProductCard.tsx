@@ -87,6 +87,28 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
     window.setTimeout(() => setCartAdded(false), 1500);
   }
 
+  function rememberListingPosition(event: MouseEvent<HTMLAnchorElement>) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    const { pathname, search } = window.location;
+    if (pathname !== "/produtos" && !pathname.startsWith("/categoria/")) return;
+
+    window.sessionStorage.setItem(
+      `ka-bijoux:list-scroll:${pathname}${search}`,
+      JSON.stringify({ y: window.scrollY, savedAt: Date.now() })
+    );
+    window.history.scrollRestoration = "manual";
+  }
+
   return (
     <div
       ref={cardRef}
@@ -98,6 +120,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
           <Link
             href={`/produto/${normalized.slug}`}
             prefetch={false}
+            onClick={rememberListingPosition}
             className="block h-full w-full"
             aria-label={`Ver detalhes de ${name}`}
           >
@@ -191,7 +214,12 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
       {/* Info area */}
       <div className="flex flex-1 flex-col p-2.5">
         {product.slug ? (
-          <Link href={`/produto/${product.slug}`} prefetch={false} className="text-left">
+          <Link
+            href={`/produto/${product.slug}`}
+            prefetch={false}
+            onClick={rememberListingPosition}
+            className="text-left"
+          >
             <h3 className="line-clamp-2 text-[12px] font-semibold leading-snug text-gray-800 transition-colors hover:text-pink-500">
               {name}
             </h3>
@@ -222,6 +250,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
             <Link
               href={`/produto/${normalized.slug}`}
               prefetch={false}
+              onClick={rememberListingPosition}
               className="ka-btn mt-2 flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-pink-500 to-pink-400 py-2 text-[12px] font-bold text-white"
             >
               Comprar

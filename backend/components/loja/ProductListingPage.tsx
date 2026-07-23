@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Prisma } from "@prisma/client";
+import ListingScrollRestorer from "@/components/loja/ListingScrollRestorer";
 import ProductCard from "@/components/loja/ProductCard";
 import { prisma } from "@/lib/prisma";
 import {
@@ -168,6 +169,7 @@ export default async function ProductListingPage({
 
   return (
     <section className={embedded ? "" : "bg-white pt-28 md:pt-28"}>
+      <ListingScrollRestorer />
       <div className={embedded ? "" : "mx-auto max-w-7xl px-4 pb-16"}>
         {!embedded &&
           (premiumExperience ? (
