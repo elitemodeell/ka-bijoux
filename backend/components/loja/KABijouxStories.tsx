@@ -271,7 +271,7 @@ function getHomeStoryGroups(groups: StoryGroup[]) {
 
 export default function KABijouxStories() {
   const [groups, setGroups] = useState<StoryGroup[]>(fallbackGroups);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const [activeStoryGroup, setActiveStoryGroup] = useState<StoryGroup | null>(null);
   const [activeItemIndex, setActiveItemIndex] = useState(0);
