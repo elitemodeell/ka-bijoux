@@ -11,6 +11,7 @@ import {
 
 const seenStorageKey = "ka-bijoux-seen-stories";
 const storyLogo = "/images/brand/ka-bijoux-logo-story-icon.png";
+const instagramStoriesUrl = "https://www.instagram.com/stories/kabijoux/";
 const HERO_IMAGE_DURATION = 3000;
 const storyHighlightCovers = {
   novidades: "/images/stories/highlights/novidades.jpg",
@@ -20,6 +21,11 @@ const storyHighlightCovers = {
   ofertas: "/images/stories/highlights/ofertas.jpg",
 } as const;
 const storyHighlightCoverEntries = Object.entries(storyHighlightCovers);
+const homeStoryOrder = [
+  { title: "Novidades", keys: ["novidades"] },
+  { title: "Ofertas", keys: ["ofertas", "promocoes", "promocao"] },
+  { title: "Clientes", keys: ["clientes"] },
+];
 
 const heroSlides = [
   {
@@ -239,6 +245,30 @@ function normalizeGroups(data: unknown): StoryGroup[] {
     .filter((group): group is StoryGroup => Boolean(group && group.items.length > 0));
 }
 
+function findStoryGroupByKeys(groups: StoryGroup[], keys: string[]) {
+  return groups.find((group) => {
+    const titleKey = normalizeStoryKey(group.title);
+    const idKey = normalizeStoryKey(group.id);
+
+    return keys.some((key) => titleKey.includes(key) || idKey.includes(key));
+  });
+}
+
+function getHomeStoryGroups(groups: StoryGroup[]) {
+  return homeStoryOrder
+    .map((config, index) => {
+      const group = findStoryGroupByKeys(groups, config.keys) || findStoryGroupByKeys(fallbackGroups, config.keys);
+      if (!group) return null;
+
+      return {
+        ...group,
+        title: config.title,
+        sortOrder: index + 1,
+      };
+    })
+    .filter((group): group is StoryGroup => Boolean(group && group.items.length > 0));
+}
+
 export default function KABijouxStories() {
   const [groups, setGroups] = useState<StoryGroup[]>(fallbackGroups);
   const [loading, setLoading] = useState(true);
@@ -251,7 +281,7 @@ export default function KABijouxStories() {
   const errorSkipTimeoutRef = useRef<number | null>(null);
 
   const visibleGroups = useMemo(
-    () => groups.filter((group) => group.items.length > 0),
+    () => getHomeStoryGroups(groups),
     [groups]
   );
   const activeGroup = activeStoryGroup;
@@ -602,42 +632,67 @@ type StorySpotlightProps = {
 function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotlightProps) {
   return (
     <section className="mx-auto mt-4 max-w-7xl px-4 sm:mt-6 sm:px-6" aria-label="Stories KA Bijoux">
-      <div className="relative overflow-hidden rounded-[26px] border border-pink-200/90 bg-gradient-to-br from-white via-[#ffeaf2] to-[#fff7fb] px-3.5 py-4 shadow-[0_18px_42px_rgba(236,72,153,0.18)] ring-1 ring-white/75 sm:rounded-[28px] sm:p-5 lg:p-6">
+      <div className="relative overflow-hidden rounded-[26px] border border-pink-100 bg-gradient-to-br from-white via-[#fff5f8] to-[#fff1f7] px-3.5 pb-5 pt-5 shadow-[0_18px_42px_rgba(236,72,153,0.14)] ring-1 ring-white/80 sm:rounded-[28px] sm:p-7">
         <span className="ka-story-spotlight-shine" aria-hidden="true" />
 
-        <div className="mb-4 flex items-start justify-between gap-3 sm:hidden">
+        <div className="relative z-10 mb-5 flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <span className="inline-flex items-center rounded-full bg-pink-500 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-[0_8px_18px_rgba(236,72,153,0.28)]">
-              Toque para ver
-            </span>
-            <p className="mt-2 text-[20px] font-black leading-tight text-gray-900">Acompanhe nossos stories</p>
-            <p className="mt-1 text-[12px] font-semibold leading-snug text-[#8a4b5d]">Novidades, promo&ccedil;&otilde;es e achadinhos em destaque.</p>
+            <h2 className="font-playfair text-[34px] font-bold leading-none tracking-normal text-[#8a0032] sm:text-5xl">
+              Stories da KA<span className="text-[#ff7a4d]">*</span>
+            </h2>
+            <p className="mt-3 max-w-[560px] text-[14px] font-medium leading-snug text-[#3d0f1a] sm:text-lg">
+              Acompanhe novidades, ofertas, clientes e nossos stories do Instagram.
+            </p>
           </div>
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-pink-500 shadow-[0_12px_26px_rgba(236,72,153,0.20)] ring-4 ring-pink-100/80" aria-hidden="true">
-            <StoryPlayIcon className="h-5 w-5" />
+          <span className="mt-1 hidden shrink-0 items-center gap-2 text-[12px] font-semibold text-gray-400 sm:inline-flex">
+            Arraste para o lado
+            <SwipeHandIcon className="h-8 w-8 text-gray-300" />
           </span>
         </div>
 
-        <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-7">
-          <div className="hidden sm:block text-center lg:w-[310px] lg:shrink-0 lg:text-left">
-            <p className="ka-story-attention-label mx-auto inline-flex items-center justify-center rounded-full border border-pink-200/80 bg-white/88 px-4 py-2 text-[12px] font-black uppercase tracking-[0.16em] text-pink-600 shadow-sm backdrop-blur lg:mx-0">
-              ✨ VEJA NOSSOS STORIES
-            </p>
-            <p className="mx-auto mt-3 max-w-[300px] text-sm font-semibold leading-relaxed text-gray-700 lg:mx-0">
-              Arraste para o lado e descubra novidades, promoções e lançamentos.
-            </p>
-            <span className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-pink-600 to-pink-400 px-4 py-2 text-[11px] font-black uppercase tracking-wide text-white shadow-[0_12px_26px_rgba(236,72,153,0.24)] lg:mx-0">
-              Arraste
-              <span className="ka-story-arrow text-lg leading-none" aria-hidden="true">→</span>
-            </span>
-          </div>
+        <div className="relative z-10">
+          <span className="mb-4 inline-flex items-center gap-2 text-[12px] font-semibold text-gray-400 sm:hidden">
+            Arraste para o lado
+            <SwipeHandIcon className="h-7 w-7 text-gray-300" />
+          </span>
 
-          <div className="overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:flex-1">
-            <div className="flex min-w-max snap-x snap-mandatory items-start gap-4 px-1 sm:gap-7 lg:min-w-0 lg:justify-center">
+          <div className="-mx-3.5 overflow-x-auto px-3.5 pb-1 pr-14 [scrollbar-width:none] sm:mx-0 sm:px-0 sm:pr-0 [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-w-max snap-x snap-mandatory items-start gap-5 sm:gap-8 lg:min-w-0 lg:justify-center">
+              <a
+                href={instagramStoriesUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group w-[118px] shrink-0 snap-start text-center outline-none sm:w-[130px]"
+                aria-label="Abrir KA Stories no Instagram"
+              >
+                <span className="ka-story-ring ka-story-ring-unseen mx-auto flex h-[112px] w-[112px] items-center justify-center rounded-full p-[4px] transition-transform duration-300 group-hover:scale-[1.04] sm:h-[126px] sm:w-[126px]">
+                  <span className="relative flex h-full w-full items-center justify-center rounded-full border-[4px] border-white bg-[#fff1f6] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.82)]">
+                    <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
+                      <img
+                        src={storyLogo}
+                        alt=""
+                        loading="lazy"
+                        className="h-full w-full object-contain p-5"
+                      />
+                    </span>
+                    <span className="absolute -bottom-1 -right-1 z-20 flex h-9 w-9 items-center justify-center rounded-full border-[4px] border-white bg-white text-pink-500 shadow-[0_8px_18px_rgba(236,72,153,0.28)]">
+                      <InstagramIcon className="h-5 w-5" />
+                    </span>
+                  </span>
+                </span>
+                <span className="mt-3 block text-[16px] font-bold leading-tight text-[#3d0f1a]">
+                  KA Stories
+                </span>
+                <span className="mt-1 inline-flex items-center justify-center gap-1 text-[13px] font-medium leading-tight text-gray-400">
+                  <InstagramIcon className="h-3.5 w-3.5 text-pink-400" />
+                  Instagram
+                </span>
+              </a>
+
               {loading
-                ? Array.from({ length: 5 }).map((_, index) => (
-                    <div key={index} className="w-[96px] shrink-0 animate-pulse text-center sm:w-[104px]">
-                      <div className="mx-auto h-[88px] w-[88px] rounded-full bg-pink-100 sm:h-24 sm:w-24" />
+                ? Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="w-[118px] shrink-0 animate-pulse text-center sm:w-[130px]">
+                      <div className="mx-auto h-[112px] w-[112px] rounded-full bg-pink-100 sm:h-[126px] sm:w-[126px]" />
                       <div className="mx-auto mt-3 h-3 w-16 rounded-full bg-pink-100/80" />
                     </div>
                   ))
@@ -650,25 +705,36 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
                         key={group.id}
                         type="button"
                         onClick={() => onOpenGroup(index)}
-                        className="group w-[96px] shrink-0 snap-start text-center outline-none sm:w-[104px]"
+                        className="group w-[118px] shrink-0 snap-start text-center outline-none sm:w-[130px]"
                         aria-label={`Abrir story ${group.title}`}
                       >
                         <span
-                          className={`ka-story-ring mx-auto flex h-[88px] w-[88px] items-center justify-center rounded-full p-[4px] transition-transform duration-300 group-hover:scale-[1.04] sm:h-24 sm:w-24 ${
+                          className={`ka-story-ring mx-auto flex h-[112px] w-[112px] items-center justify-center rounded-full p-[4px] transition-transform duration-300 group-hover:scale-[1.04] sm:h-[126px] sm:w-[126px] ${
                             hasSeen ? "ka-story-ring-seen" : "ka-story-ring-unseen"
                           }`}
                         >
-                          <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.78)]">
+                          <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full border-[4px] border-white bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.78)]">
                             <StoryCover media={coverMedia} title={group.title} />
                           </span>
                         </span>
-                        <span className="mt-3 block truncate text-[13px] font-black leading-tight text-gray-900 sm:text-[13px]">
+                        <span className="mt-3 block truncate text-[16px] font-bold leading-tight text-[#3d0f1a]">
                           {group.title}
                         </span>
                       </button>
                     );
-                  })}
+              })}
             </div>
+          </div>
+
+          <div className="mt-6 flex items-center justify-center gap-3" aria-hidden="true">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <span
+                key={index}
+                className={`h-3 w-3 rounded-full ${
+                  index === 0 ? "bg-pink-500" : "bg-pink-100"
+                }`}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -948,6 +1014,28 @@ function ChevronRightIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+
+function InstagramIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <path d="M17.5 6.5h.01" />
+    </svg>
+  );
+}
+
+function SwipeHandIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 15.5V8.2a2.1 2.1 0 0 1 4.2 0v6.1" />
+      <path d="M16.2 14V6.8a2.1 2.1 0 0 1 4.2 0v8.1" />
+      <path d="M20.4 15.2V9.4a2 2 0 0 1 4 0V19" />
+      <path d="M12 16.2 9.8 14a2.1 2.1 0 0 0-3 3l5.9 6.3a8 8 0 0 0 5.8 2.5h1.8a6.1 6.1 0 0 0 6.1-6.1V16" />
+      <path d="M4.5 9.2 2.5 7.1M5.7 5.7 5 2.8M8.9 4.7 10 2" opacity=".55" />
     </svg>
   );
 }
