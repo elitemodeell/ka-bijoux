@@ -259,12 +259,13 @@ const getCanonicalProduct = cache(async function getCanonicalProduct(slug: strin
   const staticProduct =
     (blingProduct?.staticSlug ? getStaticProduct(blingProduct.staticSlug) : null) ??
     staticBySlug;
-  const canonicalSlug = getCanonicalProductSlug({
-    blingId: blingProduct?.blingId ?? dbProduct?.blingId,
-    sku: blingProduct?.sku ?? dbProduct?.sku ?? staticProduct?.sku,
-    slug: blingProduct?.slug ?? dbProduct?.slug ?? staticProduct?.slug ?? slug,
-    name: blingProduct?.name ?? dbProduct?.name ?? staticProduct?.name,
+  const fallbackCanonicalSlug = getCanonicalProductSlug({
+    blingId: blingProduct?.blingId,
+    sku: blingProduct?.sku ?? staticProduct?.sku,
+    slug: blingProduct?.slug ?? staticProduct?.slug ?? slug,
+    name: blingProduct?.name ?? staticProduct?.name,
   }) ?? slug;
+  const canonicalSlug = dbProduct?.slug?.trim() || fallbackCanonicalSlug;
 
   return { dbProduct, blingProduct, staticProduct, canonicalSlug };
 });
@@ -279,7 +280,7 @@ function normalizeProductText(value: string) {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { dbProduct, blingProduct, staticProduct } = await getCanonicalProduct(params.slug);
 
-  const name = blingProduct?.name ?? staticProduct?.name ?? dbProduct?.name ?? "Produto";
+  const name = dbProduct?.name ?? staticProduct?.name ?? blingProduct?.name ?? "Produto";
   const rawDescription =
     dbProduct?.description?.slice(0, 160) ??
     blingProduct?.description ??
@@ -307,7 +308,7 @@ function getPublicMetadataDescription(value: string | null | undefined, productN
 
 export default async function ProdutoPage({ params }: PageProps) {
   const { dbProduct, blingProduct, staticProduct, canonicalSlug } = await getCanonicalProduct(params.slug);
-  if (!dbProduct && !blingProduct && !staticProduct) notFound();
+  if (!dbProduct) notFound();
   if (params.slug !== canonicalSlug) redirect(`/produto/${canonicalSlug}`);
 
   if (dbProduct) {
@@ -327,34 +328,31 @@ export default async function ProdutoPage({ params }: PageProps) {
       take: 8,
     });
 
-    const subcategoryName =
-      dbProduct.subcategory?.name ??
-      blingProduct?.subcategory?.name ??
-      getSubcategoryName(dbProduct.subcategory?.slug ?? "");
-    const subcategoryPathSlug = getSubcategoryPathSlug(
-      dbProduct.subcategory?.slug ?? ""
-    );
-    const isAdultProduct = dbProduct.category?.slug === "sex-shop" || blingProduct?.catalogLine === "adult";
+    const subcategoryName = dbProduct.subcategory?.name ?? "";
+    const subcategoryPathSlug = dbProduct.subcategory
+      ? getSubcategoryPathSlug(dbProduct.subcategory.slug)
+      : "";
+    const isAdultProduct = dbProduct.category?.slug === "sex-shop";
     const rawDbImages = dbProduct.images.map((image) => image.url);
     const dbImages = isAdultProduct ? rawDbImages : rawDbImages.filter((url) => !isAdultImageUrl(url));
-    const galleryImages = dbImages.length ? dbImages : blingProduct?.images.map((image) => image.url) ?? [];
+    const galleryImages = dbImages;
     const contentOverride = getProductContentOverride({
-      blingId: blingProduct?.blingId ?? dbProduct.blingId,
-      sku: blingProduct?.sku ?? dbProduct.sku,
-      name: blingProduct?.name ?? dbProduct.name,
+      blingId: dbProduct.blingId,
+      sku: dbProduct.sku,
+      name: dbProduct.name,
     });
     const currentIdentity = new Set(getProductIdentityKeys({
-      blingId: blingProduct?.blingId ?? dbProduct.blingId,
-      sku: blingProduct?.sku ?? dbProduct.sku,
+      blingId: dbProduct.blingId,
+      sku: dbProduct.sku,
       slug: canonicalSlug,
-      name: blingProduct?.name ?? dbProduct.name,
+      name: dbProduct.name,
     }));
-    const currentCatalogLine = blingProduct?.catalogLine ?? getProductCatalogLine({
-      name: blingProduct?.name ?? dbProduct.name,
-      categorySlug: blingProduct?.category.slug ?? dbProduct.category?.slug,
-      categoryName: blingProduct?.category.name ?? dbProduct.category?.name,
-      subcategorySlug: blingProduct?.subcategory?.slug ?? dbProduct.subcategory?.slug,
-      subcategoryName: blingProduct?.subcategory?.name ?? dbProduct.subcategory?.name,
+    const currentCatalogLine = getProductCatalogLine({
+      name: dbProduct.name,
+      categorySlug: dbProduct.category?.slug,
+      categoryName: dbProduct.category?.name,
+      subcategorySlug: dbProduct.subcategory?.slug,
+      subcategoryName: dbProduct.subcategory?.name,
     });
     const relatedProducts = dedupeProductCards(
       relatedDbProducts
@@ -389,30 +387,29 @@ export default async function ProdutoPage({ params }: PageProps) {
 
     const adaptedProduct = {
       slug: canonicalSlug,
-      name: contentOverride?.displayName ?? blingProduct?.name ?? dbProduct.name,
-      sku: blingProduct?.sku ?? dbProduct.sku ?? "",
+      name: dbProduct.name,
+      sku: dbProduct.sku ?? blingProduct?.sku ?? "",
       brand: dbProduct.brand ?? undefined,
       ean: dbProduct.ean ?? undefined,
       price: blingProduct?.price ?? Number(dbProduct.price),
       promotionalPrice: blingProduct ? null : dbProduct.promotionalPrice ? Number(dbProduct.promotionalPrice) : null,
-      categoryName: dbProduct.category?.name ?? contentOverride?.categoryName ?? blingProduct?.category.name ?? "KA Bijoux",
-      categorySlug: dbProduct.category?.slug ?? blingProduct?.category.slug ?? "produtos",
-      subcategoryName: dbProduct.subcategory?.name ?? contentOverride?.subcategoryName ?? subcategoryName,
-      subcategorySlug: dbProduct.subcategory?.slug ?? blingProduct?.subcategory?.slug ?? "",
+      categoryName: dbProduct.category?.name ?? "KA Bijoux",
+      categorySlug: dbProduct.category?.slug ?? "produtos",
+      subcategoryName,
+      subcategorySlug: dbProduct.subcategory?.slug ?? "",
       imageFile: overrideGalleryImages[0] ?? "",
       galleryImages: overrideGalleryImages,
       shortDescription:
-        contentOverride?.shortDescription ??
         dbProduct.description?.split("\n")[0] ??
-        blingProduct?.description ??
+        contentOverride?.shortDescription ??
         "Produto selecionado com carinho pela KA Bijoux.",
-      longDescription: contentOverride?.longDescription ?? dbProduct.description ?? "",
+      longDescription: dbProduct.description ?? contentOverride?.longDescription ?? "",
       details: contentOverride?.details ?? [] as string[],
-      benefits: contentOverride?.benefits ?? dbProduct.benefits ?? undefined,
-      howToUse: contentOverride?.howToUse ?? dbProduct.howToUse ?? "",
-      composition: contentOverride?.composition ?? dbProduct.composition ?? undefined,
-      careInstructions: contentOverride?.careInstructions ?? dbProduct.careInstructions ?? undefined,
-      packageContents: contentOverride?.packageContents ?? dbProduct.packageContents ?? undefined,
+      benefits: dbProduct.benefits ?? contentOverride?.benefits ?? undefined,
+      howToUse: dbProduct.howToUse ?? contentOverride?.howToUse ?? "",
+      composition: dbProduct.composition ?? contentOverride?.composition ?? undefined,
+      careInstructions: dbProduct.careInstructions ?? contentOverride?.careInstructions ?? undefined,
+      packageContents: dbProduct.packageContents ?? contentOverride?.packageContents ?? undefined,
       weight: Number(dbProduct.weight),
       height: Number(dbProduct.height),
       width: Number(dbProduct.width),
@@ -421,9 +418,9 @@ export default async function ProdutoPage({ params }: PageProps) {
       relatedSlugs: [] as string[],
       relatedProducts,
       badge: dbProduct.isNew ? "Novo" : dbProduct.featured ? "Destaque" : undefined,
-      stock: blingProduct?.stock ?? dbProduct.stock,
+      stock: dbProduct.stock,
       installments: 3,
-      isAdult: contentOverride?.isAdult ?? blingProduct?.isAdult,
+      isAdult: isAdultProduct,
     };
 
     return (
@@ -511,23 +508,21 @@ function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | nu
     name: product.name,
   });
 
-  if (bling && (!bling.active || bling.stock <= 0)) return null;
-
   const rawDbImage = product.images[0]?.url ?? null;
-  const isAdultRelated = product.category?.slug === "sex-shop" || bling?.catalogLine === "adult";
+  const isAdultRelated = product.category?.slug === "sex-shop";
   const dbImage = rawDbImage && !isAdultRelated && isAdultImageUrl(rawDbImage) ? null : rawDbImage;
-  const image = dbImage ?? bling?.image ?? null;
+  const image = dbImage ?? null;
   const promotionalPrice = bling
     ? null
     : product.promotionalPrice
       ? Number(product.promotionalPrice)
       : null;
-  const category = product.category ? { name: product.category.name, slug: product.category.slug } : bling?.category ?? null;
+  const category = product.category ? { name: product.category.name, slug: product.category.slug } : null;
   const subcategory = product.subcategory
     ? { name: product.subcategory.name, slug: product.subcategory.slug }
-    : bling?.subcategory ?? null;
-  const catalogLine = bling?.catalogLine ?? getProductCatalogLine({
-    name: bling?.name ?? product.name,
+    : null;
+  const catalogLine = getProductCatalogLine({
+    name: product.name,
     categorySlug: category?.slug,
     categoryName: category?.name,
     subcategorySlug: subcategory?.slug,
@@ -536,21 +531,16 @@ function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | nu
 
   return {
     id: product.id,
-    name: bling?.name ?? product.name,
-    slug: getCanonicalProductSlug({
-      blingId: bling?.blingId ?? product.blingId,
-      sku: bling?.sku ?? product.sku,
-      slug: product.slug,
-      name: bling?.name ?? product.name,
-    }) ?? product.slug,
+    name: product.name,
+    slug: product.slug,
     price: bling?.price ?? Number(product.price),
     promotionalPrice,
     image,
     images: image ? [{ url: image, alt: product.name }] : [],
-    badge: product.isNew ? "Novo" : product.featured ? "Destaque" : bling?.badge ?? null,
-    stock: bling?.stock ?? product.stock,
-    sku: bling?.sku ?? product.sku,
-    description: product.description || bling?.description,
+    badge: product.isNew ? "Novo" : product.featured ? "Destaque" : null,
+    stock: product.stock,
+    sku: product.sku,
+    description: product.description,
     category,
     subcategory,
     catalogLine,

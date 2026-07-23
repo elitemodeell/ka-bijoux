@@ -9,13 +9,8 @@ import {
   getPublicCategoryName,
 } from "@/lib/catalog";
 import {
-  dedupeProductCards,
   findBlingProductForSource,
-  getCanonicalProductSlug,
-  getBlingProductCards,
-  getProductIdentityKeys,
   isAdultImageUrl,
-  type CatalogFilters,
   type ProductCardProduct,
 } from "@/lib/bling-catalog";
 import {
@@ -318,21 +313,9 @@ type LiveProductParams = {
   catalogLine: CatalogLine;
 };
 
-// Busca e merge do banco + Bling em tempo real para refletir importacoes recentes.
+// Busca os produtos editados no banco; a Bling entra apenas como apoio de preco.
 async function fetchMergedProducts(params: LiveProductParams): Promise<ProductCardProduct[]> {
     const { categorySlug, subcategorySlug, selectedPrice, sort, promo, onlyNew, query, catalogLine } = params;
-    const filters: CatalogFilters = {
-      categorySlug,
-      subcategorySlug,
-      selectedPrice,
-      sort,
-      promo,
-      onlyNew,
-      query,
-      catalogLine,
-      requireImage: true,
-    };
-
     const where: Prisma.ProductWhereInput = { active: true };
     if (categorySlug) where.category = { slug: categorySlug };
     if (subcategorySlug) where.subcategory = { slug: subcategorySlug };
@@ -345,48 +328,38 @@ async function fetchMergedProducts(params: LiveProductParams): Promise<ProductCa
         { name: { contains: query, mode: "insensitive" } },
         { description: { contains: query, mode: "insensitive" } },
         { sku: { contains: query, mode: "insensitive" } },
+        { searchTags: { hasSome: buildSearchTerms(query) } },
         ...searchMatches.categorySlugs.map((slug) => ({ category: { slug } })),
         ...searchMatches.subcategorySlugs.map((slug) => ({ subcategory: { slug } })),
       ];
     }
 
     const orderBy: Prisma.ProductOrderByWithRelationInput =
-      sort === "price_asc" ? { price: "asc" } : sort === "price_desc" ? { price: "desc" } : { createdAt: "desc" };
+      sort === "price_asc" || sort === "menor-preco"
+        ? { price: "asc" }
+        : sort === "price_desc" || sort === "maior-preco"
+          ? { price: "desc" }
+          : sort === "best_sellers" || sort === "mais-vendidos"
+            ? { soldCount: "desc" }
+            : { createdAt: "desc" };
 
-    const [products, allDbIdentityKeys] = await Promise.all([
-      prisma.product.findMany({ where, include: productInclude, orderBy, take: LISTING_DB_LIMIT }),
-      getAllDbProductIdentityKeys(),
-    ]);
+    const products = await prisma.product.findMany({ where, include: productInclude, orderBy, take: LISTING_DB_LIMIT });
     const dbProducts = products
       .map((product) => mapDbProductToCard(product))
       .filter((product): product is ProductCardProduct => Boolean(product))
       .filter((product) => Boolean(product.image))
       .filter((product) => matchesCatalogLine(toProductLineSource(product), catalogLine));
-
-    return mergeWithBlingCatalog(dbProducts, filters, allDbIdentityKeys);
-}
-
-async function getAllDbProductIdentityKeys() {
-  const products = await prisma.product.findMany({
-    select: { blingId: true, sku: true, slug: true, name: true },
-    take: LISTING_DB_LIMIT,
-  });
-  const keys = new Set<string>();
-  for (const product of products) {
-    getProductIdentityKeys(product).forEach((key) => keys.add(key));
-  }
-  return keys;
+    return sortProducts(dbProducts, sort);
 }
 
 async function getLiveProducts(params: LiveProductParams & { page: number }) {
   const { page, ...filterParams } = params;
-  const filters: CatalogFilters = filterParams;
 
   try {
     const allProducts = await withTimeout(fetchMergedProducts(filterParams), LISTING_DB_TIMEOUT_MS);
     return paginateProducts(allProducts, page);
   } catch {
-    return paginateProducts(getBlingProductCards(filters), page);
+    return paginateProducts([], page);
   }
 }
 
@@ -398,26 +371,23 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof 
     name: product.name,
   });
 
-  if (bling && (!bling.active || bling.stock <= 0)) return null;
-
   const isAdultCategory = product.category?.slug === "sex-shop";
   const rawDbImages = product.images.map((image) => ({ url: image.url, alt: image.alt ?? product.name }));
   const dbImages = isAdultCategory ? rawDbImages : rawDbImages.filter((i) => !isAdultImageUrl(i.url));
-  const images = dbImages.length ? dbImages : bling?.images ?? [];
-  const priceFromBling = Boolean(bling);
-  const promotionalPrice = priceFromBling
+  const images = dbImages;
+  const promotionalPrice = bling
     ? null
     : product.promotionalPrice
       ? Number(product.promotionalPrice)
       : null;
   const category = product.category
     ? { name: getPublicCategoryName(product.category), slug: product.category.slug }
-    : bling?.category ?? null;
+    : null;
   const subcategory = product.subcategory
     ? { name: product.subcategory.name, slug: product.subcategory.slug }
-    : bling?.subcategory ?? null;
-  const catalogLine = bling?.catalogLine ?? getProductCatalogLine({
-    name: bling?.name ?? product.name,
+    : null;
+  const catalogLine = getProductCatalogLine({
+    name: product.name,
     categorySlug: category?.slug,
     categoryName: category?.name,
     subcategorySlug: subcategory?.slug,
@@ -426,54 +396,33 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof 
 
   return {
     id: product.id,
-    name: bling?.name ?? product.name,
-    slug: getCanonicalProductSlug({
-      blingId: bling?.blingId ?? product.blingId,
-      sku: bling?.sku ?? product.sku,
-      slug: product.slug,
-      name: bling?.name ?? product.name,
-    }) ?? product.slug,
-    description: product.description || bling?.description,
+    name: product.name,
+    slug: product.slug,
+    description: product.description,
     price: bling?.price ?? Number(product.price),
     promotionalPrice,
     promo: promotionalPrice,
-    badge: product.isNew ? "Novo" : product.featured ? "Destaque" : bling?.badge ?? null,
-    stock: bling?.stock ?? product.stock,
-    sku: bling?.sku ?? product.sku,
+    badge: product.isNew ? "Novo" : product.featured ? "Destaque" : null,
+    stock: product.stock,
+    sku: product.sku,
     blingId: bling?.blingId ?? product.blingId,
     category,
     subcategory,
     images,
     image: images[0]?.url ?? null,
-    sourceOrder: bling?.sourceOrder ?? 100000,
+    sourceOrder: 100000,
     priceSource: bling ? "BLING" : "DATABASE",
-    imageSource: dbImages.length ? "DATABASE" : bling?.imageSource ?? "NONE",
+    imageSource: dbImages.length ? "DATABASE" : "NONE",
     catalogLine,
     isAdult: catalogLine === "adult",
   } satisfies ProductCardProduct;
 }
 
-function mergeWithBlingCatalog(
-  dbProducts: ProductCardProduct[],
-  filters: CatalogFilters,
-  allDbIdentityKeys = new Set<string>()
-) {
-  const canonicalDbProducts = dedupeProductCards(dbProducts).filter((product) =>
-    matchesCatalogLine(toProductLineSource(product), filters.catalogLine)
-  );
-  const seen = new Set<string>(allDbIdentityKeys);
-  for (const product of canonicalDbProducts) {
-    getProductIdentityKeys(product).forEach((key) => seen.add(key));
-  }
-
-  const blingProducts = getBlingProductCards(filters).filter((product) => {
-    const keys = getProductIdentityKeys(product);
-    return !keys.some((key) => seen.has(key));
-  });
-
-  return sortProducts(dedupeProductCards([...canonicalDbProducts, ...blingProducts]), filters.sort).filter((product) =>
-    matchesCatalogLine(toProductLineSource(product), filters.catalogLine)
-  );
+function buildSearchTerms(value: string) {
+  const original = value.trim();
+  const normalized = normalizeSearch(original);
+  const tokens = normalized.includes(" ") ? [] : normalized.split(/\s+/).filter((token) => token.length >= 2);
+  return Array.from(new Set([original, normalized, ...tokens].filter(Boolean)));
 }
 
 function paginateProducts(products: ProductCardProduct[], requestedPage: number) {

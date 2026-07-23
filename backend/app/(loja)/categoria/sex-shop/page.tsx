@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { getBlingProductCards, type ProductCardProduct } from "@/lib/bling-catalog";
+import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { getPublicCategoryName } from "@/lib/catalog";
+import { findBlingProductForSource, type ProductCardProduct } from "@/lib/bling-catalog";
+import { getProductCatalogLine, matchesCatalogLine } from "@/lib/product-line";
 import { getDiscountPercentage, getInstallmentInfo, getValidPromotionalPrice } from "@/lib/store-rules";
 import ProductVariantImage from "@/components/loja/ProductVariantImage";
 
@@ -15,6 +19,14 @@ export const metadata: Metadata = {
 
 type SearchParams = Record<string, string | string[] | undefined>;
 const ADULT_PAGE_SIZE = 20;
+const ADULT_DB_LIMIT = 1000;
+const ADULT_DB_TIMEOUT_MS = 5000;
+
+const adultProductInclude = {
+  category: true,
+  subcategory: true,
+  images: { orderBy: { order: "asc" as const }, take: 1 },
+};
 
 const CATEGORY_CARDS = [
   {
@@ -77,20 +89,13 @@ const bottomNav = [
   { label: "Pedidos", href: "/carrinho", icon: BoxIcon },
 ];
 
-export default function SexShopPage({ searchParams = {} }: { searchParams?: SearchParams }) {
+export default async function SexShopPage({ searchParams = {} }: { searchParams?: SearchParams }) {
   const promo = getParam(searchParams.promo) === "true";
   const onlyNew = getParam(searchParams.new) === "true";
   const sort = getParam(searchParams.sort) ?? getParam(searchParams.ordem) ?? "createdAt";
   const query = getParam(searchParams.q);
   const requestedPage = Math.max(1, Number.parseInt(getParam(searchParams.page) ?? "1", 10) || 1);
-  const allProducts = getBlingProductCards({
-    categorySlug: "sex-shop",
-    promo,
-    onlyNew,
-    sort,
-    query,
-    catalogLine: "adult",
-  });
+  const allProducts = await getAdultProducts({ promo, onlyNew, sort, query });
   const total = allProducts.length;
   const totalPages = Math.max(1, Math.ceil(total / ADULT_PAGE_SIZE));
   const page = Math.min(requestedPage, totalPages);
@@ -293,6 +298,168 @@ function AdultProductCard({ product }: { product: ProductCardProduct }) {
       </div>
     </Link>
   );
+}
+
+type AdultProductParams = {
+  promo: boolean;
+  onlyNew: boolean;
+  sort: string;
+  query?: string;
+};
+
+async function getAdultProducts(params: AdultProductParams) {
+  try {
+    return await withTimeout(fetchAdultProducts(params), ADULT_DB_TIMEOUT_MS);
+  } catch {
+    return [] as ProductCardProduct[];
+  }
+}
+
+async function fetchAdultProducts({ promo, onlyNew, sort, query }: AdultProductParams) {
+  const where: Prisma.ProductWhereInput = {
+    active: true,
+    category: { slug: "sex-shop" },
+  };
+
+  if (promo) where.promotionalPrice = { not: null };
+  if (onlyNew) where.isNew = true;
+  if (query) {
+    const searchTerms = buildSearchTerms(query);
+    where.OR = [
+      { name: { contains: query, mode: "insensitive" } },
+      { description: { contains: query, mode: "insensitive" } },
+      { sku: { contains: query, mode: "insensitive" } },
+      { searchTags: { hasSome: searchTerms } },
+    ];
+  }
+
+  const orderBy: Prisma.ProductOrderByWithRelationInput =
+    sort === "price_asc" || sort === "menor-preco"
+      ? { price: "asc" }
+      : sort === "price_desc" || sort === "maior-preco"
+        ? { price: "desc" }
+        : sort === "best_sellers" || sort === "mais-vendidos"
+          ? { soldCount: "desc" }
+          : { createdAt: "desc" };
+
+  const products = await prisma.product.findMany({
+    where,
+    include: adultProductInclude,
+    orderBy,
+    take: ADULT_DB_LIMIT,
+  });
+
+  const dbProducts = products
+    .map((product) => mapDbAdultProductToCard(product))
+    .filter((product): product is ProductCardProduct => Boolean(product))
+    .filter((product) => Boolean(product.image))
+    .filter((product) => matchesCatalogLine(toProductLineSource(product), "adult"));
+
+  return sortProducts(dbProducts, sort);
+}
+
+function mapDbAdultProductToCard(
+  product: Prisma.ProductGetPayload<{ include: typeof adultProductInclude }>
+): ProductCardProduct | null {
+  const bling = findBlingProductForSource({
+    blingId: product.blingId,
+    sku: product.sku,
+    slug: product.slug,
+    name: product.name,
+  });
+  const images = product.images.map((image) => ({ url: image.url, alt: image.alt ?? product.name }));
+  const category = product.category
+    ? { name: getPublicCategoryName(product.category), slug: product.category.slug }
+    : null;
+  const subcategory = product.subcategory
+    ? { name: product.subcategory.name, slug: product.subcategory.slug }
+    : null;
+  const catalogLine = getProductCatalogLine({
+    name: product.name,
+    categorySlug: category?.slug,
+    categoryName: category?.name,
+    subcategorySlug: subcategory?.slug,
+    subcategoryName: subcategory?.name,
+  });
+  const promotionalPrice = bling
+    ? null
+    : product.promotionalPrice
+      ? Number(product.promotionalPrice)
+      : null;
+
+  return {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    description: product.description,
+    price: bling?.price ?? Number(product.price),
+    promotionalPrice,
+    promo: promotionalPrice,
+    badge: product.isNew ? "Novo" : product.featured ? "Destaque" : null,
+    stock: product.stock,
+    sku: product.sku,
+    blingId: bling?.blingId ?? product.blingId,
+    category,
+    subcategory,
+    images,
+    image: images[0]?.url ?? null,
+    sourceOrder: 100000,
+    priceSource: bling ? "BLING" : "DATABASE",
+    imageSource: images.length ? "DATABASE" : "NONE",
+    catalogLine,
+    isAdult: catalogLine === "adult",
+  };
+}
+
+function toProductLineSource(product: ProductCardProduct) {
+  return {
+    name: product.name,
+    categorySlug: product.category?.slug,
+    categoryName: product.category?.name,
+    subcategorySlug: product.subcategory?.slug,
+    subcategoryName: product.subcategory?.name,
+  };
+}
+
+function sortProducts(products: ProductCardProduct[], sort?: string | null) {
+  if (sort === "price_asc" || sort === "menor-preco") {
+    return [...products].sort((a, b) => Number(a.price) - Number(b.price));
+  }
+
+  if (sort === "price_desc" || sort === "maior-preco") {
+    return [...products].sort((a, b) => Number(b.price) - Number(a.price));
+  }
+
+  if (sort === "best_sellers" || sort === "mais-vendidos") {
+    return [...products].sort((a, b) => Number(b.stock ?? 0) - Number(a.stock ?? 0));
+  }
+
+  return products;
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number) {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error("timeout")), ms);
+    }),
+  ]);
+}
+
+function buildSearchTerms(value: string) {
+  const original = value.trim();
+  const normalized = normalizeSearchQuery(original);
+  const tokens = normalized.includes(" ") ? [] : normalized.split(/\s+/).filter((token) => token.length >= 2);
+  return Array.from(new Set([original, normalized, ...tokens].filter(Boolean)));
+}
+
+function normalizeSearchQuery(value: string | null | undefined) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function HeroBenefit({ icon: Icon, title, text }: { icon: IconComponent; title: string; text: string }) {

@@ -5,7 +5,7 @@ import ProductCard from "@/components/loja/ProductCard";
 import AnimatedSection from "@/components/loja/AnimatedSection";
 import KABijouxStories from "@/components/loja/KABijouxStories";
 import QuickCategoryBar from "@/components/loja/QuickCategoryBar";
-import { getBlingProductCards, type ProductCardProduct } from "@/lib/bling-catalog";
+import type { ProductCardProduct } from "@/lib/bling-catalog";
 
 export const metadata: Metadata = {
   title: "KA Bijoux — Bijuterias, Óculos e Acessórios Femininos",
@@ -62,8 +62,7 @@ async function getHomeSections(): Promise<HomeSections> {
     fetchPool(`${base}/api/products?pageSize=24&${q}&promo=true`),
   ]);
 
-  const fallback = getBlingProductCards({ limit: 100, requireImage: true, catalogLine: "normal" });
-  const productPool = mergeUniqueProducts(main, featured, newProds, promo, fallback);
+  const productPool = mergeUniqueProducts(main, featured, newProds, promo);
 
   const usedIds = new Set<string>();
 
