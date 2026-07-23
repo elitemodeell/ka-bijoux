@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, type ComponentProps } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Image, ImageBackground, RefreshControl,
@@ -86,17 +86,18 @@ function getHighlightCover(str: string): string | null {
 }
 
 // ── Quick categories ─────────────────────────────────────────────
-const QUICK_CATS = [
-  { label: "Novidades",   emoji: "✨", route: "/produtos?new=true" },
-  { label: "Promoções",   emoji: "🏷️", route: "/produtos?promo=true" },
-  { label: "Lançamentos", emoji: "🆕", route: "/produtos" },
-  { label: "Bijuterias",  emoji: "💎", route: "/produtos?category=bijuterias" },
-  { label: "Capinhas",    emoji: "📱", route: "/produtos?category=capinhas-acessorios-celular" },
-  { label: "Bolsas",      emoji: "👜", route: "/produtos?category=bolsas-necessaires" },
-  { label: "Maquiagem",   emoji: "💄", route: "/produtos?category=maquiagem" },
-  { label: "Utilidades",  emoji: "🏡", route: "/produtos?category=utilidades-domesticas" },
-  { label: "Perfumes",    emoji: "🌸", route: "/produtos?category=perfumaria" },
-  { label: "Ver Mais",    emoji: "☰",  route: "/produtos" },
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+type QuickCategory =
+  | { label: string; icon: "new"; route: string; plus?: never }
+  | { label: string; icon: IoniconName; route: string; plus?: boolean };
+
+const QUICK_CATS: QuickCategory[] = [
+  { label: "Novidades", icon: "sparkles-outline", route: "/produtos?new=true" },
+  { label: "Promoções", icon: "pricetag-outline", route: "/produtos?promo=true" },
+  { label: "Lançamentos", icon: "new", route: "/produtos" },
+  { label: "Bijuterias", icon: "diamond-outline", route: "/produtos?category=bijuterias" },
+  { label: "Capinhas", icon: "phone-portrait-outline", route: "/produtos?category=capinhas-acessorios-celular" },
+  { label: "Sex Shop", icon: "heart-outline", route: "/categoria/sex-shop", plus: true },
 ];
 
 // ── Payment methods ──────────────────────────────────────────────
@@ -454,7 +455,7 @@ function FeriasPromoStrip({ onNav }: { onNav: (r: string) => void }) {
 }
 
 // ────────────────────────────────────────────────────────────────
-// QuickCategoryGrid (5×2)
+// QuickCategoryGrid
 // ────────────────────────────────────────────────────────────────
 function QuickCategoryGrid({ onNav }: { onNav: (r: string) => void }) {
   return (
@@ -467,9 +468,24 @@ function QuickCategoryGrid({ onNav }: { onNav: (r: string) => void }) {
           activeOpacity={0.8}
         >
           <View style={s.quickCircle}>
-            <Text style={s.quickEmoji}>{cat.emoji}</Text>
+            {cat.icon === "new" ? (
+              <View style={s.quickNewIcon}>
+                <Text style={s.quickNewText}>NEW</Text>
+              </View>
+            ) : (
+              <View style={s.quickIconWrap}>
+                <Ionicons name={cat.icon} size={24} color={Colors.primary} />
+                {cat.plus ? (
+                  <View style={s.quickPlusBadge}>
+                    <Ionicons name="add" size={10} color="#fff" />
+                  </View>
+                ) : null}
+              </View>
+            )}
           </View>
-          <Text style={s.quickLabel} numberOfLines={1}>{cat.label}</Text>
+          <Text style={s.quickLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+            {cat.label}
+          </Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -1304,22 +1320,42 @@ const s = StyleSheet.create({
   // ── QuickCategoryGrid ─────────────────────────────────────────
   quickGrid: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: Spacing.base,
+    flexWrap: "nowrap",
+    justifyContent: "center",
+    paddingHorizontal: 8,
     paddingVertical: 14,
     gap: 0,
     backgroundColor: Colors.background,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  quickItem:   { width: "20%", alignItems: "center", paddingVertical: 8, gap: 5 },
+  quickItem:   { width: "16.6667%", alignItems: "center", paddingVertical: 8, gap: 6 },
   quickCircle: {
     width: 50, height: 50, borderRadius: 25,
     backgroundColor: "#fff0f6", alignItems: "center", justifyContent: "center",
     borderWidth: 2, borderColor: Colors.pinkLight,
   },
-  quickEmoji: { fontSize: 20 },
-  quickLabel: { fontSize: 10, fontWeight: "600", color: Colors.textPrimary, textAlign: "center" },
+  quickIconWrap: { position: "relative", alignItems: "center", justifyContent: "center" },
+  quickNewIcon: {
+    width: 34, height: 23, borderRadius: 5,
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 2, borderColor: Colors.primary,
+  },
+  quickNewText: { fontSize: 10, fontWeight: "900", color: Colors.primary },
+  quickPlusBadge: {
+    position: "absolute", right: -6, bottom: -5,
+    width: 16, height: 16, borderRadius: 8,
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: Colors.primary,
+    borderWidth: 2, borderColor: "#fff0f6",
+  },
+  quickLabel: {
+    maxWidth: "100%",
+    fontSize: 9,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+    textAlign: "center",
+  },
 
   // ── ProductSection ────────────────────────────────────────────
   section:      { marginTop: 4 },
