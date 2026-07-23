@@ -38,6 +38,47 @@ interface Props {
   badgeSeal?: boolean;
 }
 
+const productRevealCallbacks = new Map<Element, () => void>();
+let productRevealObserver: IntersectionObserver | null = null;
+
+function observeProductReveal(element: HTMLElement) {
+  if (!("IntersectionObserver" in window)) {
+    element.classList.add("ka-visible");
+    return () => undefined;
+  }
+
+  if (!productRevealObserver) {
+    productRevealObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          productRevealCallbacks.get(entry.target)?.();
+          productRevealCallbacks.delete(entry.target);
+          productRevealObserver?.unobserve(entry.target);
+        }
+
+        if (productRevealCallbacks.size === 0) {
+          productRevealObserver?.disconnect();
+          productRevealObserver = null;
+        }
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -24px 0px" }
+    );
+  }
+
+  productRevealCallbacks.set(element, () => element.classList.add("ka-visible"));
+  productRevealObserver.observe(element);
+
+  return () => {
+    productRevealCallbacks.delete(element);
+    productRevealObserver?.unobserve(element);
+    if (productRevealCallbacks.size === 0) {
+      productRevealObserver?.disconnect();
+      productRevealObserver = null;
+    }
+  };
+}
+
 function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = false }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [imgError, setImgError] = useState(false);
@@ -55,25 +96,8 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
     const el = cardRef.current;
     if (!el) return;
 
-    if (!("IntersectionObserver" in window)) {
-      el.classList.add("ka-visible");
-      return;
-    }
-
     el.style.transitionDelay = `${Math.min(revealDelay, 260)}ms`;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          el.classList.add("ka-visible");
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.15, rootMargin: "0px 0px -24px 0px" }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
+    return observeProductReveal(el);
   }, [revealDelay]);
 
   function openQuickShop() {

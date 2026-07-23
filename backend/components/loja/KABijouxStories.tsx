@@ -658,12 +658,14 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
               >
                 <span className="ka-story-ring ka-story-ring-unseen mx-auto flex h-[clamp(58px,17vw,72px)] w-[clamp(58px,17vw,72px)] items-center justify-center rounded-full p-[3px] transition-transform duration-300 group-hover:scale-[1.04] sm:h-[94px] sm:w-[94px]">
                   <span className="relative flex h-full w-full items-center justify-center rounded-full border-[3px] border-white bg-[#fff1f6] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.82)]">
-                    <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
-                      <img
+                    <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full">
+                      <Image
                         src={storyLogo}
                         alt=""
-                        loading="lazy"
-                        className="h-full w-full object-contain p-2.5 sm:p-4"
+                        fill
+                        sizes="(max-width: 639px) 18vw, 94px"
+                        quality={88}
+                        className="object-contain p-2.5 sm:p-4"
                       />
                     </span>
                     <span className="absolute -bottom-1 -right-1 z-20 flex h-6 w-6 items-center justify-center rounded-full border-[2px] border-white bg-white text-pink-500 shadow-[0_8px_18px_rgba(236,72,153,0.22)] sm:h-8 sm:w-8 sm:border-[3px]">
@@ -877,6 +879,7 @@ function MainHeroCarousel() {
                     className="h-full w-full object-cover"
                     style={{ objectPosition: slide.objectPosition }}
                     loading={index === 0 ? "eager" : "lazy"}
+                    fetchPriority={index === 0 ? "high" : "auto"}
                     decoding="async"
                   />
                 </picture>
@@ -941,10 +944,12 @@ function StoryCover({ media, title }: { media: StoryCoverMedia; title: string })
     const fallbackSrc = media.fallbackSrc || DEFAULT_STORY_COVER;
 
     return (
-      <img
+      <Image
         src={fallbackSrc}
         alt={title}
-        loading="lazy"
+        fill
+        sizes="(max-width: 639px) 18vw, 94px"
+        quality={84}
         className={storyCoverImageClassName(fallbackSrc)}
         onError={() => {
           if (fallbackSrc !== DEFAULT_STORY_COVER) setFailed(true);
@@ -957,10 +962,12 @@ function StoryCover({ media, title }: { media: StoryCoverMedia; title: string })
     const coverSrc = media.type === "video" ? media.poster || media.src : media.src;
 
     return (
-      <img
+      <Image
         src={coverSrc}
         alt={title}
-        loading="lazy"
+        fill
+        sizes="(max-width: 639px) 18vw, 94px"
+        quality={84}
         className={storyCoverImageClassName(coverSrc)}
         onError={() => {
           if (media.type === "video" && media.poster) {
@@ -977,10 +984,12 @@ function StoryCover({ media, title }: { media: StoryCoverMedia; title: string })
 
   return (
     <span className="relative block h-full w-full overflow-hidden rounded-full bg-pink-50">
-      <img
+      <Image
         src={fallbackSrc}
         alt=""
-        loading="lazy"
+        fill
+        sizes="(max-width: 639px) 18vw, 94px"
+        quality={84}
         className={`absolute inset-0 transition-opacity duration-300 ${storyCoverImageClassName(fallbackSrc)} ${
           videoReady ? "opacity-0" : "opacity-100"
         }`}

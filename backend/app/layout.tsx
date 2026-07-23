@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     locale: "pt_BR",
   },
   icons: {
-    icon: "/images/brand/ka-bijoux-logo-header-320.png",
+    icon: "/favicon.ico",
     apple: "/images/brand/ka-bijoux-logo-header-320.png",
   },
 };

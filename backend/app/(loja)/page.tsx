@@ -32,10 +32,24 @@ interface HomeSections {
   belezaAutocuidado: ProductCardProduct[];
 }
 
-const productInclude = {
-  category: true,
-  subcategory: true,
-  images: { orderBy: { order: "asc" as const }, take: 1 },
+const homeProductSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  price: true,
+  promotionalPrice: true,
+  stock: true,
+  featured: true,
+  isNew: true,
+  sku: true,
+  blingId: true,
+  category: { select: { name: true, slug: true } },
+  subcategory: { select: { name: true, slug: true } },
+  images: {
+    orderBy: { order: "asc" as const },
+    take: 1,
+    select: { url: true, alt: true },
+  },
 };
 
 function pickBadge(id: string, options: string[]): string {
@@ -60,14 +74,18 @@ async function fetchPool(filters: {
   promo?: boolean;
   sort?: "createdAt" | "best_sellers";
 }): Promise<ProductCardProduct[]> {
-  const where: Prisma.ProductWhereInput = { active: true };
+  const where: Prisma.ProductWhereInput = {
+    active: true,
+    images: { some: {} },
+    category: { slug: { not: "sex-shop" } },
+  };
   if (filters.featured) where.featured = true;
   if (filters.isNew) where.isNew = true;
   if (filters.promo) where.promotionalPrice = { not: null };
 
   const products = await prisma.product.findMany({
     where,
-    include: productInclude,
+    select: homeProductSelect,
     orderBy: filters.sort === "best_sellers" ? { soldCount: "desc" } : { createdAt: "desc" },
     take: filters.limit,
   });
@@ -79,7 +97,7 @@ async function fetchPool(filters: {
     .filter((product) => matchesCatalogLine(toProductLineSource(product), "normal"));
 }
 
-function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof productInclude }>): ProductCardProduct | null {
+function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof homeProductSelect }>): ProductCardProduct | null {
   const bling = findBlingProductForSource({
     blingId: product.blingId,
     sku: product.sku,
@@ -113,7 +131,6 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof 
     id: product.id,
     name: product.name,
     slug: product.slug,
-    description: product.description,
     price: bling?.price ?? Number(product.price),
     promotionalPrice,
     promo: promotionalPrice,
@@ -145,10 +162,10 @@ function toProductLineSource(product: ProductCardProduct) {
 
 async function getHomeSections(): Promise<HomeSections> {
   const [main, featured, newProds, promo] = await Promise.all([
-    fetchPool({ limit: 120 }),
-    fetchPool({ limit: 40, featured: true, sort: "best_sellers" }),
-    fetchPool({ limit: 40, isNew: true }),
-    fetchPool({ limit: 40, promo: true }),
+    fetchPool({ limit: 70 }),
+    fetchPool({ limit: 24, featured: true, sort: "best_sellers" }),
+    fetchPool({ limit: 24, isNew: true }),
+    fetchPool({ limit: 24, promo: true }),
   ]);
 
   const productPool = mergeUniqueProducts(main, featured, newProds, promo);
@@ -200,7 +217,7 @@ export default async function HomePage() {
       <QuickCategoryBar />
 
       {/* ── Ofertas Relâmpago ─────────────────────────────── */}
-      <section className="py-10 bg-ka-subtle sm:py-14">
+      <section className="ka-deferred-section py-10 bg-ka-subtle sm:py-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <AnimatedSection className="flex items-end justify-between mb-6 sm:mb-10">
             <div>
@@ -223,7 +240,6 @@ export default async function HomePage() {
             products={ofertasRelampago}
             badgeOptions={["Imperd\u00edvel", "Oferta", "Super Pre\u00e7o", "Corre!", "Aproveite"]}
             keyPrefix="offer"
-            priorityCount={2}
             badgeSeal
             moreHref="/produtos"
             moreLabel="Ver todos os produtos"
@@ -232,7 +248,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── Achadinhos KA Bijoux ──────────────────────────── */}
-      <section className="py-10 bg-white sm:py-14">
+      <section className="ka-deferred-section py-10 bg-white sm:py-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <AnimatedSection className="flex items-end justify-between mb-6 sm:mb-10">
             <div>
@@ -264,7 +280,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── Faixa info ────────────────────────────────────── */}
-      <section className="py-6 bg-gradient-to-r from-pink-600 via-pink-500 to-pink-400">
+      <section className="ka-deferred-section py-6 bg-gradient-to-r from-pink-600 via-pink-500 to-pink-400">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
             <div className="flex items-center gap-3 text-center sm:text-left">
@@ -301,7 +317,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── Novidades ─────────────────────────────────────── */}
-      <section className="py-14 bg-ka-subtle sm:py-20">
+      <section className="ka-deferred-section py-14 bg-ka-subtle sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <AnimatedSection className="flex items-end justify-between mb-8 sm:mb-12">
             <div>
@@ -332,7 +348,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── Mais Vendidos ─────────────────────────────────── */}
-      <section className="py-14 bg-white sm:py-20">
+      <section className="ka-deferred-section py-14 bg-white sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <AnimatedSection className="flex items-end justify-between mb-8 sm:mb-12">
             <div>
@@ -363,7 +379,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── Para Presentear ───────────────────────────────── */}
-      <section className="py-14 bg-ka-subtle sm:py-20">
+      <section className="ka-deferred-section py-14 bg-ka-subtle sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <AnimatedSection className="flex items-end justify-between mb-8 sm:mb-12">
             <div>
@@ -394,7 +410,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── Beleza e Autocuidado ──────────────────────────── */}
-      <section className="py-14 bg-white sm:py-20">
+      <section className="ka-deferred-section py-14 bg-white sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <AnimatedSection className="flex items-end justify-between mb-8 sm:mb-12">
             <div>
@@ -425,7 +441,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── Depoimentos ────────────────────────────────────── */}
-      <section className="py-20 bg-ka-subtle">
+      <section className="ka-deferred-section py-20 bg-ka-subtle">
         <div className="max-w-7xl mx-auto px-6">
           <AnimatedSection className="text-center mb-14">
             <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-3 block">
@@ -448,7 +464,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── CTA Final ─────────────────────────────────────── */}
-      <section className="py-24 bg-gradient-to-br from-[#1A0A0F] via-[#2D0A18] to-[#1A0A0F] relative overflow-hidden">
+      <section className="ka-deferred-section py-24 bg-gradient-to-br from-[#1A0A0F] via-[#2D0A18] to-[#1A0A0F] relative overflow-hidden">
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-10"
           style={{ background: "radial-gradient(circle, #FF4D6D 0%, transparent 70%)" }}
@@ -488,7 +504,6 @@ type SectionGridProps = {
   moreLabel: string;
   keyPrefix?: string;
   revealStep?: number;
-  priorityCount?: number;
   badgeSeal?: boolean;
 };
 
@@ -499,7 +514,6 @@ function SectionGrid({
   moreLabel,
   keyPrefix = "product",
   revealStep = 50,
-  priorityCount = 0,
   badgeSeal = false,
 }: SectionGridProps) {
   return (
@@ -513,7 +527,6 @@ function SectionGrid({
               badge: pickBadge(product.id, badgeOptions),
             }}
             revealDelay={i * revealStep}
-            priority={i < priorityCount}
             badgeSeal={badgeSeal}
           />
         ))}
