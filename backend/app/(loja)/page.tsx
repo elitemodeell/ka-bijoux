@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Prisma } from "@prisma/client";
 import AnnouncementBar from "@/components/loja/AnnouncementBar";
 import ProductCard from "@/components/loja/ProductCard";
 import AnimatedSection from "@/components/loja/AnimatedSection";
 import KABijouxStories from "@/components/loja/KABijouxStories";
 import QuickCategoryBar from "@/components/loja/QuickCategoryBar";
-import type { ProductCardProduct } from "@/lib/bling-catalog";
+import { getPublicCategoryName } from "@/lib/catalog";
+import { prisma } from "@/lib/prisma";
+import {
+  findBlingProductForSource,
+  isAdultImageUrl,
+  type ProductCardProduct,
+} from "@/lib/bling-catalog";
+import { getProductCatalogLine, matchesCatalogLine } from "@/lib/product-line";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,29 +33,15 @@ interface HomeSections {
   belezaAutocuidado: ProductCardProduct[];
 }
 
+const productInclude = {
+  category: true,
+  subcategory: true,
+  images: { orderBy: { order: "asc" as const }, take: 1 },
+};
+
 function pickBadge(id: string, options: string[]): string {
   const n = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
   return options[n % options.length];
-}
-
-async function fetchPool(url: string): Promise<ProductCardProduct[]> {
-  try {
-    const res = await fetch(url, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return [];
-    const json = await res.json();
-    return Array.isArray(json.data?.products) ? json.data.products : [];
-  } catch {
-    return [];
-  }
-}
-
-function getStorefrontBaseUrl() {
-  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "https://ka-bijoux-backend.vercel.app";
 }
 
 function mergeUniqueProducts(...pools: ProductCardProduct[][]): ProductCardProduct[] {
@@ -60,15 +54,102 @@ function mergeUniqueProducts(...pools: ProductCardProduct[][]): ProductCardProdu
   return Array.from(products.values());
 }
 
-async function getHomeSections(): Promise<HomeSections> {
-  const base = getStorefrontBaseUrl();
-  const q = "withImage=true&line=normal";
+async function fetchPool(filters: {
+  limit: number;
+  featured?: boolean;
+  isNew?: boolean;
+  promo?: boolean;
+  sort?: "createdAt" | "best_sellers";
+}): Promise<ProductCardProduct[]> {
+  const where: Prisma.ProductWhereInput = { active: true };
+  if (filters.featured) where.featured = true;
+  if (filters.isNew) where.isNew = true;
+  if (filters.promo) where.promotionalPrice = { not: null };
 
+  const products = await prisma.product.findMany({
+    where,
+    include: productInclude,
+    orderBy: filters.sort === "best_sellers" ? { soldCount: "desc" } : { createdAt: "desc" },
+    take: filters.limit,
+  });
+
+  return products
+    .map((product) => mapDbProductToCard(product))
+    .filter((product): product is ProductCardProduct => Boolean(product))
+    .filter((product) => Boolean(product.image))
+    .filter((product) => matchesCatalogLine(toProductLineSource(product), "normal"));
+}
+
+function mapDbProductToCard(product: Prisma.ProductGetPayload<{ include: typeof productInclude }>): ProductCardProduct | null {
+  const bling = findBlingProductForSource({
+    blingId: product.blingId,
+    sku: product.sku,
+    slug: product.slug,
+    name: product.name,
+  });
+
+  const isAdultCategory = product.category?.slug === "sex-shop";
+  const rawDbImages = product.images.map((image) => ({ url: image.url, alt: image.alt ?? product.name }));
+  const dbImages = isAdultCategory ? rawDbImages : rawDbImages.filter((image) => !isAdultImageUrl(image.url));
+  const promotionalPrice = bling
+    ? null
+    : product.promotionalPrice
+      ? Number(product.promotionalPrice)
+      : null;
+  const category = product.category
+    ? { name: getPublicCategoryName(product.category), slug: product.category.slug }
+    : null;
+  const subcategory = product.subcategory
+    ? { name: product.subcategory.name, slug: product.subcategory.slug }
+    : null;
+  const catalogLine = getProductCatalogLine({
+    name: product.name,
+    categorySlug: category?.slug,
+    categoryName: category?.name,
+    subcategorySlug: subcategory?.slug,
+    subcategoryName: subcategory?.name,
+  });
+
+  return {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    description: product.description,
+    price: bling?.price ?? Number(product.price),
+    promotionalPrice,
+    promo: promotionalPrice,
+    badge: product.isNew ? "Novo" : product.featured ? "Destaque" : null,
+    stock: product.stock,
+    sku: product.sku,
+    blingId: bling?.blingId ?? product.blingId,
+    category,
+    subcategory,
+    images: dbImages,
+    image: dbImages[0]?.url ?? null,
+    sourceOrder: 100000,
+    priceSource: bling ? "BLING" : "DATABASE",
+    imageSource: dbImages.length ? "DATABASE" : "NONE",
+    catalogLine,
+    isAdult: catalogLine === "adult",
+  } satisfies ProductCardProduct;
+}
+
+function toProductLineSource(product: ProductCardProduct) {
+  return {
+    name: product.name,
+    categorySlug: product.category?.slug,
+    categoryName: product.category?.name,
+    subcategorySlug: product.subcategory?.slug,
+    subcategoryName: product.subcategory?.name,
+  };
+}
+
+async function getHomeSections(): Promise<HomeSections> {
   const [main, featured, newProds, promo] = await Promise.all([
-    fetchPool(`${base}/api/products?pageSize=80&${q}`),
-    fetchPool(`${base}/api/products?pageSize=24&${q}&featured=true`),
-    fetchPool(`${base}/api/products?pageSize=24&${q}&new=true`),
-    fetchPool(`${base}/api/products?pageSize=24&${q}&promo=true`),
+    fetchPool({ limit: 120 }),
+    fetchPool({ limit: 40, featured: true, sort: "best_sellers" }),
+    fetchPool({ limit: 40, isNew: true }),
+    fetchPool({ limit: 40, promo: true }),
   ]);
 
   const productPool = mergeUniqueProducts(main, featured, newProds, promo);
