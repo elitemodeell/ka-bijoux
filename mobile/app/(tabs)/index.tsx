@@ -11,6 +11,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { ProductCard } from "@/components/product/ProductCard";
 import { productsApi, categoriesApi, storiesApi } from "@/services/api";
+import { getVisibleMobileCategories } from "@/lib/catalogVisibility";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -33,7 +34,7 @@ const BANNERS = [
     id: "2",
     img: `${SITE}/banners/banner-mala-pronta-look-completo-mobile.webp`,
     title: "Mala Pronta, Look Completo",
-    subtitle: "Capinhas, bolsas, óculos e acessórios",
+    subtitle: "Capinhas, bolsas e acessórios",
     cta: "Comprar Agora",
     route: "/produtos",
   },
@@ -93,8 +94,8 @@ const QUICK_CATS = [
   { label: "Capinhas",    emoji: "📱", route: "/produtos?category=capinhas-acessorios-celular" },
   { label: "Bolsas",      emoji: "👜", route: "/produtos?category=bolsas-necessaires" },
   { label: "Maquiagem",   emoji: "💄", route: "/produtos?category=maquiagem" },
-  { label: "Óculos",      emoji: "🕶️", route: "/produtos?category=oculos" },
-  { label: "Infantil",    emoji: "🎀", route: "/produtos?category=roupa-infantil" },
+  { label: "Utilidades",  emoji: "🏡", route: "/produtos?category=utilidades-domesticas" },
+  { label: "Perfumes",    emoji: "🌸", route: "/produtos?category=perfumaria" },
   { label: "Ver Mais",    emoji: "☰",  route: "/produtos" },
 ];
 
@@ -112,7 +113,7 @@ const PAYMENTS = [
 const TICKER = [
   "💖 Novidades selecionadas para você",
   "📱 Capinhas estilosas para o seu celular",
-  "🕶️ Óculos de sol com muito charme",
+  "🏡 Utilidades charmosas para sua rotina",
   "✨ Bijuterias delicadas para o dia a dia",
   "🛍️ Acessórios femininos com estilo",
   "🚚 Envio para todo o Brasil",
@@ -733,8 +734,16 @@ function takeSection(pool: Prod[], usedIds: Set<string>, n: number): Prod[] {
 // ────────────────────────────────────────────────────────────────
 // HomeScreen
 // ────────────────────────────────────────────────────────────────
+type HomeCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  mobileProductCount?: number | null;
+  _count?: { products: number };
+};
+
 interface HomeData {
-  categories: Array<{ id: string; name: string; slug: string }>;
+  categories: HomeCategory[];
   ofertas: Prod[];
   achadinhos: Prod[];
   novidades: Prod[];
@@ -767,7 +776,7 @@ export default function HomeScreen() {
         productsApi.list({ ...q, promo: true, pageSize: 24 }),
       ]);
 
-      const cats   = catRes.status      === "fulfilled" ? (catRes.value.data.data               ?? []) : [];
+      const cats   = catRes.status      === "fulfilled" ? getVisibleMobileCategories<HomeCategory>(catRes.value.data.data ?? [], { limit: 8 }) : [];
       const mainP  = mainRes.status     === "fulfilled" ? (mainRes.value.data.data?.products     ?? []) : [];
       const featP  = featuredRes.status === "fulfilled" ? (featuredRes.value.data.data?.products ?? []) : [];
       const newP   = newRes.status      === "fulfilled" ? (newRes.value.data.data?.products      ?? []) : [];
@@ -944,7 +953,7 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingHorizontal: Spacing.base, gap: 10, paddingBottom: 4 }}
             >
-              {categories.filter((c) => c.slug !== "sex-shop").slice(0, 8).map((cat) => (
+              {categories.map((cat) => (
                 <TouchableOpacity
                   key={cat.id}
                   style={s.catChip}

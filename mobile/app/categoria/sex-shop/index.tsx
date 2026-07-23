@@ -22,18 +22,44 @@ import { ProductCard } from "@/components/product/ProductCard";
 const SITE = process.env.EXPO_PUBLIC_API_URL ?? "https://ka-bijoux-backend.vercel.app";
 const PAGE_SIZE = 20;
 
-type SortKey = "createdAt" | "price_asc" | "price_desc" | "featured";
+type SortKey = "createdAt" | "price_asc" | "price_desc" | "best_sellers";
 
 const CATEGORY_CARDS = [
   {
     slug: "geis-e-cremes",
+    subcategory: "sex-shop-geis-e-cremes",
     title: "Géis & Cremes",
     subtitle: "Massagem e prazer",
     image: "/uploads/products/k-med-gel-intimo.png",
     bg: "#fde1e5",
   },
   {
+    slug: "jogos-adultos",
+    subcategory: "sex-shop-jogos",
+    title: "Jogos Adultos",
+    subtitle: "Cartas & desafios",
+    image: "/uploads/products/jogo-de-seducao-sexy-3104000001671.jpg",
+    bg: "#f7d8e5",
+  },
+  {
+    slug: "acessorios-adultos",
+    subcategory: "sex-shop-acessorios",
+    title: "Acessórios Adultos",
+    subtitle: "Itens especiais",
+    image: "/uploads/products/algema-rosa-veludo-3104000004736.jpg",
+    bg: "#f3dce8",
+  },
+  {
+    slug: "proteses-adultas",
+    subcategory: "sex-shop-proteses",
+    title: "Próteses Adultas",
+    subtitle: "Discrição total",
+    image: "/uploads/products/pau-erguido-sexy-3104000004724.jpg",
+    bg: "#eadff7",
+  },
+  {
     slug: "vibradores",
+    subcategory: "sex-shop-vibradores",
     title: "Vibradores",
     subtitle: "Controle & intensidade",
     image: "/uploads/products/vibrador-golfinho-rosa.png",
@@ -41,6 +67,7 @@ const CATEGORY_CARDS = [
   },
   {
     slug: "aneis-penianos",
+    subcategory: "sex-shop-aneis",
     title: "Anéis Penianos",
     subtitle: "Diversas cores",
     image: "/uploads/products/anel-peniano-bolinha-cores.png",
@@ -48,6 +75,7 @@ const CATEGORY_CARDS = [
   },
   {
     slug: "masturbadores",
+    subcategory: "sex-shop-masturbadores",
     title: "Masturbadores",
     subtitle: "EGGs & mini bullets",
     image: "/uploads/products/egg-wavy.png",
@@ -55,6 +83,7 @@ const CATEGORY_CARDS = [
   },
   {
     slug: "lubrificantes",
+    subcategory: "sex-shop-lubrificantes",
     title: "Lubrificantes",
     subtitle: "Íntimo & suave",
     image: "/uploads/products/lub-plus-100ml.png",
@@ -62,6 +91,7 @@ const CATEGORY_CARDS = [
   },
   {
     slug: "balas-liquidas",
+    subcategory: "sex-shop-balas-liquidas",
     title: "Balas Líquidas",
     subtitle: "Sabores especiais",
     image: "/uploads/products/pocao-do-amor.png",
@@ -69,6 +99,7 @@ const CATEGORY_CARDS = [
   },
   {
     slug: "desodorantes-intimos",
+    subcategory: "sex-shop-desodorantes",
     title: "Desodorantes Íntimos",
     subtitle: "Frescor & delicadeza",
     image: "/uploads/products/desodorante-intimo-morango.png",
@@ -102,7 +133,7 @@ const SORT_OPTS: { key: SortKey; label: string }[] = [
   { key: "createdAt", label: "Novidades" },
   { key: "price_asc", label: "Menor preço" },
   { key: "price_desc", label: "Maior preço" },
-  { key: "featured", label: "Mais vendidos" },
+  { key: "best_sellers", label: "Mais vendidos" },
 ];
 
 const FILTER_OPTS = [
@@ -266,7 +297,15 @@ export default function SexShopScreen() {
               <Text style={styles.sectionTitle}>Explorar por categoria</Text>
               <View style={styles.categoryGrid}>
                 {CATEGORY_CARDS.map((card) => (
-                  <CategoryCard key={card.slug} card={card} />
+                  <CategoryCard
+                    key={card.slug}
+                    card={card}
+                    onPress={() =>
+                      router.push(
+                        `/produtos?category=sex-shop&subcategory=${card.subcategory}&title=${encodeURIComponent(card.title)}` as never
+                      )
+                    }
+                  />
                 ))}
               </View>
             </View>
@@ -335,10 +374,14 @@ function HeroBenefit({ icon, title, sub }: { icon: keyof typeof Ionicons.glyphMa
   );
 }
 
-function CategoryCard({ card }: { card: typeof CATEGORY_CARDS[number] }) {
+function CategoryCard({ card, onPress }: { card: typeof CATEGORY_CARDS[number]; onPress: () => void }) {
   if (card.wide) {
     return (
-      <View style={[styles.catCard, styles.catCardWide, { backgroundColor: card.bg }]}>
+      <TouchableOpacity
+        style={[styles.catCard, styles.catCardWide, { backgroundColor: card.bg }]}
+        onPress={onPress}
+        activeOpacity={0.82}
+      >
         <Image source={{ uri: `${SITE}${card.image}` }} style={styles.catImage} resizeMode="contain" />
         <View style={styles.catInfo}>
           <Text style={styles.catTitle}>{card.title}</Text>
@@ -347,18 +390,22 @@ function CategoryCard({ card }: { card: typeof CATEGORY_CARDS[number] }) {
         <View style={styles.catArrow}>
           <Ionicons name="chevron-forward" size={18} color="#7d4b5d" />
         </View>
-      </View>
+      </TouchableOpacity>
     );
   }
   return (
-    <View style={[styles.catCard, { backgroundColor: card.bg }]}>
+    <TouchableOpacity
+      style={[styles.catCard, { backgroundColor: card.bg }]}
+      onPress={onPress}
+      activeOpacity={0.82}
+    >
       <Image source={{ uri: `${SITE}${card.image}` }} style={styles.catImageSmall} resizeMode="contain" />
       <Text style={styles.catTitle} numberOfLines={2}>{card.title}</Text>
       <Text style={styles.catSubtitle} numberOfLines={1}>{card.subtitle}</Text>
       <View style={styles.catArrowSmall}>
         <Ionicons name="chevron-forward" size={14} color="#7d4b5d" />
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

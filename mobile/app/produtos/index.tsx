@@ -26,7 +26,14 @@ const PAGE_SIZE = 20;
 
 export default function ProdutosScreen() {
   const router = useRouter();
-  const { category, title, promo, new: newParam, q } = useLocalSearchParams<{ category?: string; title?: string; promo?: string; new?: string; q?: string }>();
+  const { category, subcategory, title, promo, new: newParam, q } = useLocalSearchParams<{
+    category?: string;
+    subcategory?: string;
+    title?: string;
+    promo?: string;
+    new?: string;
+    q?: string;
+  }>();
   const isPromo = promo === "true";
   const isNew = newParam === "true";
   const query = typeof q === "string" ? q.trim() : "";
@@ -45,6 +52,7 @@ export default function ProdutosScreen() {
         page: p, pageSize: PAGE_SIZE, sort: currentSort,
       };
       if (category) params.category = category;
+      if (subcategory) params.subcategory = subcategory;
       if (isPromo) params.promo = true;
       if (isNew) params.new = true;
       if (query) params.q = query;
@@ -71,23 +79,33 @@ export default function ProdutosScreen() {
     setHasMore(true);
     fetchProducts(1, sort, true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, sort, isPromo, isNew, query]);
+  }, [category, subcategory, sort, isPromo, isNew, query]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchProducts(1, sort, true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sort, category, isPromo, isNew, query]);
+  }, [sort, category, subcategory, isPromo, isNew, query]);
 
   const loadMore = useCallback(() => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     fetchProducts(page + 1, sort, false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadingMore, hasMore, page, sort, category, isPromo, isNew, query]);
+  }, [loadingMore, hasMore, page, sort, category, subcategory, isPromo, isNew, query]);
 
   const screenTitle = title
-    ?? (query ? `Busca: ${query}` : isPromo ? "Promoções" : isNew ? "Novidades" : category ? category.replace(/-/g, " ") : "Produtos");
+    ?? (query
+      ? `Busca: ${query}`
+      : isPromo
+        ? "Promoções"
+        : isNew
+          ? "Novidades"
+          : subcategory
+            ? subcategory.replace(/^sex-shop-/, "").replace(/-/g, " ")
+            : category
+              ? category.replace(/-/g, " ")
+              : "Produtos");
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>

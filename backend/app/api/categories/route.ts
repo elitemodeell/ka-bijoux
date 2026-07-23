@@ -26,7 +26,36 @@ export async function GET() {
       },
     });
 
-    return apiSuccess(categories);
+    const [categoryCounts, subcategoryCounts] = await Promise.all([
+      prisma.product.groupBy({
+        by: ["categoryId"],
+        where: { active: true, images: { some: {} } },
+        _count: { _all: true },
+      }),
+      prisma.product.groupBy({
+        by: ["subcategoryId"],
+        where: { active: true, subcategoryId: { not: null }, images: { some: {} } },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const countByCategory = new Map(categoryCounts.map((item) => [item.categoryId, item._count._all]));
+    const countBySubcategory = new Map(
+      subcategoryCounts
+        .filter((item) => item.subcategoryId)
+        .map((item) => [item.subcategoryId as string, item._count._all])
+    );
+
+    return apiSuccess(
+      categories.map((category) => ({
+        ...category,
+        mobileProductCount: countByCategory.get(category.id) ?? 0,
+        children: category.children.map((child) => ({
+          ...child,
+          mobileProductCount: countBySubcategory.get(child.id) ?? 0,
+        })),
+      }))
+    );
   } catch {
     return apiError("Erro ao buscar categorias.", 500);
   }

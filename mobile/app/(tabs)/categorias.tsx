@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { categoriesApi } from "@/services/api";
+import { getMobileProductCount, getVisibleMobileCategories } from "@/lib/catalogVisibility";
 
 const CATEGORY_EMOJIS: Record<string, string> = {
   bijuterias: "💍",
@@ -25,6 +26,7 @@ const CATEGORY_EMOJIS: Record<string, string> = {
 interface Category {
   id: string; name: string; slug: string; active: boolean;
   _count?: { products: number };
+  mobileProductCount?: number | null;
 }
 
 export default function CategoriasScreen() {
@@ -34,7 +36,7 @@ export default function CategoriasScreen() {
 
   useEffect(() => {
     categoriesApi.list()
-      .then((res) => setCategories(res.data.data ?? []))
+      .then((res) => setCategories(getVisibleMobileCategories(res.data.data ?? [], { includeAdult: true })))
       .finally(() => setLoading(false));
   }, []);
 
@@ -62,7 +64,7 @@ export default function CategoriasScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.card}
-            onPress={() => router.push(`/produtos?category=${item.slug}`)}
+            onPress={() => router.push(item.slug === "sex-shop" ? "/categoria/sex-shop" : `/produtos?category=${item.slug}`)}
             activeOpacity={0.8}
           >
             <View style={styles.emojiContainer}>
@@ -71,9 +73,9 @@ export default function CategoriasScreen() {
               </Text>
             </View>
             <Text style={styles.categoryName}>{item.name}</Text>
-            {item._count && (
+            {getMobileProductCount(item) > 0 && (
               <Text style={styles.productCount}>
-                {item._count.products} {item._count.products === 1 ? "produto" : "produtos"}
+                {getMobileProductCount(item)} {getMobileProductCount(item) === 1 ? "produto" : "produtos"}
               </Text>
             )}
           </TouchableOpacity>
