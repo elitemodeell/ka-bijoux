@@ -1,13 +1,15 @@
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
-import { authApi } from "@/services/api";
+import { AUTH_MODE_KEY, authApi, setAuthSessionInvalidatedHandler } from "@/services/api";
 import { registerPushToken, unregisterPushToken } from "@/lib/pushNotifications";
+import { getSupabaseClientIfConfigured } from "@/lib/supabase";
 
-interface Customer {
+export interface Customer {
   id: string;
   name: string;
   email: string;
   phone?: string;
+  cpf?: string | null;
 }
 
 interface AuthState {
@@ -20,6 +22,11 @@ interface AuthState {
   logout: () => Promise<void>;
   loadSession: () => Promise<void>;
   setCustomer: (customer: Customer) => Promise<void>;
+  completeSupabaseLogin: (data: {
+    accessToken: string;
+    refreshToken: string;
+    customer: Customer;
+  }) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -29,7 +36,25 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   loadSession: async () => {
     try {
-      const token = await SecureStore.getItemAsync("ka-token");
+      let token = await SecureStore.getItemAsync("ka-token");
+      const authMode = await SecureStore.getItemAsync(AUTH_MODE_KEY);
+      if (authMode === "supabase") {
+        const supabase = getSupabaseClientIfConfigured();
+        if (supabase) {
+          const session = (await supabase.auth.getSession()).data.session;
+          if (session) {
+            token = session.access_token;
+            await SecureStore.setItemAsync("ka-token", session.access_token);
+            await SecureStore.setItemAsync("ka-refresh-token", session.refresh_token);
+          } else {
+            token = null;
+            await SecureStore.deleteItemAsync("ka-token");
+            await SecureStore.deleteItemAsync("ka-refresh-token");
+            await SecureStore.deleteItemAsync("ka-customer");
+            await SecureStore.deleteItemAsync(AUTH_MODE_KEY);
+          }
+        }
+      }
       const customerJson = await SecureStore.getItemAsync("ka-customer");
       if (token && customerJson) {
         set({ token, customer: JSON.parse(customerJson), isLoading: false });
@@ -45,8 +70,12 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   login: async (email, password) => {
     const res = await authApi.login(email, password);
-    const { token, customer } = res.data.data;
+    await getSupabaseClientIfConfigured()?.auth.signOut({ scope: "local" }).catch(() => undefined);
+    const { token, refreshToken, customer } = res.data.data;
     await SecureStore.setItemAsync("ka-token", token);
+    if (refreshToken) await SecureStore.setItemAsync("ka-refresh-token", refreshToken);
+    else await SecureStore.deleteItemAsync("ka-refresh-token");
+    await SecureStore.setItemAsync(AUTH_MODE_KEY, "backend");
     await SecureStore.setItemAsync("ka-customer", JSON.stringify(customer));
     set({ token, customer });
     registerPushToken().catch(() => {});
@@ -54,8 +83,12 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   register: async (data) => {
     const res = await authApi.register(data);
-    const { token, customer } = res.data.data;
+    await getSupabaseClientIfConfigured()?.auth.signOut({ scope: "local" }).catch(() => undefined);
+    const { token, refreshToken, customer } = res.data.data;
     await SecureStore.setItemAsync("ka-token", token);
+    if (refreshToken) await SecureStore.setItemAsync("ka-refresh-token", refreshToken);
+    else await SecureStore.deleteItemAsync("ka-refresh-token");
+    await SecureStore.setItemAsync(AUTH_MODE_KEY, "backend");
     await SecureStore.setItemAsync("ka-customer", JSON.stringify(customer));
     set({ token, customer });
     registerPushToken().catch(() => {});
@@ -63,8 +96,12 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     await unregisterPushToken();
+    await authApi.logout().catch(() => undefined);
     await SecureStore.deleteItemAsync("ka-token");
+    await SecureStore.deleteItemAsync("ka-refresh-token");
     await SecureStore.deleteItemAsync("ka-customer");
+    await SecureStore.deleteItemAsync(AUTH_MODE_KEY);
+    await getSupabaseClientIfConfigured()?.auth.signOut({ scope: "local" }).catch(() => undefined);
     set({ token: null, customer: null });
   },
 
@@ -72,4 +109,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     await SecureStore.setItemAsync("ka-customer", JSON.stringify(customer));
     set({ customer });
   },
+
+  completeSupabaseLogin: async ({ accessToken, refreshToken, customer }) => {
+    await SecureStore.setItemAsync("ka-token", accessToken);
+    await SecureStore.setItemAsync("ka-refresh-token", refreshToken);
+    await SecureStore.setItemAsync("ka-customer", JSON.stringify(customer));
+    await SecureStore.setItemAsync(AUTH_MODE_KEY, "supabase");
+    set({ token: accessToken, customer, isLoading: false });
+    registerPushToken().catch(() => {});
+  },
 }));
+
+setAuthSessionInvalidatedHandler(() => {
+  useAuthStore.setState({ token: null, customer: null, isLoading: false });
+});

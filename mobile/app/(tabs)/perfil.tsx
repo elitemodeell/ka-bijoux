@@ -40,7 +40,7 @@ export default function PerfilScreen() {
           <Text style={styles.guestTitle}>Entre na sua conta</Text>
           <Text style={styles.guestText}>Faça login para ver seus pedidos e dados</Text>
           <View style={{ marginTop: 24, gap: 10, width: 220 }}>
-            <Button label="Entrar" onPress={() => router.push("/(auth)/login")} fullWidth />
+            <Button label="Entrar" onPress={() => router.push("/(auth)/entrada")} fullWidth />
             <Button label="Criar conta" onPress={() => router.push("/(auth)/cadastro")} variant="outline" fullWidth />
           </View>
         </View>

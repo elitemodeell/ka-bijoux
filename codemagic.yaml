@@ -1,0 +1,227 @@
+workflows:
+  ka-bijoux-ios-release:
+    name: KA Bijoux iOS 1.0 (6) - signed IPA
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      groups:
+        # Create this Codemagic group for KA Bijoux only. Required variables:
+        # EXPO_PUBLIC_API_URL, EXPO_PUBLIC_SITE_URL, EXPO_PUBLIC_SUPABASE_URL,
+        # EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, EXPO_PUBLIC_AUTH_GOOGLE_ENABLED.
+        - ka_bijoux_mobile
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.kabijoux.app
+      vars:
+        BUNDLE_ID: com.kabijoux.app
+        MARKETING_VERSION: "1.0"
+        BUILD_NUMBER: "6"
+        XCODE_WORKSPACE: KABijoux.xcworkspace
+        XCODE_SCHEME: KABijoux
+      node: 20.19.4
+      xcode: latest
+      cocoapods: default
+    cache:
+      cache_paths:
+        - $CM_BUILD_DIR/mobile/node_modules
+        - $CM_BUILD_DIR/node_modules
+        - $HOME/Library/Caches/CocoaPods
+    scripts:
+      - name: Confirm KA Bijoux repository and immutable release identity
+        script: |
+          set -euo pipefail
+          test "$CM_BUILD_DIR" != ""
+          cd "$CM_BUILD_DIR"
+          remote="$(git remote get-url origin)"
+          case "$remote" in
+            *elitemodeell/ka-bijoux.git) ;;
+            *) echo "Unexpected Git remote: $remote" >&2; exit 1 ;;
+          esac
+          test "$BUNDLE_ID" = "com.kabijoux.app"
+          node - <<'NODE'
+          const config = require('./mobile/app.json').expo;
+          if (config.name !== 'KA Bijoux') throw new Error('Unexpected application name');
+          if (config.ios.bundleIdentifier !== 'com.kabijoux.app') throw new Error('Unexpected bundle identifier');
+          if (config.version !== '1.0') throw new Error(`Expected version 1.0, received ${config.version}`);
+          if (config.ios.buildNumber !== '6') throw new Error(`Expected build 6, received ${config.ios.buildNumber}`);
+          if (config.ios.usesAppleSignIn !== true) throw new Error('usesAppleSignIn must be true');
+          if (config.ios.supportsTablet !== true) throw new Error('iPad support must remain enabled');
+          NODE
+
+      - name: Reject exposed secrets and foreign signing files
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          forbidden="$(git ls-files | grep -E '(\.p8$|\.p12$|\.mobileprovision$|(^|/)\.env$|google-service-account\.json$)' || true)"
+          if [ -n "$forbidden" ]; then
+            echo "Sensitive files are tracked:" >&2
+            echo "$forbidden" >&2
+            exit 1
+          fi
+          if git grep -I -n -E '(SUPABASE_SERVICE_ROLE_KEY|APP_STORE_CONNECT_PRIVATE_KEY|APPLE_.*SECRET|JWT_SECRET)[[:space:]]*=[[:space:]]*[^[:space:]"'"']+' -- ':!*.md' ':!*.example' ':!package-lock.json' ':!mobile/package-lock.json'; then
+            echo "Possible plaintext secret detected" >&2
+            exit 1
+          fi
+          if git grep -I -n -i 'zuno' -- codemagic.yaml mobile/app.json mobile/eas.json; then
+            echo "Foreign project reference detected" >&2
+            exit 1
+          fi
+
+      - name: Validate required mobile environment
+        script: |
+          set -euo pipefail
+          : "${EXPO_PUBLIC_API_URL:?Missing EXPO_PUBLIC_API_URL in ka_bijoux_mobile}"
+          : "${EXPO_PUBLIC_SITE_URL:?Missing EXPO_PUBLIC_SITE_URL in ka_bijoux_mobile}"
+          : "${EXPO_PUBLIC_SUPABASE_URL:?Missing EXPO_PUBLIC_SUPABASE_URL in ka_bijoux_mobile}"
+          : "${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?Missing EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY in ka_bijoux_mobile}"
+          test "$EXPO_PUBLIC_API_URL" = "https://kabijoux.com.br"
+          test "$EXPO_PUBLIC_SITE_URL" = "https://kabijoux.com.br"
+
+      - name: Install JavaScript dependencies
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          npm ci --prefix backend --workspaces=false
+          npm ci --prefix mobile --legacy-peer-deps
+
+      - name: quality_auth - TypeScript, lint applicability and auth UI
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          npm --prefix mobile run typecheck
+          npm --prefix mobile run test:auth-ui
+          node - <<'NODE'
+          const { execFileSync } = require('node:child_process');
+          const mobile = require('./mobile/package.json');
+          if (mobile.scripts?.lint) execFileSync('npm', ['--prefix', 'mobile', 'run', 'lint'], { stdio: 'inherit' });
+          else console.log('Mobile lint: N/A — origin/main has no lint script or ESLint configuration.');
+          NODE
+
+      - name: backend_regression - TypeScript, Prisma and complete backend suite
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          npm --prefix backend run typecheck
+          DATABASE_URL='postgresql://postgres:postgres@localhost:5432/postgres' \
+          DIRECT_URL='postgresql://postgres:postgres@localhost:5432/postgres' \
+            npm --prefix backend exec prisma validate
+          npm --prefix backend test -- --run
+          node - <<'NODE'
+          const { execFileSync } = require('node:child_process');
+          const backend = require('./backend/package.json');
+          if (backend.scripts?.lint) execFileSync('npm', ['--workspace=backend', 'run', 'lint'], { stdio: 'inherit' });
+          else console.log('Backend lint: N/A — origin/main has no lint script or ESLint configuration.');
+          NODE
+
+      - name: Validate Apple backend contract
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          test -f backend/app/api/auth/apple/complete/route.ts
+          grep -q 'getSupabaseUser(accessToken)' backend/app/api/auth/apple/complete/route.ts
+          grep -q 'completeAppleCustomerLink' backend/app/api/auth/apple/complete/route.ts
+          grep -q 'provider: "apple"' backend/app/api/auth/apple/complete/route.ts
+          grep -q '/api/auth/apple/complete' mobile/services/appleAuth.ts
+          grep -q 'router.replace("/(tabs)")' 'mobile/app/(auth)/login.tsx'
+          grep -q 'router.replace("/(tabs)")' 'mobile/app/(auth)/cadastro.tsx'
+          status="$(curl -sS -o /tmp/apple-endpoint.json -w '%{http_code}' -X POST https://kabijoux.com.br/api/auth/apple/complete -H 'Content-Type: application/json' -d '{}')"
+          if [ "$status" != "401" ]; then
+            echo "Production Apple endpoint is not active (expected 401 without token, got $status). Deploy ka-bijoux-backend first." >&2
+            cat /tmp/apple-endpoint.json || true
+            exit 1
+          fi
+
+      - name: Generate native iOS project
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR/mobile"
+          npx expo prebuild --platform ios --clean --no-install
+          cd ios
+          pod install --repo-update
+
+      - name: Validate generated iOS capability, version and App Icon
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR/mobile"
+          workspace="ios/$XCODE_WORKSPACE"
+          test -d "$workspace"
+          entitlements="$(find ios -name '*.entitlements' -type f | head -1)"
+          test -n "$entitlements"
+          /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' "$entitlements" | grep -q 'Default'
+          grep -R -q 'PRODUCT_BUNDLE_IDENTIFIER = com.kabijoux.app' ios
+          grep -R -q 'MARKETING_VERSION = 1.0' ios
+          grep -R -q 'CURRENT_PROJECT_VERSION = 6' ios
+          icon_json="$(find ios -path '*AppIcon.appiconset/Contents.json' -type f | head -1)"
+          test -n "$icon_json"
+          node - "$icon_json" <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const file = process.argv[2];
+          const json = JSON.parse(fs.readFileSync(file, 'utf8'));
+          const named = json.images.filter(x => x.filename);
+          if (!named.length) throw new Error('App Icon set has no generated images');
+          for (const image of named) {
+            if (!fs.existsSync(path.join(path.dirname(file), image.filename))) throw new Error(`Missing App Icon ${image.filename}`);
+          }
+          NODE
+
+      - name: Apply KA Bijoux App Store signing profile
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR/mobile"
+          xcode-project use-profiles
+          profile_ok=0
+          for profile in "$HOME/Library/MobileDevice/Provisioning Profiles"/*.mobileprovision; do
+            [ -f "$profile" ] || continue
+            security cms -D -i "$profile" > /tmp/profile.plist
+            app_id="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' /tmp/profile.plist 2>/dev/null || true)"
+            if [[ "$app_id" == *.com.kabijoux.app ]]; then
+              /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.applesignin' /tmp/profile.plist | grep -q 'Default'
+              /usr/libexec/PlistBuddy -c 'Print :Name' /tmp/profile.plist
+              /usr/libexec/PlistBuddy -c 'Print :UUID' /tmp/profile.plist
+              profile_ok=1
+              break
+            fi
+          done
+          test "$profile_ok" = 1
+
+      - name: Build signed Release Archive and IPA
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR/mobile"
+          xcode-project build-ipa \
+            --workspace "$CM_BUILD_DIR/mobile/ios/$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+
+      - name: Validate signed IPA identity and entitlements
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR/mobile"
+          ipa="$(find build/ios/ipa -name '*.ipa' -type f | head -1)"
+          test -n "$ipa"
+          rm -rf /tmp/ka-bijoux-ipa
+          mkdir -p /tmp/ka-bijoux-ipa
+          unzip -q "$ipa" -d /tmp/ka-bijoux-ipa
+          app="$(find /tmp/ka-bijoux-ipa/Payload -maxdepth 1 -name '*.app' -type d | head -1)"
+          test -n "$app"
+          info="$app/Info.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info")" = "$BUNDLE_ID"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info")" = "$MARKETING_VERSION"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info")" = "$BUILD_NUMBER"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign -d --entitlements :- "$app" > /tmp/ka-bijoux-entitlements.plist
+          /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' /tmp/ka-bijoux-entitlements.plist | grep -q 'Default'
+          test -d "$app/Assets.car" -o -f "$app/Assets.car"
+          cp /tmp/ka-bijoux-entitlements.plist build/ios/ipa/KA-Bijoux-build-6-entitlements.plist
+          cp "$app/embedded.mobileprovision" build/ios/ipa/KA-Bijoux-build-6.mobileprovision
+
+    artifacts:
+      - mobile/build/ios/ipa/*.ipa
+      - mobile/build/ios/ipa/*.plist
+      - mobile/build/ios/ipa/*.mobileprovision
+      - $HOME/Library/Developer/Xcode/Archives/**/*.xcarchive
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+    # Intentionally no publishing block. The IPA must not be uploaded to
+    # App Store Connect or TestFlight without explicit user authorization.

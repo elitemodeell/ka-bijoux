@@ -27,7 +27,8 @@ async function upstashIncr(key: string, windowMs: number): Promise<number> {
 
 export async function rateLimit(
   req: NextRequest,
-  config: RateLimitConfig
+  config: RateLimitConfig,
+  identifier?: string
 ): Promise<NextResponse | null> {
   const hasUpstash =
     process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -41,7 +42,7 @@ export async function rateLimit(
 
   const windowSec = Math.floor(config.windowMs / 1000);
   const windowKey = Math.floor(Date.now() / config.windowMs);
-  const key = `rl:${config.keyPrefix}:${ip}:${windowKey}`;
+  const key = `rl:${config.keyPrefix}:${identifier ?? ip}:${windowKey}`;
 
   try {
     const count = await upstashIncr(key, config.windowMs);
@@ -69,4 +70,6 @@ export const RATE_LIMITS = {
   auth: { limit: 10, windowMs: 15 * 60 * 1000, keyPrefix: "auth" },
   payment: { limit: 5, windowMs: 60 * 1000, keyPrefix: "payment" },
   forgotPassword: { limit: 3, windowMs: 15 * 60 * 1000, keyPrefix: "forgot" },
+  passwordResetIp: { limit: 10, windowMs: 15 * 60 * 1000, keyPrefix: "password-reset-ip" },
+  passwordResetAccount: { limit: 5, windowMs: 15 * 60 * 1000, keyPrefix: "password-reset-account" },
 } as const;

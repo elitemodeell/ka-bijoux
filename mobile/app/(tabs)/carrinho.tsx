@@ -30,7 +30,7 @@ export default function CarrinhoScreen() {
           <Text style={styles.emptyIcon}>🛍️</Text>
           <Text style={styles.emptyTitle}>Faça login para ver seu carrinho</Text>
           <View style={{ marginTop: 20, width: 220 }}>
-            <Button label="Entrar na conta" onPress={() => router.push("/(auth)/login")} fullWidth />
+            <Button label="Entrar na conta" onPress={() => router.push("/(auth)/entrada")} fullWidth />
           </View>
         </View>
       </SafeAreaView>

@@ -78,7 +78,7 @@ export function ProductCard({ product }: ProductCardProps) {
   async function handleAddToCart() {
     if (!isAvailable) return;
     if (!customer) {
-      router.push("/(auth)/login");
+      router.push("/(auth)/entrada");
       return;
     }
     if (hasVariations) {

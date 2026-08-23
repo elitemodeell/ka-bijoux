@@ -255,7 +255,7 @@ export default function ProdutoScreen() {
   }, [customer, product?.id, product?.slug, id]);
 
   async function toggleFavorite() {
-    if (!customer) { router.push("/(auth)/login"); return; }
+    if (!customer) { router.push("/(auth)/entrada"); return; }
     if (!product) return;
     if (togglingFav) return;
     setTogglingFav(true);
@@ -280,7 +280,7 @@ export default function ProdutoScreen() {
   async function handleAddToCart() {
     if (!product) return;
     if (!customer) {
-      router.push("/(auth)/login");
+      router.push("/(auth)/entrada");
       return;
     }
     if (product.variations.length > 0 && !selectedVariation) { setVariationError(true); return; }

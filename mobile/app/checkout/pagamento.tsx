@@ -29,7 +29,7 @@ export default function PagamentoScreen() {
 
   async function finalizarPedido() {
     if (!paymentMethod) { setError("Selecione uma forma de pagamento."); return; }
-    if (!customer) { router.push("/(auth)/login"); return; }
+    if (!customer) { router.push("/(auth)/entrada"); return; }
 
     setLoading(true);
     setError("");

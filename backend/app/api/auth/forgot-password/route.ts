@@ -4,53 +4,28 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { apiSuccess, apiError } from "@/lib/utils";
 import { rateLimit, RATE_LIMITS } from "@/lib/ratelimit";
+import {
+  isResendConfigured,
+  sendTransactionalEmail,
+} from "@/lib/email/resend";
+import { buildPasswordResetEmail } from "@/lib/email/templates";
+import {
+  generatePasswordResetCode,
+  hashPasswordResetCode,
+} from "@/lib/password-reset";
 
-const schema = z.object({ email: z.string().email() });
-
-function generateOtp(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-async function sendResetEmail(email: string, name: string, code: string) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    // Em desenvolvimento sem RESEND_API_KEY, loga o código no console
-    console.log(`[DEV] Código de redefinição para ${email}: ${code}`);
-    return;
-  }
-
-  await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: "KA Bijoux <noreply@kabijoux.com.br>",
-      to: email,
-      subject: "Código para redefinir sua senha — KA Bijoux",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-          <h2 style="color: #d63384;">KA Bijoux</h2>
-          <p>Olá, <strong>${name}</strong>!</p>
-          <p>Recebemos uma solicitação para redefinir a senha da sua conta.</p>
-          <div style="background: #f8f0f5; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
-            <p style="margin: 0 0 8px; color: #666; font-size: 14px;">Seu código de verificação:</p>
-            <p style="margin: 0; font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #d63384;">${code}</p>
-          </div>
-          <p style="color: #666; font-size: 14px;">⏱️ Este código expira em <strong>15 minutos</strong>.</p>
-          <p style="color: #666; font-size: 14px;">Se você não solicitou a redefinição, ignore este e-mail.</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-          <p style="color: #aaa; font-size: 12px;">KA Bijoux — Itaúna/MG</p>
-        </div>
-      `,
-    }),
-  });
-}
+const schema = z.object({ email: z.string().trim().toLowerCase().email() });
+const RESET_CODE_TTL_MINUTES = 15;
+const GENERIC_MESSAGE =
+  "Se o e-mail estiver cadastrado, você receberá um código.";
 
 export async function POST(req: NextRequest) {
   const limited = await rateLimit(req, RATE_LIMITS.forgotPassword);
   if (limited) return limited;
+
+  if (process.env.NODE_ENV === "production" && !isResendConfigured()) {
+    return apiError("Serviço temporariamente indisponível.", 503);
+  }
 
   try {
     const body = await req.json();
@@ -60,23 +35,50 @@ export async function POST(req: NextRequest) {
       where: { email, active: true },
     });
 
-    // Sempre retorna sucesso para não revelar se o e-mail existe
-    if (!customer) return apiSuccess({ message: "Se o e-mail estiver cadastrado, você receberá um código." });
+    if (!customer) return apiSuccess({ message: GENERIC_MESSAGE });
 
-    const code = generateOtp();
-    const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+    const code = generatePasswordResetCode();
+    const expires = new Date(
+      Date.now() + RESET_CODE_TTL_MINUTES * 60 * 1000
+    );
 
     await prisma.customer.update({
       where: { id: customer.id },
-      data: { passwordResetCode: code, passwordResetExpires: expires },
+      data: {
+        passwordResetCode: hashPasswordResetCode(email, code),
+        passwordResetExpires: expires,
+      },
     });
 
-    await sendResetEmail(email, customer.name, code);
+    const template = buildPasswordResetEmail({
+      name: customer.name,
+      code,
+      expiresInMinutes: RESET_CODE_TTL_MINUTES,
+    });
+    const delivery = await sendTransactionalEmail({
+      to: email,
+      ...template,
+      tags: [{ name: "flow", value: "password-reset" }],
+      idempotencyKey: `password-reset-${customer.id}-${expires.getTime()}`,
+    });
 
-    return apiSuccess({ message: "Se o e-mail estiver cadastrado, você receberá um código." });
-  } catch (e) {
-    if (e instanceof z.ZodError) return apiError(e.errors[0].message, 422);
-    console.error("forgot-password error:", e);
+    if (!delivery.ok) {
+      await prisma.customer.update({
+        where: { id: customer.id },
+        data: { passwordResetCode: null, passwordResetExpires: null },
+      });
+      console.error("forgot-password email delivery failed", {
+        reason: delivery.reason,
+        status: delivery.status,
+      });
+    }
+
+    return apiSuccess({ message: GENERIC_MESSAGE });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return apiError(error.errors[0].message, 422);
+    }
+    console.error("forgot-password request failed");
     return apiError("Erro interno.", 500);
   }
 }

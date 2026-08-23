@@ -34,6 +34,8 @@ model Customer {
   id           String    @id @default(cuid())
   name         String
   email        String    @unique
+  authUserId   String?   @unique @db.Uuid
+  authMigratedAt DateTime?
   phone        String?
   cpf          String?   @unique
   passwordHash String

@@ -3,7 +3,7 @@
     "name": "KA Bijoux",
     "slug": "ka-bijoux",
     "owner": "ka-bijoux",
-    "version": "1.0.0",
+    "version": "1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kabijoux.app",
-      "buildNumber": "1"
+      "buildNumber": "6",
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -33,9 +37,11 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-updates"
+      "expo-updates",
+      "expo-secure-store",
+      "expo-apple-authentication"
     ],
-    "scheme": "kabijoux",
+    "scheme": ["kabijoux", "com.kabijoux.app"],
     "updates": {
       "url": "https://u.expo.dev/0d5ab81a-3a19-47f3-96e6-90d8e2767e93",
       "enabled": true,

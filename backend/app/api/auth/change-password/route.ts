@@ -3,6 +3,11 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
+import {
+  isSupabaseAuthTransitionEnabled,
+  signOutSupabaseSession,
+  updateSupabasePassword,
+} from "@/lib/supabase-auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,12 +28,21 @@ export async function POST(req: NextRequest) {
     if (!valid) return apiError("Senha atual incorreta.");
 
     const hash = await bcrypt.hash(newPassword, 12);
+    if (isSupabaseAuthTransitionEnabled() && user.authUserId) {
+      const synchronized = await updateSupabasePassword(user.authUserId, newPassword);
+      if (synchronized.error) return apiError("Serviço de autenticação temporariamente indisponível.", 503);
+    }
     await prisma.customer.update({
       where: { id: customer.id },
       data: { passwordHash: hash },
     });
 
-    return apiSuccess({ message: "Senha alterada com sucesso." });
+    const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+    if (isSupabaseAuthTransitionEnabled() && token) {
+      await signOutSupabaseSession(token, "global");
+    }
+
+    return apiSuccess({ message: "Senha alterada com sucesso. Entre novamente nos seus dispositivos." });
   } catch (e) {
     if (e instanceof Error && e.message === "Não autorizado")
       return apiError("Não autorizado.", 401);

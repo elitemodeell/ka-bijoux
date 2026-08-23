@@ -1,7 +1,13 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
-  View, Text, TextInput, StyleSheet, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -9,46 +15,63 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, FontSizes, Spacing, BorderRadius } from "@/constants/theme";
 import { authApi } from "@/services/api";
 import { Button } from "@/components/ui/Button";
+import { authErrorMessage, isValidEmail } from "@/lib/authFeedback";
 
 type Step = "email" | "code";
 
 export default function RecuperarSenhaScreen() {
   const router = useRouter();
+  const codeRef = useRef<TextInput>(null);
+  const newPasswordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [success, setSuccess] = useState(false);
 
+  function clearFeedback() {
+    if (error) setError("");
+  }
+
   async function handleSendCode() {
-    if (!email.trim()) { setError("Informe seu e-mail."); return; }
+    if (loading) return;
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!isValidEmail(normalizedEmail)) return setError("Informe um e-mail válido.");
     setLoading(true);
     setError("");
+    setNotice("");
     try {
-      await authApi.forgotPassword(email.trim());
+      await authApi.forgotPassword(normalizedEmail);
+      setEmail(normalizedEmail);
       setStep("code");
-    } catch {
-      setError("Não foi possível enviar o código. Tente novamente.");
+      setNotice("Se o e-mail estiver cadastrado, você receberá um código de 6 dígitos. Verifique também o spam.");
+      requestAnimationFrame(() => codeRef.current?.focus());
+    } catch (reason: unknown) {
+      setError(authErrorMessage(reason, "recovery"));
     } finally {
       setLoading(false);
     }
   }
 
   async function handleResetPassword() {
-    if (!code || code.length !== 6) { setError("Digite o código de 6 dígitos."); return; }
-    if (!newPassword || newPassword.length < 6) { setError("A senha deve ter pelo menos 6 caracteres."); return; }
-    if (newPassword !== confirmPassword) { setError("As senhas não coincidem."); return; }
+    if (loading) return;
+    if (!/^\d{6}$/.test(code)) return setError("Digite o código de 6 dígitos.");
+    if (newPassword.length < 6) return setError("A nova senha deve ter pelo menos 6 caracteres.");
+    if (newPassword !== confirmPassword) return setError("As senhas não conferem.");
     setLoading(true);
     setError("");
     try {
-      await authApi.resetPassword(email.trim(), code, newPassword);
+      await authApi.resetPassword(email, code, newPassword);
       setSuccess(true);
-    } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setError(msg ?? "Código inválido ou expirado.");
+    } catch (reason: unknown) {
+      setError(authErrorMessage(reason, "reset"));
     } finally {
       setLoading(false);
     }
@@ -57,19 +80,11 @@ export default function RecuperarSenhaScreen() {
   if (success) {
     return (
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <View style={styles.successContainer}>
+        <View accessibilityLiveRegion="polite" style={styles.successContainer}>
           <Ionicons name="checkmark-circle" size={72} color={Colors.success} />
           <Text style={styles.successTitle}>Senha redefinida!</Text>
-          <Text style={styles.successText}>
-            Sua senha foi alterada com sucesso.{"\n"}Faça login com a nova senha.
-          </Text>
-          <Button
-            label="Ir para Login"
-            onPress={() => router.replace("/(auth)/login")}
-            fullWidth
-            size="lg"
-            style={{ marginTop: 24 }}
-          />
+          <Text style={styles.successText}>A alteração foi confirmada pelo servidor. Entre com sua nova senha.</Text>
+          <Button label="Ir para o login" onPress={() => router.replace("/(auth)/login")} fullWidth size="lg" style={{ marginTop: 20 }} />
         </View>
       </SafeAreaView>
     );
@@ -77,91 +92,118 @@ export default function RecuperarSenhaScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          <TouchableOpacity onPress={() => step === "code" ? setStep("email") : router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>← Voltar</Text>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="none"
+          showsVerticalScrollIndicator={false}
+        >
+          <TouchableOpacity onPress={() => step === "code" ? setStep("email") : router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={20} color={Colors.primary} />
+            <Text style={styles.backText}>Voltar</Text>
           </TouchableOpacity>
 
           <View style={styles.header}>
             <Ionicons name="lock-closed-outline" size={48} color={Colors.primary} />
             <Text style={styles.title}>Recuperar senha</Text>
             <Text style={styles.subtitle}>
-              {step === "email"
-                ? "Informe seu e-mail cadastrado e enviaremos um código de verificação."
-                : `Enviamos um código de 6 dígitos para\n${email}`}
+              {step === "email" ? "Informe seu e-mail para solicitar o código de recuperação." : "Digite o código recebido e escolha uma nova senha."}
             </Text>
           </View>
 
-          {error ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
+          {!!notice && <View accessibilityLiveRegion="polite" style={styles.noticeBox}><Text style={styles.noticeText}>{notice}</Text></View>}
+          {!!error && <View accessibilityLiveRegion="polite" style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View>}
 
           {step === "email" ? (
             <View style={styles.form}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>E-mail</Text>
-                <TextInput
-                  value={email} onChangeText={setEmail}
-                  placeholder="seu@email.com"
-                  placeholderTextColor={Colors.textLight}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  style={styles.input}
-                />
-              </View>
-              <Button
-                label="Enviar código"
-                onPress={handleSendCode}
-                loading={loading}
-                fullWidth
-                size="lg"
+              <Text style={styles.label}>E-mail</Text>
+              <TextInput
+                accessibilityLabel="E-mail para recuperação"
+                value={email}
+                onChangeText={(value) => { setEmail(value.toLowerCase()); clearFeedback(); }}
+                placeholder="seu@email.com"
+                placeholderTextColor={Colors.textLight}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
+                returnKeyType="send"
+                onSubmitEditing={handleSendCode}
+                editable={!loading}
+                style={styles.input}
               />
+              <Button label="Enviar código" onPress={handleSendCode} loading={loading} disabled={loading} fullWidth size="lg" />
             </View>
           ) : (
             <View style={styles.form}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Código de verificação</Text>
+              <Text style={styles.label}>Código de verificação</Text>
+              <TextInput
+                ref={codeRef}
+                accessibilityLabel="Código de 6 dígitos"
+                value={code}
+                onChangeText={(value) => { setCode(value.replace(/\D/g, "")); clearFeedback(); }}
+                placeholder="000000"
+                placeholderTextColor={Colors.textLight}
+                keyboardType="number-pad"
+                autoComplete="one-time-code"
+                textContentType="oneTimeCode"
+                maxLength={6}
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => newPasswordRef.current?.focus()}
+                editable={!loading}
+                style={[styles.input, styles.codeInput]}
+              />
+
+              <Text style={styles.label}>Nova senha</Text>
+              <View style={styles.passwordWrap}>
                 <TextInput
-                  value={code} onChangeText={setCode}
-                  placeholder="000000"
-                  placeholderTextColor={Colors.textLight}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  style={[styles.input, styles.codeInput]}
-                />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Nova senha</Text>
-                <TextInput
-                  value={newPassword} onChangeText={setNewPassword}
+                  ref={newPasswordRef}
+                  accessibilityLabel="Nova senha"
+                  value={newPassword}
+                  onChangeText={(value) => { setNewPassword(value); clearFeedback(); }}
                   placeholder="Mínimo 6 caracteres"
                   placeholderTextColor={Colors.textLight}
-                  secureTextEntry
-                  style={styles.input}
+                  secureTextEntry={!showNewPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+                  editable={!loading}
+                  style={styles.passwordInput}
                 />
+                <EyeButton visible={showNewPassword} onPress={() => setShowNewPassword((value) => !value)} />
               </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Confirmar senha</Text>
+
+              <Text style={styles.label}>Confirmar nova senha</Text>
+              <View style={styles.passwordWrap}>
                 <TextInput
-                  value={confirmPassword} onChangeText={setConfirmPassword}
+                  ref={confirmPasswordRef}
+                  accessibilityLabel="Confirmar nova senha"
+                  value={confirmPassword}
+                  onChangeText={(value) => { setConfirmPassword(value); clearFeedback(); }}
                   placeholder="Repita a nova senha"
                   placeholderTextColor={Colors.textLight}
-                  secureTextEntry
-                  style={styles.input}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  returnKeyType="done"
+                  onSubmitEditing={handleResetPassword}
+                  editable={!loading}
+                  style={styles.passwordInput}
                 />
+                <EyeButton visible={showConfirmPassword} onPress={() => setShowConfirmPassword((value) => !value)} />
               </View>
-              <Button
-                label="Redefinir senha"
-                onPress={handleResetPassword}
-                loading={loading}
-                fullWidth
-                size="lg"
-              />
-              <TouchableOpacity onPress={handleSendCode} style={{ alignItems: "center", marginTop: 4 }}>
+
+              <Button label="Redefinir senha" onPress={handleResetPassword} loading={loading} disabled={loading} fullWidth size="lg" />
+              <TouchableOpacity disabled={loading} onPress={handleSendCode} style={styles.resendButton}>
                 <Text style={styles.resendText}>Não recebi o código — Reenviar</Text>
               </TouchableOpacity>
             </View>
@@ -172,29 +214,37 @@ export default function RecuperarSenhaScreen() {
   );
 }
 
+function EyeButton({ visible, onPress }: { visible: boolean; onPress: () => void }) {
+  return (
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel={visible ? "Ocultar senha" : "Mostrar senha"} onPress={onPress} style={styles.eyeButton}>
+      <Ionicons name={visible ? "eye-off-outline" : "eye-outline"} size={21} color={Colors.textMuted} />
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
-  container: { padding: Spacing.base, paddingTop: 8, flexGrow: 1 },
-  backBtn: { marginBottom: 20 },
-  backText: { color: Colors.primary, fontWeight: "600", fontSize: FontSizes.base },
-  header: { alignItems: "center", marginBottom: 28, gap: 10 },
-  title: { fontSize: FontSizes.xl, fontWeight: "800", color: Colors.textPrimary },
-  subtitle: { fontSize: FontSizes.sm, color: Colors.textMuted, textAlign: "center", lineHeight: 20 },
-  errorBox: { backgroundColor: Colors.errorLight, borderRadius: BorderRadius.lg, padding: 12, marginBottom: 12 },
+  flex: { flex: 1 },
+  container: { flexGrow: 1, padding: Spacing.base, paddingTop: 8 },
+  backButton: { minHeight: 42, flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 6, marginBottom: 18 },
+  backText: { color: Colors.primary, fontSize: FontSizes.base, fontWeight: "700" },
+  header: { alignItems: "center", gap: 10, marginBottom: 24 },
+  title: { color: Colors.textPrimary, fontSize: FontSizes.xl, fontWeight: "800" },
+  subtitle: { color: Colors.textMuted, fontSize: FontSizes.sm, lineHeight: 20, textAlign: "center" },
+  form: { gap: 12 },
+  label: { color: Colors.textPrimary, fontSize: FontSizes.sm, fontWeight: "600", marginTop: 2 },
+  input: { minHeight: 54, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1.5, borderColor: Colors.border, borderRadius: BorderRadius.xl, backgroundColor: Colors.surface, color: Colors.textPrimary, fontSize: FontSizes.base },
+  codeInput: { fontSize: 27, fontWeight: "800", letterSpacing: 8, textAlign: "center" },
+  passwordWrap: { minHeight: 54, flexDirection: "row", alignItems: "center", paddingLeft: 16, borderWidth: 1.5, borderColor: Colors.border, borderRadius: BorderRadius.xl, backgroundColor: Colors.surface },
+  passwordInput: { flex: 1, height: 52, paddingVertical: 0, color: Colors.textPrimary, fontSize: FontSizes.base },
+  eyeButton: { width: 50, height: 50, alignItems: "center", justifyContent: "center" },
+  errorBox: { padding: 12, marginBottom: 12, borderRadius: BorderRadius.lg, backgroundColor: Colors.errorLight },
   errorText: { color: Colors.error, fontSize: FontSizes.sm, fontWeight: "500" },
-  form: { gap: 16 },
-  inputGroup: { gap: 6 },
-  label: { fontSize: FontSizes.sm, fontWeight: "600", color: Colors.textPrimary },
-  input: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1.5, borderColor: Colors.border,
-    borderRadius: BorderRadius.xl,
-    paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: FontSizes.base, color: Colors.textPrimary,
-  },
-  codeInput: { textAlign: "center", fontSize: 28, fontWeight: "800", letterSpacing: 8 },
-  resendText: { color: Colors.primary, fontSize: FontSizes.sm, fontWeight: "600" },
-  successContainer: { flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.base, gap: 12 },
-  successTitle: { fontSize: FontSizes["2xl"], fontWeight: "900", color: Colors.textPrimary },
-  successText: { fontSize: FontSizes.base, color: Colors.textMuted, textAlign: "center", lineHeight: 24 },
+  noticeBox: { padding: 12, marginBottom: 12, borderRadius: BorderRadius.lg, backgroundColor: "#eef7ff" },
+  noticeText: { color: "#24557a", fontSize: FontSizes.sm, lineHeight: 20 },
+  resendButton: { alignItems: "center", minHeight: 42, justifyContent: "center" },
+  resendText: { color: Colors.primary, fontSize: FontSizes.sm, fontWeight: "700" },
+  successContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: Spacing.xl },
+  successTitle: { color: Colors.textPrimary, fontSize: FontSizes["2xl"], fontWeight: "900", textAlign: "center" },
+  successText: { color: Colors.textMuted, fontSize: FontSizes.base, lineHeight: 23, textAlign: "center" },
 });
