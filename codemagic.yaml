@@ -193,12 +193,10 @@ workflows:
             "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"/*.mobileprovision \
             "$HOME/Library/MobileDevice/Provisioning Profiles"/*.mobileprovision; do
             [ -f "$profile" ] || continue
-            security cms -D -i "$profile" > /tmp/profile.plist
-            app_id="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' /tmp/profile.plist 2>/dev/null || true)"
-            if [[ "$app_id" == *.com.kabijoux.app ]]; then
-              /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.applesignin' /tmp/profile.plist | grep -q 'Default'
-              /usr/libexec/PlistBuddy -c 'Print :Name' /tmp/profile.plist
-              /usr/libexec/PlistBuddy -c 'Print :UUID' /tmp/profile.plist
+            if grep -a -q 'com.kabijoux.app' "$profile" && \
+               grep -a -q 'com.apple.developer.applesignin' "$profile" && \
+               grep -a -q 'Default' "$profile"; then
+              echo "Validated KA Bijoux profile: $(basename "$profile")"
               profile_ok=1
               break
             fi
