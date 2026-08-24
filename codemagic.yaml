@@ -109,7 +109,8 @@ workflows:
           npm --prefix backend run typecheck
           DATABASE_URL='postgresql://postgres:postgres@localhost:5432/postgres' \
           DIRECT_URL='postgresql://postgres:postgres@localhost:5432/postgres' \
-            npm --prefix backend exec prisma validate
+            npm --prefix backend exec -- prisma validate \
+              --schema="$CM_BUILD_DIR/backend/prisma/schema.prisma"
           npm --prefix backend test -- --run
           node - <<'NODE'
           const { execFileSync } = require('node:child_process');
