@@ -19,7 +19,9 @@ workflows:
         XCODE_WORKSPACE: KABijoux.xcworkspace
         XCODE_SCHEME: KABijoux
       node: 20.19.4
-      xcode: latest
+      # Expo SDK 51 is not compatible with Xcode 26 (TARGET_OS_SIMULATOR was
+      # removed from the Swift importer). Pin the latest compatible toolchain.
+      xcode: 16.4
       cocoapods: default
     cache:
       cache_paths:
