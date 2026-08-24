@@ -245,3 +245,61 @@ workflows:
 
     # Intentionally no publishing block. The IPA must not be uploaded to
     # App Store Connect or TestFlight without explicit user authorization.
+
+  ka-bijoux-testflight-upload-build-6:
+    name: KA Bijoux 1.0 (6) - upload existing IPA to TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+
+    environment:
+      groups:
+        - ka_bijoux_apple
+      vars:
+        BUNDLE_ID: com.kabijoux.app
+        MARKETING_VERSION: "1.0"
+        BUILD_NUMBER: "6"
+        SOURCE_CODEMAGIC_BUILD_ID: 6a8c0e7f2980cca897e81094
+        EXPECTED_IPA_SHA256: 1d22fd58bfc1cbae5ffa8156adbf545e730e6f0f860b19b9342ab369d721c907
+      xcode: 26.4
+
+    scripts:
+      - name: Download exact immutable Codemagic build artifact
+        script: |
+          set -euo pipefail
+          : "${KA_BIJOUX_IPA_URL:?Missing ephemeral artifact URL}"
+          mkdir -p "$CM_BUILD_DIR/testflight-upload"
+          curl --fail --location --silent --show-error \
+            "$KA_BIJOUX_IPA_URL" \
+            --output "$CM_BUILD_DIR/testflight-upload/KABijoux.ipa"
+          echo "$EXPECTED_IPA_SHA256  $CM_BUILD_DIR/testflight-upload/KABijoux.ipa" | shasum -a 256 --check
+
+      - name: Confirm KA Bijoux identity, signature and Apple entitlement
+        script: |
+          set -euo pipefail
+          ipa="$CM_BUILD_DIR/testflight-upload/KABijoux.ipa"
+          payload="$CM_BUILD_DIR/testflight-upload/validated"
+          mkdir -p "$payload"
+          unzip -q "$ipa" -d "$payload"
+          app="$(find "$payload/Payload" -maxdepth 1 -name '*.app' -type d | head -1)"
+          test -n "$app"
+          ! find "$payload/Payload" -maxdepth 2 -iname '*zuno*' | grep -q .
+          info="$app/Info.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info")" = "$BUNDLE_ID"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info")" = "$MARKETING_VERSION"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info")" = "$BUILD_NUMBER"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign -d --entitlements :- "$app" > "$CM_BUILD_DIR/testflight-upload/entitlements.plist"
+          /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' \
+            "$CM_BUILD_DIR/testflight-upload/entitlements.plist" | grep -q 'Default'
+          echo "Validated KA Bijoux $MARKETING_VERSION ($BUILD_NUMBER), bundle $BUNDLE_ID, source build $SOURCE_CODEMAGIC_BUILD_ID"
+
+    artifacts:
+      - testflight-upload/KABijoux.ipa
+      - testflight-upload/entitlements.plist
+
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        # Upload only. No TestFlight beta review and no App Store review.
