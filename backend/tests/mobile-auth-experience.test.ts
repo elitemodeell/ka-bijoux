@@ -16,6 +16,7 @@ const backendSource = (path: string) => readFileSync(resolve(backendRoot, path),
 const login = source("app/(auth)/login.tsx");
 const entry = source("app/(auth)/entrada.tsx");
 const register = source("app/(auth)/cadastro.tsx");
+const authShell = source("components/auth/AuthScreenShell.tsx");
 const providers = source("constants/authProviders.ts");
 const recovery = source("app/(auth)/recuperar-senha.tsx");
 const changePassword = source("app/(auth)/alterar-senha.tsx");
@@ -39,9 +40,9 @@ describe("experiência de autenticação mobile", () => {
   });
 
   it("não redimensiona a tela pelo teclado no Android", () => {
-    expect(login).toContain('Platform.OS === "ios" ? "padding" : undefined');
-    expect(login).toContain('keyboardDismissMode="none"');
-    expect(login).not.toContain('? "padding" : "height"');
+    expect(authShell).toContain('Platform.OS === "ios" ? "padding" : undefined');
+    expect(authShell).toContain('Platform.OS === "ios" ? "interactive" : "none"');
+    expect(authShell).not.toContain('? "padding" : "height"');
   });
 
   it("leva o foco do e-mail para a senha e submete pelo teclado", () => {
@@ -103,7 +104,7 @@ describe("experiência de autenticação mobile", () => {
   });
 
   it("apresenta Apple nativo, Google e e-mail, sem prometer métodos indisponíveis", () => {
-    for (const label of ["Continuar com Google", "Continuar com e-mail", "AppleAuthenticationButton"]) {
+    for (const label of ["Continuar com Google", "Entrar com e-mail", "Criar conta com e-mail", "AppleAuthenticationButton"]) {
       expect(entry).toContain(label);
     }
     for (const unavailableLabel of ["Continuar com Facebook", "Continuar com telefone"]) {
@@ -179,7 +180,7 @@ describe("experiência de autenticação mobile", () => {
     expect(appleAuth).toContain('/api/auth/apple/complete');
     expect(appleAuth).toContain("completeSupabaseLogin");
     expect(appConfig).toContain('"usesAppleSignIn": true');
-    expect(appConfig).toContain('"buildNumber": "6"');
+    expect(appConfig).toContain('"buildNumber": "7"');
   });
 
   it("navega diretamente para a loja após login por e-mail", () => {

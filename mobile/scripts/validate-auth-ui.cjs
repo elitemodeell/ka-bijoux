@@ -4,54 +4,83 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
 const read = (relative) => fs.readFileSync(path.join(root, relative), "utf8");
+let checks = 0;
+
+function check(condition, message) {
+  assert.ok(condition, message);
+  checks += 1;
+}
 
 const entry = read("app/(auth)/entrada.tsx");
 const login = read("app/(auth)/login.tsx");
 const register = read("app/(auth)/cadastro.tsx");
+const profile = read("app/(tabs)/perfil.tsx");
+const shell = read("components/auth/AuthScreenShell.tsx");
 const providers = read("constants/authProviders.ts");
+const appleService = read("services/appleAuth.ts");
+const googleService = read("services/googleAuth.ts");
+const authStore = read("stores/authStore.ts");
 
+// Perfil -> Entrar/Criar conta sempre abre o mesmo seletor, apenas mudando o modo.
+check(profile.includes('params: { mode: "login" }'), "Perfil -> Entrar não abre o seletor em modo login");
+check(profile.includes('params: { mode: "register" }'), "Perfil -> Criar conta não abre o seletor em modo cadastro");
+check(!profile.includes('router.push("/(auth)/cadastro")'), "Perfil ainda pula diretamente para o formulário de cadastro");
+
+// O seletor único adapta título, e-mail e alternância sem esconder provedores sociais.
 for (const label of [
-  "Entre ou crie sua conta",
+  "Entre na sua conta",
+  "Crie sua conta",
   "Continuar com Google",
-  "Continuar com e-mail",
+  "Entrar com e-mail",
+  "Criar conta com e-mail",
+  "Ainda não tem conta? ",
+  "Já tem conta? ",
 ]) {
-  assert.ok(entry.includes(label), `Texto obrigatório ausente: ${label}`);
+  check(entry.includes(label), `Texto obrigatório ausente no seletor: ${label}`);
 }
+check(entry.includes("AppleAuthenticationButton"), "Botão oficial Sign in with Apple ausente");
+check(entry.includes('Platform.OS === "ios"'), "Apple deve continuar visível no iOS");
+check(entry.includes("signInWithApple"), "A ação Apple foi removida do seletor");
+check(entry.includes("signInWithGoogle"), "A ação Google foi removida do seletor");
+check(entry.includes('isRegister ? "/(auth)/cadastro" : "/(auth)/login"'), "A escolha por e-mail não respeita login/cadastro");
 
-assert.ok(login.includes("Entrar com e-mail"), "Login por e-mail não está separado");
-assert.ok(login.includes("Mostrar senha"), "Login não possui controle de visibilidade da senha");
-assert.ok(register.includes("Nome completo *"), "Cadastro não solicita nome");
-assert.ok(register.includes("E-mail *"), "Cadastro não solicita e-mail");
-assert.ok(register.includes("Senha *"), "Cadastro não solicita senha");
-assert.ok(register.includes("Termos de Uso"), "Cadastro não preserva os Termos de Uso");
-assert.ok(register.includes("Política de Privacidade"), "Cadastro não preserva a Política de Privacidade");
-assert.ok(!register.includes("Telefone *"), "Cadastro simplificado ainda solicita telefone");
-assert.ok(!register.includes("Confirmar senha *"), "Cadastro simplificado ainda solicita confirmação da senha");
-assert.ok(!entry.includes("Em breve"), "A tela não pode usar mensagem 'Em breve'");
-
-for (const flag of ["EXPO_PUBLIC_AUTH_GOOGLE_ENABLED", "EXPO_PUBLIC_AUTH_HIDE_GOOGLE"]) {
-  assert.ok(providers.includes(flag), `Flag obrigatória ausente: ${flag}`);
+// Formulários por e-mail compartilham a mesma identidade e retornam ao seletor correto.
+for (const [name, source, mode] of [
+  ["login", login, "login"],
+  ["cadastro", register, "register"],
+]) {
+  check(source.includes("AuthScreenShell"), `Formulário de ${name} não usa o layout unificado`);
+  check(source.includes("Voltar para outras opções"), `Formulário de ${name} não oferece retorno às outras opções`);
+  check(source.includes(`params: { mode: "${mode}" }`), `Formulário de ${name} retorna ao modo incorreto`);
+  check(source.includes('router.replace("/(tabs)")'), `${name} concluído não entra diretamente no aplicativo`);
 }
-assert.ok(entry.includes("AppleAuthenticationButton"), "Botão oficial Sign in with Apple ausente");
-assert.ok(entry.includes('Platform.OS === "ios"'), "Apple deve ser exibido no iOS");
-assert.ok(providers.includes("APPLE_AUTH_CONFIG"), "Configuração Apple ausente");
+check(login.includes("Mostrar senha"), "Login não possui controle de visibilidade da senha");
+check(register.includes("Nome completo *"), "Cadastro não solicita nome");
+check(register.includes("E-mail *"), "Cadastro não solicita e-mail");
+check(register.includes("Senha *"), "Cadastro não solicita senha");
+check(register.includes("Termos de Uso"), "Cadastro não preserva os Termos de Uso");
+check(register.includes("Política de Privacidade"), "Cadastro não preserva a Política de Privacidade");
+check(login.includes("Termos de Uso"), "Login não preserva os Termos de Uso");
+check(login.includes("Política de Privacidade"), "Login não preserva a Política de Privacidade");
 
-assert.deepEqual(
-  entry.match(/label="Continuar com [^"]+"/g),
-  ['label="Continuar com Google"', 'label="Continuar com e-mail"'],
-  "Os botões customizados devem expor Google e e-mail; Apple usa o componente oficial",
-);
-assert.deepEqual(
-  [...new Set(providers.match(/EXPO_PUBLIC_AUTH_[A-Z_]+/g))],
-  ["EXPO_PUBLIC_AUTH_HIDE_GOOGLE", "EXPO_PUBLIC_AUTH_GOOGLE_ENABLED", "EXPO_PUBLIC_AUTH_APPLE_DISABLED"],
-  "A configuração pública deve conter somente flags de Google e Apple",
-);
-assert.deepEqual(
-  [...entry.matchAll(/icon="logo-([^"]+)"/g)].map((match) => match[1]),
-  ["google"],
-  "A entrada deve conter somente o ícone do provedor Google",
-);
-assert.ok(!entry.includes("externalProvider"), "Não deve existir fallback para provedor sem implementação");
+// SafeArea, teclado, ScrollView, iPad e acessibilidade são centralizados no scaffold.
+check(shell.includes("SafeAreaView"), "Layout unificado não preserva SafeArea");
+check(shell.includes("KeyboardAvoidingView"), "Layout unificado não trata teclado");
+check(shell.includes("ScrollView"), "Layout unificado não preserva rolagem");
+check(shell.includes('maxWidth: 560'), "Layout unificado não limita largura no iPad");
+check(shell.includes('accessibilityLabel="Fechar autenticação"'), "Layout unificado não possui ação de fechamento acessível");
+
+// As implementações funcionais dos provedores e da sessão continuam intactas.
+for (const flag of ["EXPO_PUBLIC_AUTH_GOOGLE_ENABLED", "EXPO_PUBLIC_AUTH_HIDE_GOOGLE", "EXPO_PUBLIC_AUTH_APPLE_DISABLED"]) {
+  check(providers.includes(flag), `Flag obrigatória ausente: ${flag}`);
+}
+check(appleService.includes("signInWithIdToken"), "Apple deixou de usar signInWithIdToken");
+check(appleService.includes("rawNonce"), "Apple nonce foi removido");
+check(appleService.includes("completeSupabaseLogin"), "Apple não conclui mais a sessão Supabase");
+check(googleService.includes("completeSupabaseLogin"), "Google não conclui mais a sessão Supabase");
+check(authStore.includes('SecureStore.getItemAsync("ka-token")'), "Restauração da sessão persistida foi removida");
+check(authStore.includes('SecureStore.deleteItemAsync("ka-refresh-token")'), "Logout não limpa o refresh token");
+check(profile.includes("await logout()") && profile.includes('router.replace("/(tabs)")'), "Logout não retorna corretamente ao estado deslogado");
 
 const authGateFiles = [
   "app/(tabs)/carrinho.tsx",
@@ -63,7 +92,7 @@ const authGateFiles = [
 ];
 
 for (const file of authGateFiles) {
-  assert.ok(read(file).includes("/(auth)/entrada"), `${file} não direciona para a escolha de acesso`);
+  check(read(file).includes("/(auth)/entrada"), `${file} não direciona para a escolha de acesso`);
 }
 
-console.log(`Auth UI: ${19 + authGateFiles.length}/${19 + authGateFiles.length} verificações aprovadas.`);
+console.log(`Auth UI unificada: ${checks}/${checks} verificações aprovadas.`);

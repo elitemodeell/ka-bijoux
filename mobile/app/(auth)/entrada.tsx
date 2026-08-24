@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { ActivityIndicator, Alert, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Platform } from "react-native";
 import { APPLE_AUTH_CONFIG, GOOGLE_AUTH_CONFIG } from "@/constants/authProviders";
-import { BorderRadius, Colors, FontSizes, Shadows, Spacing } from "@/constants/theme";
+import { BorderRadius, Colors, FontSizes, Shadows } from "@/constants/theme";
 import { googleAuthErrorMessage, signInWithGoogle } from "@/services/googleAuth";
 import { LEGAL_LINKS } from "@/lib/legalLinks";
 import { appleAuthErrorMessage, signInWithApple } from "@/services/appleAuth";
+import { AuthScreenShell } from "@/components/auth/AuthScreenShell";
+
+type AuthMode = "login" | "register";
 
 type MethodButtonProps = {
   label: string;
@@ -40,8 +42,15 @@ function MethodButton({ label, icon, iconColor, onPress, disabled = false, loadi
 
 export default function EntradaScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ mode?: string }>();
+  const mode: AuthMode = params.mode === "register" ? "register" : "login";
+  const isRegister = mode === "register";
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+
+  function showMode(nextMode: AuthMode) {
+    router.replace({ pathname: "/(auth)/entrada", params: { mode: nextMode } });
+  }
 
   async function continueWithApple() {
     if (appleLoading) return;
@@ -78,24 +87,12 @@ export default function EntradaScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <Ionicons name="close" size={23} color={Colors.textPrimary} />
-        </TouchableOpacity>
-
-        <View style={styles.brand}>
-          <Image source={require("../../assets/icon.png")} resizeMode="contain" style={styles.logo} />
-          <Text style={styles.title}>Entre ou crie sua conta</Text>
-          <Text style={styles.subtitle}>Escolha como deseja continuar na KA Bijoux.</Text>
-        </View>
-
-        <View style={styles.methods}>
+    <AuthScreenShell
+      title={isRegister ? "Crie sua conta" : "Entre na sua conta"}
+      subtitle="Escolha como deseja continuar na KA Bijoux."
+      onClose={() => router.back()}
+    >
+      <View style={styles.methods}>
           {Platform.OS === "ios" && APPLE_AUTH_CONFIG.visible && APPLE_AUTH_CONFIG.enabled && (
             <View accessibilityState={{ busy: appleLoading }} style={appleLoading && styles.methodButtonDisabled}>
               <AppleAuthentication.AppleAuthenticationButton
@@ -126,32 +123,35 @@ export default function EntradaScreen() {
           </View>
 
           <MethodButton
-            label="Continuar com e-mail"
+            label={isRegister ? "Criar conta com e-mail" : "Entrar com e-mail"}
             icon="mail-outline"
             iconColor={Colors.primary}
-            onPress={() => router.push("/(auth)/login")}
+            onPress={() => router.push(isRegister ? "/(auth)/cadastro" : "/(auth)/login")}
           />
-        </View>
 
-        <Text style={styles.legal}>
+          <View style={styles.switchRow}>
+            <Text style={styles.switchText}>{isRegister ? "Já tem conta? " : "Ainda não tem conta? "}</Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={isRegister ? "Entrar" : "Criar conta"}
+              onPress={() => showMode(isRegister ? "login" : "register")}
+            >
+              <Text style={styles.switchLink}>{isRegister ? "Entrar" : "Criar conta"}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.legal}>
           Ao continuar, você concorda com os{" "}
           <Text style={styles.legalLink} onPress={() => Linking.openURL(LEGAL_LINKS.terms)}>Termos de Uso</Text>
           {" e a "}
           <Text style={styles.legalLink} onPress={() => Linking.openURL(LEGAL_LINKS.privacy)}>Política de Privacidade</Text>.
-        </Text>
-      </ScrollView>
-    </SafeAreaView>
+          </Text>
+      </View>
+    </AuthScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
-  container: { flexGrow: 1, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xl },
-  backButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginTop: 4, marginLeft: -10 },
-  brand: { alignItems: "center", marginTop: 8, marginBottom: 30 },
-  logo: { width: 104, height: 104, borderRadius: 24, marginBottom: 18 },
-  title: { color: Colors.textPrimary, fontSize: FontSizes["2xl"], fontWeight: "900", textAlign: "center" },
-  subtitle: { color: Colors.textSecondary, fontSize: FontSizes.sm, lineHeight: 20, textAlign: "center", marginTop: 8 },
   methods: { gap: 12 },
   appleButton: { width: "100%", height: 56 },
   methodButton: {
@@ -171,6 +171,9 @@ const styles = StyleSheet.create({
   divider: { flexDirection: "row", alignItems: "center", gap: 12, marginVertical: 5 },
   dividerLine: { flex: 1, height: 1, backgroundColor: Colors.border },
   dividerText: { color: Colors.textMuted, fontSize: FontSizes.sm, fontWeight: "600" },
-  legal: { color: Colors.textMuted, fontSize: FontSizes.xs, lineHeight: 18, textAlign: "center", marginTop: 26 },
+  switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap", marginTop: 8 },
+  switchText: { color: Colors.textSecondary, fontSize: FontSizes.sm },
+  switchLink: { color: Colors.primaryDark, fontSize: FontSizes.sm, fontWeight: "800" },
+  legal: { color: Colors.textMuted, fontSize: FontSizes.xs, lineHeight: 18, textAlign: "center", marginTop: 12 },
   legalLink: { color: Colors.primaryDark, fontWeight: "700" },
 });

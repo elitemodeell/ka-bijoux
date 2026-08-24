@@ -1,6 +1,6 @@
 workflows:
   ka-bijoux-ios-release:
-    name: KA Bijoux iOS 1.0 (6) - signed IPA
+    name: KA Bijoux iOS 1.0 (7) - signed IPA
     instance_type: mac_mini_m2
     max_build_duration: 120
     environment:
@@ -15,7 +15,7 @@ workflows:
       vars:
         BUNDLE_ID: com.kabijoux.app
         MARKETING_VERSION: "1.0"
-        BUILD_NUMBER: "6"
+        BUILD_NUMBER: "7"
         XCODE_WORKSPACE: KABijoux.xcworkspace
         XCODE_SCHEME: KABijoux
       node: 20.19.4
@@ -49,7 +49,7 @@ workflows:
           if (config.name !== 'KA Bijoux') throw new Error('Unexpected application name');
           if (config.ios.bundleIdentifier !== 'com.kabijoux.app') throw new Error('Unexpected bundle identifier');
           if (config.version !== '1.0') throw new Error(`Expected version 1.0, received ${config.version}`);
-          if (config.ios.buildNumber !== '6') throw new Error(`Expected build 6, received ${config.ios.buildNumber}`);
+          if (config.ios.buildNumber !== '7') throw new Error(`Expected build 7, received ${config.ios.buildNumber}`);
           if (config.ios.usesAppleSignIn !== true) throw new Error('usesAppleSignIn must be true');
           if (config.ios.supportsTablet !== true) throw new Error('iPad support must remain enabled');
           NODE
@@ -232,8 +232,8 @@ workflows:
           codesign -d --entitlements :- "$app" > /tmp/ka-bijoux-entitlements.plist
           /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' /tmp/ka-bijoux-entitlements.plist | grep -q 'Default'
           test -d "$app/Assets.car" -o -f "$app/Assets.car"
-          cp /tmp/ka-bijoux-entitlements.plist build/ios/ipa/KA-Bijoux-build-6-entitlements.plist
-          cp "$app/embedded.mobileprovision" build/ios/ipa/KA-Bijoux-build-6.mobileprovision
+          cp /tmp/ka-bijoux-entitlements.plist "build/ios/ipa/KA-Bijoux-build-${BUILD_NUMBER}-entitlements.plist"
+          cp "$app/embedded.mobileprovision" "build/ios/ipa/KA-Bijoux-build-${BUILD_NUMBER}.mobileprovision"
 
     artifacts:
       - mobile/build/ios/ipa/*.ipa
@@ -246,8 +246,8 @@ workflows:
     # Intentionally no publishing block. The IPA must not be uploaded to
     # App Store Connect or TestFlight without explicit user authorization.
 
-  ka-bijoux-testflight-upload-build-6:
-    name: KA Bijoux 1.0 (6) - upload existing IPA to TestFlight
+  ka-bijoux-testflight-upload-build-7:
+    name: KA Bijoux 1.0 (7) - upload existing IPA to TestFlight
     instance_type: mac_mini_m2
     max_build_duration: 30
 
@@ -257,9 +257,7 @@ workflows:
       vars:
         BUNDLE_ID: com.kabijoux.app
         MARKETING_VERSION: "1.0"
-        BUILD_NUMBER: "6"
-        SOURCE_CODEMAGIC_BUILD_ID: 6a8c0e7f2980cca897e81094
-        EXPECTED_IPA_SHA256: 1d22fd58bfc1cbae5ffa8156adbf545e730e6f0f860b19b9342ab369d721c907
+        BUILD_NUMBER: "7"
       xcode: 26.4
 
     scripts:
@@ -267,6 +265,8 @@ workflows:
         script: |
           set -euo pipefail
           : "${KA_BIJOUX_IPA_URL:?Missing ephemeral artifact URL}"
+          : "${SOURCE_CODEMAGIC_BUILD_ID:?Missing source Codemagic build ID}"
+          : "${EXPECTED_IPA_SHA256:?Missing expected IPA SHA-256}"
           mkdir -p "$CM_BUILD_DIR/testflight-upload"
           curl --fail --location --silent --show-error \
             "$KA_BIJOUX_IPA_URL" \
