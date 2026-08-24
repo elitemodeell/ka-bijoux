@@ -14,6 +14,8 @@ workflows:
         - ka_bijoux_apple
       vars:
         BUNDLE_ID: com.kabijoux.app
+        APPLE_TEAM_ID: YF8JRZUL75
+        APPLICATION_IDENTIFIER: YF8JRZUL75.com.kabijoux.app
         MARKETING_VERSION: "1.0"
         BUILD_NUMBER: "7"
         XCODE_WORKSPACE: KABijoux.xcworkspace
@@ -54,25 +56,29 @@ workflows:
           if (config.ios.supportsTablet !== true) throw new Error('iPad support must remain enabled');
           NODE
 
-      - name: Reject exposed secrets and foreign signing files
+      - name: Reject exposed secrets and enforce KA Bijoux allowlist
         script: |
           set -euo pipefail
           cd "$CM_BUILD_DIR"
-          forbidden="$(git ls-files | grep -E '(\.p8$|\.p12$|\.mobileprovision$|(^|/)\.env$|google-service-account\.json$)' || true)"
+          forbidden="$(git ls-files | grep -E '(\.p8$|\.p12$|\.pem$|\.key$|\.cer$|\.pfx$|\.mobileprovision$|\.provisionprofile$|(^|/)\.env$|google-service-account\.json$)' || true)"
           if [ -n "$forbidden" ]; then
             echo "Sensitive files are tracked:" >&2
             echo "$forbidden" >&2
             exit 1
           fi
-          if git grep -I -n -E "(SUPABASE_SERVICE_ROLE_KEY|APP_STORE_CONNECT_PRIVATE_KEY|APPLE_.*SECRET|JWT_SECRET)[[:space:]]*=[[:space:]]*[\"'][^\"']+[\"']" -- ':!*.md' ':!*.example' ':!package-lock.json' ':!mobile/package-lock.json'; then
+          if git grep -I -n -E "(SUPABASE_SERVICE_ROLE_KEY|APP_STORE_CONNECT_PRIVATE_KEY|APPLE_.*SECRET|JWT_SECRET|PRIVATE_KEY|ACCESS_TOKEN|API_TOKEN)[[:space:]]*=[[:space:]]*[\"'][^\"']+[\"']" -- ':!*.md' ':!*.example' ':!package-lock.json' ':!mobile/package-lock.json'; then
             echo "Possible plaintext secret detected" >&2
             exit 1
           fi
-          foreign_project='zu''no'
-          if git grep -I -n -i "$foreign_project" -- codemagic.yaml mobile/app.json mobile/eas.json; then
-            echo "Foreign project reference detected" >&2
+          if git grep -I -n -E -- '-----BEGIN ([A-Z ]+ )?PRIVATE KEY-----' ':!*.md' ':!*.example'; then
+            echo "Versioned private key detected" >&2
             exit 1
           fi
+          test "$BUNDLE_ID" = "com.kabijoux.app"
+          test "$APPLE_TEAM_ID" = "YF8JRZUL75"
+          test "$APPLICATION_IDENTIFIER" = "YF8JRZUL75.com.kabijoux.app"
+          test "$MARKETING_VERSION" = "1.0"
+          test "$BUILD_NUMBER" = "7"
 
       - name: Validate required mobile environment
         script: |
@@ -217,21 +223,43 @@ workflows:
         script: |
           set -euo pipefail
           cd "$CM_BUILD_DIR/mobile"
+          fail() { echo "Signed IPA validation failed: $1" >&2; exit 1; }
           ipa="$(find build/ios/ipa -name '*.ipa' -type f | head -1)"
-          test -n "$ipa"
+          test -n "$ipa" || fail "IPA not found"
           rm -rf /tmp/ka-bijoux-ipa
           mkdir -p /tmp/ka-bijoux-ipa
           unzip -q "$ipa" -d /tmp/ka-bijoux-ipa
-          app="$(find /tmp/ka-bijoux-ipa/Payload -maxdepth 1 -name '*.app' -type d | head -1)"
-          test -n "$app"
+          app_count="$(find /tmp/ka-bijoux-ipa/Payload -maxdepth 1 -name '*.app' -type d | wc -l | tr -d ' ')"
+          test "$app_count" = "1" || fail "expected exactly one application bundle, found $app_count"
+          app="/tmp/ka-bijoux-ipa/Payload/KABijoux.app"
+          test -d "$app" || fail "allowlisted KABijoux.app not found"
           info="$app/Info.plist"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info")" = "$BUNDLE_ID"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info")" = "$MARKETING_VERSION"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info")" = "$BUILD_NUMBER"
-          codesign --verify --deep --strict --verbose=2 "$app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info")" = "$BUNDLE_ID" || fail "bundle identifier mismatch"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info")" = "$MARKETING_VERSION" || fail "marketing version mismatch"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info")" = "$BUILD_NUMBER" || fail "build number mismatch"
+          codesign --verify --deep --strict --verbose=2 "$app" || fail "invalid code signature"
+          signature="$(codesign -dvvv "$app" 2>&1)"
+          printf '%s\n' "$signature" | grep -q "^Authority=Apple Distribution: .* ($APPLE_TEAM_ID)$" || fail "unexpected signing certificate"
+          printf '%s\n' "$signature" | grep -q "^TeamIdentifier=$APPLE_TEAM_ID$" || fail "code-signing Team ID mismatch"
           codesign -d --entitlements :- "$app" > /tmp/ka-bijoux-entitlements.plist
-          /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' /tmp/ka-bijoux-entitlements.plist | grep -q 'Default'
-          test -d "$app/Assets.car" -o -f "$app/Assets.car"
+          entitlements=/tmp/ka-bijoux-entitlements.plist
+          test "$(/usr/libexec/PlistBuddy -c 'Print :application-identifier' "$entitlements")" = "$APPLICATION_IDENTIFIER" || fail "application-identifier mismatch"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.team-identifier' "$entitlements")" = "$APPLE_TEAM_ID" || fail "entitlement Team ID mismatch"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :get-task-allow' "$entitlements")" = "false" || fail "get-task-allow must be false"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :aps-environment' "$entitlements")" = "production" || fail "aps-environment must be production"
+          /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' "$entitlements" | grep -q 'Default' || fail "Sign in with Apple entitlement mismatch"
+          profile="$app/embedded.mobileprovision"
+          test -f "$profile" || fail "embedded provisioning profile not found"
+          security cms -D -i "$profile" > /tmp/ka-bijoux-profile.plist
+          profile_plist=/tmp/ka-bijoux-profile.plist
+          test "$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$profile_plist")" = "$APPLE_TEAM_ID" || fail "profile Team ID mismatch"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$profile_plist")" = "$APPLICATION_IDENTIFIER" || fail "profile application-identifier mismatch"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$profile_plist")" = "false" || fail "profile is not App Store distribution"
+          if /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' "$profile_plist" >/dev/null 2>&1; then fail "development/ad hoc profile is not allowed"; fi
+          if /usr/libexec/PlistBuddy -c 'Print :ProvisionsAllDevices' "$profile_plist" >/dev/null 2>&1; then fail "enterprise profile is not allowed"; fi
+          test "$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' "$profile_plist")" = "production" || fail "profile push environment mismatch"
+          /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.applesignin' "$profile_plist" | grep -q 'Default' || fail "profile Apple entitlement mismatch"
+          test -f "$app/Assets.car" || fail "compiled App Icon asset catalog not found"
           cp /tmp/ka-bijoux-entitlements.plist "build/ios/ipa/KA-Bijoux-build-${BUILD_NUMBER}-entitlements.plist"
           cp "$app/embedded.mobileprovision" "build/ios/ipa/KA-Bijoux-build-${BUILD_NUMBER}.mobileprovision"
 
@@ -256,6 +284,8 @@ workflows:
         - ka_bijoux_apple
       vars:
         BUNDLE_ID: com.kabijoux.app
+        APPLE_TEAM_ID: YF8JRZUL75
+        APPLICATION_IDENTIFIER: YF8JRZUL75.com.kabijoux.app
         MARKETING_VERSION: "1.0"
         BUILD_NUMBER: "7"
       xcode: 26.4
@@ -276,26 +306,47 @@ workflows:
       - name: Confirm KA Bijoux identity, signature and Apple entitlement
         script: |
           set -euo pipefail
+          fail() { echo "TestFlight IPA validation failed: $1" >&2; exit 1; }
           ipa="$CM_BUILD_DIR/testflight-upload/KABijoux.ipa"
           payload="$CM_BUILD_DIR/testflight-upload/validated"
           mkdir -p "$payload"
           unzip -q "$ipa" -d "$payload"
-          app="$(find "$payload/Payload" -maxdepth 1 -name '*.app' -type d | head -1)"
-          test -n "$app"
-          ! find "$payload/Payload" -maxdepth 2 -iname '*zuno*' | grep -q .
+          app_count="$(find "$payload/Payload" -maxdepth 1 -name '*.app' -type d | wc -l | tr -d ' ')"
+          test "$app_count" = "1" || fail "expected exactly one application bundle, found $app_count"
+          app="$payload/Payload/KABijoux.app"
+          test -d "$app" || fail "allowlisted KABijoux.app not found"
           info="$app/Info.plist"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info")" = "$BUNDLE_ID"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info")" = "$MARKETING_VERSION"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info")" = "$BUILD_NUMBER"
-          codesign --verify --deep --strict --verbose=2 "$app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info")" = "$BUNDLE_ID" || fail "bundle identifier mismatch"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info")" = "$MARKETING_VERSION" || fail "marketing version mismatch"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info")" = "$BUILD_NUMBER" || fail "build number mismatch"
+          codesign --verify --deep --strict --verbose=2 "$app" || fail "invalid code signature"
+          signature="$(codesign -dvvv "$app" 2>&1)"
+          printf '%s\n' "$signature" | grep -q "^Authority=Apple Distribution: .* ($APPLE_TEAM_ID)$" || fail "unexpected signing certificate"
+          printf '%s\n' "$signature" | grep -q "^TeamIdentifier=$APPLE_TEAM_ID$" || fail "code-signing Team ID mismatch"
           codesign -d --entitlements :- "$app" > "$CM_BUILD_DIR/testflight-upload/entitlements.plist"
-          /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' \
-            "$CM_BUILD_DIR/testflight-upload/entitlements.plist" | grep -q 'Default'
+          entitlements="$CM_BUILD_DIR/testflight-upload/entitlements.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :application-identifier' "$entitlements")" = "$APPLICATION_IDENTIFIER" || fail "application-identifier mismatch"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.team-identifier' "$entitlements")" = "$APPLE_TEAM_ID" || fail "entitlement Team ID mismatch"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :get-task-allow' "$entitlements")" = "false" || fail "get-task-allow must be false"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :aps-environment' "$entitlements")" = "production" || fail "aps-environment must be production"
+          /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' "$entitlements" | grep -q 'Default' || fail "Sign in with Apple entitlement mismatch"
+          profile="$app/embedded.mobileprovision"
+          test -f "$profile" || fail "embedded provisioning profile not found"
+          security cms -D -i "$profile" > "$CM_BUILD_DIR/testflight-upload/profile.plist"
+          profile_plist="$CM_BUILD_DIR/testflight-upload/profile.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$profile_plist")" = "$APPLE_TEAM_ID" || fail "profile Team ID mismatch"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$profile_plist")" = "$APPLICATION_IDENTIFIER" || fail "profile application-identifier mismatch"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$profile_plist")" = "false" || fail "profile is not App Store distribution"
+          if /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' "$profile_plist" >/dev/null 2>&1; then fail "development/ad hoc profile is not allowed"; fi
+          if /usr/libexec/PlistBuddy -c 'Print :ProvisionsAllDevices' "$profile_plist" >/dev/null 2>&1; then fail "enterprise profile is not allowed"; fi
+          test "$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' "$profile_plist")" = "production" || fail "profile push environment mismatch"
+          /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.applesignin' "$profile_plist" | grep -q 'Default' || fail "profile Apple entitlement mismatch"
           echo "Validated KA Bijoux $MARKETING_VERSION ($BUILD_NUMBER), bundle $BUNDLE_ID, source build $SOURCE_CODEMAGIC_BUILD_ID"
 
     artifacts:
       - testflight-upload/KABijoux.ipa
       - testflight-upload/entitlements.plist
+      - testflight-upload/profile.plist
 
     publishing:
       app_store_connect:
