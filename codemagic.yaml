@@ -165,7 +165,9 @@ workflows:
           /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' "$entitlements" | grep -q 'Default' || fail "Sign in with Apple entitlement missing"
           grep -R -q 'PRODUCT_BUNDLE_IDENTIFIER = com.kabijoux.app' ios || fail "bundle identifier mismatch"
           grep -R -q 'MARKETING_VERSION = 1.0' ios || fail "marketing version mismatch"
-          grep -R -q 'CURRENT_PROJECT_VERSION = 6' ios || fail "build number mismatch"
+          app_info="$(find ios -path '*/Pods' -prune -o -name 'Info.plist' -type f -print | head -1)"
+          test -n "$app_info" || fail "application Info.plist not found"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_info")" = "$BUILD_NUMBER" || fail "build number mismatch"
           icon_json="$(find ios -path '*AppIcon.appiconset/Contents.json' -type f | head -1)"
           test -n "$icon_json" || fail "AppIcon Contents.json not found"
           node - "$icon_json" <<'NODE'
