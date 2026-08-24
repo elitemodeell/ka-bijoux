@@ -189,7 +189,9 @@ workflows:
           keychain add-certificates
           xcode-project use-profiles
           profile_ok=0
-          for profile in "$HOME/Library/MobileDevice/Provisioning Profiles"/*.mobileprovision; do
+          for profile in \
+            "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"/*.mobileprovision \
+            "$HOME/Library/MobileDevice/Provisioning Profiles"/*.mobileprovision; do
             [ -f "$profile" ] || continue
             security cms -D -i "$profile" > /tmp/profile.plist
             app_id="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' /tmp/profile.plist 2>/dev/null || true)"
