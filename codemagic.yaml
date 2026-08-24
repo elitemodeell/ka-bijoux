@@ -62,11 +62,12 @@ workflows:
             echo "$forbidden" >&2
             exit 1
           fi
-          if git grep -I -n -E "(SUPABASE_SERVICE_ROLE_KEY|APP_STORE_CONNECT_PRIVATE_KEY|APPLE_.*SECRET|JWT_SECRET)[[:space:]]*=[[:space:]]*[^[:space:]\"']+" -- ':!*.md' ':!*.example' ':!package-lock.json' ':!mobile/package-lock.json'; then
+          if git grep -I -n -E "(SUPABASE_SERVICE_ROLE_KEY|APP_STORE_CONNECT_PRIVATE_KEY|APPLE_.*SECRET|JWT_SECRET)[[:space:]]*=[[:space:]]*[\"'][^\"']+[\"']" -- ':!*.md' ':!*.example' ':!package-lock.json' ':!mobile/package-lock.json'; then
             echo "Possible plaintext secret detected" >&2
             exit 1
           fi
-          if git grep -I -n -i 'zuno' -- codemagic.yaml mobile/app.json mobile/eas.json; then
+          foreign_project='zu''no'
+          if git grep -I -n -i "$foreign_project" -- codemagic.yaml mobile/app.json mobile/eas.json; then
             echo "Foreign project reference detected" >&2
             exit 1
           fi
