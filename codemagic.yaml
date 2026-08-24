@@ -9,9 +9,9 @@ workflows:
         # EXPO_PUBLIC_API_URL, EXPO_PUBLIC_SITE_URL, EXPO_PUBLIC_SUPABASE_URL,
         # EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, EXPO_PUBLIC_AUTH_GOOGLE_ENABLED.
         - ka_bijoux_mobile
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.kabijoux.app
+        # KA Bijoux-only App Store Connect credentials and the fresh
+        # distribution certificate private key. All values are secrets.
+        - ka_bijoux_apple
       vars:
         BUNDLE_ID: com.kabijoux.app
         MARKETING_VERSION: "1.0"
@@ -131,6 +131,14 @@ workflows:
             exit 1
           fi
 
+      - name: Create fresh KA Bijoux App Store signing files
+        script: |
+          set -euo pipefail
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+
       - name: Generate native iOS project
         script: |
           set -euo pipefail
@@ -169,6 +177,7 @@ workflows:
         script: |
           set -euo pipefail
           cd "$CM_BUILD_DIR/mobile"
+          keychain add-certificates
           xcode-project use-profiles
           profile_ok=0
           for profile in "$HOME/Library/MobileDevice/Provisioning Profiles"/*.mobileprovision; do
