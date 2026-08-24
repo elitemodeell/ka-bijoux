@@ -180,7 +180,7 @@ describe("experiência de autenticação mobile", () => {
     expect(appleAuth).toContain('/api/auth/apple/complete');
     expect(appleAuth).toContain("completeSupabaseLogin");
     expect(appConfig).toContain('"usesAppleSignIn": true');
-    expect(appConfig).toContain('"buildNumber": "7"');
+    expect(appConfig).toContain('"buildNumber": "8"');
   });
 
   it("navega diretamente para a loja após login por e-mail", () => {

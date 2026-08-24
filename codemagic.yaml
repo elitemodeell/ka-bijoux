@@ -1,6 +1,6 @@
 workflows:
   ka-bijoux-ios-release:
-    name: KA Bijoux iOS 1.0 (7) - signed IPA
+    name: KA Bijoux iOS 1.0 (8) - signed IPA
     instance_type: mac_mini_m2
     max_build_duration: 120
     environment:
@@ -17,7 +17,8 @@ workflows:
         APPLE_TEAM_ID: YF8JRZUL75
         APPLICATION_IDENTIFIER: YF8JRZUL75.com.kabijoux.app
         MARKETING_VERSION: "1.0"
-        BUILD_NUMBER: "7"
+        BUILD_NUMBER: "8"
+        IOS_DEPLOYMENT_TARGET: "15.0"
         XCODE_WORKSPACE: KABijoux.xcworkspace
         XCODE_SCHEME: KABijoux
       node: 20.19.4
@@ -51,7 +52,9 @@ workflows:
           if (config.name !== 'KA Bijoux') throw new Error('Unexpected application name');
           if (config.ios.bundleIdentifier !== 'com.kabijoux.app') throw new Error('Unexpected bundle identifier');
           if (config.version !== '1.0') throw new Error(`Expected version 1.0, received ${config.version}`);
-          if (config.ios.buildNumber !== '7') throw new Error(`Expected build 7, received ${config.ios.buildNumber}`);
+          if (config.ios.buildNumber !== '8') throw new Error(`Expected build 8, received ${config.ios.buildNumber}`);
+          const buildProperties = config.plugins.find(plugin => Array.isArray(plugin) && plugin[0] === 'expo-build-properties');
+          if (buildProperties?.[1]?.ios?.deploymentTarget !== '15.0') throw new Error('Expected iOS deployment target 15.0');
           if (config.ios.usesAppleSignIn !== true) throw new Error('usesAppleSignIn must be true');
           if (config.ios.supportsTablet !== true) throw new Error('iPad support must remain enabled');
           NODE
@@ -78,7 +81,8 @@ workflows:
           test "$APPLE_TEAM_ID" = "YF8JRZUL75"
           test "$APPLICATION_IDENTIFIER" = "YF8JRZUL75.com.kabijoux.app"
           test "$MARKETING_VERSION" = "1.0"
-          test "$BUILD_NUMBER" = "7"
+          test "$BUILD_NUMBER" = "8"
+          test "$IOS_DEPLOYMENT_TARGET" = "15.0"
 
       - name: Validate required mobile environment
         script: |
@@ -173,6 +177,7 @@ workflows:
           /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' "$entitlements" | grep -q 'Default' || fail "Sign in with Apple entitlement missing"
           grep -R -q 'PRODUCT_BUNDLE_IDENTIFIER = com.kabijoux.app' ios || fail "bundle identifier mismatch"
           grep -R -q 'MARKETING_VERSION = 1.0' ios || fail "marketing version mismatch"
+          grep -R -q 'IPHONEOS_DEPLOYMENT_TARGET = 15.0' ios || fail "deployment target mismatch"
           app_info="$(find ios -path '*/Pods' -prune -o -name 'Info.plist' -type f -print | head -1)"
           test -n "$app_info" || fail "application Info.plist not found"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_info")" = "$BUILD_NUMBER" || fail "build number mismatch"
@@ -237,6 +242,7 @@ workflows:
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info")" = "$BUNDLE_ID" || fail "bundle identifier mismatch"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info")" = "$MARKETING_VERSION" || fail "marketing version mismatch"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info")" = "$BUILD_NUMBER" || fail "build number mismatch"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$info")" = "$IOS_DEPLOYMENT_TARGET" || fail "minimum iOS version mismatch"
           codesign --verify --deep --strict --verbose=2 "$app" || fail "invalid code signature"
           signature="$(codesign -dvvv "$app" 2>&1)"
           printf '%s\n' "$signature" | grep -q "^Authority=Apple Distribution: .* ($APPLE_TEAM_ID)$" || fail "unexpected signing certificate"
@@ -274,8 +280,8 @@ workflows:
     # Intentionally no publishing block. The IPA must not be uploaded to
     # App Store Connect or TestFlight without explicit user authorization.
 
-  ka-bijoux-testflight-upload-build-7:
-    name: KA Bijoux 1.0 (7) - upload existing IPA to TestFlight
+  ka-bijoux-testflight-upload-build-8:
+    name: KA Bijoux 1.0 (8) - upload existing IPA to TestFlight
     instance_type: mac_mini_m2
     max_build_duration: 30
 
@@ -287,7 +293,8 @@ workflows:
         APPLE_TEAM_ID: YF8JRZUL75
         APPLICATION_IDENTIFIER: YF8JRZUL75.com.kabijoux.app
         MARKETING_VERSION: "1.0"
-        BUILD_NUMBER: "7"
+        BUILD_NUMBER: "8"
+        IOS_DEPLOYMENT_TARGET: "15.0"
       xcode: 26.4
 
     scripts:
@@ -319,6 +326,7 @@ workflows:
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info")" = "$BUNDLE_ID" || fail "bundle identifier mismatch"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info")" = "$MARKETING_VERSION" || fail "marketing version mismatch"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info")" = "$BUILD_NUMBER" || fail "build number mismatch"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$info")" = "$IOS_DEPLOYMENT_TARGET" || fail "minimum iOS version mismatch"
           codesign --verify --deep --strict --verbose=2 "$app" || fail "invalid code signature"
           signature="$(codesign -dvvv "$app" 2>&1)"
           printf '%s\n' "$signature" | grep -q "^Authority=Apple Distribution: .* ($APPLE_TEAM_ID)$" || fail "unexpected signing certificate"
