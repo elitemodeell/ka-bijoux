@@ -387,7 +387,17 @@ workflows:
           set -euo pipefail
 
           test "$CM_BRANCH" = "main"
-          test "$(git remote get-url origin)" = "https://github.com/elitemodeell/ka-bijoux.git"
+          remote="$(git remote get-url origin)"
+          case "$remote" in
+            https://github.com/elitemodeell/ka-bijoux|\
+            https://github.com/elitemodeell/ka-bijoux.git|\
+            https://*@github.com/elitemodeell/ka-bijoux|\
+            https://*@github.com/elitemodeell/ka-bijoux.git|\
+            git@github.com:elitemodeell/ka-bijoux.git|\
+            ssh://git@github.com/elitemodeell/ka-bijoux|\
+            ssh://git@github.com/elitemodeell/ka-bijoux.git) ;;
+            *) echo "Unexpected Git remote: $remote" >&2; exit 1 ;;
+          esac
           : "${APP_STORE_CONNECT_PRIVATE_KEY:?Missing KA Bijoux App Store Connect private key}"
           : "${APP_STORE_CONNECT_KEY_IDENTIFIER:?Missing KA Bijoux App Store Connect key identifier}"
           : "${APP_STORE_CONNECT_ISSUER_ID:?Missing KA Bijoux App Store Connect issuer identifier}"
