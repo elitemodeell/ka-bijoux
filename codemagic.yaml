@@ -141,7 +141,9 @@ workflows:
           grep -q 'provider: "apple"' backend/app/api/auth/apple/complete/route.ts
           grep -q '/api/auth/apple/complete' mobile/services/appleAuth.ts
           grep -q 'router.replace("/(tabs)")' 'mobile/app/(auth)/login.tsx'
-          grep -q 'router.replace("/(tabs)")' 'mobile/app/(auth)/cadastro.tsx'
+          grep -q 'router.replace("/(auth)/confirmar-email")' 'mobile/app/(auth)/cadastro.tsx'
+          grep -q 'await verifyRegistration(code)' 'mobile/app/(auth)/confirmar-email.tsx'
+          grep -q 'router.replace("/(tabs)")' 'mobile/app/(auth)/confirmar-email.tsx'
           status="$(curl -sS -o /tmp/apple-endpoint.json -w '%{http_code}' -X POST https://kabijoux.com.br/api/auth/apple/complete -H 'Content-Type: application/json' -d '{}')"
           if [ "$status" != "401" ]; then
             echo "Production Apple endpoint is not active (expected 401 without token, got $status). Deploy ka-bijoux-backend first." >&2
