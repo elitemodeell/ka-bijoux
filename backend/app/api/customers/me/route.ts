@@ -5,6 +5,7 @@ import { requireCustomer } from "@/lib/auth";
 import { anonymizeCustomerAccount } from "@/lib/account-deletion";
 import { deleteSupabaseUser, getSupabaseUser } from "@/lib/supabase-auth";
 import { apiSuccess, apiError } from "@/lib/utils";
+import { AppleSignInServerError, revokeStoredAppleAuthorization } from "@/lib/apple-sign-in";
 
 // GET /api/customers/me
 export async function GET(req: NextRequest) {
@@ -66,6 +67,12 @@ export async function DELETE(req: NextRequest) {
       providers = (auth.data.user.identities ?? []).map((identity) => identity.provider);
     }
 
+    let appleAuthorizationRevoked = false;
+    if (providers.includes("apple")) {
+      const revocation = await revokeStoredAppleAuthorization(customer.id);
+      appleAuthorizationRevoked = revocation === "revoked";
+    }
+
     const socialAccount = providers.some((provider) => provider === "apple" || provider === "google");
     if (!socialAccount) {
       if (!password) return apiError("Informe sua senha para excluir a conta.", 400);
@@ -87,11 +94,15 @@ export async function DELETE(req: NextRequest) {
       accountDeleted: true,
       retainedOrderRecords: true,
       providers,
+      appleAuthorizationRevoked,
     });
     response.headers.set("Cache-Control", "no-store");
     return response;
   } catch (e) {
     if (e instanceof Error && e.message === "Não autorizado") return apiError("Não autorizado.", 401);
+    if (e instanceof AppleSignInServerError) {
+      return apiError("Não foi possível revogar a autorização Apple. Tente novamente.", 503);
+    }
     return apiError("Erro ao excluir conta.", 500);
   }
 }

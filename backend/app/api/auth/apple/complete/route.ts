@@ -9,6 +9,7 @@ import {
 } from "@/lib/google-auth-customer";
 import { rateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 import { apiError, apiSuccess } from "@/lib/utils";
+import { exchangeAppleAuthorizationCode, storeAppleRefreshToken } from "@/lib/apple-sign-in";
 
 function bearerToken(req: NextRequest) {
   const match = req.headers.get("authorization")?.trim().match(/^Bearer\s+([^\s]+)$/i);
@@ -32,7 +33,25 @@ export async function POST(req: NextRequest) {
     const { data, error } = await getSupabaseUser(accessToken);
     if (error || !data.user) return apiError("Não autorizado.", 401);
 
+    const body = await req.json().catch(() => null) as { authorizationCode?: unknown } | null;
+    const authorizationCode = typeof body?.authorizationCode === "string" ? body.authorizationCode.trim() : "";
+    if (!authorizationCode || authorizationCode.length > 2048) {
+      return apiError("Código de autorização Apple inválido.", 400);
+    }
+
+    const appleIdentity = data.user.identities?.find((identity) => identity.provider === "apple");
+    const appleSubject = [appleIdentity?.identity_data?.sub, appleIdentity?.id]
+      .find((value): value is string => typeof value === "string" && value.length > 0);
+    if (!appleSubject) return apiError("Identidade Apple inválida.", 400);
+
+    const appleTokens = await exchangeAppleAuthorizationCode(authorizationCode, appleSubject);
     const result = await completeAppleCustomerLink(data.user);
+    await storeAppleRefreshToken({
+      customerId: result.customer.id,
+      authUserId: data.user.id,
+      appleSubject,
+      refreshToken: appleTokens.refreshToken,
+    });
     const response = apiSuccess({
       customer: publicGoogleCustomer(result.customer),
       authUserId: data.user.id,

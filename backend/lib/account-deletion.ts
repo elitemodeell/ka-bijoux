@@ -27,6 +27,7 @@ export async function anonymizeCustomerAccount(customerId: string) {
       where: { customerId },
       data: { ip: null, userAgent: null },
     });
+    await tx.appleAuthCredential.deleteMany({ where: { customerId } });
 
     return tx.customer.update({
       where: { id: customerId },

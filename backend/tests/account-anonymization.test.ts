@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   deleteReview: vi.fn(),
   deleteAddress: vi.fn(),
   anonymizeConsent: vi.fn(),
+  deleteAppleCredential: vi.fn(),
   bcryptHash: vi.fn(),
 }));
 
@@ -33,6 +34,7 @@ beforeEach(() => {
     review: { deleteMany: mocks.deleteReview },
     address: { deleteMany: mocks.deleteAddress },
     consentLog: { updateMany: mocks.anonymizeConsent },
+    appleAuthCredential: { deleteMany: mocks.deleteAppleCredential },
   }));
 });
 
@@ -45,6 +47,7 @@ describe("anonimização com retenção de pedidos", () => {
       where: { customerId: "customer-1" },
       data: { ip: null, userAgent: null },
     });
+    expect(mocks.deleteAppleCredential).toHaveBeenCalledWith({ where: { customerId: "customer-1" } });
     expect(mocks.updateCustomer).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "customer-1" },
       data: expect.objectContaining({

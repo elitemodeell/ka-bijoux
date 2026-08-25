@@ -47,7 +47,7 @@ export async function signInWithApple(): Promise<AppleAuthResult> {
       ],
       nonce: hashedNonce,
     });
-    if (!credential.identityToken) {
+    if (!credential.identityToken || !credential.authorizationCode) {
       throw new AppleAuthError("invalid_credential", "A Apple não retornou uma credencial válida.");
     }
 
@@ -66,7 +66,9 @@ export async function signInWithApple(): Promise<AppleAuthResult> {
     if (firstAuthorizationName) {
       await supabase.auth.updateUser({ data: { full_name: firstAuthorizationName } });
     }
-    const response = await api.post("/api/auth/apple/complete", undefined, {
+    const response = await api.post("/api/auth/apple/complete", {
+      authorizationCode: credential.authorizationCode,
+    }, {
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
     const customer = response.data?.data?.customer as Customer | undefined;

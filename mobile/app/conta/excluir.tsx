@@ -32,7 +32,10 @@ export default function ExcluirContaScreen() {
             try {
               const response = await api.delete("/api/customers/me", { data: { password } });
               const providers = response.data?.data?.providers;
-              setNeedsAppleRevocation(Array.isArray(providers) && providers.includes("apple"));
+              const appleAuthorizationRevoked = response.data?.data?.appleAuthorizationRevoked === true;
+              setNeedsAppleRevocation(
+                Array.isArray(providers) && providers.includes("apple") && !appleAuthorizationRevoked,
+              );
               await logout();
               setConfirmed(true);
             } catch (e: unknown) {
