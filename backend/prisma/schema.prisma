@@ -41,8 +41,12 @@ model Customer {
   passwordHash String
   active                Boolean   @default(true)
   pushToken             String?
+  asaasCustomerId       String?   @unique
+  asaasCreationClaimedAt DateTime?
+  asaasCreationAttemptCount Int   @default(0)
   passwordResetCode     String?
   passwordResetExpires  DateTime?
+  deletedAt             DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -275,6 +279,8 @@ model Order {
   shippingType         ShippingType
   shippingTrackingCode String?
   notes                String?
+  checkoutIdempotencyKey String?     @unique
+  checkoutRequestHash  String?
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
@@ -288,6 +294,7 @@ model Order {
   items   OrderItem[]
   payment Payment?
   statusHistory OrderStatusHistory[]
+  webhookEvents PaymentWebhookEvent[]
 
   @@index([customerId])
   @@index([status])
@@ -330,7 +337,12 @@ model OrderStatusHistory {
 enum OrderStatus {
   CRIADO
   AGUARDANDO_PAGAMENTO
+  PAGAMENTO_PENDENTE
   PAGAMENTO_APROVADO
+  PAGAMENTO_EXPIRADO
+  FALHA_NO_PAGAMENTO
+  REEMBOLSO_PENDENTE
+  REEMBOLSADO
   EM_SEPARACAO
   PRONTO_PARA_RETIRADA
   SAIU_PARA_ENTREGA
@@ -348,23 +360,90 @@ enum ShippingType {
 // ─── Payment ──────────────────────────────────────────────────────────────────
 
 model Payment {
-  id            String        @id @default(cuid())
-  method        PaymentMethod
-  status        PaymentStatus @default(AGUARDANDO)
-  amount        Decimal       @db.Decimal(10, 2)
-  gatewayId     String?
-  gatewayData   Json?
-  pixCode       String?       @db.Text
-  pixExpiration DateTime?
-  paidAt        DateTime?
-  refundedAt    DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                   String              @id @default(cuid())
+  provider             PaymentProvider?
+  method               PaymentMethod
+  status               PaymentStatus       @default(AGUARDANDO)
+  amount               Decimal             @db.Decimal(10, 2)
+  gatewayId            String?
+  externalPaymentId    String?
+  externalCustomerId   String?
+  externalCheckoutId   String?
+  externalReference    String?
+  idempotencyKey       String?
+  environment          PaymentEnvironment?
+  installmentCount     Int                 @default(1)
+  installmentValue     Decimal?            @db.Decimal(10, 2)
+  lastProviderStatus   String?
+  gatewayData          Json?
+  checkoutUrl          String?
+  checkoutExpiration   DateTime?
+  boletoUrl            String?
+  boletoDigitableLine  String?             @db.Text
+  boletoExpiration     DateTime?
+  pixCode              String?             @db.Text
+  pixQrCode            String?             @db.Text
+  pixExpiration        DateTime?
+  paidAt               DateTime?
+  confirmedAt          DateTime?
+  receivedAt           DateTime?
+  cancelledAt          DateTime?
+  refundedAt           DateTime?
+  stockCommittedAt     DateTime?
+  creationClaimedAt    DateTime?
+  creationAttemptCount Int                 @default(0)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
 
   order   Order  @relation(fields: [orderId], references: [id])
   orderId String @unique
 
+  @@unique([provider, externalPaymentId])
+  @@unique([provider, externalCheckoutId])
+  @@unique([provider, idempotencyKey])
   @@map("payments")
+}
+
+model PaymentWebhookEvent {
+  id                  String                  @id @default(cuid())
+  provider            PaymentProvider
+  externalEventId     String
+  eventType           String
+  externalPaymentId   String?
+  payloadHash         String?
+  processingStatus    WebhookProcessingStatus @default(RECEIVED)
+  errorSummary        String?
+  receivedAt          DateTime                @default(now())
+  processingStartedAt DateTime?
+  processedAt         DateTime?
+  attemptCount        Int                     @default(0)
+
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  orderId String?
+
+  @@unique([provider, externalEventId])
+  @@index([externalPaymentId])
+  @@index([orderId])
+  @@index([processingStatus, receivedAt])
+  @@map("payment_webhook_events")
+}
+
+enum PaymentEnvironment {
+  SANDBOX
+  PRODUCTION
+}
+
+enum PaymentProvider {
+  ASAAS
+  MERCADO_PAGO
+}
+
+enum WebhookProcessingStatus {
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  IGNORED
+  FAILED
 }
 
 enum PaymentMethod {
@@ -375,9 +454,13 @@ enum PaymentMethod {
 
 enum PaymentStatus {
   AGUARDANDO
+  EM_ANALISE
   PAGO
   RECUSADO
   CANCELADO
+  EXPIRADO
+  FALHA
+  ESTORNO_PENDENTE
   REEMBOLSADO
 }
 
@@ -483,6 +566,40 @@ model ConsentLog {
 
   @@index([customerId])
   @@map("consent_logs")
+}
+
+model PendingEmailRegistration {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String
+  phone             String?
+  passwordHash      String
+  consentVersion    String
+  consentIp         String?
+  consentUserAgent  String?
+  otpDigest         String
+  otpExpiresAt      DateTime
+  otpAttempts       Int       @default(0)
+  resendAvailableAt DateTime
+  consumedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([otpExpiresAt])
+  @@map("pending_email_registrations")
+}
+
+model EmailOtpRateLimit {
+  id            String   @id @default(cuid())
+  scope         String
+  keyDigest     String
+  windowStarted DateTime
+  count         Int      @default(1)
+  updatedAt     DateTime @updatedAt
+
+  @@unique([scope, keyDigest])
+  @@index([updatedAt])
+  @@map("email_otp_rate_limits")
 }
 
 // ─── StoreSettings ────────────────────────────────────────────────────────────

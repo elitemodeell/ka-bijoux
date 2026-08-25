@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthScreenShell } from "@/components/auth/AuthScreenShell";
 import { Button } from "@/components/ui/Button";
@@ -11,10 +11,15 @@ import { authErrorMessage, isValidEmail } from "@/lib/authFeedback";
 
 export default function CadastroScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ name?: string; email?: string }>();
   const register = useAuthStore((state) => state.register);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({
+    name: typeof params.name === "string" ? params.name : "",
+    email: typeof params.email === "string" ? params.email : "",
+    password: "",
+  });
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -43,7 +48,7 @@ export default function CadastroScreen() {
     setError("");
     try {
       await register({ name, email, password: form.password, acceptedTerms: true });
-      router.replace("/(tabs)");
+      router.replace("/(auth)/confirmar-email");
     } catch (reason: unknown) {
       setError(authErrorMessage(reason, "register"));
     } finally {

@@ -16,13 +16,9 @@ export default function ExcluirContaScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [needsAppleRevocation, setNeedsAppleRevocation] = useState(false);
 
   async function handleDelete() {
-    if (!password) {
-      Alert.alert("Atenção", "Informe sua senha para confirmar.");
-      return;
-    }
-
     Alert.alert(
       "Excluir conta",
       "Tem certeza? Esta ação não pode ser desfeita. Todos os seus dados serão removidos permanentemente.",
@@ -34,12 +30,14 @@ export default function ExcluirContaScreen() {
           onPress: async () => {
             setLoading(true);
             try {
-              await api.delete("/api/customers/me", { data: { password } });
+              const response = await api.delete("/api/customers/me", { data: { password } });
+              const providers = response.data?.data?.providers;
+              setNeedsAppleRevocation(Array.isArray(providers) && providers.includes("apple"));
               await logout();
               setConfirmed(true);
             } catch (e: unknown) {
               const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-              Alert.alert("Erro", msg ?? "Não foi possível excluir sua conta. Verifique sua senha.");
+              Alert.alert("Erro", msg ?? "Não foi possível excluir sua conta. Tente novamente.");
             } finally {
               setLoading(false);
             }
@@ -58,6 +56,11 @@ export default function ExcluirContaScreen() {
           <Text style={styles.doneText}>
             Seus dados foram removidos. Esperamos te ver novamente em breve!
           </Text>
+          {needsAppleRevocation && (
+            <Text style={styles.appleRevocationText}>
+              Para concluir também na Apple, abra Ajustes no iPhone, toque no seu nome, depois em Início de Sessão e Segurança, Iniciar sessão com Apple, KA Bijoux e Parar de usar.
+            </Text>
+          )}
           <Button
             label="Voltar ao início"
             onPress={() => router.replace("/(tabs)")}
@@ -84,12 +87,11 @@ export default function ExcluirContaScreen() {
           <Ionicons name="warning" size={32} color={Colors.error} />
           <Text style={styles.warnTitle}>Esta ação é permanente</Text>
           <Text style={styles.warnText}>
-            Ao excluir sua conta, os seguintes dados serão removidos para sempre:
+            Ao excluir sua conta, seus dados de acesso e perfil serão removidos ou anonimizados:
           </Text>
           <View style={styles.list}>
             {[
               "Seus dados pessoais (nome, e-mail, telefone)",
-              "Histórico de pedidos",
               "Endereços salvos",
               "Lista de favoritos",
             ].map((item) => (
@@ -100,21 +102,22 @@ export default function ExcluirContaScreen() {
             ))}
           </View>
           <Text style={styles.warnNote}>
-            Pedidos em andamento não serão cancelados automaticamente. Entre em contato com a loja se precisar cancelar.
+            Registros de pedidos e dados fiscais que precisem ser preservados por obrigação legal continuarão armazenados sem permitir novo acesso à conta. Pedidos em andamento não serão cancelados automaticamente.
           </Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Confirmar identidade</Text>
+          <Text style={styles.cardTitle}>Confirmar exclusão</Text>
           <Text style={styles.cardSubtitle}>
             Conta: <Text style={{ fontWeight: "700", color: Colors.primary }}>{customer?.email}</Text>
           </Text>
-          <Text style={styles.label}>Sua senha</Text>
+          <Text style={styles.label}>Sua senha, se sua conta usa e-mail</Text>
+          <Text style={styles.cardSubtitle}>Contas Apple e Google não precisam informar senha.</Text>
           <TextInput
             style={styles.input}
             value={password}
             onChangeText={setPassword}
-            placeholder="Digite sua senha"
+            placeholder="Senha da conta por e-mail"
             placeholderTextColor={Colors.textLight}
             secureTextEntry
             autoCapitalize="none"
@@ -159,6 +162,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.base },
   doneTitle: { fontSize: FontSizes["2xl"], fontWeight: "900", color: Colors.textPrimary, marginTop: 16 },
   doneText: { fontSize: FontSizes.base, color: Colors.textMuted, textAlign: "center", marginTop: 8, lineHeight: 22 },
+  appleRevocationText: { fontSize: FontSizes.sm, color: Colors.textSecondary, textAlign: "center", marginTop: 16, lineHeight: 21 },
   warnCard: {
     backgroundColor: Colors.errorLight, borderRadius: BorderRadius["2xl"],
     padding: 20, alignItems: "flex-start", gap: 10,

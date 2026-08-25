@@ -54,7 +54,6 @@ vi.mock("@/lib/supabase-auth", () => ({
 }));
 
 import { POST as login } from "@/app/api/auth/login/route";
-import { POST as register } from "@/app/api/auth/register/route";
 
 const customer = {
   id: "customer-1",
@@ -172,43 +171,5 @@ describe("transição de login para Supabase Auth", () => {
   });
 });
 
-describe("cadastro novo no Supabase Auth", () => {
-  it("cria Supabase User, mantém Customer e retorna sessão Supabase", async () => {
-    mocks.customerFindFirst.mockResolvedValue(null);
-    mocks.customerCreate.mockResolvedValue(customer);
-    mocks.consentCreate.mockResolvedValue({});
-    mocks.createAuthUser.mockResolvedValue({ data: { user: { id: "auth-new" } }, error: null });
-    mocks.signIn.mockResolvedValue(session("auth-new"));
-
-    const response = await register(request("register", {
-      name: "Cliente",
-      email: customer.email,
-      phone: "37999999999",
-      password: "senha-segura",
-      acceptedTerms: true,
-    }));
-    const payload = await response.json();
-
-    expect(response.status).toBe(201);
-    expect(payload.data.token).toBe("supabase-access");
-    expect(payload.data.customer.id).toBe("customer-1");
-    expect(mocks.customerUpdate).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: "customer-1" },
-      data: expect.objectContaining({ authUserId: "auth-new" }),
-    }));
-  });
-
-  it("rejeita e-mail duplicado antes de criar usuário Auth", async () => {
-    mocks.customerFindFirst.mockResolvedValue({ id: "existing" });
-
-    const response = await register(request("register", {
-      name: "Cliente",
-      email: customer.email,
-      password: "senha-segura",
-      acceptedTerms: true,
-    }));
-
-    expect(response.status).toBe(409);
-    expect(mocks.createAuthUser).not.toHaveBeenCalled();
-  });
-});
+// O cadastro em duas etapas é coberto por email-registration-otp.test.ts.
+export {};

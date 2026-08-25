@@ -1,159 +1,214 @@
-import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
-import { prisma } from "@/lib/prisma";
-import { OrderStatus } from "@prisma/client";
-import { sendPushNotification } from "@/lib/notifications";
+export const dynamic = "force-dynamic";
 
-// POST /api/payment/webhook — Receber confirmação do Mercado Pago
+import { createHash, timingSafeEqual } from "node:crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { OrderStatus, Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+
+interface AsaasWebhook {
+  id?: unknown;
+  event?: unknown;
+  payment?: { id?: unknown; externalReference?: unknown; status?: unknown };
+}
+
+const PAID_EVENTS = new Set(["PAYMENT_CONFIRMED", "PAYMENT_RECEIVED"]);
+const REFUND_EVENTS = new Set(["PAYMENT_REFUNDED", "PAYMENT_CHARGEBACK_REQUESTED"]);
+const FAILED_EVENTS = new Set([
+  "PAYMENT_CREDIT_CARD_CAPTURE_REFUSED",
+  "PAYMENT_REPROVED_BY_RISK_ANALYSIS",
+  "PAYMENT_DELETED",
+]);
+const EXPIRED_EVENTS = new Set(["PAYMENT_OVERDUE"]);
+
+function secureTokenMatches(received: string, expected: string) {
+  const left = createHash("sha256").update(received).digest();
+  const right = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(left, right);
+}
+
+async function updateStock(
+  tx: Prisma.TransactionClient,
+  orderId: string,
+  direction: "decrement" | "increment",
+) {
+  const items = await tx.orderItem.findMany({ where: { orderId } });
+  for (const item of items) {
+    if (item.variationId) {
+      await tx.productVariation.update({
+        where: { id: item.variationId },
+        data: { stock: { [direction]: item.quantity } },
+      });
+    } else {
+      await tx.product.update({
+        where: { id: item.productId },
+        data: {
+          stock: { [direction]: item.quantity },
+          soldCount:
+            direction === "decrement"
+              ? { increment: item.quantity }
+              : { decrement: item.quantity },
+        },
+      });
+    }
+  }
+}
+
 export async function POST(req: NextRequest) {
+  const expectedToken = process.env.ASAAS_WEBHOOK_TOKEN?.trim();
+  const receivedToken = req.headers.get("asaas-access-token")?.trim() ?? "";
+  if (!expectedToken) {
+    return NextResponse.json({ error: "Webhook indisponível." }, { status: 503 });
+  }
+  if (!receivedToken || !secureTokenMatches(receivedToken, expectedToken)) {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  }
+
   try {
     const rawBody = await req.text();
-    const xSignature = req.headers.get("x-signature") ?? "";
-    const xRequestId = req.headers.get("x-request-id") ?? "";
-    const { searchParams } = new URL(req.url);
-    const dataId = searchParams.get("data.id") ?? "";
-
-    const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET ?? "";
-    if (secret && xSignature && !validateSignature(xSignature, xRequestId, dataId, secret)) {
-      return NextResponse.json({ error: "Assinatura inválida." }, { status: 401 });
+    const body = JSON.parse(rawBody) as AsaasWebhook;
+    const eventId = typeof body.id === "string" ? body.id : "";
+    const eventType = typeof body.event === "string" ? body.event : "";
+    const externalPaymentId = typeof body.payment?.id === "string" ? body.payment.id : "";
+    if (!eventId || !eventType || !externalPaymentId) {
+      return NextResponse.json({ error: "Evento inválido." }, { status: 422 });
     }
 
-    const event = JSON.parse(rawBody);
-    const { type, data } = event;
+    const payloadHash = createHash("sha256").update(rawBody).digest("hex");
+    const result = await prisma.$transaction(async (tx) => {
+      const duplicate = await tx.paymentWebhookEvent.findUnique({
+        where: {
+          provider_externalEventId: {
+            provider: "ASAAS",
+            externalEventId: eventId,
+          },
+        },
+      });
+      if (duplicate) return { duplicate: true, processed: false };
 
-    if (type === "payment" && data?.id) {
-      const mpPayment = await fetchMercadoPagoPayment(data.id);
-      if (!mpPayment) return NextResponse.json({ ok: true });
+      const payment = await tx.payment.findFirst({
+        where: {
+          provider: "ASAAS",
+          OR: [{ externalPaymentId }, { gatewayId: externalPaymentId }],
+        },
+        include: { order: true },
+      });
 
-      const payment = await findPaymentRecord(data.id, mpPayment.external_reference);
-      if (!payment) return NextResponse.json({ ok: true });
+      const webhookEvent = await tx.paymentWebhookEvent.create({
+        data: {
+          provider: "ASAAS",
+          externalEventId: eventId,
+          eventType,
+          externalPaymentId,
+          payloadHash,
+          processingStatus: "PROCESSING",
+          processingStartedAt: new Date(),
+          attemptCount: 1,
+          orderId: payment?.orderId,
+        },
+      });
 
-      if (mpPayment.status === "approved") {
-        await prisma.payment.update({
-          where: { id: payment.id },
+      if (!payment) {
+        await tx.paymentWebhookEvent.update({
+          where: { id: webhookEvent.id },
+          data: { processingStatus: "IGNORED", processedAt: new Date() },
+        });
+        return { duplicate: false, processed: false };
+      }
+
+      let processed = false;
+      if (PAID_EVENTS.has(eventType)) {
+        const stockClaim = await tx.payment.updateMany({
+          where: { id: payment.id, stockCommittedAt: null },
           data: {
             status: "PAGO",
-            paidAt: new Date(),
-            gatewayId: String(data.id),
+            paidAt: payment.paidAt ?? new Date(),
+            confirmedAt: payment.confirmedAt ?? new Date(),
+            stockCommittedAt: new Date(),
+            lastProviderStatus:
+              typeof body.payment?.status === "string" ? body.payment.status : eventType,
           },
         });
-
-        const updatedOrder = await prisma.order.update({
+        if (stockClaim.count === 1) await updateStock(tx, payment.orderId, "decrement");
+        if (stockClaim.count === 0) {
+          await tx.payment.update({
+            where: { id: payment.id },
+            data: {
+              status: "PAGO",
+              lastProviderStatus:
+                typeof body.payment?.status === "string" ? body.payment.status : eventType,
+            },
+          });
+        }
+        await tx.order.update({
           where: { id: payment.orderId },
           data: {
             status: OrderStatus.PAGAMENTO_APROVADO,
             statusHistory: {
               create: {
                 status: OrderStatus.PAGAMENTO_APROVADO,
-                note: "Pagamento confirmado via webhook",
+                note: "Pagamento confirmado pelo Asaas",
               },
             },
           },
-          include: { customer: { select: { pushToken: true } } },
         });
+        processed = true;
+      } else if (
+        REFUND_EVENTS.has(eventType) ||
+        FAILED_EVENTS.has(eventType) ||
+        EXPIRED_EVENTS.has(eventType)
+      ) {
+        const shouldRestock =
+          payment.stockCommittedAt !== null && payment.refundedAt === null;
+        const isRefund = REFUND_EVENTS.has(eventType);
+        const isExpired = EXPIRED_EVENTS.has(eventType);
+        const paymentStatus = isRefund ? "REEMBOLSADO" : isExpired ? "EXPIRADO" : "RECUSADO";
+        const orderStatus = isRefund
+          ? OrderStatus.REEMBOLSADO
+          : isExpired
+            ? OrderStatus.PAGAMENTO_EXPIRADO
+            : OrderStatus.FALHA_NO_PAGAMENTO;
 
-        if (updatedOrder.customer.pushToken) {
-          sendPushNotification({
-            to: updatedOrder.customer.pushToken,
-            title: "Pagamento confirmado! ✅",
-            body: `Pedido #${updatedOrder.orderNumber} pago. Já estamos preparando seus itens.`,
-            data: { orderId: updatedOrder.id, orderNumber: updatedOrder.orderNumber },
-          });
-        }
-
-        const orderItems = await prisma.orderItem.findMany({
-          where: { orderId: payment.orderId },
-        });
-
-        for (const item of orderItems) {
-          if (item.variationId) {
-            await prisma.productVariation.update({
-              where: { id: item.variationId },
-              data: { stock: { decrement: item.quantity } },
-            });
-          } else {
-            await prisma.product.update({
-              where: { id: item.productId },
-              data: {
-                stock: { decrement: item.quantity },
-                soldCount: { increment: item.quantity },
-              },
-            });
-          }
-        }
-      } else if (mpPayment.status === "rejected" || mpPayment.status === "cancelled") {
-        await prisma.payment.update({
+        await tx.payment.update({
           where: { id: payment.id },
-          data: { status: "RECUSADO" },
+          data: {
+            status: paymentStatus,
+            refundedAt: shouldRestock ? new Date() : payment.refundedAt,
+            cancelledAt: isRefund ? payment.cancelledAt : new Date(),
+            lastProviderStatus:
+              typeof body.payment?.status === "string" ? body.payment.status : eventType,
+          },
         });
-
-        await prisma.order.update({
+        await tx.order.update({
           where: { id: payment.orderId },
           data: {
-            status: OrderStatus.CANCELADO,
+            status: orderStatus,
             statusHistory: {
-              create: { status: OrderStatus.CANCELADO, note: "Pagamento recusado pelo gateway" },
+              create: {
+                status: orderStatus,
+                note: `Pagamento atualizado pelo Asaas: ${eventType}`,
+              },
             },
           },
         });
+        if (shouldRestock) await updateStock(tx, payment.orderId, "increment");
+        processed = true;
       }
-    }
 
-    return NextResponse.json({ ok: true });
-  } catch (e) {
-    console.error("Webhook error:", e);
+      await tx.paymentWebhookEvent.update({
+        where: { id: webhookEvent.id },
+        data: {
+          processingStatus: processed ? "PROCESSED" : "IGNORED",
+          processedAt: new Date(),
+        },
+      });
+      return { duplicate: false, processed };
+    });
+
+    return NextResponse.json(
+      { ok: true, ...result },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch {
     return NextResponse.json({ error: "Erro interno." }, { status: 500 });
   }
-}
-
-// Mercado Pago v2 — x-signature: "ts=TIMESTAMP,v1=HMAC"
-// Manifest: "id:DATA_ID;request-id:X_REQUEST_ID;ts:TIMESTAMP;"
-function validateSignature(
-  xSignature: string,
-  xRequestId: string,
-  dataId: string,
-  secret: string
-): boolean {
-  const ts = xSignature.split(",").find((p) => p.startsWith("ts="))?.slice(3) ?? "";
-  const v1 = xSignature.split(",").find((p) => p.startsWith("v1="))?.slice(3) ?? "";
-  if (!ts || !v1) return false;
-
-  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
-  const expected = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
-
-  try {
-    return crypto.timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(v1, "hex"));
-  } catch {
-    return false;
-  }
-}
-
-async function fetchMercadoPagoPayment(id: string) {
-  const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-  if (!token) return { id, status: "approved", external_reference: null };
-
-  const res = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  if (!res.ok) return null;
-  return res.json() as Promise<{ id: string; status: string; external_reference: string | null }>;
-}
-
-async function findPaymentRecord(mpPaymentId: string, externalReference: string | null) {
-  // PIX: gatewayId = MP payment ID direto
-  let payment = await prisma.payment.findFirst({
-    where: { gatewayId: String(mpPaymentId) },
-  });
-
-  // Checkout Pro: gateway armazena preference ID, mas o order tem external_reference = orderNumber
-  if (!payment && externalReference) {
-    const order = await prisma.order.findFirst({
-      where: { orderNumber: externalReference },
-      include: { payment: true },
-    });
-    payment = order?.payment ?? null;
-  }
-
-  return payment;
 }

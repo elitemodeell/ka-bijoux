@@ -68,7 +68,10 @@ async function fetchMelhorEnvioRates(
   const token = process.env.MELHOR_ENVIO_TOKEN;
 
   if (!token) {
-    // Mock: estimativa por peso para dev
+    if (process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production") {
+      return { pac: null, sedex: null, pacDays: 0, sedexDays: 0 };
+    }
+    // Estimativa estritamente local; produção falha fechada quando não configurada.
     const base = dims.totalWeight * 10;
     return { pac: Math.max(15, base * 0.8), sedex: Math.max(25, base * 1.4), pacDays: 8, sedexDays: 3 };
   }
@@ -112,7 +115,10 @@ async function fetchMelhorEnvioRates(
     };
   } catch (err) {
     console.error("Melhor Envio error:", err);
-    // Fallback para mock se a API falhar
+    if (process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production") {
+      return { pac: null, sedex: null, pacDays: 0, sedexDays: 0 };
+    }
+    // Estimativa estritamente local para desenvolvimento.
     const base = dims.totalWeight * 10;
     return { pac: Math.max(15, base * 0.8), sedex: Math.max(25, base * 1.4), pacDays: 8, sedexDays: 3 };
   }

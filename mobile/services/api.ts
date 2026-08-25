@@ -106,6 +106,10 @@ export const authApi = {
   login: (email: string, password: string) => api.post("/api/auth/login", { email, password }),
   register: (data: { name: string; email: string; phone?: string; password: string; acceptedTerms: boolean }) =>
     api.post("/api/auth/register", data),
+  verifyRegistration: (email: string, code: string, password: string) =>
+    api.post("/api/auth/register/verify", { email, code, password }),
+  resendRegistrationCode: (email: string) =>
+    api.post("/api/auth/register/resend", { email }),
   forgotPassword: (email: string) => api.post("/api/auth/forgot-password", { email }),
   resetPassword: (email: string, code: string, newPassword: string) =>
     api.post("/api/auth/reset-password", { email, code, newPassword }),
@@ -128,7 +132,8 @@ export const cartApi = {
 };
 export const shippingApi = { calculate: (zipCode: string, cartId?: string) => api.post("/api/shipping/calculate", { zipCode, cartId }) };
 export const ordersApi = {
-  create: (data: Record<string, unknown>) => api.post("/api/orders", data),
+  create: (data: Record<string, unknown>, idempotencyKey: string) =>
+    api.post("/api/orders", data, { headers: { "Idempotency-Key": idempotencyKey } }),
   list: () => api.get("/api/orders"),
   getById: (id: string) => api.get(`/api/orders/${id}`),
 };

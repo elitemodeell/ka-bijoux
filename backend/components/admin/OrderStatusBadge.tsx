@@ -3,7 +3,12 @@ import { OrderStatus } from "@prisma/client";
 const statusConfig: Record<OrderStatus, { label: string; color: string }> = {
   CRIADO:               { label: "Criado",              color: "bg-gray-100 text-gray-700" },
   AGUARDANDO_PAGAMENTO: { label: "Aguard. Pagamento",   color: "bg-yellow-100 text-yellow-700" },
+  PAGAMENTO_PENDENTE:   { label: "Pagamento pendente", color: "bg-yellow-100 text-yellow-700" },
   PAGAMENTO_APROVADO:   { label: "Pago",                color: "bg-green-100 text-green-700" },
+  PAGAMENTO_EXPIRADO:   { label: "Pagamento expirado", color: "bg-orange-100 text-orange-700" },
+  FALHA_NO_PAGAMENTO:   { label: "Falha no pagamento", color: "bg-red-100 text-red-700" },
+  REEMBOLSO_PENDENTE:   { label: "Reembolso pendente", color: "bg-orange-100 text-orange-700" },
+  REEMBOLSADO:          { label: "Reembolsado",        color: "bg-slate-100 text-slate-700" },
   EM_SEPARACAO:         { label: "Em Separação",        color: "bg-blue-100 text-blue-700" },
   PRONTO_PARA_RETIRADA: { label: "Pronto p/ Retirada",  color: "bg-indigo-100 text-indigo-700" },
   SAIU_PARA_ENTREGA:    { label: "Saiu p/ Entrega",     color: "bg-purple-100 text-purple-700" },

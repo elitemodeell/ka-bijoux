@@ -14,7 +14,7 @@ const sections = [
     title: "2. Sobre a KA Bijoux",
     content: `A KA Bijoux é uma loja de acessórios, bijuterias e produtos para presente localizada em Itaúna/MG. Vendemos produtos físicos por meio do site e do aplicativo móvel.
 
-E-mail de contato: contato@kabijoux.com.br`,
+E-mail de contato: adm@kabijoux.com.br`,
   },
   {
     title: "3. Cadastro e Conta",
@@ -33,7 +33,7 @@ E-mail de contato: contato@kabijoux.com.br`,
   {
     title: "5. Pedidos e Pagamento",
     content: `• Um pedido só é confirmado após aprovação do pagamento.
-• Aceitamos PIX e cartão de crédito via Mercado Pago.
+• Aceitamos PIX e cartão de crédito por meio do Asaas, quando essas opções estiverem disponíveis.
 • O prazo de processamento do pagamento pode variar de acordo com o método escolhido.
 • Em caso de não pagamento, o pedido é cancelado automaticamente.`,
   },
@@ -72,9 +72,9 @@ E-mail de contato: contato@kabijoux.com.br`,
     title: "12. Contato",
     content: `**KA Bijoux**
 Itaúna — MG
-E-mail: contato@kabijoux.com.br
+E-mail: adm@kabijoux.com.br
 
-Última atualização: julho de 2026.`,
+Última atualização: agosto de 2026.`,
   },
 ];
 
@@ -83,7 +83,7 @@ export default function TermosPage() {
     <main className="mx-auto max-w-3xl px-6 py-16">
       <h1 className="mb-2 text-3xl font-black text-gray-900">Termos de Uso</h1>
       <p className="mb-10 text-sm text-gray-500">
-        KA Bijoux · Itaúna, MG · Última atualização: julho de 2026
+        KA Bijoux · Itaúna, MG · Última atualização: agosto de 2026
       </p>
 
       <div className="space-y-10">

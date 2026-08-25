@@ -96,6 +96,44 @@ export function buildPasswordResetEmail(input: {
   };
 }
 
+export function buildEmailRegistrationOtpEmail(input: {
+  name: string;
+  code: string;
+  expiresInMinutes: number;
+}): EmailTemplate {
+  const name = escapeHtml(input.name);
+  const code = escapeHtml(input.code);
+  const subject = "Confirme seu e-mail — KA Bijoux";
+
+  return {
+    subject,
+    html: renderEmailShell({
+      preheader: `Seu código de confirmação expira em ${input.expiresInMinutes} minutos.`,
+      title: "Confirme seu e-mail",
+      content: `
+        <p style="line-height:1.6">Olá, <strong>${name}</strong>!</p>
+        <p style="line-height:1.6">Use o código abaixo para confirmar seu e-mail e concluir a criação da sua conta KA Bijoux.</p>
+        <div style="background:${BRAND_ACCENT};border-radius:10px;padding:20px;text-align:center;margin:24px 0">
+          <p style="margin:0 0 8px;color:#666;font-size:13px">Código de confirmação</p>
+          <p style="margin:0;color:${BRAND_COLOR};font-size:34px;font-weight:700;letter-spacing:7px">${code}</p>
+        </div>
+        <p style="color:#555;line-height:1.6">O código é de uso único e expira em <strong>${input.expiresInMinutes} minutos</strong>.</p>
+        <p style="color:#555;line-height:1.6">Se você não solicitou este cadastro, ignore esta mensagem. Nenhuma conta será ativada sem a confirmação.</p>`,
+    }),
+    text: [
+      "KA Bijoux",
+      "",
+      `Olá, ${input.name}!`,
+      "Use o código abaixo para confirmar seu e-mail e concluir a criação da sua conta.",
+      `Código de confirmação: ${input.code}`,
+      `O código é de uso único e expira em ${input.expiresInMinutes} minutos.`,
+      "Se você não solicitou este cadastro, ignore esta mensagem.",
+      "",
+      `Atendimento: ${OFFICIAL_EMAIL_ADDRESS}`,
+    ].join("\n"),
+  };
+}
+
 export function buildAccountDeletionEmail(input: {
   confirmationUrl: string;
   expiresAt: Date;

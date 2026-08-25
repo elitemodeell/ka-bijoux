@@ -14,6 +14,7 @@ function check(condition, message) {
 const entry = read("app/(auth)/entrada.tsx");
 const login = read("app/(auth)/login.tsx");
 const register = read("app/(auth)/cadastro.tsx");
+const confirmEmail = read("app/(auth)/confirmar-email.tsx");
 const profile = read("app/(tabs)/perfil.tsx");
 const shell = read("components/auth/AuthScreenShell.tsx");
 const providers = read("constants/authProviders.ts");
@@ -52,8 +53,28 @@ for (const [name, source, mode] of [
   check(source.includes("AuthScreenShell"), `Formulário de ${name} não usa o layout unificado`);
   check(source.includes("Voltar para outras opções"), `Formulário de ${name} não oferece retorno às outras opções`);
   check(source.includes(`params: { mode: "${mode}" }`), `Formulário de ${name} retorna ao modo incorreto`);
-  check(source.includes('router.replace("/(tabs)")'), `${name} concluído não entra diretamente no aplicativo`);
 }
+check(login.includes('router.replace("/(tabs)")'), "Login concluído não entra diretamente no aplicativo");
+check(register.includes('router.replace("/(auth)/confirmar-email")'), "Cadastro não exige confirmação do e-mail antes de entrar");
+check(!register.includes('router.replace("/(tabs)")'), "Cadastro ainda entra no aplicativo sem confirmar o e-mail");
+
+// O cadastro por e-mail só cria sessão após a confirmação OTP.
+for (const required of [
+  "AuthScreenShell",
+  "Confirme seu e-mail",
+  "textContentType=\"oneTimeCode\"",
+  "maxLength={6}",
+  "verifyRegistration(code)",
+  "resendRegistrationCode()",
+  "Reenviar código",
+  "Corrigir e-mail",
+]) {
+  check(confirmEmail.includes(required), `Confirmação de e-mail incompleta: ${required}`);
+}
+check(confirmEmail.includes('router.replace("/(tabs)")'), "OTP confirmado não entra no aplicativo");
+check(authStore.includes("pendingRegistration"), "Estado transitório do cadastro pendente ausente");
+check(authStore.includes("verifyRegistration"), "Store não conclui o cadastro por OTP");
+check(!authStore.includes('SecureStore.setItemAsync("ka-pending-registration"'), "Senha pendente não pode ser persistida");
 check(login.includes("Mostrar senha"), "Login não possui controle de visibilidade da senha");
 check(register.includes("Nome completo *"), "Cadastro não solicita nome");
 check(register.includes("E-mail *"), "Cadastro não solicita e-mail");

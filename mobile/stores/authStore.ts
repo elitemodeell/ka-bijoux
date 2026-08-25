@@ -16,9 +16,13 @@ interface AuthState {
   customer: Customer | null;
   token: string | null;
   isLoading: boolean;
+  pendingRegistration: { name: string; email: string; password: string } | null;
 
   login: (email: string, password: string) => Promise<void>;
   register: (data: { name: string; email: string; phone?: string; password: string; acceptedTerms: boolean }) => Promise<void>;
+  verifyRegistration: (code: string) => Promise<void>;
+  resendRegistrationCode: () => Promise<number>;
+  clearPendingRegistration: () => void;
   logout: () => Promise<void>;
   loadSession: () => Promise<void>;
   setCustomer: (customer: Customer) => Promise<void>;
@@ -33,6 +37,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   customer: null,
   token: null,
   isLoading: true,
+  pendingRegistration: null,
 
   loadSession: async () => {
     try {
@@ -83,6 +88,20 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   register: async (data) => {
     const res = await authApi.register(data);
+    const responseEmail = String(res.data.data?.email ?? data.email).trim().toLowerCase();
+    set({
+      pendingRegistration: {
+        name: data.name.trim(),
+        email: responseEmail,
+        password: data.password,
+      },
+    });
+  },
+
+  verifyRegistration: async (code) => {
+    const pending = useAuthStore.getState().pendingRegistration;
+    if (!pending) throw new Error("PENDING_REGISTRATION_MISSING");
+    const res = await authApi.verifyRegistration(pending.email, code, pending.password);
     await getSupabaseClientIfConfigured()?.auth.signOut({ scope: "local" }).catch(() => undefined);
     const { token, refreshToken, customer } = res.data.data;
     await SecureStore.setItemAsync("ka-token", token);
@@ -90,9 +109,18 @@ export const useAuthStore = create<AuthState>((set) => ({
     else await SecureStore.deleteItemAsync("ka-refresh-token");
     await SecureStore.setItemAsync(AUTH_MODE_KEY, "backend");
     await SecureStore.setItemAsync("ka-customer", JSON.stringify(customer));
-    set({ token, customer });
+    set({ token, customer, pendingRegistration: null });
     registerPushToken().catch(() => {});
   },
+
+  resendRegistrationCode: async () => {
+    const pending = useAuthStore.getState().pendingRegistration;
+    if (!pending) throw new Error("PENDING_REGISTRATION_MISSING");
+    const res = await authApi.resendRegistrationCode(pending.email);
+    return Number(res.data.data?.resendAfterSeconds ?? 60);
+  },
+
+  clearPendingRegistration: () => set({ pendingRegistration: null }),
 
   logout: async () => {
     await unregisterPushToken();

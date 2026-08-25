@@ -13,7 +13,7 @@ const sections = [
 • **Dados de cadastro:** nome, e-mail, telefone e CPF (opcional).
 • **Endereço de entrega:** rua, número, complemento, bairro, cidade, estado e CEP.
 • **Dados de pedido:** produtos adquiridos, valores, forma de pagamento e histórico de compras.
-• **Dados de dispositivo (app):** token de notificação push para envio de atualizações de pedido.
+• **Dados de dispositivo (app):** credenciais de sessão armazenadas com segurança no dispositivo. O push não está ativo na versão atual.
 • **Dados de navegação:** cookies essenciais para funcionamento do site (sessão, carrinho).`,
   },
   {
@@ -21,9 +21,9 @@ const sections = [
     content: `Utilizamos seus dados exclusivamente para:
 
 • Processar e entregar seus pedidos.
-• Enviar notificações sobre o status do seu pedido (push e e-mail).
+• Exibir atualizações sobre o status do seu pedido dentro do aplicativo e enviar comunicações transacionais por e-mail.
 • Calcular o frete até seu endereço.
-• Processar pagamentos com segurança via Mercado Pago.
+• Processar pagamentos com segurança via Asaas.
 • Melhorar nossos produtos e serviços.
 • Cumprir obrigações legais e fiscais.`,
   },
@@ -31,7 +31,7 @@ const sections = [
     title: "3. Compartilhamento de dados",
     content: `Não vendemos seus dados. Compartilhamos apenas com:
 
-• **Mercado Pago:** processamento de pagamento (PIX e cartão de crédito).
+• **Asaas:** processamento de pagamento (PIX e cartão de crédito).
 • **Melhor Envio / Correios:** cálculo e envio de encomendas.
 • **Cloudinary:** armazenamento de imagens dos produtos.
 
@@ -47,7 +47,7 @@ Todos os parceiros seguem políticas de privacidade próprias e adequadas à LGP
 • **Portabilidade:** receber seus dados em formato estruturado.
 • **Revogação de consentimento:** a qualquer momento, sem prejuízo ao tratamento já realizado.
 
-Para exercer seus direitos, entre em contato: **contato@kabijoux.com.br**`,
+Para exercer seus direitos, entre em contato: **adm@kabijoux.com.br**`,
   },
   {
     title: "5. Segurança",
@@ -67,8 +67,8 @@ Para exercer seus direitos, entre em contato: **contato@kabijoux.com.br**`,
     content: `Utilizamos apenas cookies essenciais para funcionamento da loja (sessão de carrinho). Não utilizamos cookies de rastreamento ou publicidade de terceiros.`,
   },
   {
-    title: "8. Notificações push (app)",
-    content: `O aplicativo KA Bijoux pode enviar notificações push para informar sobre o status do seu pedido. Você pode desativar as notificações a qualquer momento nas configurações do seu dispositivo. Ao desinstalar o app ou fazer logout, seu token de notificação é removido.`,
+    title: "8. Notificações do aplicativo",
+    content: `A versão atual apresenta atualizações de pedidos dentro do próprio aplicativo e não solicita permissão de notificações push. Caso essa função seja habilitada futuramente, esta política será atualizada e a permissão será solicitada no contexto apropriado.`,
   },
   {
     title: "9. Contato",
@@ -76,9 +76,9 @@ Para exercer seus direitos, entre em contato: **contato@kabijoux.com.br**`,
 
 **KA Bijoux**
 Itaúna — MG
-E-mail: contato@kabijoux.com.br
+E-mail: adm@kabijoux.com.br
 
-Esta política foi atualizada em junho de 2026.`,
+Esta política foi atualizada em agosto de 2026.`,
   },
 ];
 
@@ -87,7 +87,7 @@ export default function PrivacidadePage() {
     <main className="mx-auto max-w-3xl px-6 py-16">
       <h1 className="mb-2 text-3xl font-black text-gray-900">Política de Privacidade</h1>
       <p className="mb-10 text-sm text-gray-500">
-        KA Bijoux · Itaúna, MG · Última atualização: julho de 2026
+        KA Bijoux · Itaúna, MG · Última atualização: agosto de 2026
       </p>
 
       <div className="space-y-10">

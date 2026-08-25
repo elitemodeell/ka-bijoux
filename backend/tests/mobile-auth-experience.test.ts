@@ -16,6 +16,7 @@ const backendSource = (path: string) => readFileSync(resolve(backendRoot, path),
 const login = source("app/(auth)/login.tsx");
 const entry = source("app/(auth)/entrada.tsx");
 const register = source("app/(auth)/cadastro.tsx");
+const confirmEmail = source("app/(auth)/confirmar-email.tsx");
 const authShell = source("components/auth/AuthScreenShell.tsx");
 const providers = source("constants/authProviders.ts");
 const recovery = source("app/(auth)/recuperar-senha.tsx");
@@ -89,10 +90,14 @@ describe("experiência de autenticação mobile", () => {
     expect(recovery.match(/if \(loading\) return/g)?.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("entra na loja somente após o backend criar a conta e a sessão", () => {
-    expect(register.indexOf("await register(")).toBeLessThan(register.indexOf('router.replace("/(tabs)")'));
-    expect(register).not.toContain("router.back();");
-    expect(register).toContain('router.replace("/(tabs)")');
+  it("só entra na loja após confirmar o cadastro por OTP", () => {
+    expect(register).toContain('router.replace("/(auth)/confirmar-email")');
+    expect(register).not.toContain('router.replace("/(tabs)")');
+    expect(confirmEmail.indexOf("await verifyRegistration(code)")).toBeLessThan(confirmEmail.indexOf('router.replace("/(tabs)")'));
+    expect(confirmEmail).toContain("resendRegistrationCode()");
+    expect(confirmEmail).toContain("Corrigir e-mail");
+    expect(confirmEmail).toContain('textContentType="oneTimeCode"');
+    expect(confirmEmail).toContain("maxLength={6}");
   });
 
   it("oferece mostrar e ocultar em todos os campos de senha", () => {
@@ -162,6 +167,13 @@ describe("experiência de autenticação mobile", () => {
     const route = backendSource("app/api/auth/register/route.ts");
     expect(route).not.toContain("E-mail já cadastrado");
     expect(authErrorMessage(axiosError(409), "register")).not.toContain("já cadastrado");
+  });
+
+  it("mantém a senha do cadastro pendente apenas em memória", () => {
+    const store = source("stores/authStore.ts");
+    expect(store).toContain("pendingRegistration");
+    expect(store).not.toContain('SecureStore.setItemAsync("ka-pending-registration"');
+    expect(store).not.toContain('SecureStore.setItemAsync("ka-pending-password"');
   });
 
   it("mantém a sessão persistida e o logout removendo credenciais", () => {

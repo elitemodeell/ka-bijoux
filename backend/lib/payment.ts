@@ -5,16 +5,12 @@ export interface PaymentRequest {
   orderNumber: string;
   amount: number;
   method: PaymentMethod;
-  customer: {
-    name: string;
-    email: string;
-    cpf?: string;
-    phone?: string;
-  };
+  customer: { id: string; name: string; email: string; cpf?: string | null; phone?: string | null };
 }
 
 export interface PaymentResult {
   success: boolean;
+  gatewayProvider: "ASAAS";
   gatewayId?: string;
   pixCode?: string;
   pixExpiration?: Date;
@@ -22,125 +18,153 @@ export interface PaymentResult {
   error?: string;
 }
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://kabijoux.com.br";
-const APP_SCHEME = process.env.NEXT_PUBLIC_APP_SCHEME ?? "kabijoux";
+type AsaasEnvironment = "production" | "sandbox";
 
-async function getMpClient() {
-  const { default: MercadoPagoConfig } = await import("mercadopago");
-  return new MercadoPagoConfig({
-    accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN!,
-  });
+export class PaymentUnavailableError extends Error {
+  constructor(message = "Pagamento temporariamente indisponível") {
+    super(message);
+    this.name = "PaymentUnavailableError";
+  }
 }
 
-async function processMercadoPagoPix(request: PaymentRequest): Promise<PaymentResult> {
-  const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-  if (!token) {
-    // Mock para desenvolvimento
-    return {
-      success: true,
-      gatewayId: `MOCK_PIX_${request.orderId}`,
-      pixCode: `00020126580014BR.GOV.BCB.PIX0136ka-bijoux-pix-key@kabijoux.com.br5204000053039865802BR5925KA BIJOUX ACESSORIOS6009ITAUNA62140510${request.orderNumber}6304ABCD`,
-      pixExpiration: new Date(Date.now() + 30 * 60 * 1000),
-    };
+function enabled(name: string): boolean {
+  return process.env[name]?.trim().toLowerCase() === "true";
+}
+
+function paymentConfig() {
+  const provider = process.env.PAYMENT_DEFAULT_PROVIDER?.trim().toLowerCase();
+  const apiKey = process.env.ASAAS_API_KEY?.trim();
+  const environment = process.env.ASAAS_ENVIRONMENT?.trim().toLowerCase() as AsaasEnvironment | undefined;
+  if (provider !== "asaas" || !apiKey || !environment || !["production", "sandbox"].includes(environment)) {
+    throw new PaymentUnavailableError();
   }
-
-  const client = await getMpClient();
-  const { Payment } = await import("mercadopago");
-  const mp = new Payment(client);
-
-  const [firstName, ...rest] = request.customer.name.trim().split(" ");
-
-  const response = await mp.create({
-    body: {
-      transaction_amount: request.amount,
-      payment_method_id: "pix",
-      payer: {
-        email: request.customer.email,
-        first_name: firstName,
-        last_name: rest.join(" ") || undefined,
-        identification: request.customer.cpf
-          ? { type: "CPF", number: request.customer.cpf.replace(/\D/g, "") }
-          : undefined,
-      },
-      description: `Pedido KA Bijoux #${request.orderNumber}`,
-      external_reference: request.orderNumber,
-      date_of_expiration: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-    },
-    requestOptions: { idempotencyKey: request.orderId },
-  });
-
-  const pixCode =
-    (response as any).point_of_interaction?.transaction_data?.qr_code as string | undefined;
-
   return {
-    success: true,
-    gatewayId: String(response.id),
-    pixCode,
-    pixExpiration: new Date(Date.now() + 30 * 60 * 1000),
+    apiKey,
+    baseUrl: environment === "production" ? "https://api.asaas.com/v3" : "https://api-sandbox.asaas.com/v3",
   };
 }
 
-async function processMercadoPagoCheckoutPro(request: PaymentRequest): Promise<PaymentResult> {
-  const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-  if (!token) {
-    return {
-      success: true,
-      gatewayId: `MOCK_PREF_${request.orderId}`,
-      checkoutUrl: `https://www.mercadopago.com.br/checkout/v1/payment/redirect/?pref_id=MOCK_${request.orderId}`,
-    };
-  }
+export function assertPaymentMethodAvailable(method: PaymentMethod) {
+  paymentConfig();
+  if (method === PaymentMethod.PIX && !enabled("ASAAS_PIX_ENABLED")) throw new PaymentUnavailableError();
+  if (method === PaymentMethod.CARTAO_CREDITO && !enabled("ASAAS_CREDIT_CARD_ENABLED")) throw new PaymentUnavailableError();
+  if (method === PaymentMethod.BOLETO && !enabled("ASAAS_BOLETO_ENABLED")) throw new PaymentUnavailableError();
+}
 
-  const client = await getMpClient();
-  const { Preference } = await import("mercadopago");
-  const mp = new Preference(client);
-
-  const response = await mp.create({
-    body: {
-      items: [
-        {
-          id: request.orderId,
-          title: `Pedido KA Bijoux #${request.orderNumber}`,
-          quantity: 1,
-          unit_price: request.amount,
-          currency_id: "BRL",
-        },
-      ],
-      payer: {
-        name: request.customer.name,
-        email: request.customer.email,
-      },
-      back_urls: {
-        success: `${APP_SCHEME}://checkout/sucesso`,
-        failure: `${APP_SCHEME}://checkout/falha`,
-        pending: `${APP_SCHEME}://checkout/pendente`,
-      },
-      notification_url: `${APP_URL}/api/payment/webhook`,
-      external_reference: request.orderNumber,
-      statement_descriptor: "KA BIJOUX",
+export async function asaasRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const config = paymentConfig();
+  const response = await fetch(`${config.baseUrl}${path}`, {
+    ...init,
+    headers: {
+      accept: "application/json",
+      "content-type": "application/json",
+      access_token: config.apiKey,
+      "User-Agent": "KA-Bijoux/1.0 (adm@kabijoux.com.br)",
+      ...(init?.headers ?? {}),
     },
+    signal: AbortSignal.timeout(12_000),
   });
+  if (!response.ok) throw new PaymentUnavailableError();
+  return response.json() as Promise<T>;
+}
 
-  return {
-    success: true,
-    gatewayId: response.id ?? undefined,
-    checkoutUrl: response.init_point ?? undefined,
-  };
+function digits(value?: string | null) {
+  return value?.replace(/\D/g, "") || undefined;
+}
+
+async function findOrCreateAsaasCustomer(customer: PaymentRequest["customer"]): Promise<string> {
+  const query = new URLSearchParams({ externalReference: customer.id, limit: "1" });
+  const existing = await asaasRequest<{ data?: Array<{ id?: string }> }>(`/customers?${query.toString()}`);
+  const existingId = existing.data?.[0]?.id;
+  if (existingId) return existingId;
+  const created = await asaasRequest<{ id?: string }>("/customers", {
+    method: "POST",
+    body: JSON.stringify({
+      name: customer.name,
+      email: customer.email,
+      cpfCnpj: digits(customer.cpf),
+      mobilePhone: digits(customer.phone),
+      externalReference: customer.id,
+      notificationDisabled: true,
+    }),
+  });
+  if (!created.id) throw new PaymentUnavailableError();
+  return created.id;
+}
+
+function dueDate(days: number) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function billingType(method: PaymentMethod): "PIX" | "CREDIT_CARD" | "BOLETO" {
+  if (method === PaymentMethod.PIX) return "PIX";
+  if (method === PaymentMethod.CARTAO_CREDITO) return "CREDIT_CARD";
+  return "BOLETO";
+}
+
+interface AsaasPayment { id: string; invoiceUrl?: string; status?: string }
+
+async function findExistingCharge(orderNumber: string) {
+  const query = new URLSearchParams({ externalReference: orderNumber, limit: "1" });
+  const existing = await asaasRequest<{ data?: AsaasPayment[] }>(`/payments?${query.toString()}`);
+  return existing.data?.[0] ?? null;
+}
+
+async function createCharge(request: PaymentRequest, customerId: string): Promise<AsaasPayment> {
+  const existing = await findExistingCharge(request.orderNumber);
+  if (existing?.id) return existing;
+  const configuredDays = Number(process.env.PAYMENT_PIX_DUE_DAYS ?? 1);
+  let payment: AsaasPayment;
+  try {
+    payment = await asaasRequest<AsaasPayment>("/payments", {
+      method: "POST",
+      body: JSON.stringify({
+        customer: customerId,
+        billingType: billingType(request.method),
+        value: Number(request.amount.toFixed(2)),
+        dueDate: dueDate(Number.isFinite(configuredDays) && configuredDays >= 0 ? configuredDays : 1),
+        description: `Pedido KA Bijoux #${request.orderNumber}`,
+        externalReference: request.orderNumber,
+        callback: { successUrl: "https://kabijoux.com.br/app?payment=success", autoRedirect: true },
+      }),
+    });
+  } catch {
+    // Se a resposta se perdeu depois da criação, recupere pela referência antes de permitir nova tentativa.
+    const recovered = await findExistingCharge(request.orderNumber);
+    if (!recovered?.id) throw new PaymentUnavailableError();
+    payment = recovered;
+  }
+  if (!payment.id) throw new PaymentUnavailableError();
+  return payment;
 }
 
 export async function processPayment(request: PaymentRequest): Promise<PaymentResult> {
+  assertPaymentMethodAvailable(request.method);
   try {
-    switch (request.method) {
-      case PaymentMethod.PIX:
-        return await processMercadoPagoPix(request);
-
-      case PaymentMethod.CARTAO_CREDITO:
-        return await processMercadoPagoCheckoutPro(request);
-
-      default:
-        return { success: false, error: "Método de pagamento inválido." };
+    const customerId = await findOrCreateAsaasCustomer(request.customer);
+    const payment = await createCharge(request, customerId);
+    if (request.method === PaymentMethod.PIX) {
+      const qr = await asaasRequest<{ payload?: string; expirationDate?: string }>(`/payments/${encodeURIComponent(payment.id)}/pixQrCode`);
+      if (!qr.payload) throw new PaymentUnavailableError();
+      return {
+        success: true,
+        gatewayProvider: "ASAAS",
+        gatewayId: payment.id,
+        pixCode: qr.payload,
+        pixExpiration: qr.expirationDate ? new Date(qr.expirationDate) : undefined,
+        checkoutUrl: payment.invoiceUrl,
+      };
     }
+    if (!payment.invoiceUrl) throw new PaymentUnavailableError();
+    return { success: true, gatewayProvider: "ASAAS", gatewayId: payment.id, checkoutUrl: payment.invoiceUrl };
   } catch (error) {
-    console.error("Erro ao processar pagamento:", error);
-    return { success: false, error: "Erro ao processar pagamento. Tente novamente." };
+    if (error instanceof PaymentUnavailableError) throw error;
+    throw new PaymentUnavailableError();
   }
+}
+
+export async function refundAsaasPayment(paymentId: string) {
+  return asaasRequest<{ id: string; status: string }>(`/payments/${encodeURIComponent(paymentId)}/refund`, { method: "POST" });
 }

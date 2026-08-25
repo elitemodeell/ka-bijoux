@@ -1,19 +1,23 @@
 export const dynamic = "force-dynamic";
 
+import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { signCustomerToken } from "@/lib/auth";
+import { buildEmailRegistrationOtpEmail } from "@/lib/email/templates";
+import { isResendConfigured, sendTransactionalEmail } from "@/lib/email/resend";
 import {
-  createSupabasePasswordUser,
-  deleteSupabaseUser,
-  isSupabaseAuthTransitionEnabled,
-  sessionResponse,
-  signInWithSupabasePassword,
-} from "@/lib/supabase-auth";
-import { apiSuccess, apiError } from "@/lib/utils";
-import { rateLimit, RATE_LIMITS } from "@/lib/ratelimit";
+  consumeEmailOtpRateLimit,
+  digestEmailOtp,
+  EMAIL_OTP_RESEND_COOLDOWN_SECONDS,
+  EMAIL_OTP_TTL_MINUTES,
+  generateEmailOtp,
+  otpExpiresAt,
+  otpResendAvailableAt,
+  REGISTRATION_PENDING_MESSAGE,
+} from "@/lib/email-registration-otp";
+import { apiError, apiSuccess } from "@/lib/utils";
 
 const CONSENT_VERSION = "2026-07";
 
@@ -30,81 +34,103 @@ const schema = z.object({
   }),
 });
 
-function publicCustomer(customer: { id: string; name: string; email: string; phone: string | null }) {
-  return { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone };
+function clientIp(req: NextRequest): string {
+  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    ?? req.headers.get("x-real-ip")
+    ?? "unknown";
 }
 
-async function rollbackNewCustomer(customerId: string) {
-  await prisma.$transaction([
-    prisma.consentLog.deleteMany({ where: { customerId } }),
-    prisma.customer.deleteMany({ where: { id: customerId } }),
-  ]);
+function pendingResponse(email: string) {
+  return apiSuccess({
+    pending: true,
+    email,
+    message: REGISTRATION_PENDING_MESSAGE,
+    expiresInSeconds: EMAIL_OTP_TTL_MINUTES * 60,
+    resendAfterSeconds: EMAIL_OTP_RESEND_COOLDOWN_SECONDS,
+  }, 202);
 }
 
 export async function POST(req: NextRequest) {
-  const limited = await rateLimit(req, RATE_LIMITS.auth);
-  if (limited) return limited;
-
   try {
     const data = schema.parse(await req.json());
+    if (!isResendConfigured()) {
+      return apiError("Serviço de confirmação temporariamente indisponível.", 503);
+    }
+
+    const ip = clientIp(req);
+    const [ipLimit, emailLimit] = await Promise.all([
+      consumeEmailOtpRateLimit({ scope: "registration-start-ip", identifier: ip, limit: 5, windowMs: 15 * 60_000 }),
+      consumeEmailOtpRateLimit({ scope: "registration-start-email", identifier: data.email, limit: 3, windowMs: 15 * 60_000 }),
+    ]);
+    if (!ipLimit.allowed || !emailLimit.allowed) {
+      const retryAfterSeconds = Math.max(ipLimit.retryAfterSeconds, emailLimit.retryAfterSeconds);
+      return apiSuccess({
+        pending: true,
+        email: data.email,
+        message: REGISTRATION_PENDING_MESSAGE,
+        resendAfterSeconds: retryAfterSeconds,
+      }, 202);
+    }
+
     const exists = await prisma.customer.findFirst({
       where: { email: { equals: data.email, mode: "insensitive" } },
       select: { id: true },
     });
-    if (exists) return apiError("Não foi possível concluir o cadastro com esses dados.", 409);
+    if (exists) return pendingResponse(data.email);
 
+    const now = new Date();
+    const registrationId = randomUUID();
+    const code = generateEmailOtp();
     const passwordHash = await bcrypt.hash(data.password, 12);
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-      ?? req.headers.get("x-real-ip")
-      ?? undefined;
+    const expiresAt = otpExpiresAt(now);
+    const resendAt = otpResendAvailableAt(now);
+    const otpDigest = digestEmailOtp(registrationId, data.email, code);
     const userAgent = req.headers.get("user-agent") ?? undefined;
 
-    const customer = await prisma.$transaction(async (tx) => {
-      const created = await tx.customer.create({
-        data: { name: data.name, email: data.email, phone: data.phone, passwordHash },
-      });
-      await tx.consentLog.create({
-        data: { customerId: created.id, version: CONSENT_VERSION, ip, userAgent },
-      });
-      return created;
+    const pending = await prisma.pendingEmailRegistration.upsert({
+      where: { email: data.email },
+      create: {
+        id: registrationId,
+        email: data.email,
+        name: data.name,
+        phone: data.phone,
+        passwordHash,
+        consentVersion: CONSENT_VERSION,
+        consentIp: ip === "unknown" ? undefined : ip,
+        consentUserAgent: userAgent,
+        otpDigest,
+        otpExpiresAt: expiresAt,
+        resendAvailableAt: resendAt,
+      },
+      update: {
+        id: registrationId,
+        name: data.name,
+        phone: data.phone,
+        passwordHash,
+        consentVersion: CONSENT_VERSION,
+        consentIp: ip === "unknown" ? null : ip,
+        consentUserAgent: userAgent,
+        otpDigest,
+        otpExpiresAt: expiresAt,
+        otpAttempts: 0,
+        resendAvailableAt: resendAt,
+        consumedAt: null,
+      },
     });
 
-    if (!isSupabaseAuthTransitionEnabled()) {
-      const token = signCustomerToken({ id: customer.id, email: customer.email, name: customer.name });
-      return apiSuccess({ customer: publicCustomer(customer), token, accessToken: token, legacySession: true }, 201);
-    }
-
-    const createdAuth = await createSupabasePasswordUser({
-      customerId: customer.id,
-      email: customer.email,
-      name: customer.name,
-      password: data.password,
-      // O contrato do app exige cadastro -> sessão ativa. A confirmação é feita
-      // no próprio fluxo de criação autenticada do backend, sem deixar uma conta
-      // órfã aguardando e-mail antes de emitir a sessão.
-      emailConfirmed: true,
+    const template = buildEmailRegistrationOtpEmail({ name: data.name, code, expiresInMinutes: EMAIL_OTP_TTL_MINUTES });
+    const delivery = await sendTransactionalEmail({
+      to: data.email,
+      ...template,
+      tags: [{ name: "category", value: "email_registration_otp" }],
+      idempotencyKey: `registration-otp:${pending.id}:${expiresAt.getTime()}`,
     });
-    if (createdAuth.error || !createdAuth.data.user) {
-      await rollbackNewCustomer(customer.id);
-      return apiError("Não foi possível concluir o cadastro com esses dados.", 409);
+    if (!delivery.ok) {
+      await prisma.pendingEmailRegistration.deleteMany({ where: { id: pending.id, email: data.email } });
+      return apiError("Serviço de confirmação temporariamente indisponível.", 503);
     }
 
-    try {
-      await prisma.customer.update({
-        where: { id: customer.id },
-        data: { authUserId: createdAuth.data.user.id, authMigratedAt: new Date() },
-      });
-      const login = await signInWithSupabasePassword(data.email, data.password);
-      if (login.error || !login.data.session) throw new Error("Supabase Auth não iniciou a sessão");
-      return apiSuccess({
-        customer: publicCustomer(customer),
-        ...sessionResponse(login.data.session, login.data.user),
-      }, 201);
-    } catch {
-      await deleteSupabaseUser(createdAuth.data.user.id);
-      await rollbackNewCustomer(customer.id);
-      return apiError("Serviço de autenticação temporariamente indisponível.", 503);
-    }
+    return pendingResponse(data.email);
   } catch (error) {
     if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
     return apiError("Erro interno.", 500);

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import * as Crypto from "expo-crypto";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { useCartStore } from "@/stores/cartStore";
@@ -24,6 +25,7 @@ export default function PagamentoScreen() {
   const { selectedShipping, addressId, setPaymentMethod, paymentMethod, reset } = useCheckoutStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const idempotencyKeyRef = useRef(Crypto.randomUUID());
 
   const total = subtotal + (selectedShipping?.price ?? 0);
 
@@ -39,7 +41,7 @@ export default function PagamentoScreen() {
         shippingType: selectedShipping?.type,
         shippingPrice: selectedShipping?.price ?? 0,
         paymentMethod,
-      });
+      }, idempotencyKeyRef.current);
 
       const order = res.data.data;
       const checkoutUrl = order.payment?.gatewayData?.checkoutUrl as string | undefined;
@@ -61,7 +63,7 @@ export default function PagamentoScreen() {
 
   const paymentOptions: Array<{ method: PaymentMethod; label: string; desc: string; icon: string }> = [
     { method: "PIX", label: "Pix", desc: "Pagamento instantâneo — copie o código e pague no seu banco", icon: "💠" },
-    { method: "CARTAO_CREDITO", label: "Cartão de Crédito", desc: "Pague com cartão via Mercado Pago (abre navegador)", icon: "💳" },
+    { method: "CARTAO_CREDITO", label: "Cartão de Crédito", desc: "Pague com segurança via Asaas (abre navegador)", icon: "💳" },
   ];
 
   return (
@@ -117,7 +119,7 @@ export default function PagamentoScreen() {
           <View style={styles.infoBox}>
             <Ionicons name="information-circle-outline" size={16} color={Colors.info} />
             <Text style={styles.infoText}>
-              Você será redirecionado para o Mercado Pago para concluir o pagamento com segurança.
+              Você será redirecionado para o ambiente seguro do Asaas para concluir o pagamento.
             </Text>
           </View>
         )}
