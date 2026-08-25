@@ -63,13 +63,7 @@ export async function POST(req: NextRequest) {
       consumeEmailOtpRateLimit({ scope: "registration-start-email", identifier: data.email, limit: 3, windowMs: 15 * 60_000 }),
     ]);
     if (!ipLimit.allowed || !emailLimit.allowed) {
-      const retryAfterSeconds = Math.max(ipLimit.retryAfterSeconds, emailLimit.retryAfterSeconds);
-      return apiSuccess({
-        pending: true,
-        email: data.email,
-        message: REGISTRATION_PENDING_MESSAGE,
-        resendAfterSeconds: retryAfterSeconds,
-      }, 202);
+      return apiError("Muitas tentativas. Aguarde e tente novamente.", 429);
     }
 
     const exists = await prisma.customer.findFirst({

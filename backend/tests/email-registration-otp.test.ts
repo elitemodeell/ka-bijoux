@@ -139,6 +139,26 @@ describe("primitivas de segurança do OTP de cadastro", () => {
 });
 
 describe("cadastro por e-mail em duas etapas", () => {
+  it("informa rate limit sem fingir que o OTP foi enviado", async () => {
+    mocks.rateLimit
+      .mockResolvedValueOnce({ allowed: true, retryAfterSeconds: 0 })
+      .mockResolvedValueOnce({ allowed: false, retryAfterSeconds: 120 });
+
+    const response = await startRegistration(request("/api/auth/register", {
+      name: "Cliente Teste",
+      email: EMAIL,
+      password: PASSWORD,
+      acceptedTerms: true,
+    }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(payload.error).toContain("Muitas tentativas");
+    expect(mocks.customerFindFirst).not.toHaveBeenCalled();
+    expect(mocks.pendingUpsert).not.toHaveBeenCalled();
+    expect(mocks.sendEmail).not.toHaveBeenCalled();
+  });
+
   it("inicia pendência e envia OTP sem criar Customer, Supabase User ou sessão", async () => {
     mocks.customerFindFirst.mockResolvedValue(null);
     mocks.pendingUpsert.mockImplementation(async ({ create }: { create: Record<string, unknown> }) => create);

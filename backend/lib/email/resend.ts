@@ -28,6 +28,18 @@ export type EmailDeliveryResult =
       status?: number;
     };
 
+function logDeliveryFailure(
+  reason: Extract<EmailDeliveryResult, { ok: false }>["reason"],
+  status?: number,
+): void {
+  console.error("[email.delivery]", {
+    provider: "resend",
+    outcome: "failed",
+    reason,
+    ...(status ? { status } : {}),
+  });
+}
+
 function extractAddress(value: string): string | null {
   const bracketed = value.match(/<([^<>]+)>$/);
   const address = (bracketed?.[1] ?? value).trim().toLowerCase();
@@ -61,13 +73,20 @@ export async function sendTransactionalEmail(
   message: TransactionalEmail
 ): Promise<EmailDeliveryResult> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
-  if (!apiKey) return { ok: false, reason: "not_configured" };
+  if (!apiKey) {
+    logDeliveryFailure("not_configured");
+    return { ok: false, reason: "not_configured" };
+  }
 
   const sender = getSenderConfiguration();
-  if (!sender) return { ok: false, reason: "invalid_configuration" };
+  if (!sender) {
+    logDeliveryFailure("invalid_configuration");
+    return { ok: false, reason: "invalid_configuration" };
+  }
 
   const replyTo = message.replyTo?.trim() || sender.replyTo;
   if (extractAddress(replyTo) !== OFFICIAL_EMAIL_ADDRESS) {
+    logDeliveryFailure("invalid_configuration");
     return { ok: false, reason: "invalid_configuration" };
   }
 
@@ -97,6 +116,7 @@ export async function sendTransactionalEmail(
     });
 
     if (!response.ok) {
+      logDeliveryFailure("provider_error", response.status);
       return {
         ok: false,
         reason: "provider_error",
@@ -112,8 +132,15 @@ export async function sendTransactionalEmail(
       // O provedor aceitou a mensagem; um corpo vazio não altera esse estado.
     }
 
+    console.info("[email.delivery]", {
+      provider: "resend",
+      outcome: "accepted",
+      providerId,
+      categories: message.tags?.map((tag) => tag.value) ?? [],
+    });
     return { ok: true, providerId };
   } catch {
+    logDeliveryFailure("network_error");
     return { ok: false, reason: "network_error" };
   }
 }
