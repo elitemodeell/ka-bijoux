@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => null) as { authorizationCode?: unknown } | null;
     const authorizationCode = typeof body?.authorizationCode === "string" ? body.authorizationCode.trim() : "";
-    if (!authorizationCode || authorizationCode.length > 2048) {
+    if (authorizationCode.length > 2048) {
       return apiError("Código de autorização Apple inválido.", 400);
     }
 
@@ -44,20 +44,25 @@ export async function POST(req: NextRequest) {
       .find((value): value is string => typeof value === "string" && value.length > 0);
     if (!appleSubject) return apiError("Identidade Apple inválida.", 400);
 
-    const appleTokens = await exchangeAppleAuthorizationCode(authorizationCode, appleSubject);
+    const appleTokens = authorizationCode
+      ? await exchangeAppleAuthorizationCode(authorizationCode, appleSubject)
+      : null;
     const result = await completeAppleCustomerLink(data.user);
-    await storeAppleRefreshToken({
-      customerId: result.customer.id,
-      authUserId: data.user.id,
-      appleSubject,
-      refreshToken: appleTokens.refreshToken,
-    });
+    if (appleTokens) {
+      await storeAppleRefreshToken({
+        customerId: result.customer.id,
+        authUserId: data.user.id,
+        appleSubject,
+        refreshToken: appleTokens.refreshToken,
+      });
+    }
     const response = apiSuccess({
       customer: publicGoogleCustomer(result.customer),
       authUserId: data.user.id,
       provider: "apple" as const,
       created: result.created,
       linked: result.linked,
+      appleRevocationPrepared: appleTokens !== null,
     });
     response.headers.set("Cache-Control", "no-store");
     return response;

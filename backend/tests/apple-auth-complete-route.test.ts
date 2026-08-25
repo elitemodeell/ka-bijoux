@@ -30,11 +30,11 @@ vi.mock("@/lib/apple-sign-in", () => ({
 
 import { POST } from "@/app/api/auth/apple/complete/route";
 
-function request(token?: string, authorizationCode = "apple-authorization-code") {
+function request(token?: string, authorizationCode: string | null = "apple-authorization-code") {
   return new NextRequest("https://kabijoux.com.br/api/auth/apple/complete", {
     method: "POST",
     headers: token ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } : {},
-    body: JSON.stringify({ authorizationCode }),
+    body: authorizationCode === null ? undefined : JSON.stringify({ authorizationCode }),
   });
 }
 
@@ -85,15 +85,20 @@ describe("POST /api/auth/apple/complete", () => {
     });
   });
 
-  it("rejeita login sem código de autorização Apple", async () => {
+  it("mantém compatibilidade com o build 8 que ainda não envia código Apple", async () => {
     const user = {
       id: "11111111-1111-4111-8111-111111111111",
       identities: [{ provider: "apple", id: "apple-subject" }],
     };
+    const customer = { id: "customer-1", name: "Cliente", email: "cliente@privaterelay.appleid.com", phone: null };
     mocks.getSupabaseUser.mockResolvedValue({ data: { user }, error: null });
-    const response = await POST(request("token", ""));
-    expect(response.status).toBe(400);
+    mocks.completeAppleCustomerLink.mockResolvedValue({ customer, created: false, linked: true });
+    const response = await POST(request("token", null));
+    const payload = await response.json();
+    expect(response.status).toBe(200);
+    expect(payload.data.appleRevocationPrepared).toBe(false);
     expect(mocks.exchangeAppleAuthorizationCode).not.toHaveBeenCalled();
+    expect(mocks.storeAppleRefreshToken).not.toHaveBeenCalled();
   });
 
   it("bloqueia o endpoint quando a transição Auth está desligada", async () => {
