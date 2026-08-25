@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import ProductListingPage from "@/components/loja/ProductListingPage";
 import { getSubcategoryByPath } from "@/lib/catalog";
 
-export function generateMetadata({ params }: { params: { subcategoria: string } }): Metadata {
+export async function generateMetadata(props: { params: Promise<{ subcategoria: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const sub = getSubcategoryByPath("sex-shop", params.subcategoria);
   if (!sub) return { title: "Linha Adulto — KA Bijoux" };
   return {
@@ -13,13 +14,14 @@ export function generateMetadata({ params }: { params: { subcategoria: string } 
   };
 }
 
-export default function SexShopSubcategoriaPage({
-  params,
-  searchParams,
-}: {
-  params: { subcategoria: string };
-  searchParams?: Record<string, string | string[] | undefined>;
-}) {
+export default async function SexShopSubcategoriaPage(
+  props: {
+    params: Promise<{ subcategoria: string }>;
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const sub = getSubcategoryByPath("sex-shop", params.subcategoria);
   if (!sub) notFound();
 

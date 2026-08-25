@@ -13,7 +13,8 @@ const schema = z.object({
 });
 
 // PATCH /api/orders/:id/status — Admin atualiza status
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await requireAdmin(req);
     const body = await req.json();

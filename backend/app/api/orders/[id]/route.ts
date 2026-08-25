@@ -4,7 +4,8 @@ import { requireCustomer } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
 
 // GET /api/orders/:id
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const customer = await requireCustomer(req);
 

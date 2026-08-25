@@ -52,18 +52,9 @@ const nextConfig = {
           { key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" },
         ],
       },
-      {
-        // Fontes — imutáveis por fingerprint
-        source: "/_next/static/media/:path*",
-        headers: [
-          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
-        ],
-      },
     ];
   },
-  experimental: {
-    serverComponentsExternalPackages: ["@prisma/client", "bcryptjs"],
-  },
+  serverExternalPackages: ["@prisma/client", "bcryptjs"],
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Externaliza pacotes server-only para evitar conflitos de versão no workspace

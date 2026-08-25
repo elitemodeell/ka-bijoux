@@ -6,10 +6,8 @@ import { apiSuccess, apiError } from "@/lib/utils";
 import { PaymentUnavailableError, refundAsaasPayment } from "@/lib/payment";
 
 // POST /api/admin/orders/[id]/refund — emite reembolso via Asaas
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await requireAdmin(req);
 

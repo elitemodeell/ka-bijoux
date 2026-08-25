@@ -28,7 +28,7 @@ export const revalidate = 60;
 const DETAIL_DB_TIMEOUT_MS = 5000;
 
 type PageProps = {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 };
 
 type ProductLookup = {
@@ -276,7 +276,8 @@ function normalizeProductText(value: string) {
     .toLowerCase();
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
   const { dbProduct, blingProduct, staticProduct } = await getCanonicalProduct(params.slug);
 
   const name = dbProduct?.name ?? staticProduct?.name ?? blingProduct?.name ?? "Produto";
@@ -305,7 +306,8 @@ function getPublicMetadataDescription(value: string | null | undefined, productN
   return `${productName} na KA Bijoux. Compra segura, atendimento cuidadoso e entrega discreta.`;
 }
 
-export default async function ProdutoPage({ params }: PageProps) {
+export default async function ProdutoPage(props: PageProps) {
+  const params = await props.params;
   const { dbProduct, blingProduct, staticProduct, canonicalSlug } = await getCanonicalProduct(params.slug);
   if (!dbProduct) notFound();
   if (params.slug !== canonicalSlug) redirect(`/produto/${canonicalSlug}`);

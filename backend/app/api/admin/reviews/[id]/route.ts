@@ -5,10 +5,8 @@ import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
 
 // PATCH /api/admin/reviews/[id] — aprovar ou rejeitar avaliação
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await requireAdmin(req);
     const { approved } = await req.json() as { approved: boolean };

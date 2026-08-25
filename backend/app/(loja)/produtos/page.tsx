@@ -8,11 +8,12 @@ export const metadata: Metadata = {
   description: "Vitrine completa da KA Bijoux com filtros simples por categoria, promocoes e novidades.",
 };
 
-export default function ProdutosPage({
-  searchParams,
-}: {
-  searchParams?: Record<string, string | string[] | undefined>;
-}) {
+export default async function ProdutosPage(
+  props: {
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  }
+) {
+  const searchParams = await props.searchParams;
   return (
     <ProductListingPage
       title="Produtos KA Bijoux"

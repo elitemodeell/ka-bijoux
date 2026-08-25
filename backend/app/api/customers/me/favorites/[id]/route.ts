@@ -4,7 +4,8 @@ import { requireCustomer } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
 
 // DELETE /api/customers/me/favorites/:id
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const customer = await requireCustomer(req);
 

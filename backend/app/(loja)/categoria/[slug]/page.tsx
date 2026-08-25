@@ -5,7 +5,8 @@ import { getCategoryBySlug, getPublicCategoryName } from "@/lib/catalog";
 
 export const revalidate = 60;
 
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const category = getCategoryBySlug(params.slug);
   if (!category) return { title: "Categoria" };
 
@@ -15,13 +16,14 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   };
 }
 
-export default function CategoriaPage({
-  params,
-  searchParams,
-}: {
-  params: { slug: string };
-  searchParams?: Record<string, string | string[] | undefined>;
-}) {
+export default async function CategoriaPage(
+  props: {
+    params: Promise<{ slug: string }>;
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const category = getCategoryBySlug(params.slug);
   if (!category) notFound();
 

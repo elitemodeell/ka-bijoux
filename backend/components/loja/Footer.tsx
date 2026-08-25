@@ -398,7 +398,7 @@ function Reveal({ children, className = "" }: { children: ReactNode; className?:
   );
 }
 
-type IconComponent = ({ className }: { className?: string }) => JSX.Element;
+type IconComponent = ({ className }: { className?: string }) => React.JSX.Element;
 
 function TruckIcon({ className }: { className?: string }) {
   return (
