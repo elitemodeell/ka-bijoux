@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef, type ComponentProps } from "r
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Image, ImageBackground, RefreshControl,
-  Animated, Easing, Dimensions, Linking,
+  Animated, Easing, Dimensions, Linking, Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -14,6 +14,7 @@ import { productsApi, categoriesApi, storiesApi } from "@/services/api";
 import { getVisibleMobileCategories } from "@/lib/catalogVisibility";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuthStore } from "@/stores/authStore";
+import { containsRestrictedAdultReferenceOnIos, shouldHideCatalogItemOnIos } from "@/lib/iosCatalogPolicy";
 
 const SITE = process.env.EXPO_PUBLIC_API_URL ?? "https://ka-bijoux-backend.vercel.app";
 const WHATSAPP = "5537999999999";
@@ -97,7 +98,9 @@ const QUICK_CATS: QuickCategory[] = [
   { label: "Lançamentos", icon: "new", route: "/produtos" },
   { label: "Bijuterias", icon: "diamond-outline", route: "/produtos?category=bijuterias" },
   { label: "Capinhas", icon: "phone-portrait-outline", route: "/produtos?category=capinhas-acessorios-celular" },
-  { label: "Sex Shop", icon: "heart-outline", route: "/categoria/sex-shop", plus: true },
+  ...(Platform.OS === "ios" ? [] : [
+    { label: "Sex Shop", icon: "heart-outline", route: "/categoria/sex-shop", plus: true } as QuickCategory,
+  ]),
 ];
 
 // ── Payment methods ──────────────────────────────────────────────
@@ -239,11 +242,15 @@ function LingerieBar({ onNav }: { onNav: (r: string) => void }) {
         <Ionicons name="heart-outline" size={14} color={Colors.primary} />
         <Text style={s.lingText}>Lingerie</Text>
       </TouchableOpacity>
-      <View style={s.lingDivider} />
-      <TouchableOpacity style={s.lingBtn} onPress={() => onNav("/produtos?category=sex-shop")}>
-        <Text style={s.lingText}>Moda Íntima</Text>
-        <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
-      </TouchableOpacity>
+      {Platform.OS !== "ios" && (
+        <>
+          <View style={s.lingDivider} />
+          <TouchableOpacity style={s.lingBtn} onPress={() => onNav("/produtos?category=sex-shop")}>
+            <Text style={s.lingText}>Moda Íntima</Text>
+            <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
@@ -337,6 +344,12 @@ function StoriesRow({ onNav }: { onNav: (r: string) => void }) {
         if (!alive || !Array.isArray(groups) || groups.length === 0) return;
         const mapped = groups
           .filter((g) => g.isActive !== false && Array.isArray(g.items) && g.items.length > 0)
+          .filter((g) => !containsRestrictedAdultReferenceOnIos(
+            g.title,
+            g.coverImageUrl,
+            g.cover,
+            ...g.items.flatMap((item: any) => [item.text, item.buttonText, item.link, item.linkUrl, item.mediaUrl, item.src])
+          ))
           .slice(0, 6)
           .map((g): StoryType => ({
             id: g.id,
@@ -499,6 +512,9 @@ type Prod = {
   id: string; slug?: string | null; name: string; price: number;
   promotionalPrice?: number | null; stock: number;
   images: Array<{ url: string }>; isNew?: boolean; featured?: boolean;
+  isAdult?: boolean; catalogLine?: string;
+  category?: { slug?: string | null } | null;
+  subcategory?: { slug?: string | null } | null;
 };
 
 function ProductSection({
@@ -778,7 +794,13 @@ export default function HomeScreen() {
   });
   const [refreshing, setRefreshing] = useState(false);
 
-  const nav = useCallback((route: string) => router.push(route as never), [router]);
+  const nav = useCallback((route: string) => {
+    if (containsRestrictedAdultReferenceOnIos(route)) {
+      router.replace("/(tabs)");
+      return;
+    }
+    router.push(route as never);
+  }, [router]);
 
   // P5 — 4 chamadas paralelas, pools específicos por seção (igual ao site)
   async function loadData() {
@@ -793,10 +815,11 @@ export default function HomeScreen() {
       ]);
 
       const cats   = catRes.status      === "fulfilled" ? getVisibleMobileCategories<HomeCategory>(catRes.value.data.data ?? [], { limit: 8 }) : [];
-      const mainP  = mainRes.status     === "fulfilled" ? (mainRes.value.data.data?.products     ?? []) : [];
-      const featP  = featuredRes.status === "fulfilled" ? (featuredRes.value.data.data?.products ?? []) : [];
-      const newP   = newRes.status      === "fulfilled" ? (newRes.value.data.data?.products      ?? []) : [];
-      const promoP = promoRes.status    === "fulfilled" ? (promoRes.value.data.data?.products    ?? []) : [];
+      const visibleProducts = (items: Prod[]) => items.filter((item) => !shouldHideCatalogItemOnIos(item));
+      const mainP  = visibleProducts(mainRes.status     === "fulfilled" ? (mainRes.value.data.data?.products     ?? []) : []);
+      const featP  = visibleProducts(featuredRes.status === "fulfilled" ? (featuredRes.value.data.data?.products ?? []) : []);
+      const newP   = visibleProducts(newRes.status      === "fulfilled" ? (newRes.value.data.data?.products      ?? []) : []);
+      const promoP = visibleProducts(promoRes.status    === "fulfilled" ? (promoRes.value.data.data?.products    ?? []) : []);
 
       const allPool = mergeUnique(mainP, featP, newP, promoP);
       const usedIds = new Set<string>();
@@ -875,8 +898,8 @@ export default function HomeScreen() {
         }
       >
 
-        {/* Sex Shop banner (P7) */}
-        <SexShopCard onPress={() => nav("/categoria/sex-shop")} />
+        {/* A linha adulta permanece disponível fora da distribuição iOS. */}
+        {Platform.OS !== "ios" && <SexShopCard onPress={() => nav("/categoria/sex-shop")} />}
         <LingerieBar onNav={nav} />
 
         {/* Hero banners (P6) */}

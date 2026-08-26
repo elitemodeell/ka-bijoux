@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
 import { isAdultImageUrl, getBlingProductBySlug, findBlingProductForSource } from "@/lib/bling-catalog";
+import { isIosAppRequest, isRestrictedIosProduct } from "@/lib/mobile-client";
 
 const productInclude = {
   category: true,
@@ -49,6 +50,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     }
 
     if (!product) return apiError("Produto nao encontrado.", 404);
+    const iosRequest = isIosAppRequest(req);
+    if (iosRequest && isRestrictedIosProduct(product)) {
+      return apiError("Produto nao encontrado.", 404);
+    }
 
     const related = await prisma.product.findMany({
       where: { categoryId: product.categoryId, active: true, id: { not: product.id } },
@@ -63,7 +68,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
         ? product.images
         : product.images.filter((img) => !isAdultImageUrl(img.url)),
     };
-    const filteredRelated = related.map((r) => {
+    const visibleRelated = iosRequest ? related.filter((item) => !isRestrictedIosProduct(item)) : related;
+    const filteredRelated = visibleRelated.map((r) => {
       const isAdultRelated = r.category?.slug === "sex-shop";
       return {
         ...r,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator,
+  View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -36,7 +36,7 @@ export default function CategoriasScreen() {
 
   useEffect(() => {
     categoriesApi.list()
-      .then((res) => setCategories(getVisibleMobileCategories(res.data.data ?? [], { includeAdult: true })))
+      .then((res) => setCategories(getVisibleMobileCategories(res.data.data ?? [], { includeAdult: Platform.OS !== "ios" })))
       .finally(() => setLoading(false));
   }, []);
 

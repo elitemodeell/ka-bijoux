@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
 import { buildProductIdentityFilters } from "@/lib/product-identity";
+import { isIosAppRequest, isRestrictedIosProduct } from "@/lib/mobile-client";
 
 const cartInclude = {
   items: {
@@ -28,6 +29,16 @@ function calculateCartTotals(cart: { items: Array<{ quantity: number; unitPrice:
   return { subtotal, total: subtotal };
 }
 
+function visibleCartForRequest<T extends { items: Array<{ product: Parameters<typeof isRestrictedIosProduct>[0]; quantity: number; unitPrice: unknown }> }>(
+  req: NextRequest,
+  cart: T,
+) {
+  const items = isIosAppRequest(req)
+    ? cart.items.filter((item) => !isRestrictedIosProduct(item.product))
+    : cart.items;
+  return { ...cart, items, ...calculateCartTotals({ items }), itemCount: items.length };
+}
+
 async function getOrCreateCart(customerId: string) {
   return prisma.cart.upsert({
     where: { customerId },
@@ -42,8 +53,7 @@ export async function GET(req: NextRequest) {
   try {
     const customer = await requireCustomer(req);
     const cart = await getOrCreateCart(customer.id);
-    const totals = calculateCartTotals(cart);
-    return apiSuccess({ ...cart, ...totals, itemCount: cart.items.length });
+    return apiSuccess(visibleCartForRequest(req, cart));
   } catch (e: unknown) {
     if (e instanceof Error && e.message === "Não autorizado") return apiError("Não autorizado.", 401);
     return apiError("Erro ao buscar carrinho.", 500);
@@ -66,9 +76,12 @@ export async function POST(req: NextRequest) {
     const productFilters = buildProductIdentityFilters(productId);
     const product = await prisma.product.findFirst({
       where: { active: true, OR: productFilters },
-      include: { variations: true },
+      include: { variations: true, category: true, subcategory: true },
     });
     if (!product) return apiError("Produto não encontrado.", 404);
+    if (isIosAppRequest(req) && isRestrictedIosProduct(product)) {
+      return apiError("Produto não encontrado.", 404);
+    }
 
     const availableStock = variationId
       ? product.variations.find((v) => v.id === variationId)?.stock ?? 0
@@ -104,8 +117,7 @@ export async function POST(req: NextRequest) {
       include: cartInclude,
     });
 
-    const totals = calculateCartTotals(updatedCart!);
-    return apiSuccess({ ...updatedCart, ...totals, itemCount: updatedCart!.items.length });
+    return apiSuccess(visibleCartForRequest(req, updatedCart!));
   } catch (e: unknown) {
     if (e instanceof z.ZodError) return apiError(e.errors[0].message, 422);
     if (e instanceof Error && e.message === "Não autorizado") return apiError("Não autorizado.", 401);

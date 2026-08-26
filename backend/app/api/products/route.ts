@@ -15,6 +15,7 @@ import {
   matchesCatalogLine,
   type CatalogLine,
 } from "@/lib/product-line";
+import { isAdultCatalogSlug, isIosAppRequest } from "@/lib/mobile-client";
 
 const productInclude = {
   category: true,
@@ -75,7 +76,12 @@ export async function GET(req: NextRequest) {
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
     const withImage = searchParams.get("withImage") === "true";
-    const catalogLine = getRequestedCatalogLine(searchParams, category, subcategory);
+    const requestedCatalogLine = getRequestedCatalogLine(searchParams, category, subcategory);
+    const iosRequest = isIosAppRequest(req);
+    const catalogLine = iosRequest ? "normal" : requestedCatalogLine;
+    if (iosRequest && (requestedCatalogLine !== "normal" || isAdultCatalogSlug(category) || isAdultCatalogSlug(subcategory))) {
+      return apiSuccess({ products: [], total: 0, page, pageSize, totalPages: 0 });
+    }
     const where: Prisma.ProductWhereInput = { active: true };
     if (category) where.category = { slug: category };
     if (subcategory) where.subcategory = { slug: subcategory };

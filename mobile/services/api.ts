@@ -1,4 +1,5 @@
 import axios from "axios";
+import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { getSupabaseClientIfConfigured } from "@/lib/supabase";
 
@@ -74,6 +75,7 @@ async function refreshAccessToken() {
 }
 
 api.interceptors.request.use(async (config) => {
+  config.headers["X-KA-Client-Platform"] = Platform.OS;
   try {
     const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
     if (token && !config.headers.Authorization) config.headers.Authorization = `Bearer ${token}`;
@@ -118,9 +120,13 @@ export const authApi = {
 };
 
 export const productsApi = {
-  list: (params?: Record<string, string | number | boolean>) => api.get("/api/products", { params: { withImage: true, ...params } }),
+  list: (params?: Record<string, string | number | boolean>) => api.get("/api/products", {
+    params: { withImage: true, ...params, ...(Platform.OS === "ios" ? { line: "normal" } : {}) },
+  }),
   getById: (id: string) => api.get(`/api/products/${id}`),
-  search: (query: string, params?: Record<string, string | number | boolean>) => api.get("/api/products", { params: { withImage: true, q: query, ...params } }),
+  search: (query: string, params?: Record<string, string | number | boolean>) => api.get("/api/products", {
+    params: { withImage: true, q: query, ...params, ...(Platform.OS === "ios" ? { line: "normal" } : {}) },
+  }),
 };
 export const categoriesApi = { list: () => api.get("/api/categories") };
 export const cartApi = {
@@ -140,6 +146,7 @@ export const ordersApi = {
 export const customerApi = {
   getMe: () => api.get("/api/customers/me"),
   updateMe: (data: { name?: string; phone?: string }) => api.patch("/api/customers/me", data),
+  exportData: () => api.get("/api/customers/me/export"),
 };
 export const notificationsApi = {
   list: () => api.get("/api/customers/me/notifications"),

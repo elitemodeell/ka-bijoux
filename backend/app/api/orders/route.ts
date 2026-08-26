@@ -8,6 +8,7 @@ import { assertPaymentMethodAvailable, PaymentUnavailableError, processPayment }
 import { calculateShipping } from "@/lib/shipping";
 import { apiSuccess, apiError, generateOrderNumber } from "@/lib/utils";
 import { OrderStatus, ShippingType, PaymentMethod } from "@prisma/client";
+import { isIosAppRequest, isRestrictedIosProduct } from "@/lib/mobile-client";
 
 const checkoutSchema = z.object({
   addressId: z.string().optional(),
@@ -135,7 +136,7 @@ export async function POST(req: NextRequest) {
       include: {
         items: {
           include: {
-            product: { include: { images: { take: 1, orderBy: { order: "asc" } } } },
+            product: { include: { images: { take: 1, orderBy: { order: "asc" } }, category: true, subcategory: true } },
             variation: true,
           },
         },
@@ -143,6 +144,9 @@ export async function POST(req: NextRequest) {
     });
 
     if (!cart || cart.items.length === 0) return apiError("Carrinho vazio.", 400);
+    if (isIosAppRequest(req) && cart.items.some((item) => isRestrictedIosProduct(item.product))) {
+      return apiError("O carrinho contém item indisponível neste dispositivo. Ajuste o carrinho pelo site.", 409);
+    }
 
     // Validar endereço e recalcular o frete no servidor.
     if (data.shippingType !== ShippingType.RETIRADA && !data.addressId) {

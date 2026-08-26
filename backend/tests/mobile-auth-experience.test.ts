@@ -192,7 +192,7 @@ describe("experiência de autenticação mobile", () => {
     expect(appleAuth).toContain('/api/auth/apple/complete');
     expect(appleAuth).toContain("completeSupabaseLogin");
     expect(appConfig).toContain('"usesAppleSignIn": true');
-    expect(appConfig).toContain('"buildNumber": "9"');
+    expect(appConfig).toContain('"buildNumber": "10"');
   });
 
   it("navega diretamente para a loja após login por e-mail", () => {

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
 import { buildProductIdentityFilters } from "@/lib/product-identity";
+import { isIosAppRequest, isRestrictedIosProduct } from "@/lib/mobile-client";
 
 // GET /api/customers/me/favorites
 export async function GET(req: NextRequest) {
@@ -13,13 +14,20 @@ export async function GET(req: NextRequest) {
       where: { customerId: customer.id },
       include: {
         product: {
-          include: { images: { orderBy: { order: "asc" }, take: 1 } },
+          include: {
+            images: { orderBy: { order: "asc" }, take: 1 },
+            category: true,
+            subcategory: true,
+          },
         },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    const data = favorites.map((f) => ({
+    const visibleFavorites = isIosAppRequest(req)
+      ? favorites.filter((favorite) => !isRestrictedIosProduct(favorite.product))
+      : favorites;
+    const data = visibleFavorites.map((f) => ({
       favoriteId: f.id,
       ...f.product,
       price: Number(f.product.price),
@@ -44,8 +52,13 @@ export async function POST(req: NextRequest) {
     const productFilters = buildProductIdentityFilters(productId);
     const product = await prisma.product.findFirst({
       where: { active: true, OR: productFilters },
+      include: { category: true, subcategory: true },
     });
     if (!product) return apiError("Produto não encontrado.", 404);
+
+    if (isIosAppRequest(req) && isRestrictedIosProduct(product)) {
+      return apiError("Produto não encontrado.", 404);
+    }
 
     const existing = await prisma.favorite.findUnique({
       where: { customerId_productId: { customerId: customer.id, productId: product.id } },

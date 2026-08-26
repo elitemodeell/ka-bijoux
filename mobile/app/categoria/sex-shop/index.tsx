@@ -9,9 +9,10 @@ import {
   ImageBackground,
   ActivityIndicator,
   Image,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "@react-navigation/native";
@@ -144,6 +145,13 @@ const FILTER_OPTS = [
 type FilterKey = "all" | "promo" | "new";
 
 export default function SexShopScreen() {
+  if (Platform.OS === "ios") {
+    return <Redirect href="/(tabs)" />;
+  }
+  return <AdultCatalogScreen />;
+}
+
+function AdultCatalogScreen() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [page, setPage] = useState(1);

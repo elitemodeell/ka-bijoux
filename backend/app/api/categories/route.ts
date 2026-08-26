@@ -6,8 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { ensureCatalogCategories } from "@/lib/catalog-db";
 import { apiSuccess, apiError, slugify } from "@/lib/utils";
+import { isIosAppRequest } from "@/lib/mobile-client";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     await ensureCatalogCategories(prisma);
 
@@ -46,8 +47,12 @@ export async function GET() {
         .map((item) => [item.subcategoryId as string, item._count._all])
     );
 
+    const visibleCategories = isIosAppRequest(req)
+      ? categories.filter((category) => category.slug !== "sex-shop")
+      : categories;
+
     return apiSuccess(
-      categories.map((category) => ({
+      visibleCategories.map((category) => ({
         ...category,
         mobileProductCount: countByCategory.get(category.id) ?? 0,
         children: category.children.map((child) => ({

@@ -11,11 +11,13 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/Button";
+import { shouldHideCatalogItemOnIos } from "@/lib/iosCatalogPolicy";
 
 type FavoriteItem = {
   favoriteId: string;
   id: string; name: string; price: number; promotionalPrice?: number | null;
   stock: number; images: Array<{ url: string }>; isNew?: boolean; featured?: boolean;
+  category?: { slug?: string | null } | null;
 };
 
 export default function FavoritosScreen() {
@@ -28,7 +30,7 @@ export default function FavoritosScreen() {
   async function fetchFavorites() {
     try {
       const res = await api.get("/api/customers/me/favorites");
-      setFavorites(res.data.data ?? []);
+      setFavorites((res.data.data ?? []).filter((item: FavoriteItem) => !shouldHideCatalogItemOnIos(item)));
     } catch {
       setFavorites([]);
     } finally {

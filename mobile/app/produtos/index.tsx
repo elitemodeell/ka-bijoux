@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl,
+  ActivityIndicator, RefreshControl, Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -9,6 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { ProductCard } from "@/components/product/ProductCard";
 import { productsApi } from "@/services/api";
+import { shouldHideCatalogItemOnIos } from "@/lib/iosCatalogPolicy";
 
 type Product = {
   id: string; slug?: string | null; name: string; price: number; promotionalPrice?: number | null;
@@ -37,6 +38,9 @@ export default function ProdutosScreen() {
   const isPromo = promo === "true";
   const isNew = newParam === "true";
   const query = typeof q === "string" ? q.trim() : "";
+  const isRestrictedIosCatalog = Platform.OS === "ios" && (
+    category === "sex-shop" || Boolean(subcategory?.startsWith("sex-shop-"))
+  );
 
   const [products, setProducts]     = useState<Product[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -47,6 +51,14 @@ export default function ProdutosScreen() {
   const [hasMore, setHasMore]       = useState(true);
 
   async function fetchProducts(p: number, currentSort: string, replace: boolean) {
+    if (isRestrictedIosCatalog) {
+      setProducts([]);
+      setHasMore(false);
+      setLoading(false);
+      setRefreshing(false);
+      setLoadingMore(false);
+      return;
+    }
     try {
       const params: Record<string, string | number | boolean> = {
         page: p, pageSize: PAGE_SIZE, sort: currentSort,
@@ -59,7 +71,7 @@ export default function ProdutosScreen() {
 
       const res = await productsApi.list(params);
       const data = res.data.data;
-      const items: Product[] = data?.products ?? [];
+      const items: Product[] = (data?.products ?? []).filter((item: Product) => !shouldHideCatalogItemOnIos(item));
       const total: number   = data?.total ?? 0;
 
       setProducts((prev) => replace ? items : [...prev, ...items]);
@@ -73,13 +85,17 @@ export default function ProdutosScreen() {
   }
 
   useEffect(() => {
+    if (isRestrictedIosCatalog) {
+      router.replace("/(tabs)");
+      return;
+    }
     setLoading(true);
     setProducts([]);
     setPage(1);
     setHasMore(true);
     fetchProducts(1, sort, true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, subcategory, sort, isPromo, isNew, query]);
+  }, [category, subcategory, sort, isPromo, isNew, query, isRestrictedIosCatalog]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

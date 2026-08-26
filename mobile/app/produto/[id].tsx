@@ -8,6 +8,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { productsApi, reviewsApi, api } from "@/services/api";
+import { shouldHideCatalogItemOnIos } from "@/lib/iosCatalogPolicy";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/Button";
@@ -215,14 +216,18 @@ export default function ProdutoScreen() {
     productsApi.getById(id)
       .then((res) => {
         const p: Product = res.data.data.product;
+        if (shouldHideCatalogItemOnIos(p)) {
+          router.replace("/(tabs)");
+          return;
+        }
         setProduct(p);
-        setRelated(res.data.data.related ?? []);
+        setRelated((res.data.data.related ?? []).filter((item: RelatedProduct) => !shouldHideCatalogItemOnIos(item)));
         const def = p.variations.find((v) => v.isDefault) ?? null;
         if (def && def.stock > 0) setSelectedVariation(def.id);
       })
       .catch((err) => { if (err.response?.status === 404) setNotFound(true); })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, router]);
 
   useEffect(() => {
     if (!product) return;

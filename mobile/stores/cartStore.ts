@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { cartApi } from "@/services/api";
+import { shouldHideCatalogItemOnIos } from "@/lib/iosCatalogPolicy";
 
 export interface CartItemData {
   id: string;
@@ -12,6 +13,7 @@ export interface CartItemData {
     images: Array<{ url: string }>;
     stock: number;
     active: boolean;
+    category?: { slug?: string | null } | null;
   };
   variation?: { name: string; value: string };
 }
@@ -42,11 +44,13 @@ export const useCartStore = create<CartState>((set, get) => ({
       set({ isLoading: true });
       const res = await cartApi.get();
       const data = res.data.data;
+      const items = (data.items ?? []).filter((item: CartItemData) => !shouldHideCatalogItemOnIos(item.product));
+      const subtotal = items.reduce((sum: number, item: CartItemData) => sum + item.unitPrice * item.quantity, 0);
       set({
-        items: data.items ?? [],
-        subtotal: data.subtotal ?? 0,
-        total: data.total ?? 0,
-        itemCount: data.itemCount ?? 0,
+        items,
+        subtotal,
+        total: subtotal,
+        itemCount: items.length,
         isLoading: false,
       });
     } catch {

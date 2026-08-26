@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, FontSizes, Spacing, BorderRadius } from "@/constants/theme";
 import { ProductCard } from "@/components/product/ProductCard";
 import { productsApi } from "@/services/api";
+import { shouldHideCatalogItemOnIos } from "@/lib/iosCatalogPolicy";
 
 type Product = {
   id: string; name: string; price: number; promotionalPrice?: number | null;
@@ -26,7 +27,7 @@ export default function BuscaScreen() {
     setSearched(true);
     try {
       const res = await productsApi.search(query);
-      setResults(res.data.data?.products ?? []);
+      setResults((res.data.data?.products ?? []).filter((item: Product) => !shouldHideCatalogItemOnIos(item)));
     } finally {
       setLoading(false);
     }
