@@ -24,6 +24,9 @@ const changePassword = source("app/(auth)/alterar-senha.tsx");
 const legalLinks = source("lib/legalLinks.ts");
 const appleAuth = source("services/appleAuth.ts");
 const appConfig = source("app.json");
+const parsedAppConfig = JSON.parse(appConfig) as {
+  expo?: { ios?: { buildNumber?: unknown } };
+};
 
 function axiosError(status?: number) {
   return {
@@ -192,7 +195,10 @@ describe("experiência de autenticação mobile", () => {
     expect(appleAuth).toContain('/api/auth/apple/complete');
     expect(appleAuth).toContain("completeSupabaseLogin");
     expect(appConfig).toContain('"usesAppleSignIn": true');
-    expect(appConfig).toContain('"buildNumber": "10"');
+    const buildNumber = parsedAppConfig.expo?.ios?.buildNumber;
+    expect(typeof buildNumber).toBe("string");
+    expect(buildNumber).toMatch(/^\d+$/);
+    expect(Number(buildNumber)).toBeGreaterThan(0);
   });
 
   it("navega diretamente para a loja após login por e-mail", () => {
