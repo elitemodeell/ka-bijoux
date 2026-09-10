@@ -10,12 +10,12 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#17070C"
+      "backgroundColor": "#fff8fa"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kabijoux.app",
-      "buildNumber": "10",
+      "buildNumber": "11",
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -24,7 +24,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#17070C"
+        "backgroundColor": "#fff8fa"
       },
       "package": "com.kabijoux.app",
       "versionCode": 1,

@@ -853,10 +853,12 @@ export default function HomeScreen() {
 
       {/* Header — P10: barra de busca inline */}
       <View style={s.header}>
-        <View style={s.headerLogo}>
-          <Text style={s.logoKA}>KA</Text>
-          <Text style={s.logoBijoux}>bijoux</Text>
-        </View>
+        <Image
+          source={require("../../assets/icon.png")}
+          style={s.officialLogo}
+          resizeMode="contain"
+          accessibilityLabel="KA Bijoux"
+        />
 
         <TouchableOpacity
           style={s.searchBar}
@@ -1036,6 +1038,7 @@ const s = StyleSheet.create({
   headerLogo: {
     // natural width
   },
+  officialLogo: { width: 52, height: 52 },
   logoKA: {
     fontSize: 24,
     fontWeight: "900",

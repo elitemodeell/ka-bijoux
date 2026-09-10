@@ -24,6 +24,7 @@ interface ProductCardProps {
     price: number;
     promotionalPrice?: number | null;
     stock: number;
+    updatedAt?: string | null;
     images: Array<{ url: string }>;
     isNew?: boolean;
     featured?: boolean;
@@ -35,9 +36,11 @@ const formatCurrency = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
 const SITE = process.env.EXPO_PUBLIC_API_URL ?? "https://ka-bijoux-backend.vercel.app";
-function resolveUrl(url?: string | null): string | null {
+function resolveUrl(url?: string | null, version?: string | null): string | null {
   if (!url) return null;
-  return url.startsWith("http") ? url : `${SITE}${url}`;
+  const resolved = url.startsWith("http") ? url : `${SITE}${url}`;
+  if (!version) return resolved;
+  return `${resolved}${resolved.includes("?") ? "&" : "?"}v=${encodeURIComponent(version)}`;
 }
 
 const MAX_SWATCHES = 4;
@@ -54,8 +57,8 @@ export function ProductCard({ product }: ProductCardProps) {
   const [activeVariation, setActiveVariation] = useState<Variation | null>(defaultVariation);
 
   const mainImageUrl =
-    resolveUrl(activeVariation?.imageUrl) ??
-    resolveUrl(product.images[0]?.url) ??
+    resolveUrl(activeVariation?.imageUrl, product.updatedAt) ??
+    resolveUrl(product.images[0]?.url, product.updatedAt) ??
     null;
 
   const isAvailable = hasVariations
@@ -109,7 +112,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <Image
             source={{ uri: mainImageUrl }}
             style={styles.image}
-            resizeMode="cover"
+            resizeMode="contain"
           />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]}>
@@ -215,7 +218,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     position: "relative",
-    aspectRatio: 1,
+    aspectRatio: 4 / 5,
     backgroundColor: Colors.pinkPale,
   },
   image: {

@@ -1,6 +1,6 @@
 workflows:
   ka-bijoux-ios-release:
-    name: KA Bijoux iOS 1.0 (10) - signed IPA
+    name: KA Bijoux iOS 1.0 (11) - signed IPA
     instance_type: mac_mini_m2
     max_build_duration: 120
     environment:
@@ -17,7 +17,7 @@ workflows:
         APPLE_TEAM_ID: YF8JRZUL75
         APPLICATION_IDENTIFIER: YF8JRZUL75.com.kabijoux.app
         MARKETING_VERSION: "1.0"
-        BUILD_NUMBER: "10"
+        BUILD_NUMBER: "11"
         IOS_DEPLOYMENT_TARGET: "15.0"
         XCODE_WORKSPACE: KABijoux.xcworkspace
         XCODE_SCHEME: KABijoux
@@ -52,7 +52,7 @@ workflows:
           if (config.name !== 'KA Bijoux') throw new Error('Unexpected application name');
           if (config.ios.bundleIdentifier !== 'com.kabijoux.app') throw new Error('Unexpected bundle identifier');
           if (config.version !== '1.0') throw new Error(`Expected version 1.0, received ${config.version}`);
-          if (config.ios.buildNumber !== '10') throw new Error(`Expected build 10, received ${config.ios.buildNumber}`);
+          if (config.ios.buildNumber !== '11') throw new Error(`Expected build 11, received ${config.ios.buildNumber}`);
           const buildProperties = config.plugins.find(plugin => Array.isArray(plugin) && plugin[0] === 'expo-build-properties');
           if (buildProperties?.[1]?.ios?.deploymentTarget !== '15.0') throw new Error('Expected iOS deployment target 15.0');
           if (config.ios.usesAppleSignIn !== true) throw new Error('usesAppleSignIn must be true');
@@ -81,7 +81,7 @@ workflows:
           test "$APPLE_TEAM_ID" = "YF8JRZUL75"
           test "$APPLICATION_IDENTIFIER" = "YF8JRZUL75.com.kabijoux.app"
           test "$MARKETING_VERSION" = "1.0"
-          test "$BUILD_NUMBER" = "10"
+          test "$BUILD_NUMBER" = "11"
           test "$IOS_DEPLOYMENT_TARGET" = "15.0"
 
       - name: Validate required mobile environment

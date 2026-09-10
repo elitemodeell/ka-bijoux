@@ -13,12 +13,15 @@ import { useCartStore } from "@/stores/cartStore";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/Button";
 import { ProductCard } from "@/components/product/ProductCard";
+import { ProductImageGallery } from "@/components/product/ProductImageGallery";
 
 const WHATSAPP_LINK = "https://wa.me/5537999999999";
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://ka-bijoux-backend.vercel.app";
-function resolveUrl(url?: string | null): string | null {
+function resolveUrl(url?: string | null, version?: string | null): string | null {
   if (!url) return null;
-  return url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
+  const resolved = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
+  if (!version) return resolved;
+  return `${resolved}${resolved.includes("?") ? "&" : "?"}v=${encodeURIComponent(version)}`;
 }
 
 const BENEFIT_CARDS = [
@@ -86,6 +89,7 @@ type Product = {
   price: number;
   promotionalPrice?: number | null;
   stock: number;
+  updatedAt?: string | null;
   images: Array<{ url: string; alt?: string }>;
   category: { name: string; slug?: string };
   subcategory?: { name: string } | null;
@@ -279,7 +283,7 @@ export default function ProdutoScreen() {
     if (v.stock === 0) return;
     setVariationError(false);
     setSelectedVariation((prev) => (prev === v.id ? null : v.id));
-    setSelectedImage(v.imageUrl ? -1 : 0);
+    setSelectedImage(0);
   }
 
   async function handleAddToCart() {
@@ -323,9 +327,13 @@ export default function ProdutoScreen() {
 
   const hasVariations = product.variations.length > 0;
   const activeVariation = hasVariations ? product.variations.find((v) => v.id === selectedVariation) ?? null : null;
-  const mainImageUri = (activeVariation?.imageUrl && selectedImage === -1)
-    ? resolveUrl(activeVariation.imageUrl)
-    : resolveUrl(product.images[Math.max(0, selectedImage)]?.url);
+  const variationImageUri = resolveUrl(activeVariation?.imageUrl, product.updatedAt);
+  const galleryImages = Array.from(new Set([
+    ...(variationImageUri ? [variationImageUri] : []),
+    ...product.images
+      .map((image) => resolveUrl(image.url, product.updatedAt))
+      .filter((url): url is string => Boolean(url)),
+  ]));
   const isAvailable = hasVariations ? product.variations.some((v) => v.stock > 0) : product.stock > 0;
   const activeStock = activeVariation ? activeVariation.stock : product.stock;
   const priceModifier = activeVariation?.priceModifier ?? 0;
@@ -380,13 +388,12 @@ export default function ProdutoScreen() {
 
         {/* Imagem principal */}
         <View style={styles.imagesContainer}>
-          {mainImageUri ? (
-            <Image source={{ uri: mainImageUri }} style={styles.mainImage} resizeMode="cover" />
-          ) : (
-            <View style={[styles.mainImage, styles.imagePlaceholder]}>
-              <Ionicons name="image-outline" size={64} color={Colors.border} />
-            </View>
-          )}
+          <ProductImageGallery
+            images={galleryImages}
+            productName={activeVariation ? `${product.name} — ${activeVariation.value}` : product.name}
+            selectedIndex={Math.min(selectedImage, Math.max(0, galleryImages.length - 1))}
+            onSelectedIndexChange={setSelectedImage}
+          />
           {hasPromo && (
             <View style={styles.discountBadge}>
               <Text style={styles.discountBadgeSmall}>até</Text>
@@ -400,24 +407,15 @@ export default function ProdutoScreen() {
             </View>
           )}
           {/* Dots para múltiplas imagens */}
-          {product.images.length > 1 && (
-            <View style={styles.imageDots}>
-              {product.images.map((_, i) => (
-                <TouchableOpacity key={i} onPress={() => setSelectedImage(i)}>
-                  <View style={[styles.imageDot, i === selectedImage && styles.imageDotActive]} />
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
         </View>
 
         {/* Thumbnails */}
-        {product.images.length > 1 && (
+        {galleryImages.length > 1 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbnails}>
-            {product.images.map((img, idx) => (
-              <TouchableOpacity key={idx} onPress={() => setSelectedImage(idx)}
+            {galleryImages.map((uri, idx) => (
+              <TouchableOpacity key={`${uri}-${idx}`} onPress={() => setSelectedImage(idx)}
                 style={[styles.thumbnail, idx === selectedImage && styles.thumbnailActive]}>
-                <Image source={{ uri: resolveUrl(img.url) ?? "" }} style={styles.thumbnailImage} />
+                <Image source={{ uri }} style={styles.thumbnailImage} resizeMode="contain" />
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -767,7 +765,7 @@ const styles = StyleSheet.create({
   favBtnActive: { backgroundColor: Colors.primary },
 
   // Images
-  imagesContainer: { position: "relative", width: SCREEN_WIDTH, height: SCREEN_WIDTH, backgroundColor: "#17070C" },
+  imagesContainer: { position: "relative", width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.25, backgroundColor: "#fff" },
   mainImage: { width: "100%", height: "100%" },
   imagePlaceholder: { alignItems: "center", justifyContent: "center" },
   discountBadge: {
