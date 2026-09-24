@@ -103,6 +103,7 @@ workflows:
           set -euo pipefail
           cd "$CM_BUILD_DIR"
           npx prisma validate --schema backend/prisma/schema.prisma
+          npx prisma generate --schema backend/prisma/schema.prisma
           npx tsc --noEmit -p backend/tsconfig.build.json
           npm --workspace backend test -- --run
 
