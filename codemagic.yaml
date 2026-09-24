@@ -33,7 +33,7 @@ workflows:
           cd "$CM_BUILD_DIR"
           remote="$(git remote get-url origin)"
           case "$remote" in
-            *elitemodeell/ka-bijoux.git) ;;
+            *github.com/elitemodeell/ka-bijoux|*github.com/elitemodeell/ka-bijoux.git) ;;
             *) echo "Unexpected Git remote: $remote" >&2; exit 1 ;;
           esac
           test "$BUNDLE_ID" = "com.kabijoux.app"
