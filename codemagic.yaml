@@ -130,6 +130,8 @@ workflows:
           cd "$CM_BUILD_DIR/mobile"
           npx expo prebuild --platform ios --clean --no-install
           cd ios
+          xcrun agvtool new-marketing-version "$MARKETING_VERSION"
+          xcrun agvtool new-version -all "$BUILD_NUMBER"
           pod install --repo-update
 
       - name: Validate generated iOS capability, version and App Icon
