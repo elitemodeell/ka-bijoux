@@ -57,8 +57,8 @@ workflows:
             echo "$forbidden" >&2
             exit 1
           fi
-          if git grep -I -n -E "(SUPABASE_SERVICE_ROLE_KEY|APP_STORE_CONNECT_PRIVATE_KEY|APPLE_.*SECRET|JWT_SECRET)[[:space:]]*=[[:space:]]*[^[:space:]\"']+" -- ':!*.md' ':!*.example' ':!package-lock.json' ':!mobile/package-lock.json'; then
-            echo "Possible plaintext secret detected" >&2
+          if git grep -I -l -E '(\$aact_(prod|hmlg)_[[:alnum:]_-]{20,}|-----BEGIN (EC |RSA )?PRIVATE KEY-----)' -- ':!*.md' ':!*.example' ':!package-lock.json' ':!mobile/package-lock.json'; then
+            echo "Possible embedded financial key or private key detected" >&2
             exit 1
           fi
           if git grep -I -n -i 'zuno' -- codemagic.yaml mobile/app.json mobile/eas.json; then
