@@ -137,22 +137,27 @@ workflows:
           set -euo pipefail
           cd "$CM_BUILD_DIR/mobile"
           workspace="ios/$XCODE_WORKSPACE"
-          test -d "$workspace"
+          test -d "$workspace" || { echo "Missing Xcode workspace: $workspace" >&2; exit 1; }
           entitlements="$(find ios -name '*.entitlements' -type f | head -1)"
-          test -n "$entitlements"
-          /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' "$entitlements" | grep -q 'Default'
-          grep -R -q 'PRODUCT_BUNDLE_IDENTIFIER = com.kabijoux.app' ios
-          grep -R -q 'MARKETING_VERSION = 1.0.1' ios
-          grep -R -q 'CURRENT_PROJECT_VERSION = 15' ios
+          test -n "$entitlements" || { echo "Missing iOS entitlements file" >&2; exit 1; }
+          apple_sign_in="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' "$entitlements" 2>/dev/null || true)"
+          [[ "$apple_sign_in" == *Default* ]] || { echo "Sign in with Apple entitlement is missing" >&2; exit 1; }
+          build_settings="$(xcodebuild -workspace "$workspace" -scheme "$XCODE_SCHEME" -configuration Release -showBuildSettings)"
+          bundle_id="$(printf '%s\n' "$build_settings" | awk -F ' = ' '/^[[:space:]]*PRODUCT_BUNDLE_IDENTIFIER = / { print $2; exit }')"
+          marketing_version="$(printf '%s\n' "$build_settings" | awk -F ' = ' '/^[[:space:]]*MARKETING_VERSION = / { print $2; exit }')"
+          current_project_version="$(printf '%s\n' "$build_settings" | awk -F ' = ' '/^[[:space:]]*CURRENT_PROJECT_VERSION = / { print $2; exit }')"
+          test "$bundle_id" = "$BUNDLE_ID" || { echo "Unexpected native bundle identifier: $bundle_id" >&2; exit 1; }
+          test "$marketing_version" = "$MARKETING_VERSION" || { echo "Unexpected native marketing version: $marketing_version" >&2; exit 1; }
+          test "$current_project_version" = "$BUILD_NUMBER" || { echo "Unexpected native build number: $current_project_version" >&2; exit 1; }
           icon_json="$(find ios -path '*AppIcon.appiconset/Contents.json' -type f | head -1)"
-          test -n "$icon_json"
+          test -n "$icon_json" || { echo "Missing App Icon asset catalog" >&2; exit 1; }
           node - "$icon_json" <<'NODE'
           const fs = require('fs');
           const path = require('path');
           const file = process.argv[2];
           const json = JSON.parse(fs.readFileSync(file, 'utf8'));
+          if (!Array.isArray(json.images) || !json.images.length) throw new Error('App Icon set has no image entries');
           const named = json.images.filter(x => x.filename);
-          if (!named.length) throw new Error('App Icon set has no generated images');
           for (const image of named) {
             if (!fs.existsSync(path.join(path.dirname(file), image.filename))) throw new Error(`Missing App Icon ${image.filename}`);
           }
