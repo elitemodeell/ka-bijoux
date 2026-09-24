@@ -98,11 +98,11 @@ workflows:
       - name: Validate backend, checkout and financial regression tests
         script: |
           set -euo pipefail
-          cd "$CM_BUILD_DIR"
-          npx prisma validate --schema backend/prisma/schema.prisma
-          npx prisma generate --schema backend/prisma/schema.prisma
-          npx tsc --noEmit -p backend/tsconfig.build.json
-          npm --workspace backend test -- --run
+          cd "$CM_BUILD_DIR/backend"
+          npx prisma validate
+          npx prisma generate
+          npx tsc --noEmit -p tsconfig.build.json
+          npm test -- --run
 
       - name: Validate Apple backend contract
         script: |
