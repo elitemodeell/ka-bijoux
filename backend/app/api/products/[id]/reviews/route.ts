@@ -6,10 +6,8 @@ import { getCustomerFromRequest } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
 
 // GET /api/products/[id]/reviews — avaliações aprovadas do produto
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const reviews = await prisma.review.findMany({
       where: { productId: params.id, approved: true },
@@ -36,10 +34,8 @@ const createSchema = z.object({
 });
 
 // POST /api/products/[id]/reviews — criar/atualizar avaliação (autenticado)
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const customer = await getCustomerFromRequest(req);
     if (!customer) return apiError("Faça login para avaliar.", 401);

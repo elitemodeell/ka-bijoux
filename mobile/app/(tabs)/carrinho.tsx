@@ -1,23 +1,43 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Image, ActivityIndicator,
+  ActivityIndicator,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/Button";
+import { ResilientProductImage } from "@/components/product/ResilientProductImage";
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
 export default function CarrinhoScreen() {
   const router = useRouter();
-  const { customer } = useAuthStore();
-  const { items, subtotal, total, isLoading, fetchCart, updateItem, removeItem } = useCartStore();
+  const insets = useSafeAreaInsets();
+  const customer = useAuthStore((state) => state.customer);
+  const items = useCartStore((state) => state.items);
+  const subtotal = useCartStore((state) => state.subtotal);
+  const total = useCartStore((state) => state.total);
+  const isLoading = useCartStore((state) => state.isLoading);
+  const fetchCart = useCartStore((state) => state.fetchCart);
+  const updateItem = useCartStore((state) => state.updateItem);
+  const removeItem = useCartStore((state) => state.removeItem);
+  const [mutatingItemId, setMutatingItemId] = useState<string | null>(null);
+
+  async function changeQuantity(itemId: string, quantity: number, remove = false) {
+    if (mutatingItemId) return;
+    setMutatingItemId(itemId);
+    try {
+      if (remove) await removeItem(itemId);
+      else await updateItem(itemId, quantity);
+    } finally {
+      setMutatingItemId(null);
+    }
+  }
 
   useEffect(() => {
     if (customer) fetchCart();
@@ -30,7 +50,7 @@ export default function CarrinhoScreen() {
           <Text style={styles.emptyIcon}>🛍️</Text>
           <Text style={styles.emptyTitle}>Faça login para ver seu carrinho</Text>
           <View style={{ marginTop: 20, width: 220 }}>
-            <Button label="Entrar na conta" onPress={() => router.push("/(auth)/login")} fullWidth />
+            <Button label="Entrar na conta" onPress={() => router.push("/(auth)/entrada")} fullWidth />
           </View>
         </View>
       </SafeAreaView>
@@ -76,12 +96,20 @@ export default function CarrinhoScreen() {
         data={items}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        initialNumToRender={6}
+        maxToRenderPerBatch={4}
+        updateCellsBatchingPeriod={50}
+        windowSize={5}
+        removeClippedSubviews
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         renderItem={({ item }) => (
           <View style={styles.item}>
-            <Image
-              source={{ uri: item.product.images[0]?.url ?? "https://placehold.co/80x80/FFB6C1/FFF?text=KA" }}
+            <ResilientProductImage
+              sources={[item.product.images[0]?.url]}
               style={styles.itemImage}
+              contentFit="cover"
+              compact
+              accessibilityLabel={`Imagem de ${item.product.name}`}
             />
             <View style={styles.itemInfo}>
               <Text style={styles.itemName} numberOfLines={2}>{item.product.name}</Text>
@@ -94,17 +122,17 @@ export default function CarrinhoScreen() {
                 <TouchableOpacity
                   style={styles.qtyBtn}
                   onPress={() => {
-                    if (item.quantity > 1) updateItem(item.id, item.quantity - 1);
-                    else removeItem(item.id);
+                    void changeQuantity(item.id, item.quantity - 1, item.quantity === 1);
                   }}
+                  disabled={mutatingItemId !== null}
                 >
                   <Ionicons name={item.quantity > 1 ? "remove" : "trash-outline"} size={16} color={Colors.primary} />
                 </TouchableOpacity>
                 <Text style={styles.qtyText}>{item.quantity}</Text>
                 <TouchableOpacity
                   style={styles.qtyBtn}
-                  onPress={() => updateItem(item.id, item.quantity + 1)}
-                  disabled={item.quantity >= item.product.stock}
+                  onPress={() => void changeQuantity(item.id, item.quantity + 1)}
+                  disabled={mutatingItemId !== null || item.quantity >= (item.variation?.stock ?? item.product.stock)}
                 >
                   <Ionicons name="add" size={16} color={Colors.primary} />
                 </TouchableOpacity>
@@ -133,7 +161,7 @@ export default function CarrinhoScreen() {
         }
       />
 
-      <View style={styles.checkoutContainer}>
+      <View style={[styles.checkoutContainer, { paddingBottom: Math.max(insets.bottom, 10) + 8 }]}>
         <Button
           label={`Finalizar Compra • ${formatCurrency(total)}`}
           onPress={() => router.push("/checkout")}

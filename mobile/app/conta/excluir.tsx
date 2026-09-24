@@ -4,7 +4,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/services/api";
@@ -13,19 +13,19 @@ import { Button } from "@/components/ui/Button";
 export default function ExcluirContaScreen() {
   const router = useRouter();
   const { customer, logout } = useAuthStore();
-  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
   async function handleDelete() {
-    if (!password) {
-      Alert.alert("Atenção", "Informe sua senha para confirmar.");
+    if (confirmation.trim().toUpperCase() !== "EXCLUIR") {
+      Alert.alert("Atenção", 'Digite "EXCLUIR" para confirmar.');
       return;
     }
 
     Alert.alert(
       "Excluir conta",
-      "Tem certeza? Esta ação não pode ser desfeita. Todos os seus dados serão removidos permanentemente.",
+      "Tem certeza? Esta ação não pode ser desfeita. Seus dados de conta serão removidos ou anonimizados. Registros de pedidos e pagamentos poderão ser mantidos quando exigidos por obrigações legais, fiscais, prevenção a fraudes ou defesa de direitos.",
       [
         { text: "Cancelar", style: "cancel" },
         {
@@ -34,12 +34,11 @@ export default function ExcluirContaScreen() {
           onPress: async () => {
             setLoading(true);
             try {
-              await api.delete("/api/customers/me", { data: { password } });
+              await api.delete("/api/customers/me", { data: { confirmation: "EXCLUIR" } });
               await logout();
               setConfirmed(true);
-            } catch (e: unknown) {
-              const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-              Alert.alert("Erro", msg ?? "Não foi possível excluir sua conta. Verifique sua senha.");
+            } catch {
+              Alert.alert("Não foi possível concluir agora", "Tente novamente.");
             } finally {
               setLoading(false);
             }
@@ -56,7 +55,7 @@ export default function ExcluirContaScreen() {
           <Ionicons name="checkmark-circle" size={64} color={Colors.success} />
           <Text style={styles.doneTitle}>Conta excluída</Text>
           <Text style={styles.doneText}>
-            Seus dados foram removidos. Esperamos te ver novamente em breve!
+            Seus dados de conta foram removidos ou anonimizados. Registros transacionais que precisem ser preservados por obrigação legal permanecem protegidos e com acesso restrito.
           </Text>
           <Button
             label="Voltar ao início"
@@ -84,14 +83,15 @@ export default function ExcluirContaScreen() {
           <Ionicons name="warning" size={32} color={Colors.error} />
           <Text style={styles.warnTitle}>Esta ação é permanente</Text>
           <Text style={styles.warnText}>
-            Ao excluir sua conta, os seguintes dados serão removidos para sempre:
+            Ao excluir sua conta, os seguintes dados serão removidos ou anonimizados:
           </Text>
           <View style={styles.list}>
             {[
               "Seus dados pessoais (nome, e-mail, telefone)",
-              "Histórico de pedidos",
-              "Endereços salvos",
+              "Credenciais de acesso",
+              "Endereços não vinculados a pedidos",
               "Lista de favoritos",
+              "Avaliações e notificações",
             ].map((item) => (
               <View key={item} style={styles.listItem}>
                 <Ionicons name="close-circle" size={16} color={Colors.error} />
@@ -100,7 +100,7 @@ export default function ExcluirContaScreen() {
             ))}
           </View>
           <Text style={styles.warnNote}>
-            Pedidos em andamento não serão cancelados automaticamente. Entre em contato com a loja se precisar cancelar.
+            Pedidos, pagamentos e endereços associados a transações podem ser mantidos pelo prazo necessário para obrigações legais, fiscais, prevenção a fraudes e defesa de direitos. Pedidos em andamento não serão cancelados automaticamente.
           </Text>
         </View>
 
@@ -109,15 +109,15 @@ export default function ExcluirContaScreen() {
           <Text style={styles.cardSubtitle}>
             Conta: <Text style={{ fontWeight: "700", color: Colors.primary }}>{customer?.email}</Text>
           </Text>
-          <Text style={styles.label}>Sua senha</Text>
+          <Text style={styles.label}>Digite EXCLUIR</Text>
           <TextInput
             style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Digite sua senha"
+            value={confirmation}
+            onChangeText={setConfirmation}
+            placeholder="EXCLUIR"
             placeholderTextColor={Colors.textLight}
-            secureTextEntry
-            autoCapitalize="none"
+            autoCapitalize="characters"
+            autoCorrect={false}
           />
         </View>
 

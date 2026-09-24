@@ -1,9 +1,10 @@
 import { Tabs } from "expo-router";
-import { View, Text, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, StyleSheet, Platform } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "@/lib/useTheme";
 import { Colors } from "@/constants/theme";
 import { useCartStore } from "@/stores/cartStore";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function TabIcon({ name, focused, label, badge }: {
   name: keyof typeof Ionicons.glyphMap;
@@ -16,7 +17,7 @@ function TabIcon({ name, focused, label, badge }: {
       <View style={styles.iconWrapper}>
         <Ionicons
           name={focused ? name : (`${name}-outline` as keyof typeof Ionicons.glyphMap)}
-          size={22}
+          size={Platform.OS === "ios" ? 25 : 22}
           color={focused ? Colors.primary : Colors.tabInactive}
         />
         {!!badge && badge > 0 && (
@@ -25,7 +26,7 @@ function TabIcon({ name, focused, label, badge }: {
           </View>
         )}
       </View>
-      <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
+      <Text numberOfLines={1} style={[styles.tabLabel, focused && styles.tabLabelActive]}>
         {label}
       </Text>
     </View>
@@ -33,15 +34,25 @@ function TabIcon({ name, focused, label, badge }: {
 }
 
 export default function TabsLayout() {
-  const { itemCount } = useCartStore();
+  const itemCount = useCartStore((state) => state.itemCount);
   const { Colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: [styles.tabBar, { backgroundColor: Colors.tabBackground, borderTopColor: Colors.border }],
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: 60 + insets.bottom,
+            paddingBottom: Math.max(insets.bottom, 6),
+            backgroundColor: Colors.tabBackground,
+            borderTopColor: Colors.border,
+          },
+        ],
         tabBarShowLabel: false,
+        tabBarIconStyle: { width: '100%', height: Platform.OS === "ios" ? 52 : 46 },
       }}
     >
       <Tabs.Screen
@@ -85,11 +96,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.tabBackground,
     borderTopColor: Colors.border,
     borderTopWidth: 1,
-    height: 70,
-    paddingTop: 6,
-    paddingBottom: 10,
+    paddingTop: Platform.OS === "ios" ? 8 : 6,
   },
   tabItem: {
+    width: '100%',
     alignItems: "center",
     justifyContent: "center",
     gap: 3,
@@ -107,6 +117,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   badgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
-  tabLabel: { fontSize: 10, color: Colors.tabInactive },
+  tabLabel: { fontSize: Platform.OS === "ios" ? 11 : 10, color: Colors.tabInactive },
   tabLabelActive: { color: Colors.primary, fontWeight: "600" },
 });

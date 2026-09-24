@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/auth";
 import { apiError } from "@/lib/utils";
+import { LEGAL_ADDRESS_INLINE, LEGAL_IDENTITY } from "@/lib/legal-identity";
 
 // GET /api/customers/me/export — exporta todos os dados do cliente (LGPD Art. 18)
 export async function GET(req: NextRequest) {
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
 
     const exportData = {
       exportDate: new Date().toISOString(),
-      dataController: "KA Bijoux — Itaúna/MG — contato@kabijoux.com.br",
+      dataController: `${LEGAL_IDENTITY.legalName} — CNPJ ${LEGAL_IDENTITY.cnpj} — ${LEGAL_ADDRESS_INLINE} — ${LEGAL_IDENTITY.email}`,
       profile,
       addresses,
       orders,

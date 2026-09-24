@@ -1,45 +1,7 @@
 import Link from "next/link";
+import { HOME_QUICK_CATEGORIES } from "@/lib/home-content";
 
-const QUICK_CATS = [
-  {
-    label: "Novidades",
-    description: "Confira o que acabou de chegar.",
-    icon: "sparkles",
-    href: "/produtos?new=true",
-  },
-  {
-    label: "Promoções",
-    description: "Descontos especiais.",
-    icon: "tag",
-    href: "/produtos?promo=true",
-  },
-  {
-    label: "Lançamentos",
-    description: "As tendências do momento.",
-    icon: "new",
-    href: "/produtos?sort=createdAt",
-  },
-  {
-    label: "Bijuterias",
-    description: "Peças para todos os estilos.",
-    icon: "diamond",
-    href: "/categoria/bijuterias",
-  },
-  {
-    label: "Capinhas",
-    description: "Proteção com muito estilo.",
-    icon: "phone",
-    href: "/categoria/capinhas-acessorios-celular",
-  },
-  {
-    label: "Sex Shop",
-    description: "Bem-estar e prazer.",
-    icon: "heart",
-    href: "/categoria/sex-shop",
-  },
-] as const;
-
-type CategoryIconName = (typeof QUICK_CATS)[number]["icon"];
+type CategoryIconName = (typeof HOME_QUICK_CATEGORIES)[number]["icon"];
 
 export default function QuickCategoryBar() {
   return (
@@ -50,7 +12,7 @@ export default function QuickCategoryBar() {
       <div className="mx-auto max-w-4xl">
         <div className="rounded-[30px] border border-pink-100/90 bg-white/95 p-2.5 shadow-[0_18px_48px_rgba(190,24,93,0.10)] ring-1 ring-white sm:rounded-[34px] sm:p-4">
           <div className="grid grid-cols-3 gap-2 sm:gap-4">
-            {QUICK_CATS.map((category) => (
+            {HOME_QUICK_CATEGORIES.map((category) => (
               <Link
                 key={category.href}
                 href={category.href}

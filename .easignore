@@ -1,21 +1,51 @@
-# Dependências — não enviar para EAS
+# EAS builds only the mobile app and its shared package.
+node_modules/
 **/node_modules/
-
-# Backend e shared — não são usados no build mobile
 backend/
-shared/
+tmp/
+reports/
+artifacts/
+appstore-screenshots/
 
-# Git e OS
-.git/
-.DS_Store
+# Local build products and checkpoints.
+*.apk
+*.aab
+*.apks
+*.zip
+mobile/android/.gradle/
+mobile/android/build/
+mobile/android/app/build/
+mobile/android/app/.cxx/
+mobile/.expo/
+mobile/dist/
+**/.expo/
+**/dist/
+**/android/.gradle/
+**/android/build/
+**/android/app/build/
+**/android/app/.cxx/
 
-# Logs e env
-*.log
+# Local credentials and environment files.
 .env
-.env.local
+.env.*
+*.jks
+*.keystore
+credentials.json
+google-service-account.json
+*.p8
+*.p12
+*.key
+*.mobileprovision
 
-# Build artifacts
-backend/.next/
-.expo/
-dist/
-web-build/
+# Editor, OS, logs and caches.
+.git/
+.git/**
+**/.git/**
+.github/
+.vscode/
+.idea/
+.claude/
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db

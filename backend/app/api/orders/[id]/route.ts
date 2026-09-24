@@ -1,19 +1,42 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/auth";
+import { toPublicOrder } from "@/lib/checkout/public-order";
+import {
+  isGooglePlayMobileRequest,
+  toGooglePlayPublicOrder,
+} from "@/lib/google-play-distribution";
 import { apiSuccess, apiError } from "@/lib/utils";
 
 // GET /api/orders/:id
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const customer = await requireCustomer(req);
-
     const order = await prisma.order.findFirst({
       where: { id: params.id, customerId: customer.id },
       include: {
         items: {
           include: {
-            product: { include: { images: { take: 1, orderBy: { order: "asc" } } } },
+            product: {
+              select: {
+                images: { take: 1, orderBy: { order: "asc" } },
+                active: true,
+                distributionChannels: true,
+                playStoreStatus: true,
+                contentClassification: true,
+                policyReviewStatus: true,
+                category: {
+                  select: {
+                    active: true,
+                    distributionChannels: true,
+                    playStoreStatus: true,
+                    contentClassification: true,
+                    policyReviewStatus: true,
+                  },
+                },
+              },
+            },
           },
         },
         payment: true,
@@ -23,9 +46,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     });
 
     if (!order) return apiError("Pedido não encontrado.", 404);
-    return apiSuccess(order);
-  } catch (e) {
-    if (e instanceof Error && e.message === "Não autorizado") return apiError("Não autorizado.", 401);
+    return apiSuccess(
+      isGooglePlayMobileRequest(req)
+        ? toGooglePlayPublicOrder(order)
+        : toPublicOrder(order)
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message === "Não autorizado") {
+      return apiError("Não autorizado.", 401);
+    }
+    console.error("Erro ao buscar pedido:", error);
     return apiError("Erro ao buscar pedido.", 500);
   }
 }

@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { addCartItem, normalizeCartProduct, type ClientCartProduct } from "@/lib/client-cart";
-import { getInstallmentInfo } from "@/lib/store-rules";
+
 import ProductVariantImage from "@/components/loja/ProductVariantImage";
 
 type QuickShopProduct = ClientCartProduct & {
@@ -88,7 +88,7 @@ export default function QuickShopModal() {
   if (!product) return null;
 
   const price = getUnitPrice(product);
-  const installment = getInstallmentInfo(price);
+
   const gallery = getGallery(product);
   const currentMedia = gallery[activeMedia] ?? gallery[0];
   const availableStock = product.stock ?? 99;
@@ -243,21 +243,17 @@ export default function QuickShopModal() {
                 <span className="text-3xl font-black text-pink-500">{formatCurrency(price)}</span>
                 {product.promo && <span className="pb-1 text-sm text-gray-400 line-through">{formatCurrency(product.price)}</span>}
               </div>
-              <p className="text-xs font-semibold text-gray-500">
-                {installment.eligible && installment.installmentValue
-                  ? `${installment.label} de ${formatCurrency(installment.installmentValue)}`
-                  : installment.label}
-              </p>
+              <p className="text-xs font-semibold text-gray-500">Pagamento seguro via Pix</p>
 
               <p className="text-sm leading-relaxed text-gray-600">{product.description}</p>
 
               <div className="rounded-2xl border border-pink-100 bg-pink-50 px-4 py-3">
-                <p className="text-sm font-bold text-pink-600">Envio para todo o Brasil</p>
+                <p className="text-sm font-bold text-pink-600">Opções disponíveis no checkout</p>
                 <p className="mt-1 text-xs text-pink-500/80">As opcoes de entrega aparecem na finalizacao da compra.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                {["Compra segura", "Produto selecionado", "Pix e cartao", "Carrinho atualizado"].map((seal, index) => (
+                {["Compra segura", "Produto selecionado", "Pix via Asaas", "Carrinho atualizado"].map((seal, index) => (
                   <div
                     key={seal}
                     className="ka-trust-seal rounded-2xl border border-pink-50 bg-white px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm"
@@ -396,7 +392,7 @@ export default function QuickShopModal() {
             <div className="rounded-[24px] bg-[#1A0A0F] px-5 py-5 text-white">
               <p className="text-sm font-bold">Compra pelo site</p>
               <p className="mt-2 text-sm leading-relaxed text-white/70">
-                Adicione os produtos ao carrinho, revise quantidades e finalize a compra com Pix ou cartao.
+                Adicione os produtos ao carrinho, revise quantidades e finalize a compra com Pix.
               </p>
             </div>
           </section>

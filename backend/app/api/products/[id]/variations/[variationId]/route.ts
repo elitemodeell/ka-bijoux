@@ -18,8 +18,9 @@ const updateSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string; variationId: string } }
+  props: { params: Promise<{ id: string; variationId: string }> }
 ) {
+  const params = await props.params;
   try {
     await requireAdmin(req);
     const body = await req.json();
@@ -50,8 +51,9 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string; variationId: string } }
+  props: { params: Promise<{ id: string; variationId: string }> }
 ) {
+  const params = await props.params;
   try {
     await requireAdmin(req);
     await prisma.productVariation.delete({ where: { id: params.variationId } });

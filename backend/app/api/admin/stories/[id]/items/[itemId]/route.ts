@@ -27,8 +27,9 @@ function authError(error: unknown) {
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string; itemId: string } }
+  props: { params: Promise<{ id: string; itemId: string }> }
 ) {
+  const params = await props.params;
   try {
     await requireAdmin(req);
     const body = updateItemSchema.parse(await req.json());
@@ -57,8 +58,9 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string; itemId: string } }
+  props: { params: Promise<{ id: string; itemId: string }> }
 ) {
+  const params = await props.params;
   try {
     await requireAdmin(req);
     const result = await prisma.storyItem.deleteMany({

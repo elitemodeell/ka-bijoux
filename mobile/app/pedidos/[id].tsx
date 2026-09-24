@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Image,
+  ActivityIndicator, Image, Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { ordersApi } from "@/services/api";
 
@@ -34,6 +34,14 @@ type OrderDetail = {
     method: string;
     status: string;
     pixCode?: string;
+    pixExpiration?: string;
+    checkoutUrl?: string;
+    checkoutExpiration?: string;
+    boletoUrl?: string;
+    boletoDigitableLine?: string;
+    boletoExpiration?: string;
+    installmentCount?: number;
+    installmentValue?: number;
     paidAt?: string;
   };
   address?: {
@@ -48,6 +56,11 @@ type OrderDetail = {
 const statusConfig: Record<string, { label: string; color: string; bg: string; icon: keyof typeof Ionicons.glyphMap }> = {
   CRIADO:               { label: "Criado",                  color: Colors.textMuted,   bg: Colors.surfaceAlt,   icon: "receipt-outline" },
   AGUARDANDO_PAGAMENTO: { label: "Aguardando Pagamento",    color: Colors.warning,     bg: Colors.warningLight, icon: "time-outline" },
+  PAGAMENTO_PENDENTE:   { label: "Gerando cobrança Pix",    color: Colors.warning,     bg: Colors.warningLight, icon: "time-outline" },
+  PAGAMENTO_EXPIRADO:   { label: "Pagamento expirado",      color: Colors.error,       bg: Colors.errorLight,   icon: "close-circle-outline" },
+  FALHA_NO_PAGAMENTO:   { label: "Falha no pagamento",      color: Colors.error,       bg: Colors.errorLight,   icon: "alert-circle-outline" },
+  REEMBOLSO_PENDENTE:   { label: "Reembolso pendente",      color: Colors.warning,     bg: Colors.warningLight, icon: "refresh-outline" },
+  REEMBOLSADO:          { label: "Reembolsado",             color: Colors.info,        bg: Colors.infoLight,    icon: "return-down-back-outline" },
   PAGAMENTO_APROVADO:   { label: "Pagamento Aprovado",      color: Colors.success,     bg: Colors.successLight, icon: "checkmark-circle-outline" },
   EM_SEPARACAO:         { label: "Em Separação",            color: Colors.info,        bg: Colors.infoLight,    icon: "cube-outline" },
   PRONTO_PARA_RETIRADA: { label: "Pronto para Retirada",   color: Colors.primary,     bg: Colors.pinkSoft,     icon: "storefront-outline" },
@@ -68,8 +81,12 @@ const paymentMethodLabel: Record<string, string> = {
 };
 
 const paymentStatusConfig: Record<string, { label: string; color: string }> = {
-  AGUARDANDO:  { label: "Aguardando pagamento", color: Colors.warning },
-  PAGO:        { label: "Pago",                  color: Colors.success },
+  AGUARDANDO:       { label: "Aguardando pagamento", color: Colors.warning },
+  EM_ANALISE:       { label: "Em análise",           color: Colors.warning },
+  EXPIRADO:         { label: "Expirado",             color: Colors.error },
+  FALHA:            { label: "Falha",                color: Colors.error },
+  ESTORNO_PENDENTE: { label: "Estorno pendente",     color: Colors.warning },
+  PAGO:             { label: "Pago",                 color: Colors.success },
   RECUSADO:    { label: "Recusado",              color: Colors.error },
   CANCELADO:   { label: "Cancelado",             color: Colors.error },
   REEMBOLSADO: { label: "Reembolsado",           color: Colors.info },
@@ -123,7 +140,20 @@ export default function PedidoDetalheScreen() {
 
   const status  = statusConfig[order.status] ?? { label: order.status, color: Colors.textMuted, bg: Colors.surfaceAlt, icon: "help-outline" as const };
   const payment = order.payment;
-  const pixPending = payment?.method === "PIX" && payment.status === "AGUARDANDO" && payment.pixCode;
+  const pixExpired =
+    payment?.status === "EXPIRADO" ||
+    order.status === "PAGAMENTO_EXPIRADO" ||
+    Boolean(
+      payment?.pixExpiration &&
+        new Date(payment.pixExpiration).getTime() <= Date.now()
+    );
+  const pixPayable =
+    payment?.method === "PIX" &&
+    payment.status === "AGUARDANDO" &&
+    Boolean(payment.pixCode) &&
+    !pixExpired;
+  const pixUnderReview =
+    payment?.method === "PIX" && payment.status === "EM_ANALISE";
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -150,8 +180,8 @@ export default function PedidoDetalheScreen() {
           </View>
         </View>
 
-        {/* Código PIX pendente */}
-        {pixPending && (
+        {/* Código Pix somente enquanto a cobrança está realmente aguardando. */}
+        {pixPayable && payment?.pixCode ? (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>💠 Pague com Pix</Text>
             <Text style={styles.pixInstr}>Copie o código e pague no aplicativo do seu banco</Text>
@@ -160,9 +190,59 @@ export default function PedidoDetalheScreen() {
                 {payment.pixCode}
               </Text>
             </View>
-            <Text style={styles.pixExp}>⏱️ Expira em 30 minutos</Text>
+            {payment.pixExpiration ? (
+              <Text style={styles.pixExp}>
+                ⏱️ Válido até {new Date(payment.pixExpiration).toLocaleString("pt-BR")}
+              </Text>
+            ) : null}
           </View>
-        )}
+        ) : null}
+
+        {pixUnderReview ? (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Pagamento em análise</Text>
+            <Text style={styles.pixInstr}>
+              O provedor já confirmou o pagamento para análise. Não pague o código Pix novamente.
+            </Text>
+          </View>
+        ) : null}
+
+        {payment?.method === "CARTAO_CREDITO" &&
+        payment.status === "AGUARDANDO" &&
+        payment.checkoutUrl ? (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Pagamento seguro por cartão</Text>
+            <Text style={styles.pixInstr}>
+              Continue no ambiente hospedado do provedor. O pedido só será aprovado
+              após confirmação financeira.
+            </Text>
+            <TouchableOpacity
+              style={styles.reviewBtn}
+              onPress={() => Linking.openURL(payment.checkoutUrl ?? "")}
+            >
+              <Text style={styles.reviewBtnAction}>Continuar pagamento</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {payment?.method === "BOLETO" &&
+        payment.status === "AGUARDANDO" &&
+        payment.boletoUrl ? (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Boleto pendente</Text>
+            {payment.boletoDigitableLine ? (
+              <Text style={styles.pixCode} selectable>
+                {payment.boletoDigitableLine}
+              </Text>
+            ) : null}
+            <TouchableOpacity
+              style={styles.reviewBtn}
+              onPress={() => Linking.openURL(payment.boletoUrl ?? "")}
+            >
+              <Text style={styles.reviewBtnAction}>Abrir boleto</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {/* Itens */}
         <View style={styles.card}>
@@ -217,6 +297,17 @@ export default function PedidoDetalheScreen() {
             {payment.paidAt && (
               <Row label="Pago em" value={new Date(payment.paidAt).toLocaleDateString("pt-BR")} />
             )}
+            {payment.method === "CARTAO_CREDITO" &&
+            payment.installmentCount ? (
+              <Row
+                label="Parcelas"
+                value={`${payment.installmentCount}x${
+                  payment.installmentValue
+                    ? ` de ${fmt(payment.installmentValue)}`
+                    : ""
+                }`}
+              />
+            ) : null}
           </View>
         )}
 

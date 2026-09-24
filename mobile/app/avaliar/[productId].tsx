@@ -8,7 +8,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Colors, FontSizes, Spacing, BorderRadius } from "@/constants/theme";
 import { StarRating } from "@/components/ui/StarRating";
 import { Button } from "@/components/ui/Button";
-import { api } from "@/services/api";
+import { reviewsApi } from "@/services/api";
 
 export default function AvaliarScreen() {
   const router = useRouter();
@@ -23,13 +23,12 @@ export default function AvaliarScreen() {
     setLoading(true);
     setError("");
     try {
-      await api.post(`/api/products/${productId}/reviews`, { rating, comment: comment.trim() || undefined });
+      await reviewsApi.create(productId, rating, comment.trim() || undefined);
       Alert.alert("Avaliação enviada!", "Sua avaliação será publicada após revisão. Obrigada! 💕", [
         { text: "OK", onPress: () => router.back() },
       ]);
-    } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setError(msg ?? "Não foi possível enviar a avaliação. Tente novamente.");
+    } catch {
+      setError("Não foi possível enviar a avaliação. Tente novamente.");
     } finally {
       setLoading(false);
     }

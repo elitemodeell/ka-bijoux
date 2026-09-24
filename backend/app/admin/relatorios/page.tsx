@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
 import Header from "@/components/admin/Header";
-import { OrderStatus, PaymentStatus } from "@prisma/client";
+import { PaymentStatus } from "@prisma/client";
 
 const STATUS_LABELS: Record<string, string> = {
   CRIADO: "Criado",
@@ -31,91 +31,142 @@ const fmtMonth = (key: string) => {
 };
 
 async function getReports(months = 6) {
-  const periodStart = new Date();
-  periodStart.setMonth(periodStart.getMonth() - months);
-  periodStart.setDate(1);
+  const reportNow = new Date();
+  const periodStart = new Date(
+    reportNow.getFullYear(),
+    reportNow.getMonth() - (months - 1),
+    1
+  );
   periodStart.setHours(0, 0, 0, 0);
 
-  const [orders, topItemsRaw, ordersByStatus, paymentMethods, topCustomersRaw] = await Promise.all([
-    prisma.order.findMany({
-      where: { createdAt: { gte: periodStart }, status: { not: OrderStatus.CANCELADO } },
-      select: { createdAt: true, total: true },
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.orderItem.groupBy({
-      by: ["productId"],
-      where: { order: { createdAt: { gte: periodStart }, status: { not: OrderStatus.CANCELADO } } },
-      _sum: { quantity: true, totalPrice: true },
-      orderBy: { _sum: { totalPrice: "desc" } },
-      take: 8,
-    }),
-    prisma.order.groupBy({
-      by: ["status"],
-      where: { createdAt: { gte: periodStart } },
-      _count: { id: true },
-    }),
-    prisma.payment.groupBy({
-      by: ["method"],
-      where: { status: PaymentStatus.PAGO, createdAt: { gte: periodStart } },
-      _sum: { amount: true },
-      _count: { id: true },
-    }),
-    prisma.order.groupBy({
-      by: ["customerId"],
-      where: { createdAt: { gte: periodStart }, status: { not: OrderStatus.CANCELADO } },
-      _sum: { total: true },
-      _count: { id: true },
-      orderBy: { _sum: { total: "desc" } },
-      take: 5,
-    }),
-  ]);
+  const [payments, topItemsRaw, ordersByStatus, paymentMethods, topCustomersRaw] =
+    await Promise.all([
+      prisma.payment.findMany({
+        where: {
+          status: PaymentStatus.PAGO,
+          paidAt: { gte: periodStart },
+        },
+        select: { paidAt: true, amount: true },
+        orderBy: { paidAt: "asc" },
+      }),
+      prisma.orderItem.groupBy({
+        by: ["productId"],
+        where: {
+          order: {
+            payment: {
+              is: {
+                status: PaymentStatus.PAGO,
+                paidAt: { gte: periodStart },
+              },
+            },
+          },
+        },
+        _sum: { quantity: true, totalPrice: true },
+        orderBy: { _sum: { totalPrice: "desc" } },
+        take: 8,
+      }),
+      prisma.order.groupBy({
+        by: ["status"],
+        where: {
+          payment: {
+            is: {
+              status: PaymentStatus.PAGO,
+              paidAt: { gte: periodStart },
+            },
+          },
+        },
+        _count: { id: true },
+      }),
+      prisma.payment.groupBy({
+        by: ["method"],
+        where: {
+          status: PaymentStatus.PAGO,
+          paidAt: { gte: periodStart },
+        },
+        _sum: { amount: true },
+        _count: { id: true },
+      }),
+      prisma.order.groupBy({
+        by: ["customerId"],
+        where: {
+          payment: {
+            is: {
+              status: PaymentStatus.PAGO,
+              paidAt: { gte: periodStart },
+            },
+          },
+        },
+        _sum: { total: true },
+        _count: { id: true },
+        orderBy: { _sum: { total: "desc" } },
+        take: 5,
+      }),
+    ]);
 
-  // Monthly revenue buckets
+  // Monthly revenue buckets use the settlement date, never order creation.
   const monthlyMap = new Map<string, { revenue: number; count: number }>();
   for (let i = months - 1; i >= 0; i--) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const date = new Date(
+      reportNow.getFullYear(),
+      reportNow.getMonth() - i,
+      1
+    );
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
     monthlyMap.set(key, { revenue: 0, count: 0 });
   }
-  for (const o of orders) {
-    const key = `${o.createdAt.getFullYear()}-${String(o.createdAt.getMonth() + 1).padStart(2, "0")}`;
-    const b = monthlyMap.get(key);
-    if (b) { b.revenue += Number(o.total); b.count++; }
+  for (const payment of payments) {
+    if (!payment.paidAt) continue;
+    const key = `${payment.paidAt.getFullYear()}-${String(
+      payment.paidAt.getMonth() + 1
+    ).padStart(2, "0")}`;
+    const bucket = monthlyMap.get(key);
+    if (bucket) {
+      bucket.revenue += Number(payment.amount);
+      bucket.count += 1;
+    }
   }
-  const monthly = Array.from(monthlyMap.entries()).map(([month, d]) => ({ month, ...d }));
-  const maxRevenue = Math.max(...monthly.map((m) => m.revenue), 1);
+  const monthly = Array.from(monthlyMap.entries()).map(([month, data]) => ({
+    month,
+    ...data,
+  }));
+  const maxRevenue = Math.max(...monthly.map((month) => month.revenue), 1);
 
   // Enrich products
-  const productIds = topItemsRaw.map((p) => p.productId);
+  const productIds = topItemsRaw.map((product) => product.productId);
   const products = await prisma.product.findMany({
     where: { id: { in: productIds } },
     select: { id: true, name: true },
   });
-  const prodMap = new Map(products.map((p) => [p.id, p.name]));
-  const topProducts = topItemsRaw.map((p) => ({
-    name: prodMap.get(p.productId) ?? "—",
-    qty: p._sum?.quantity ?? 0,
-    revenue: Number(p._sum?.totalPrice ?? 0),
+  const productMap = new Map(products.map((product) => [product.id, product.name]));
+  const topProducts = topItemsRaw.map((product) => ({
+    name: productMap.get(product.productId) ?? "—",
+    qty: product._sum?.quantity ?? 0,
+    revenue: Number(product._sum?.totalPrice ?? 0),
   }));
-  const maxProdRevenue = Math.max(...topProducts.map((p) => p.revenue), 1);
+  const maxProdRevenue = Math.max(
+    ...topProducts.map((product) => product.revenue),
+    1
+  );
 
   // Enrich customers
-  const customerIds = topCustomersRaw.map((c) => c.customerId);
+  const customerIds = topCustomersRaw.map((customer) => customer.customerId);
   const customers = await prisma.customer.findMany({
     where: { id: { in: customerIds } },
     select: { id: true, name: true, email: true },
   });
-  const custMap = new Map(customers.map((c) => [c.id, c]));
-  const topCustomers = topCustomersRaw.map((c) => ({
-    name: custMap.get(c.customerId)?.name ?? "—",
-    email: custMap.get(c.customerId)?.email ?? "",
-    orders: c._count.id,
-    revenue: Number(c._sum.total ?? 0),
+  const customerMap = new Map(customers.map((customer) => [customer.id, customer]));
+  const topCustomers = topCustomersRaw.map((customer) => ({
+    name: customerMap.get(customer.customerId)?.name ?? "—",
+    email: customerMap.get(customer.customerId)?.email ?? "",
+    orders: customer._count.id,
+    revenue: Number(customer._sum.total ?? 0),
   }));
 
-  const totalRevenue = orders.reduce((s, o) => s + Number(o.total), 0);
-  const totalOrders = orders.length;
+  const totalRevenue = payments.reduce(
+    (sum, payment) => sum + Number(payment.amount),
+    0
+  );
+  const totalOrders = payments.length;
   const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
   return {
@@ -131,7 +182,6 @@ async function getReports(months = 6) {
     avgTicket,
   };
 }
-
 export default async function RelatoriosPage() {
   const data = await getReports(6);
 
@@ -151,7 +201,7 @@ export default async function RelatoriosPage() {
           <p className="mt-1 text-2xl font-black text-green-600">{fmt(data.totalRevenue)}</p>
         </div>
         <div className="card">
-          <p className="text-sm text-gray-500">Pedidos (não cancelados)</p>
+          <p className="text-sm text-gray-500">Pedidos pagos</p>
           <p className="mt-1 text-2xl font-black text-gray-900">{data.totalOrders}</p>
         </div>
         <div className="card">
@@ -211,7 +261,7 @@ export default async function RelatoriosPage() {
 
         {/* Status dos pedidos */}
         <div className="card">
-          <h2 className="mb-4 text-sm font-semibold text-gray-700">Status dos pedidos</h2>
+          <h2 className="mb-4 text-sm font-semibold text-gray-700">Status dos pedidos pagos</h2>
           <div className="space-y-2">
             {data.ordersByStatus.map((s) => (
               <div key={s.status} className="flex items-center justify-between text-sm">

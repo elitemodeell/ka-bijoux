@@ -2,4 +2,6 @@ generated-product-images/
 reports/
 scripts/
 tmp/
-mobile/
+/mobile/
+.env*
+backend/.env*

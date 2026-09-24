@@ -3,7 +3,7 @@ import StatCard from "@/components/admin/StatCard";
 import OrderStatusBadge from "@/components/admin/OrderStatusBadge";
 import Header from "@/components/admin/Header";
 import { prisma } from "@/lib/prisma";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, PaymentStatus } from "@prisma/client";
 import Link from "next/link";
 
 async function getDashboardData() {
@@ -13,18 +13,34 @@ async function getDashboardData() {
 
   const [totalOrders, pendingOrders, totalProducts, totalCustomers, todayAgg, monthAgg, recentOrders, lowStockProducts] =
     await Promise.all([
-      prisma.order.count(),
+      prisma.order.count({
+        where: { payment: { is: { status: PaymentStatus.PAGO } } },
+      }),
       prisma.order.count({
         where: { status: { in: [OrderStatus.CRIADO, OrderStatus.AGUARDANDO_PAGAMENTO, OrderStatus.PAGAMENTO_APROVADO, OrderStatus.EM_SEPARACAO] } },
       }),
       prisma.product.count({ where: { active: true } }),
       prisma.customer.count({ where: { active: true } }),
       prisma.order.aggregate({
-        where: { createdAt: { gte: today }, status: { not: OrderStatus.CANCELADO } },
+        where: {
+          payment: {
+            is: {
+              status: PaymentStatus.PAGO,
+              paidAt: { gte: today },
+            },
+          },
+        },
         _sum: { total: true }, _count: true,
       }),
       prisma.order.aggregate({
-        where: { createdAt: { gte: monthStart }, status: { not: OrderStatus.CANCELADO } },
+        where: {
+          payment: {
+            is: {
+              status: PaymentStatus.PAGO,
+              paidAt: { gte: monthStart },
+            },
+          },
+        },
         _sum: { total: true },
       }),
       prisma.order.findMany({
@@ -56,11 +72,11 @@ export default async function DashboardPage() {
         <StatCard label="Vendas do Mês"      value={formatCurrency(data.monthAgg._sum.total)} icon="💰" color="pink"   trend="Este mês" />
         <StatCard label="Vendas Hoje"        value={formatCurrency(data.todayAgg._sum.total)}  icon="📈" color="green"  trend={`${data.todayAgg._count} pedidos`} />
         <StatCard label="Pedidos Pendentes"  value={data.pendingOrders}                         icon="⏳" color="orange" trend="Aguardando ação" />
-        <StatCard label="Total de Pedidos"   value={data.totalOrders}                           icon="📦" color="blue"   trend="Desde o início" />
+        <StatCard label="Pedidos Pagos"   value={data.totalOrders}                           icon="📦" color="blue"   trend="Desde o início" />
         <StatCard label="Produtos Ativos"    value={data.totalProducts}                         icon="💎" color="purple" />
         <StatCard label="Estoque Baixo"      value={data.lowStockProducts}                      icon="⚠️" color="orange" trend="Produtos críticos" />
         <StatCard label="Clientes"           value={data.totalCustomers}                        icon="👥" color="blue"   />
-        <StatCard label="Pedidos Hoje"       value={data.todayAgg._count}                       icon="🛍️" color="pink"  />
+        <StatCard label="Pedidos Pagos Hoje"       value={data.todayAgg._count}                       icon="🛍️" color="pink"  />
       </div>
 
       {/* Recent Orders */}

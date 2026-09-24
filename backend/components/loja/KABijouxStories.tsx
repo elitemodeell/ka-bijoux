@@ -9,131 +9,14 @@ import {
   feriasBannerHref,
   feriasBannerImage,
 } from "@/lib/campaign-media";
+import { HOME_HERO_SLIDES } from "@/lib/home-content";
 
 const seenStorageKey = "ka-bijoux-seen-stories";
 const storyLogo = "/images/brand/ka-bijoux-logo-story-icon.png";
 const instagramProfileUrl = "https://www.instagram.com/kabijoux_?igsh=aGV2Z2dxb252NzF5";
 const HERO_IMAGE_DURATION = 3000;
-const storyHighlightCovers = {
-  novidades: "/images/stories/highlights/novidades.jpg",
-  promocoes: "/images/stories/highlights/promocoes.jpg",
-  lancamentos: "/images/stories/highlights/lancamentos.jpg",
-  clientes: "/images/stories/highlights/clientes.jpg",
-  ofertas: "/images/stories/highlights/ofertas.jpg",
-} as const;
-const storyHighlightCoverEntries = Object.entries(storyHighlightCovers);
-const homeStoryOrder = [
-  { title: "Novidades", keys: ["novidades"] },
-  { title: "Ofertas", keys: ["ofertas", "promocoes", "promocao"] },
-  { title: "Clientes", keys: ["clientes"] },
-];
 
-const heroSlides = [
-  {
-    title: "Férias com Estilo",
-    subtitle: "Ofertas para viajar, sair e se cuidar",
-    cta: "Quero Aproveitar",
-    href: "/produtos?new=true",
-    image: "/banners/banner-ferias-com-estilo.webp",
-    mobileImage: "/banners/banner-ferias-com-estilo-mobile.webp",
-    objectPosition: "center",
-  },
-  {
-    title: "Mala Pronta, Look Completo",
-    subtitle: "Capinhas, bolsas, óculos e acessórios para todos os momentos",
-    cta: "Comprar Agora",
-    href: "/produtos",
-    image: "/banners/banner-mala-pronta-look-completo.webp",
-    mobileImage: "/banners/banner-mala-pronta-look-completo-mobile.webp",
-    objectPosition: "center",
-  },
-  {
-    title: "Destino: Férias",
-    subtitle: "Acessórios e bijuterias com alegria, charme e verão",
-    cta: "Ver Ofertas",
-    href: "/categoria/bijuterias",
-    image: "/banners/banner-destino-ferias.webp",
-    mobileImage: "/banners/banner-destino-ferias-mobile.webp",
-    objectPosition: "center",
-  },
-  {
-    title: "Brilhe nas Férias",
-    subtitle: "Peças delicadas para deixar seu visual ainda mais bonito",
-    cta: "Quero Brilhar",
-    href: "/categoria/bijuterias",
-    image: "/banners/banner-brilhe-nas-ferias.webp",
-    mobileImage: "/banners/banner-brilhe-nas-ferias-mobile.webp",
-    objectPosition: "center",
-  },
-];
-
-const fallbackGroups: StoryGroup[] = [
-  {
-    id: "demo-novidades",
-    title: "Novidades",
-    cover: storyHighlightCovers.novidades,
-    isActive: true,
-    sortOrder: 1,
-    items: [
-      createStoryImage("demo-novidades-1", "/images/stories/demo-ka-bijoux/story-whatsapp-image-01.jpeg", 1),
-      createStoryVideo("demo-novidades-2", "/videos/stories/demo-ka-bijoux/story-whatsapp-video-01.mp4", 2),
-    ],
-  },
-  {
-    id: "demo-promocoes",
-    title: "Promoções",
-    cover: storyHighlightCovers.promocoes,
-    isActive: true,
-    sortOrder: 2,
-    items: [
-      createStoryImage("demo-promocoes-1", "/images/stories/demo-ka-bijoux/story-whatsapp-image-02.jpeg", 1),
-      createStoryVideo("demo-promocoes-2", "/videos/stories/demo-ka-bijoux/story-whatsapp-video-02.mp4", 2),
-    ],
-  },
-  {
-    id: "demo-achadinhos",
-    title: "Achadinhos",
-    cover: storyHighlightCovers.lancamentos,
-    isActive: true,
-    sortOrder: 3,
-    items: [
-      createStoryVideo("demo-achadinhos-1", "/videos/stories/demo-ka-bijoux/story-whatsapp-video-03.mp4", 1),
-    ],
-  },
-  {
-    id: "demo-clientes",
-    title: "Clientes",
-    cover: storyHighlightCovers.clientes,
-    isActive: true,
-    sortOrder: 4,
-    items: [
-      createStoryVideo("demo-clientes-1", "/videos/stories/demo-ka-bijoux/story-whatsapp-video-04.mp4", 1),
-    ],
-  },
-];
-
-function createStoryImage(id: string, src: string, sortOrder: number) {
-  return {
-    id,
-    type: "image" as const,
-    src,
-    mediaUrl: src,
-    duration: 5,
-    isActive: true,
-    sortOrder,
-  };
-}
-
-function createStoryVideo(id: string, src: string, sortOrder: number) {
-  return {
-    id,
-    type: "video" as const,
-    src,
-    mediaUrl: src,
-    isActive: true,
-    sortOrder,
-  };
-}
+const heroSlides = HOME_HERO_SLIDES;
 
 type StoryCoverMedia = {
   type: StoryItem["type"];
@@ -148,24 +31,6 @@ type StoryItemWithCoverMeta = StoryItem & {
   thumbnail?: string | null;
   thumbnailUrl?: string | null;
 };
-
-function normalizeStoryKey(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "");
-}
-
-function getStoryHighlightCover(group: Pick<StoryGroup, "id" | "title">) {
-  const titleKey = normalizeStoryKey(group.title);
-  const idKey = normalizeStoryKey(group.id);
-  const match = storyHighlightCoverEntries.find(
-    ([key]) => titleKey.includes(key) || idKey.includes(key)
-  );
-
-  return match?.[1] ?? null;
-}
 
 function getStoryItemSrc(item: StoryItem) {
   return item.src || item.mediaUrl || "";
@@ -185,16 +50,6 @@ function storyCoverImageClassName(src: string) {
 }
 
 function getStoryCoverMedia(group: StoryGroup): StoryCoverMedia {
-  const highlightCover = getStoryHighlightCover(group);
-
-  if (highlightCover) {
-    return {
-      type: "image",
-      src: highlightCover,
-      fallbackSrc: DEFAULT_STORY_COVER,
-    };
-  }
-
   const fallbackSrc = group.cover || group.coverImageUrl || DEFAULT_STORY_COVER;
   const validItems = group.items.filter((item) => Boolean(getStoryItemSrc(item)));
   const lastItem = validItems[validItems.length - 1];
@@ -235,43 +90,15 @@ function normalizeGroups(data: unknown): StoryGroup[] {
 
       return {
         ...storyGroup,
-        cover:
-          getStoryHighlightCover(storyGroup) ||
-          storyGroup.cover ||
-          storyGroup.coverImageUrl ||
-          storyLogo,
+        cover: storyGroup.cover || storyGroup.coverImageUrl || storyLogo,
         items,
       };
     })
     .filter((group): group is StoryGroup => Boolean(group && group.items.length > 0));
 }
 
-function findStoryGroupByKeys(groups: StoryGroup[], keys: string[]) {
-  return groups.find((group) => {
-    const titleKey = normalizeStoryKey(group.title);
-    const idKey = normalizeStoryKey(group.id);
-
-    return keys.some((key) => titleKey.includes(key) || idKey.includes(key));
-  });
-}
-
-function getHomeStoryGroups(groups: StoryGroup[]) {
-  return homeStoryOrder
-    .map((config, index) => {
-      const group = findStoryGroupByKeys(groups, config.keys) || findStoryGroupByKeys(fallbackGroups, config.keys);
-      if (!group) return null;
-
-      return {
-        ...group,
-        title: config.title,
-        sortOrder: index + 1,
-      };
-    })
-    .filter((group): group is StoryGroup => Boolean(group && group.items.length > 0));
-}
-
 export default function KABijouxStories() {
-  const [groups, setGroups] = useState<StoryGroup[]>(fallbackGroups);
+  const [groups, setGroups] = useState<StoryGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const [activeStoryGroup, setActiveStoryGroup] = useState<StoryGroup | null>(null);
@@ -281,10 +108,7 @@ export default function KABijouxStories() {
   const timerRef = useRef<number | null>(null);
   const errorSkipTimeoutRef = useRef<number | null>(null);
 
-  const visibleGroups = useMemo(
-    () => getHomeStoryGroups(groups),
-    [groups]
-  );
+  const visibleGroups = groups;
   const activeGroup = activeStoryGroup;
   const activeItem = activeGroup?.items[activeItemIndex] ?? null;
   useEffect(() => {
@@ -306,11 +130,10 @@ export default function KABijouxStories() {
         const res = await fetch("/api/stories");
         const json = await res.json();
         if (alive && res.ok) {
-          const apiGroups = normalizeGroups(json.data);
-          setGroups(apiGroups.length > 0 ? apiGroups : fallbackGroups);
+          setGroups(normalizeGroups(json.data));
         }
       } catch {
-        if (alive) setGroups(fallbackGroups);
+        if (alive) setGroups([]);
       } finally {
         if (alive) setLoading(false);
       }

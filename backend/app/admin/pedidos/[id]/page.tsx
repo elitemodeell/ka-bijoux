@@ -19,10 +19,7 @@ type Order = {
 };
 
 const nextStatusOptions: Partial<Record<OrderStatus, { status: OrderStatus; label: string }[]>> = {
-  [OrderStatus.AGUARDANDO_PAGAMENTO]: [
-    { status: OrderStatus.PAGAMENTO_APROVADO, label: "✅ Confirmar Pagamento" },
-    { status: OrderStatus.CANCELADO, label: "❌ Cancelar" },
-  ],
+
   [OrderStatus.PAGAMENTO_APROVADO]: [{ status: OrderStatus.EM_SEPARACAO, label: "📋 Iniciar Separação" }],
   [OrderStatus.EM_SEPARACAO]: [
     { status: OrderStatus.PRONTO_PARA_RETIRADA, label: "🏪 Pronto para Retirada" },

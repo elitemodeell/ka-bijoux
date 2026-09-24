@@ -1,14 +1,16 @@
 import { ShippingType } from "@prisma/client";
+import { LEGAL_IDENTITY } from "@/lib/legal-identity";
 
 export interface ShippingItem {
-  weight: number;   // kg
-  height: number;   // cm
-  width: number;    // cm
-  length: number;   // cm
+  weight: number;
+  height: number;
+  width: number;
+  length: number;
   quantity: number;
 }
 
 export interface ShippingOption {
+  id: string;
   type: ShippingType;
   name: string;
   description: string;
@@ -22,118 +24,206 @@ export interface StoreShippingConfig {
   mototaxiEnabled: boolean;
   storePickupEnabled: boolean;
   mototaxiPrice: number;
+  storeAddress?: string;
+  storeCity?: string;
+  storeState?: string;
+  storeZipCode?: string;
+}
+
+export interface ShippingDestination {
+  city: string;
+  state: string;
 }
 
 const ITAUNA_CEP_PREFIX = ["35680", "35681", "35682", "35683", "35684", "35685"];
-const ORIGIN_ZIP = "35680000"; // Itaúna/MG
+const ORIGIN_ZIP = "35680000";
 
-function isItaunaZipCode(zipCode: string): boolean {
+export const SHIPPING_OPTION_IDS = {
+  pickup: "pickup",
+  mototaxi: "mototaxi",
+  pac: "melhor-envio:1",
+  sedex: "melhor-envio:2",
+} as const;
+
+export function isItaunaZipCode(zipCode: string): boolean {
   const clean = zipCode.replace(/\D/g, "");
   return ITAUNA_CEP_PREFIX.some((prefix) => clean.startsWith(prefix));
 }
 
+function normalizeLocation(value: string): string {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+}
+
+export function isItaunaDestination(destination?: ShippingDestination): boolean {
+  return Boolean(
+    destination &&
+      normalizeLocation(destination.city) === "itauna" &&
+      destination.state.trim().toUpperCase() === "MG"
+  );
+}
+
+function requirePositive(value: number, field: string): number {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`Dimensão de frete inválida no catálogo: ${field}.`);
+  }
+  return value;
+}
+
 function consolidateDimensions(items: ShippingItem[]) {
+  if (items.length === 0) throw new Error("Não há itens para calcular o frete.");
+
   let totalWeight = 0;
   let maxHeight = 0;
   let maxWidth = 0;
   let maxLength = 0;
 
   for (const item of items) {
-    totalWeight += item.weight * item.quantity;
-    maxHeight = Math.max(maxHeight, item.height);
-    maxWidth = Math.max(maxWidth, item.width);
-    maxLength = Math.max(maxLength, item.length);
+    if (!Number.isInteger(item.quantity) || item.quantity < 1) {
+      throw new Error("Quantidade inválida para cálculo de frete.");
+    }
+    totalWeight += requirePositive(item.weight, "peso") * item.quantity;
+    maxHeight = Math.max(maxHeight, requirePositive(item.height, "altura"));
+    maxWidth = Math.max(maxWidth, requirePositive(item.width, "largura"));
+    maxLength = Math.max(maxLength, requirePositive(item.length, "comprimento"));
   }
 
-  if (totalWeight < 0.3) totalWeight = 0.3;
-  return { totalWeight, maxHeight, maxWidth, maxLength };
+  // Limites mínimos físicos exigidos pelos serviços postais, não preços fictícios.
+  return {
+    totalWeight: Math.max(0.3, totalWeight),
+    maxHeight: Math.max(2, maxHeight),
+    maxWidth: Math.max(11, maxWidth),
+    maxLength: Math.max(16, maxLength),
+  };
 }
-
-// ─── Melhor Envio API ────────────────────────────────────────────────────────
-// Docs: https://docs.melhorenvio.com.br/reference/calculate-shipping
-// Serviços: 1=PAC, 2=SEDEX, 3=SEDEX 10, 4=SEDEX Hoje, 17=Mini Envios
 
 interface MelhorEnvioResult {
   id: number;
-  name: string;
   price?: string | null;
   delivery_time?: number;
   error?: string;
 }
 
+interface MelhorEnvioRates {
+  pac: number | null;
+  sedex: number | null;
+  pacDays: number;
+  sedexDays: number;
+  unavailableReason?: string;
+}
+
+function validRate(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 async function fetchMelhorEnvioRates(
   destinationZip: string,
   dims: ReturnType<typeof consolidateDimensions>
-): Promise<{ pac: number | null; sedex: number | null; pacDays: number; sedexDays: number }> {
-  const token = process.env.MELHOR_ENVIO_TOKEN;
+): Promise<MelhorEnvioRates> {
+  const token = process.env.MELHOR_ENVIO_TOKEN?.trim();
+  const rawSandbox = process.env.MELHOR_ENVIO_SANDBOX?.trim().toLowerCase();
 
-  if (!token) {
-    // Mock: estimativa por peso para dev
-    const base = dims.totalWeight * 10;
-    return { pac: Math.max(15, base * 0.8), sedex: Math.max(25, base * 1.4), pacDays: 8, sedexDays: 3 };
+  // Nunca invente preço nem ambiente de frete. Ambos são explícitos.
+  if (!token || (rawSandbox !== "true" && rawSandbox !== "false")) {
+    return {
+      pac: null,
+      sedex: null,
+      pacDays: 0,
+      sedexDays: 0,
+      unavailableReason: "Serviço de frete temporariamente indisponível.",
+    };
   }
+
+  const baseUrl =
+    rawSandbox === "true"
+      ? "https://sandbox.melhorenvio.com.br"
+      : "https://melhorenvio.com.br";
+  const abortController = new AbortController();
+  const timeout = setTimeout(() => abortController.abort(), 10_000);
 
   try {
-    const body = {
-      from: { postal_code: ORIGIN_ZIP.replace(/\D/g, "") },
-      to: { postal_code: destinationZip.replace(/\D/g, "") },
-      package: {
-        height: Math.max(2, dims.maxHeight),
-        width: Math.max(11, dims.maxWidth),
-        length: Math.max(16, dims.maxLength),
-        weight: dims.totalWeight,
-      },
-      options: { receipt: false, own_hand: false },
-      services: "1,2", // 1=PAC, 2=SEDEX
-    };
+    const response = await fetch(
+      `${baseUrl}/api/v2/me/shipment/calculate`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "User-Agent": `KABijoux/1.0 (${LEGAL_IDENTITY.email})`,
+        },
+        signal: abortController.signal,
+        body: JSON.stringify({
+          from: { postal_code: ORIGIN_ZIP },
+          to: { postal_code: destinationZip },
+          package: {
+            height: dims.maxHeight,
+            width: dims.maxWidth,
+            length: dims.maxLength,
+            weight: dims.totalWeight,
+          },
+          options: { receipt: false, own_hand: false },
+          services: "1,2",
+        }),
+      }
+    );
 
-    const res = await fetch("https://www.melhorenvio.com.br/api/v2/me/shipment/calculate", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "User-Agent": "KABijoux/1.0 (contato@kabijoux.com.br)",
-      },
-      body: JSON.stringify(body),
-    });
+    if (!response.ok) {
+      throw new Error(`Melhor Envio respondeu HTTP ${response.status}`);
+    }
 
-    if (!res.ok) throw new Error(`ME API ${res.status}`);
-
-    const results: MelhorEnvioResult[] = await res.json();
-    const pac = results.find((r) => r.id === 1);
-    const sedex = results.find((r) => r.id === 2);
+    const results = (await response.json()) as MelhorEnvioResult[];
+    const pac = results.find((result) => Number(result.id) === 1);
+    const sedex = results.find((result) => Number(result.id) === 2);
 
     return {
-      pac: pac?.price && !pac.error ? parseFloat(pac.price) : null,
-      sedex: sedex?.price && !sedex.error ? parseFloat(sedex.price) : null,
-      pacDays: pac?.delivery_time ?? 8,
-      sedexDays: sedex?.delivery_time ?? 3,
+      pac: pac?.error ? null : validRate(pac?.price),
+      sedex: sedex?.error ? null : validRate(sedex?.price),
+      pacDays: pac?.delivery_time ?? 0,
+      sedexDays: sedex?.delivery_time ?? 0,
+      unavailableReason:
+        pac?.error && sedex?.error
+          ? "Os serviços PAC e SEDEX não estão disponíveis para este CEP."
+          : undefined,
     };
-  } catch (err) {
-    console.error("Melhor Envio error:", err);
-    // Fallback para mock se a API falhar
-    const base = dims.totalWeight * 10;
-    return { pac: Math.max(15, base * 0.8), sedex: Math.max(25, base * 1.4), pacDays: 8, sedexDays: 3 };
+  } catch (error) {
+    console.error(
+      "Não foi possível consultar o Melhor Envio:",
+      error instanceof Error ? error.message : "erro desconhecido"
+    );
+    return {
+      pac: null,
+      sedex: null,
+      pacDays: 0,
+      sedexDays: 0,
+      unavailableReason: "Não foi possível consultar o frete agora.",
+    };
+  } finally {
+    clearTimeout(timeout);
   }
 }
-
-// ─── Função principal ─────────────────────────────────────────────────────────
 
 export async function calculateShipping(
   zipCode: string,
   items: ShippingItem[],
-  config: StoreShippingConfig
+  config: StoreShippingConfig,
+  destination?: ShippingDestination
 ): Promise<ShippingOption[]> {
   const options: ShippingOption[] = [];
   const cleanZip = zipCode.replace(/\D/g, "");
-  const isItauna = isItaunaZipCode(cleanZip);
+  const isItauna = destination ? isItaunaDestination(destination) : isItaunaZipCode(cleanZip);
 
   if (config.storePickupEnabled) {
     options.push({
+      id: SHIPPING_OPTION_IDS.pickup,
       type: ShippingType.RETIRADA,
       name: "Retirada na Loja",
-      description: "Retirada na loja KA Bijoux em Itaúna/MG",
+      description: [
+        config.storeAddress,
+        config.storeCity && config.storeState ? `${config.storeCity}/${config.storeState}` : undefined,
+        config.storeZipCode ? `CEP ${config.storeZipCode}` : undefined,
+      ].filter(Boolean).join(" — ") || "Retirada na loja KA Bijoux em Itaúna/MG",
       price: 0,
       estimatedDays: 0,
       available: true,
@@ -141,26 +231,30 @@ export async function calculateShipping(
   }
 
   if (config.mototaxiEnabled && isItauna) {
-    options.push({
-      type: ShippingType.MOTOTAXI,
-      name: "Entrega Local — Mototáxi",
-      description: "Entrega em Itaúna/MG por mototáxi. Prazo: mesmo dia ou dia seguinte.",
-      price: config.mototaxiPrice,
-      estimatedDays: 1,
-      available: true,
-    });
+    const mototaxiPrice = Number(config.mototaxiPrice);
+    if (Number.isFinite(mototaxiPrice) && mototaxiPrice > 0) {
+      options.push({
+        id: SHIPPING_OPTION_IDS.mototaxi,
+        type: ShippingType.MOTOTAXI,
+        name: "Entrega Local — Mototáxi",
+        description: "Entrega em Itaúna/MG por mototáxi.",
+        price: Number(mototaxiPrice.toFixed(2)),
+        estimatedDays: 1,
+        available: true,
+      });
+    }
   }
 
   if (config.correiosEnabled && cleanZip.length === 8) {
-    const dims = consolidateDimensions(items);
-    const rates = await fetchMelhorEnvioRates(cleanZip, dims);
+    const rates = await fetchMelhorEnvioRates(cleanZip, consolidateDimensions(items));
 
     if (rates.pac !== null) {
       options.push({
+        id: SHIPPING_OPTION_IDS.pac,
         type: ShippingType.CORREIOS,
         name: "PAC — Correios",
         description: `Envio pelos Correios (PAC). Prazo estimado: ${rates.pacDays} dias úteis.`,
-        price: parseFloat(rates.pac.toFixed(2)),
+        price: Number(rates.pac.toFixed(2)),
         estimatedDays: rates.pacDays,
         available: true,
       });
@@ -168,10 +262,11 @@ export async function calculateShipping(
 
     if (rates.sedex !== null) {
       options.push({
+        id: SHIPPING_OPTION_IDS.sedex,
         type: ShippingType.CORREIOS,
         name: "SEDEX — Correios",
         description: `Envio expresso pelos Correios (SEDEX). Prazo estimado: ${rates.sedexDays} dias úteis.`,
-        price: parseFloat(rates.sedex.toFixed(2)),
+        price: Number(rates.sedex.toFixed(2)),
         estimatedDays: rates.sedexDays,
         available: true,
       });
@@ -179,9 +274,11 @@ export async function calculateShipping(
 
     if (rates.pac === null && rates.sedex === null) {
       options.push({
+        id: "correios-unavailable",
         type: ShippingType.CORREIOS,
         name: "Correios",
-        description: "Não foi possível calcular o frete para este CEP.",
+        description:
+          rates.unavailableReason ?? "Não foi possível calcular o frete para este CEP.",
         price: 0,
         available: false,
       });
@@ -190,5 +287,3 @@ export async function calculateShipping(
 
   return options;
 }
-
-export { isItaunaZipCode };

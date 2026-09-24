@@ -44,8 +44,11 @@ export default async function PedidosPage() {
       {/* Status summary pills */}
       <div className="flex flex-wrap gap-2 mb-6">
         {[
-          { status: OrderStatus.AGUARDANDO_PAGAMENTO, label: "Aguard. Pagto", color: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
+          { status: OrderStatus.AGUARDANDO_PAGAMENTO, label: "Aguard. Pix",   color: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
+          { status: OrderStatus.PAGAMENTO_PENDENTE,   label: "Em análise",    color: "bg-amber-50 text-amber-700 border border-amber-200" },
           { status: OrderStatus.PAGAMENTO_APROVADO,   label: "Pago",          color: "bg-green-50 text-green-700 border border-green-200" },
+          { status: OrderStatus.PAGAMENTO_EXPIRADO,   label: "Expirado",      color: "bg-orange-50 text-orange-700 border border-orange-200" },
+          { status: OrderStatus.REEMBOLSO_PENDENTE,   label: "Reembolso",     color: "bg-violet-50 text-violet-700 border border-violet-200" },
           { status: OrderStatus.EM_SEPARACAO,         label: "Em Separação",  color: "bg-blue-50 text-blue-700 border border-blue-200" },
           { status: OrderStatus.SAIU_PARA_ENTREGA,    label: "Saiu Entrega",  color: "bg-purple-50 text-purple-700 border border-purple-200" },
           { status: OrderStatus.ENTREGUE,             label: "Entregue",      color: "bg-emerald-50 text-emerald-700 border border-emerald-200" },

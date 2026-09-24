@@ -3,9 +3,9 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { ProductCard } from "@/components/product/ProductCard";
 import { productsApi } from "@/services/api";
@@ -26,6 +26,7 @@ const PAGE_SIZE = 20;
 
 export default function ProdutosScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { category, subcategory, title, promo, new: newParam, q } = useLocalSearchParams<{
     category?: string;
     subcategory?: string;
@@ -45,8 +46,10 @@ export default function ProdutosScreen() {
   const [sort, setSort]             = useState("createdAt");
   const [page, setPage]             = useState(1);
   const [hasMore, setHasMore]       = useState(true);
+  const [error, setError]           = useState("");
 
   async function fetchProducts(p: number, currentSort: string, replace: boolean) {
+    if (replace) setError("");
     try {
       const params: Record<string, string | number | boolean> = {
         page: p, pageSize: PAGE_SIZE, sort: currentSort,
@@ -65,6 +68,11 @@ export default function ProdutosScreen() {
       setProducts((prev) => replace ? items : [...prev, ...items]);
       setHasMore(p * PAGE_SIZE < total);
       setPage(p);
+    } catch {
+      if (replace) {
+        setProducts([]);
+        setError("Não foi possível carregar os produtos. Tente novamente.");
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -102,7 +110,7 @@ export default function ProdutosScreen() {
         : isNew
           ? "Novidades"
           : subcategory
-            ? subcategory.replace(/^sex-shop-/, "").replace(/-/g, " ")
+            ? subcategory.replace(/-/g, " ")
             : category
               ? category.replace(/-/g, " ")
               : "Produtos");
@@ -120,11 +128,13 @@ export default function ProdutosScreen() {
 
       {/* Ordenação */}
       <FlatList
+        style={styles.sortList}
         data={SORT_OPTIONS}
         keyExtractor={(item) => item.value}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.sortContainer}
+        ListFooterComponent={<View style={styles.sortEndSpace} />}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[styles.sortChip, sort === item.value && styles.sortChipActive]}
@@ -144,8 +154,9 @@ export default function ProdutosScreen() {
       ) : products.length === 0 ? (
         <View style={styles.center}>
           <Text style={styles.emptyIcon}>🛍️</Text>
-          <Text style={styles.emptyTitle}>Nenhum produto encontrado</Text>
-          <Text style={styles.emptyText}>Tente outra categoria ou filtro</Text>
+          <Text style={styles.emptyTitle}>{error || "Nenhum produto encontrado"}</Text>
+          <Text style={styles.emptyText}>{error ? "Verifique sua conexão e tente novamente." : "Tente outra categoria ou filtro"}</Text>
+          {error ? <TouchableOpacity style={styles.retryButton} onPress={() => fetchProducts(1, sort, true)}><Text style={styles.retryText}>Tentar novamente</Text></TouchableOpacity> : null}
         </View>
       ) : (
         <FlatList
@@ -153,7 +164,12 @@ export default function ProdutosScreen() {
           keyExtractor={(item) => item.id}
           numColumns={2}
           columnWrapperStyle={styles.row}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 12) + 16 }]}
+          initialNumToRender={6}
+          maxToRenderPerBatch={4}
+          updateCellsBatchingPeriod={50}
+          windowSize={5}
+          removeClippedSubviews
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
@@ -192,7 +208,9 @@ const styles = StyleSheet.create({
     flex: 1, fontSize: FontSizes.lg, fontWeight: "800",
     color: Colors.textPrimary, textAlign: "center", textTransform: "capitalize",
   },
-  sortContainer: { paddingHorizontal: Spacing.base, paddingBottom: 12, gap: 8 },
+  sortList: { flexGrow: 0, flexShrink: 0 },
+  sortContainer: { paddingLeft: Spacing.base, paddingRight: 8, paddingBottom: 12, gap: 8 },
+  sortEndSpace: { width: Spacing.base },
   sortChip: {
     paddingHorizontal: 14, paddingVertical: 7,
     borderRadius: BorderRadius.full,
@@ -207,4 +225,6 @@ const styles = StyleSheet.create({
   emptyIcon:  { fontSize: 56, marginBottom: 12 },
   emptyTitle: { fontSize: FontSizes.md, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },
   emptyText:  { fontSize: FontSizes.sm, color: Colors.textMuted, textAlign: "center", marginTop: 6 },
+  retryButton: { marginTop: 16, minHeight: 42, paddingHorizontal: 20, borderRadius: 21, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center" },
+  retryText: { color: "#fff", fontSize: FontSizes.sm, fontWeight: "800" },
 });

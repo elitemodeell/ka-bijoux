@@ -9,6 +9,7 @@ const navItems = [
   { label: "Produtos Bling", href: "/admin/produtos/bling", icon: "B" },
   { label: "Categorias",  href: "/admin/categorias",     icon: "🏷️" },
   { label: "Stories",     href: "/admin/stories",        icon: "S" },
+  { label: "Distribuição Play", href: "/admin/distribuicao-play", icon: "P" },
   { label: "Pedidos",     href: "/admin/pedidos",        icon: "📦" },
   { label: "Clientes",    href: "/admin/clientes",       icon: "👥" },
   { label: "Estoque",     href: "/admin/estoque",        icon: "📋" },

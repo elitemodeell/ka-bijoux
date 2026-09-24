@@ -5,7 +5,8 @@ import { getCategoryBySlug, getPublicCategoryName, getSubcategoryByPath } from "
 
 export const revalidate = 60;
 
-export function generateMetadata({ params }: { params: { slug: string; subcategoria: string } }): Metadata {
+export async function generateMetadata(props: { params: Promise<{ slug: string; subcategoria: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const category = getCategoryBySlug(params.slug);
   const subcategory = getSubcategoryByPath(params.slug, params.subcategoria);
   if (!category || !subcategory) return { title: "Categoria" };
@@ -16,13 +17,14 @@ export function generateMetadata({ params }: { params: { slug: string; subcatego
   };
 }
 
-export default function SubcategoriaPage({
-  params,
-  searchParams,
-}: {
-  params: { slug: string; subcategoria: string };
-  searchParams?: Record<string, string | string[] | undefined>;
-}) {
+export default async function SubcategoriaPage(
+  props: {
+    params: Promise<{ slug: string; subcategoria: string }>;
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const category = getCategoryBySlug(params.slug);
   const subcategory = getSubcategoryByPath(params.slug, params.subcategoria);
   if (!category || !subcategory) notFound();

@@ -1,36 +1,37 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, ActivityIndicator, Dimensions, LayoutAnimation, Platform, UIManager, Linking, Alert,
+  ActivityIndicator, Dimensions, InteractionManager, LayoutAnimation, Platform, UIManager, Alert, Share,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
-import { productsApi, reviewsApi, api } from "@/services/api";
+import { productsApi, reviewsApi, favoritesApi } from "@/services/api";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/Button";
 import { ProductCard } from "@/components/product/ProductCard";
+import { ProductImageGallery } from "@/components/product/ProductImageGallery";
+import { ResilientProductImage } from "@/components/product/ResilientProductImage";
 
-const WHATSAPP_LINK = "https://wa.me/5537999999999";
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://ka-bijoux-backend.vercel.app";
-function resolveUrl(url?: string | null): string | null {
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://kabijoux.com.br";
+function resolveUrl(url?: string | null, version?: string | null): string | null {
   if (!url) return null;
-  return url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
+  const resolved = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
+  if (!version) return resolved;
+  return `${resolved}${resolved.includes("?") ? "&" : "?"}v=${encodeURIComponent(version)}`;
 }
 
 const BENEFIT_CARDS = [
-  { icon: "car-outline" as const, title: "Entrega rápida", subtitle: "Para todo Brasil" },
+  { icon: "car-outline" as const, title: "Opções de entrega", subtitle: "Exibidas no checkout" },
   { icon: "shield-checkmark-outline" as const, title: "Compra segura", subtitle: "Dados protegidos" },
-  { icon: "diamond-outline" as const, title: "Produtos selecionados", subtitle: "Qualidade garantida" },
-  { icon: "gift-outline" as const, title: "Mimos exclusivos", subtitle: "Em todos os pedidos" },
+  { icon: "diamond-outline" as const, title: "Catálogo organizado", subtitle: "Detalhes por produto" },
+  { icon: "person-outline" as const, title: "Controle da conta", subtitle: "Edição e exclusão" },
 ];
 
 const PAYMENT_METHODS = [
-  { name: "Pix", mark: "pix", color: "#22c7b8" },
-  { name: "Visa", mark: "VISA", color: "#1f5cc9" },
-  { name: "Mastercard", mark: "●●", color: "#f15a24" },
+  { name: "Pagamento seguro", mark: "pix", color: "#22c7b8" },
 ];
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -44,23 +45,23 @@ const RELATED_CARD_WIDTH = (SCREEN_WIDTH - Spacing.base * 2 - CARD_GAP) / 2;
 const FAQS = [
   {
     q: "Como funciona a entrega?",
-    a: "Fazemos envio pelos Correios para todo o Brasil. Também oferecemos retirada na loja e entrega por mototáxi em Itaúna – MG no mesmo dia ou no dia seguinte.",
+    a: "As opções disponíveis, valores e prazos são calculados e exibidos no checkout para o endereço informado.",
   },
   {
     q: "Posso trocar ou devolver o produto?",
-    a: "Sim! Temos política de troca e devolução em até 7 dias corridos após o recebimento, conforme o Código de Defesa do Consumidor. Entre em contato pelo WhatsApp para resolver rapidamente.",
+    a: "As solicitações de troca ou devolução seguem os Termos de Uso e a legislação aplicável. O canal oficial ainda precisa ser informado pela loja.",
   },
   {
     q: "Qual o prazo de entrega?",
-    a: "Mototáxi em Itaúna: mesmo dia ou dia seguinte. Pelos Correios: 5 a 15 dias úteis dependendo da região.",
+    a: "O prazo depende da opção de entrega disponível e é mostrado no checkout antes da confirmação.",
   },
   {
     q: "O produto tem garantia?",
-    a: "Trabalhamos apenas com produtos de qualidade. Caso receba algo com defeito ou diferente do pedido, entre em contato que resolvemos na hora.",
+    a: "Produtos com defeito ou diferentes do pedido são tratados conforme a legislação aplicável e os Termos de Uso.",
   },
   {
     q: "Quais são as formas de pagamento?",
-    a: "PIX, cartão de crédito e outras formas de pagamento oferecidas na finalização do pedido.",
+    a: "As formas habilitadas, como Pix, cartão ou boleto, são apresentadas com segurança no checkout.",
   },
 ];
 
@@ -85,6 +86,7 @@ type Product = {
   price: number;
   promotionalPrice?: number | null;
   stock: number;
+  updatedAt?: string | null;
   images: Array<{ url: string; alt?: string }>;
   category: { name: string; slug?: string };
   subcategory?: { name: string } | null;
@@ -128,8 +130,8 @@ type RelatedProduct = {
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-const formatCurrency = (v: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const formatCurrency = (v: number) => currencyFormatter.format(v);
 
 function formatDate(iso: string) {
   try { return new Date(iso).toLocaleDateString("pt-BR"); } catch { return ""; }
@@ -189,12 +191,35 @@ function RelatedSection({ title, products }: { title: string; products: RelatedP
 // ─── Main Screen ───────────────────────────────────────────────────────────────
 
 export default function ProdutoScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, previewName, previewPrice, previewPromotionalPrice, previewStock, previewImage } = useLocalSearchParams<{
+    id: string;
+    previewName?: string;
+    previewPrice?: string;
+    previewPromotionalPrice?: string;
+    previewStock?: string;
+    previewImage?: string;
+  }>();
   const router = useRouter();
-  const { addItem, isLoading } = useCartStore();
-  const { customer } = useAuthStore();
+  const insets = useSafeAreaInsets();
+  const addItem = useCartStore((state) => state.addItem);
+  const buyNow = useCartStore((state) => state.buyNow);
+  const customer = useAuthStore((state) => state.customer);
 
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<Product | null>(() => {
+    if (!previewName || !previewPrice) return null;
+    const promotionalPrice = previewPromotionalPrice ? Number(previewPromotionalPrice) : null;
+    return {
+      id,
+      name: previewName,
+      description: null,
+      price: Number(previewPrice),
+      promotionalPrice: Number.isFinite(promotionalPrice) ? promotionalPrice : null,
+      stock: Number(previewStock ?? 0),
+      images: previewImage ? [{ url: previewImage }] : [],
+      category: { name: "" },
+      variations: [],
+    };
+  });
   const [related, setRelated] = useState<RelatedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -209,9 +234,13 @@ export default function ProdutoScreen() {
   const [avgRating, setAvgRating] = useState(0);
   const [reviewsTotal, setReviewsTotal] = useState(0);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [cartAction, setCartAction] = useState<"add" | "buy" | null>(null);
+  const [secondaryVisible, setSecondaryVisible] = useState(false);
+  const cartActionLock = useRef(false);
 
   useEffect(() => {
     if (!id) return;
+    setSecondaryVisible(false);
     productsApi.getById(id)
       .then((res) => {
         const p: Product = res.data.data.product;
@@ -225,7 +254,13 @@ export default function ProdutoScreen() {
   }, [id]);
 
   useEffect(() => {
-    if (!product) return;
+    if (loading || !product) return;
+    const task = InteractionManager.runAfterInteractions(() => setSecondaryVisible(true));
+    return () => task.cancel();
+  }, [loading, product?.id]);
+
+  useEffect(() => {
+    if (!product || loading || !secondaryVisible) return;
     reviewsApi.list(product.id)
       .then((res) => {
         const data = res.data.data;
@@ -234,14 +269,14 @@ export default function ProdutoScreen() {
         setReviewsTotal(data.total ?? 0);
       })
       .catch(() => {});
-  }, [product?.id]);
+  }, [product?.id, loading, secondaryVisible]);
 
   useEffect(() => {
     if (!customer || !product) {
       setFavoriteId(null);
       return;
     }
-    api.get("/api/customers/me/favorites")
+    favoritesApi.list()
       .then((res) => {
         const list: Array<{ favoriteId: string; id: string; slug?: string | null }> = res.data.data ?? [];
         const found = list.find((f) =>
@@ -255,41 +290,65 @@ export default function ProdutoScreen() {
   }, [customer, product?.id, product?.slug, id]);
 
   async function toggleFavorite() {
-    if (!customer) { router.push("/(auth)/login"); return; }
+    if (!customer) { router.push("/(auth)/entrada"); return; }
     if (!product) return;
     if (togglingFav) return;
     setTogglingFav(true);
     try {
       if (favoriteId) {
-        await api.delete(`/api/customers/me/favorites/${favoriteId}`);
+        await favoritesApi.remove(favoriteId);
         setFavoriteId(null);
       } else {
-        const res = await api.post("/api/customers/me/favorites", { productId: product.id });
+        const res = await favoritesApi.create(product.id);
         setFavoriteId(res.data.data.id);
       }
     } catch { } finally { setTogglingFav(false); }
+  }
+
+  async function shareProduct() {
+    if (!product) return;
+    const productPath = product.slug ?? product.id;
+    try {
+      await Share.share({
+        title: product.name,
+        message: `${product.name}\n${API_BASE_URL}/produto/${encodeURIComponent(productPath)}`,
+      });
+    } catch {
+      Alert.alert("Não foi possível compartilhar agora", "Tente novamente.");
+    }
   }
 
   function handleSelectVariation(v: Variation) {
     if (v.stock === 0) return;
     setVariationError(false);
     setSelectedVariation((prev) => (prev === v.id ? null : v.id));
-    setSelectedImage(v.imageUrl ? -1 : 0);
+    setSelectedImage(0);
   }
 
-  async function handleAddToCart() {
-    if (!product) return;
+  async function handleCartAction(action: "add" | "buy") {
+    if (!product || loading) return;
+    if (cartActionLock.current) return;
     if (!customer) {
-      router.push("/(auth)/login");
+      router.push("/(auth)/entrada");
       return;
     }
     if (product.variations.length > 0 && !selectedVariation) { setVariationError(true); return; }
+    cartActionLock.current = true;
+    setCartAction(action);
     try {
+      if (action === "buy") {
+        await buyNow(product.id, quantity, selectedVariation ?? undefined);
+        router.push("/checkout");
+        return;
+      }
       await addItem(product.id, quantity, selectedVariation ?? undefined);
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
     } catch {
       Alert.alert("Erro", "Nao foi possivel adicionar o produto ao carrinho.");
+    } finally {
+      cartActionLock.current = false;
+      setCartAction(null);
     }
   }
 
@@ -298,7 +357,7 @@ export default function ProdutoScreen() {
     setOpenFaq((prev) => (prev === index ? null : index));
   }
 
-  if (loading) {
+  if (loading && !product) {
     return <View style={styles.center}><ActivityIndicator color={Colors.primary} size="large" /></View>;
   }
 
@@ -318,9 +377,11 @@ export default function ProdutoScreen() {
 
   const hasVariations = product.variations.length > 0;
   const activeVariation = hasVariations ? product.variations.find((v) => v.id === selectedVariation) ?? null : null;
-  const mainImageUri = (activeVariation?.imageUrl && selectedImage === -1)
-    ? resolveUrl(activeVariation.imageUrl)
-    : resolveUrl(product.images[Math.max(0, selectedImage)]?.url);
+  const variationImageUri = resolveUrl(activeVariation?.imageUrl, product.updatedAt);
+  const galleryImages = Array.from(new Set([
+    ...(variationImageUri ? [variationImageUri] : []),
+    ...product.images.map((image) => resolveUrl(image.url, product.updatedAt)).filter((url): url is string => Boolean(url)),
+  ]));
   const isAvailable = hasVariations ? product.variations.some((v) => v.stock > 0) : product.stock > 0;
   const activeStock = activeVariation ? activeVariation.stock : product.stock;
   const priceModifier = activeVariation?.priceModifier ?? 0;
@@ -357,7 +418,7 @@ export default function ProdutoScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
         {/* Botões flutuantes */}
         <View style={styles.floatingBtns}>
@@ -366,22 +427,28 @@ export default function ProdutoScreen() {
               <Ionicons name="arrow-back" size={20} color={Colors.textPrimary} />
             </View>
           </TouchableOpacity>
-          <TouchableOpacity onPress={toggleFavorite} disabled={togglingFav}>
-            <View style={[styles.floatingBtnInner, favoriteId ? styles.favBtnActive : null]}>
-              <Ionicons name={favoriteId ? "heart" : "heart-outline"} size={20} color={favoriteId ? "#fff" : Colors.primary} />
-            </View>
-          </TouchableOpacity>
+          <View style={styles.floatingRightActions}>
+            <TouchableOpacity onPress={shareProduct} accessibilityLabel="Compartilhar produto">
+              <View style={styles.floatingBtnInner}>
+                <Ionicons name="share-social-outline" size={19} color={Colors.primary} />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={toggleFavorite} disabled={togglingFav} accessibilityLabel="Favoritar produto">
+              <View style={[styles.floatingBtnInner, favoriteId ? styles.favBtnActive : null]}>
+                <Ionicons name={favoriteId ? "heart" : "heart-outline"} size={20} color={favoriteId ? "#fff" : Colors.primary} />
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Imagem principal */}
         <View style={styles.imagesContainer}>
-          {mainImageUri ? (
-            <Image source={{ uri: mainImageUri }} style={styles.mainImage} resizeMode="cover" />
-          ) : (
-            <View style={[styles.mainImage, styles.imagePlaceholder]}>
-              <Ionicons name="image-outline" size={64} color={Colors.border} />
-            </View>
-          )}
+          <ProductImageGallery
+            images={galleryImages}
+            productName={activeVariation ? `${product.name} — ${activeVariation.value}` : product.name}
+            selectedIndex={Math.min(selectedImage, Math.max(0, galleryImages.length - 1))}
+            onSelectedIndexChange={setSelectedImage}
+          />
           {hasPromo && (
             <View style={styles.discountBadge}>
               <Text style={styles.discountBadgeSmall}>até</Text>
@@ -394,25 +461,15 @@ export default function ProdutoScreen() {
               <Text style={styles.soldOutText}>Esgotado</Text>
             </View>
           )}
-          {/* Dots para múltiplas imagens */}
-          {product.images.length > 1 && (
-            <View style={styles.imageDots}>
-              {product.images.map((_, i) => (
-                <TouchableOpacity key={i} onPress={() => setSelectedImage(i)}>
-                  <View style={[styles.imageDot, i === selectedImage && styles.imageDotActive]} />
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
         </View>
 
         {/* Thumbnails */}
-        {product.images.length > 1 && (
+        {galleryImages.length > 1 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbnails}>
-            {product.images.map((img, idx) => (
-              <TouchableOpacity key={idx} onPress={() => setSelectedImage(idx)}
+            {galleryImages.map((uri, idx) => (
+              <TouchableOpacity key={`${uri}-${idx}`} onPress={() => setSelectedImage(idx)}
                 style={[styles.thumbnail, idx === selectedImage && styles.thumbnailActive]}>
-                <Image source={{ uri: resolveUrl(img.url) ?? "" }} style={styles.thumbnailImage} />
+                <ResilientProductImage sources={[uri]} style={styles.thumbnailImage} contentFit="contain" compact />
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -468,7 +525,7 @@ export default function ProdutoScreen() {
               </View>
             )}
             <Text style={styles.price}>{formatCurrency(price)}</Text>
-            <Text style={styles.installmentText}>Até 3x sem juros no cartão</Text>
+            <Text style={styles.installmentText}>Pagamento seguro via Pix</Text>
           </View>
 
           {/* Variações */}
@@ -498,7 +555,7 @@ export default function ProdutoScreen() {
                     >
                       {v.imageUrl ? (
                         <View style={styles.variationWithImage}>
-                          <Image source={{ uri: resolveUrl(v.imageUrl) ?? "" }} style={styles.variationThumb} />
+                          <ResilientProductImage sources={[resolveUrl(v.imageUrl)]} style={styles.variationThumb} contentFit="cover" compact />
                           <Text style={[styles.variationText, isSelected && styles.variationTextActive, unavailable && styles.variationTextUnavailable]}>{v.value}</Text>
                         </View>
                       ) : (
@@ -531,6 +588,7 @@ export default function ProdutoScreen() {
           </View>
         </View>
 
+        {secondaryVisible ? <>
         {/* ── DESCRIÇÃO ── */}
         <View style={styles.cardSection}>
           <SectionLabel label="Descrição" />
@@ -690,24 +748,6 @@ export default function ProdutoScreen() {
           </View>
         </View>
 
-        {/* ── FALE COM A GENTE ── */}
-        <View style={styles.cardSection}>
-          <View style={styles.contactCard}>
-            <View style={styles.contactTop}>
-              <View style={styles.contactIconWrap}>
-                <Ionicons name="headset-outline" size={24} color="#fff" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.contactTitle}>Fale com a gente</Text>
-                <Text style={styles.contactHours}>Segunda a Sexta{"\n"}09h às 18h</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.whatsappBtn} onPress={() => Linking.openURL(WHATSAPP_LINK)}>
-              <Text style={styles.whatsappBtnText}>WhatsApp →</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* ── FORMAS DE PAGAMENTO ── */}
         <View style={styles.cardSection}>
           <Text style={styles.sectionLabel}>FORMAS DE PAGAMENTO</Text>
@@ -726,24 +766,20 @@ export default function ProdutoScreen() {
           <Text style={styles.feitoTitle}>Feito com amor</Text>
           <Text style={styles.feitoSub}>para você brilhar todos os dias.</Text>
         </View>
+        </> : null}
 
-        <View style={{ height: 24 }} />
       </ScrollView>
 
       {/* Rodapé */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
         <View style={styles.footerPrice}>
           <Text style={styles.footerPriceLabel}>Total</Text>
           <Text style={styles.footerPriceValue}>{formatCurrency(price * quantity)}</Text>
         </View>
-        <Button
-          label={added ? "✓ Adicionado!" : "Adicionar ao Carrinho"}
-          onPress={handleAddToCart}
-          loading={isLoading}
-          disabled={!isAvailable || added}
-          style={{ flex: 1 }}
-          size="lg"
-        />
+        <View style={styles.footerActions}>
+          <Button label={added ? "✓ Adicionado!" : "Adicionar ao carrinho"} onPress={() => handleCartAction("add")} loading={cartAction === "add"} disabled={loading || !isAvailable || added || cartAction !== null} style={{ flex: 1 }} size="lg" variant="outline" />
+          <Button label="Comprar agora" onPress={() => handleCartAction("buy")} loading={cartAction === "buy"} disabled={loading || !isAvailable || cartAction !== null} style={{ flex: 1 }} size="lg" />
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -753,16 +789,18 @@ export default function ProdutoScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
+  scrollContent: { paddingBottom: 16 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.xl },
   emptyText: { fontSize: FontSizes.sm, color: Colors.textMuted, fontStyle: "italic" },
 
   // Floating buttons
   floatingBtns: { position: "absolute", top: 16, left: 16, right: 16, flexDirection: "row", justifyContent: "space-between", zIndex: 10 },
+  floatingRightActions: { flexDirection: "row", gap: 8 },
   floatingBtnInner: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.9)", alignItems: "center", justifyContent: "center", ...Shadows.sm },
   favBtnActive: { backgroundColor: Colors.primary },
 
   // Images
-  imagesContainer: { position: "relative", width: SCREEN_WIDTH, height: SCREEN_WIDTH, backgroundColor: "#17070C" },
+  imagesContainer: { position: "relative", width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.25, backgroundColor: "#fff" },
   mainImage: { width: "100%", height: "100%" },
   imagePlaceholder: { alignItems: "center", justifyContent: "center" },
   discountBadge: {
@@ -779,8 +817,8 @@ const styles = StyleSheet.create({
   imageDots: { position: "absolute", bottom: 12, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 6 },
   imageDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.5)" },
   imageDotActive: { width: 20, backgroundColor: "#fff" },
-  thumbnails: { paddingHorizontal: Spacing.base, gap: 8, paddingVertical: 12 },
-  thumbnail: { width: 78, height: 78, borderRadius: BorderRadius.lg, overflow: "hidden", borderWidth: 2, borderColor: Colors.borderLight },
+  thumbnails: { paddingHorizontal: Spacing.base, paddingRight: Spacing.xl, gap: 8, paddingVertical: 12 },
+  thumbnail: { width: 66, height: 66, borderRadius: BorderRadius.lg, overflow: "hidden", borderWidth: 2, borderColor: Colors.borderLight },
   thumbnailActive: { borderColor: Colors.primary },
   thumbnailImage: { width: "100%", height: "100%" },
 
@@ -927,8 +965,6 @@ const styles = StyleSheet.create({
   contactIconWrap: { width: 48, height: 48, borderRadius: 14, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center" },
   contactTitle: { fontSize: FontSizes.base, fontWeight: "900", color: "#fff", marginBottom: 6 },
   contactHours: { fontSize: FontSizes.sm, color: "rgba(255,255,255,0.62)", lineHeight: 20 },
-  whatsappBtn: { backgroundColor: Colors.primary, borderRadius: BorderRadius.xl, paddingVertical: 14, alignItems: "center" },
-  whatsappBtnText: { color: "#fff", fontWeight: "900", fontSize: FontSizes.base },
 
   // Payment
   paymentRow: { gap: 10, paddingBottom: 4 },
@@ -941,8 +977,9 @@ const styles = StyleSheet.create({
   feitoSub: { fontSize: FontSizes.sm, color: Colors.textMuted },
 
   // Footer
-  footer: { flexDirection: "row", gap: 12, padding: Spacing.base, paddingBottom: 24, backgroundColor: Colors.surface, borderTopWidth: 1, borderTopColor: Colors.border, alignItems: "center" },
-  footerPrice: { alignItems: "center" },
+  footer: { gap: 10, padding: Spacing.base, backgroundColor: Colors.surface, borderTopWidth: 1, borderTopColor: Colors.border },
+  footerPrice: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  footerActions: { flexDirection: "row", gap: 10 },
   footerPriceLabel: { fontSize: FontSizes.xs, color: Colors.textMuted },
   footerPriceValue: { fontSize: FontSizes.lg, fontWeight: "800", color: Colors.primary },
 });

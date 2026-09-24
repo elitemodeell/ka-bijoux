@@ -25,7 +25,8 @@ function authError(error: unknown) {
   return apiError("Erro ao processar item do story.", 500);
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await requireAdmin(req);
     const data = itemSchema.parse(await req.json());

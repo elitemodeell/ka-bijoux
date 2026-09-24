@@ -10,7 +10,8 @@ const replaceImageSchema = z.object({
   alt: z.string().trim().optional().nullable(),
 });
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await requireAdmin(req);
     const body = await req.json();

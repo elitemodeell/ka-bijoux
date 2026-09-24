@@ -1,10 +1,12 @@
-import { useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { memo, useRef, useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Dimensions, PixelRatio } from "react-native";
+import { thumbnail } from "@/components/home/brand";
 import { useRouter } from "expo-router";
 import { Colors, BorderRadius, FontSizes, Shadows } from "@/constants/theme";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuthStore } from "@/stores/authStore";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { ResilientProductImage } from "@/components/product/ResilientProductImage";
 
 type Variation = {
   id: string;
@@ -24,38 +26,47 @@ interface ProductCardProps {
     price: number;
     promotionalPrice?: number | null;
     stock: number;
+    updatedAt?: string | null;
     images: Array<{ url: string }>;
     isNew?: boolean;
     featured?: boolean;
+    badge?: string | null;
     variations?: Variation[];
   };
+  badgeSeal?: boolean;
 }
 
-const formatCurrency = (v: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const formatCurrency = (v: number) => currencyFormatter.format(v);
+const PRODUCT_THUMBNAIL_WIDTH = Math.min(
+  640,
+  Math.ceil((Dimensions.get("window").width / 2) * PixelRatio.get()),
+);
 
-const SITE = process.env.EXPO_PUBLIC_API_URL ?? "https://ka-bijoux-backend.vercel.app";
-function resolveUrl(url?: string | null): string | null {
+const SITE = process.env.EXPO_PUBLIC_API_URL ?? "https://kabijoux.com.br";
+function resolveUrl(url?: string | null, version?: string | null): string | null {
   if (!url) return null;
-  return url.startsWith("http") ? url : `${SITE}${url}`;
+  const resolved = url.startsWith("http") ? url : `${SITE}${url}`;
+  if (!version) return resolved;
+  return `${resolved}${resolved.includes("?") ? "&" : "?"}v=${encodeURIComponent(version)}`;
 }
 
-const MAX_SWATCHES = 4;
-
-export function ProductCard({ product }: ProductCardProps) {
+function ProductCardComponent({ product, badgeSeal = false }: ProductCardProps) {
   const router = useRouter();
-  const { addItem, isLoading } = useCartStore();
-  const { customer } = useAuthStore();
+  const addItem = useCartStore((state) => state.addItem);
+  const buyNow = useCartStore((state) => state.buyNow);
+  const actionLock = useRef(false);
+  const [cartAction, setCartAction] = useState<"add" | "buy" | null>(null);
+  const customer = useAuthStore((state) => state.customer);
 
   const variations = product.variations ?? [];
   const hasVariations = variations.length > 0;
 
   const defaultVariation = variations.find((v) => v.isDefault) ?? variations[0] ?? null;
-  const [activeVariation, setActiveVariation] = useState<Variation | null>(defaultVariation);
-
+  const [activeVariation] = useState<Variation | null>(defaultVariation);
   const mainImageUrl =
-    resolveUrl(activeVariation?.imageUrl) ??
-    resolveUrl(product.images[0]?.url) ??
+    resolveUrl(activeVariation?.imageUrl, product.updatedAt) ??
+    resolveUrl(product.images[0]?.url, product.updatedAt) ??
     null;
 
   const isAvailable = hasVariations
@@ -68,62 +79,74 @@ export function ProductCard({ product }: ProductCardProps) {
     ? Math.round(((product.price - product.promotionalPrice!) / product.price) * 100)
     : 0;
 
-  const visibleSwatches = variations.slice(0, MAX_SWATCHES);
-  const extraCount = Math.max(0, variations.length - MAX_SWATCHES);
-
   // Use real UUID for DB products. After dedupeProductCards fix, DB products
   // preserve their UUID; only Bling-only products still have "bling-" prefix.
   const productKey = !product.id.startsWith("bling-") ? product.id : (product.slug ?? product.id);
 
-  async function handleAddToCart() {
+  function openProduct() {
+    router.push({
+      pathname: "/produto/[id]",
+      params: {
+        id: productKey,
+        previewName: product.name,
+        previewPrice: String(product.price),
+        previewPromotionalPrice: product.promotionalPrice == null ? "" : String(product.promotionalPrice),
+        previewStock: String(product.stock),
+        previewImage: mainImageUrl ?? "",
+      },
+    });
+  }
+
+  async function handleCartAction(action: "add" | "buy") {
     if (!isAvailable) return;
+    if (actionLock.current) return;
     if (!customer) {
-      router.push("/(auth)/login");
+      router.push("/(auth)/entrada");
       return;
     }
     if (hasVariations) {
-      router.push(`/produto/${productKey}`);
+      openProduct();
       return;
     }
+    actionLock.current = true;
+    setCartAction(action);
     try {
-      await addItem(product.id, 1);
+      if (action === "buy") {
+        await buyNow(product.id, 1);
+        router.push("/checkout");
+      } else {
+        await addItem(product.id, 1);
+      }
     } catch {
-      Alert.alert("Erro", "Nao foi possivel adicionar o produto ao carrinho.");
+      Alert.alert("Não foi possível concluir agora", "Tente novamente.");
+    } finally {
+      actionLock.current = false;
+      setCartAction(null);
     }
-  }
-
-  function handleSwatchPress(v: Variation) {
-    if (v.stock === 0) return;
-    setActiveVariation((prev) => (prev?.id === v.id ? prev : v));
   }
 
   return (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => router.push(`/produto/${productKey}`)}
+      onPress={openProduct}
       activeOpacity={0.9}
     >
       {/* Imagem */}
       <View style={styles.imageContainer}>
-        {mainImageUrl ? (
-          <Image
-            source={{ uri: mainImageUrl }}
-            style={styles.image}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={[styles.image, styles.imagePlaceholder]}>
-            <Ionicons name="image-outline" size={32} color={Colors.border} />
-          </View>
-        )}
+        <ResilientProductImage
+          sources={[mainImageUrl ? thumbnail(mainImageUrl, PRODUCT_THUMBNAIL_WIDTH) : null, mainImageUrl]}
+          style={styles.image}
+          contentFit="contain"
+          accessibilityLabel={`Imagem de ${product.name}`}
+        />
 
         {/* Badges */}
         <View style={styles.badges}>
-          {product.isNew && (
-            <View style={[styles.badge, styles.badgeNew]}>
-              <Text style={styles.badgeText}>Novo</Text>
+          {product.badge ? (
+            <View style={[styles.badge, styles.badgeNew, badgeSeal && styles.badgeSeal]}>
+              <Text style={[styles.badgeText, badgeSeal && styles.badgeSealText]}>{product.badge}</Text>
             </View>
-          )}
+          ) : null}
           {hasPromo && (
             <View style={[styles.badge, styles.badgeDiscount]}>
               <Text style={styles.badgeText}>-{discount}%</Text>
@@ -136,46 +159,19 @@ export function ProductCard({ product }: ProductCardProps) {
             <Text style={styles.unavailableText}>Esgotado</Text>
           </View>
         )}
-
-        {/* Swatches de cor sobrepostos na imagem (canto inferior esquerdo) */}
-        {hasVariations && (
-          <View style={styles.swatchesOverlay}>
-            {visibleSwatches.map((v) => (
-              <TouchableOpacity
-                key={v.id}
-                onPress={(e) => { e.stopPropagation?.(); handleSwatchPress(v); }}
-                accessibilityLabel={v.value}
-                style={[
-                  styles.swatch,
-                  activeVariation?.id === v.id && styles.swatchActive,
-                  v.stock === 0 && styles.swatchUnavailable,
-                ]}
-              >
-                {v.imageUrl ? (
-                  <Image source={{ uri: resolveUrl(v.imageUrl)! }} style={styles.swatchImage} />
-                ) : (
-                  <View style={[styles.swatchDot, v.stock === 0 && styles.swatchDotUnavailable]} />
-                )}
-              </TouchableOpacity>
-            ))}
-            {extraCount > 0 && (
-              <View style={styles.swatchExtra}>
-                <Text style={styles.swatchExtraText}>+{extraCount}</Text>
-              </View>
-            )}
-          </View>
-        )}
+        <TouchableOpacity
+          style={[styles.floatingCart, !isAvailable && styles.addButtonDisabled]}
+          onPress={() => handleCartAction("add")}
+          disabled={!isAvailable || cartAction !== null}
+          accessibilityLabel={`Adicionar ${product.name} ao carrinho`}
+        >
+          <Ionicons name="bag-add-outline" size={17} color={isAvailable ? Colors.primary : "#fff"} />
+        </TouchableOpacity>
       </View>
 
       {/* Informações */}
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
-
-        {hasVariations && (
-          <Text style={styles.colorHint}>
-            {activeVariation ? activeVariation.value : `${variations.length} cores`}
-          </Text>
-        )}
+        <Text style={styles.name}>{product.name}</Text>
 
         <View style={styles.priceRow}>
           <View>
@@ -187,49 +183,45 @@ export function ProductCard({ product }: ProductCardProps) {
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.addButton, !isAvailable && styles.addButtonDisabled]}
-            onPress={handleAddToCart}
-            disabled={!isAvailable || isLoading}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name={hasVariations ? "arrow-forward" : "bag-add"}
-              size={18}
-              color="#fff"
-            />
-          </TouchableOpacity>
         </View>
+        <TouchableOpacity
+          style={[styles.addButton, !isAvailable && styles.addButtonDisabled]}
+          onPress={() => handleCartAction("buy")}
+          disabled={!isAvailable || cartAction !== null}
+          activeOpacity={0.8}
+        >
+          {cartAction === "buy" ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.addButtonText}>Comprar agora</Text>}
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
 }
 
+export const ProductCard = memo(ProductCardComponent);
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius["2xl"],
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#fce7f3",
     overflow: "hidden",
     ...Shadows.sm,
     flex: 1,
   },
   imageContainer: {
     position: "relative",
-    aspectRatio: 1,
+    aspectRatio: 4 / 5,
     backgroundColor: Colors.pinkPale,
   },
   image: {
     width: "100%",
     height: "100%",
   },
-  imagePlaceholder: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
   badges: {
     position: "absolute",
     top: 8, left: 8,
-    gap: 4, flexDirection: "row",
+    gap: 4, flexDirection: "column", maxWidth: '65%',
   },
   badge: {
     paddingHorizontal: 6, paddingVertical: 2,
@@ -238,6 +230,9 @@ const styles = StyleSheet.create({
   badgeNew: { backgroundColor: Colors.primary },
   badgeDiscount: { backgroundColor: Colors.primaryDark },
   badgeText: { color: "#fff", fontSize: 9, fontWeight: "700" },
+  badgeSeal: { minHeight: 34, maxWidth: 64, borderRadius: 17, justifyContent: "center" },
+  badgeSealText: { textAlign: "center", fontSize: 8, fontWeight: "900", textTransform: "uppercase" },
+  floatingCart: { position: "absolute", right: 8, top: 8, width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.8)", backgroundColor: "rgba(255,255,255,0.94)", alignItems: "center", justifyContent: "center", ...Shadows.sm },
   unavailableOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.35)",
@@ -283,14 +278,16 @@ const styles = StyleSheet.create({
   },
   swatchExtraText: { color: "#fff", fontSize: 8, fontWeight: "700" },
   info: {
-    padding: 10,
-    gap: 4,
+    padding: 12,
+    gap: 8,
+    flex: 1,
   },
   name: {
-    fontSize: FontSizes.sm,
+    fontSize: 13,
     color: Colors.textPrimary,
     fontWeight: "500",
     lineHeight: 18,
+    minHeight: 36,
   },
   colorHint: {
     fontSize: 10,
@@ -300,8 +297,8 @@ const styles = StyleSheet.create({
   priceRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    justifyContent: "space-between",
-    marginTop: 2,
+    justifyContent: "flex-start",
+    marginTop: 'auto',
   },
   originalPrice: {
     fontSize: 10,
@@ -309,17 +306,21 @@ const styles = StyleSheet.create({
     textDecorationLine: "line-through",
   },
   price: {
-    fontSize: FontSizes.base,
+    fontSize: 16,
     fontWeight: "700",
     color: Colors.textPrimary,
   },
   pricePromo: { color: Colors.primary },
   addButton: {
     backgroundColor: Colors.primary,
-    width: 34, height: 34,
-    borderRadius: BorderRadius.md,
+    width: "100%", minHeight: 44,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    flexDirection: "row",
+    gap: 4,
     alignItems: "center",
     justifyContent: "center",
   },
+  addButtonText: { color: "#fff", fontSize: 12, fontWeight: "700" },
   addButtonDisabled: { backgroundColor: Colors.textLight },
 });

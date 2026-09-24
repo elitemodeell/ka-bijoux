@@ -1,99 +1,106 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { LEGAL_ADDRESS_INLINE, LEGAL_IDENTITY } from "@/lib/legal-identity";
 
 export const metadata: Metadata = {
   title: "Termos de Uso",
-  description: "Termos e condições de uso da KA Bijoux.",
+  description: "Termos e condições de uso do site e do aplicativo KA Bijoux.",
 };
 
 const sections = [
   {
-    title: "1. Aceitação dos Termos",
-    content: `Ao acessar ou usar os serviços da KA Bijoux (site e aplicativo), você concorda com estes Termos de Uso. Se não concordar com alguma cláusula, não utilize nossos serviços.`,
-  },
-  {
-    title: "2. Sobre a KA Bijoux",
-    content: `A KA Bijoux é uma loja de acessórios, bijuterias e produtos para presente localizada em Itaúna/MG. Vendemos produtos físicos por meio do site e do aplicativo móvel.
+    title: "1. Aceitação e versão",
+    content: `Ao usar o site ou o aplicativo KA Bijoux, você declara que leu estes Termos e a Política de Privacidade. Se não concordar, não crie uma conta nem conclua uma compra.
 
-E-mail de contato: contato@kabijoux.com.br`,
+Versão: **2026-08-03 (v3.0)**.`,
   },
   {
-    title: "3. Cadastro e Conta",
-    content: `• Você deve ter pelo menos 18 anos para se cadastrar.
-• É responsável pela confidencialidade da sua senha.
-• Não é permitido criar contas falsas ou em nome de terceiros sem autorização.
-• A KA Bijoux pode suspender ou encerrar contas que violem estes termos.`,
+    title: "2. Identificação do fornecedor",
+    content: `A loja KA Bijoux comercializa produtos físicos e é operada por **${LEGAL_IDENTITY.legalName}**, CNPJ **${LEGAL_IDENTITY.cnpj}**, representada legalmente por **${LEGAL_IDENTITY.legalRepresentative}**, com sede em **${LEGAL_ADDRESS_INLINE}**.
+
+Atendimento oficial: **${LEGAL_IDENTITY.email}**. Site: **${LEGAL_IDENTITY.website}**.`,
   },
   {
-    title: "4. Produtos e Preços",
-    content: `• Todos os preços são em Reais (BRL) e incluem impostos quando aplicável.
-• Nos reservamos o direito de alterar preços sem aviso prévio, exceto para pedidos já confirmados.
-• As imagens dos produtos são meramente ilustrativas. Eventuais variações de cor ou embalagem podem ocorrer.
-• A disponibilidade de estoque é atualizada em tempo real, mas podem ocorrer divergências excepcionais. Nesse caso, entraremos em contato para resolver.`,
+    title: "3. Público e conta",
+    content: `• O cadastro e a compra exigem capacidade civil para contratar; produtos eventualmente sujeitos a restrição etária seguem as regras informadas no respectivo canal.
+• Você deve fornecer dados verdadeiros e manter sua senha em sigilo.
+• Não é permitido criar conta em nome de terceiro sem autorização, fraudar pagamentos, abusar de cupons ou interferir no serviço.
+• A conta pode ser suspensa por risco de fraude ou violação destes Termos, respeitados os direitos do consumidor.
+• É possível exportar dados e excluir a conta pelo aplicativo ou pela página externa de exclusão.`,
   },
   {
-    title: "5. Pedidos e Pagamento",
-    content: `• Um pedido só é confirmado após aprovação do pagamento.
-• Aceitamos PIX e cartão de crédito via Mercado Pago.
-• O prazo de processamento do pagamento pode variar de acordo com o método escolhido.
-• Em caso de não pagamento, o pedido é cancelado automaticamente.`,
+    title: "4. Catálogo, estoque e oferta",
+    content: `O site e o aplicativo usam canais de distribuição distintos. O aplicativo da Google Play exibe somente a seleção aprovada para esse canal; parâmetros enviados pelo usuário não alteram essa seleção. O site pode apresentar uma seleção diferente.
+
+Preços são apresentados em reais. Características, composição, restrições de uso, disponibilidade, preço, frete e prazo aplicáveis serão mostrados antes da confirmação.
+
+Imagens auxiliam a identificação do produto, mas tonalidades podem variar conforme tela e lote. Se houver erro material de estoque ou cadastro, a KA Bijoux informará o consumidor e oferecerá as alternativas legalmente cabíveis, inclusive cancelamento e restituição quando aplicável.`,
+  },
+  {
+    title: "5. Pedidos e pagamento",
+    content: `O pedido permanece pendente até a confirmação financeira. As formas efetivamente disponíveis aparecem no checkout e podem variar conforme configuração e ambiente.
+
+Os pagamentos são integrados à **Asaas**. O checkout apresenta apenas os métodos habilitados pelo servidor. Pix e boleto, quando disponíveis, são gerados pelo backend; cartão, quando disponível, usa checkout hospedado e a KA Bijoux não recebe número completo nem CVV. O retorno do navegador não comprova pagamento: a confirmação depende do provedor e da conciliação.`,
   },
   {
     title: "6. Entrega",
-    content: `• As opções de entrega disponíveis são: Correios (PAC/SEDEX), Mototáxi local (Itaúna) e Retirada na loja.
-• Os prazos de entrega são estimados e podem variar por fatores externos (Correios, feriados, etc.).
-• A KA Bijoux não se responsabiliza por atrasos causados pelos Correios ou por endereços incorretos informados pelo cliente.`,
-  },
-  {
-    title: "7. Troca e Devolução",
-    content: `Conforme o Código de Defesa do Consumidor (Lei 8.078/90):
+    content: `Somente opções retornadas e validadas no checkout estão disponíveis. O código prevê retirada, mototáxi local e cotação de transportadores por integração com o Melhor Envio, mas cada opção depende de região, configuração e disponibilidade.
 
-• Você tem **7 dias corridos** a partir do recebimento para solicitar a devolução de qualquer produto comprado fora do estabelecimento físico, sem necessidade de justificativa (direito de arrependimento).
-• Produtos com defeito podem ser trocados em até 30 dias (bens não duráveis) ou 90 dias (bens duráveis).
-• Para iniciar uma troca ou devolução, entre em contato pelo WhatsApp ou e-mail.
-• Produtos de uso íntimo (itens de sex shop) não podem ser trocados ou devolvidos por questões de higiene, exceto em caso de defeito de fabricação.`,
+O prazo é estimado e pode sofrer eventos externos. O cliente deve conferir o endereço antes do pagamento. A loja não anunciará entrega nacional até haver comprovação operacional.`,
   },
   {
-    title: "8. Propriedade Intelectual",
-    content: `Todo o conteúdo do site e app (imagens, textos, logotipo) é de propriedade da KA Bijoux ou de seus fornecedores e está protegido por direitos autorais. É proibida a reprodução sem autorização expressa.`,
-  },
-  {
-    title: "9. Limitação de Responsabilidade",
-    content: `A KA Bijoux não se responsabiliza por danos indiretos, lucros cessantes ou perdas decorrentes do uso ou impossibilidade de uso dos nossos serviços, exceto quando exigido por lei.`,
-  },
-  {
-    title: "10. Alterações dos Termos",
-    content: `Podemos atualizar estes termos periodicamente. Alterações significativas serão comunicadas por e-mail ou notificação no app. O uso continuado dos serviços após a notificação implica aceitação dos novos termos.`,
-  },
-  {
-    title: "11. Foro",
-    content: `Fica eleito o foro da Comarca de Itaúna/MG para dirimir quaisquer controvérsias oriundas destes Termos de Uso, com renúncia a qualquer outro, por mais privilegiado que seja.`,
-  },
-  {
-    title: "12. Contato",
-    content: `**KA Bijoux**
-Itaúna — MG
-E-mail: contato@kabijoux.com.br
+    title: "7. Arrependimento, troca e devolução",
+    content: `Nas compras feitas fora do estabelecimento, o consumidor pode exercer o direito de arrependimento no prazo legal de **7 dias**, contado do recebimento ou da contratação, conforme o art. 49 do Código de Defesa do Consumidor.
 
-Última atualização: julho de 2026.`,
+Produtos com vício seguem os prazos e soluções do CDC. Regras sanitárias ou de higiene aplicáveis a determinados produtos **não eliminam automaticamente direitos legais do consumidor**. O procedimento concreto deve ser validado pela assessoria jurídica e informado claramente antes da compra.
+
+Para solicitar, o consumidor deve escrever para **${LEGAL_IDENTITY.email}**, informar o número do pedido e aguardar as instruções de postagem ou entrega. Não envie o produto sem autorização. Quando devido, o reembolso será solicitado pelo mesmo fluxo financeiro da compra; o prazo de crédito depende do método, do gateway e da instituição financeira.`,
+  },
+  {
+    title: "8. Avaliações de produtos",
+    content: `Somente clientes com compra do produto podem enviar avaliação. Toda avaliação nova ou alterada fica oculta até moderação administrativa; apenas conteúdo aprovado é exibido publicamente.
+
+Podem ser recusadas avaliações com dados pessoais, publicidade, fraude, discurso ilegal, assédio ou conteúdo sem relação com o produto. A moderação não elimina críticas legítimas sobre qualidade, entrega ou atendimento e não substitui os canais de suporte e os direitos do consumidor.`,
+  },
+  {
+    title: "9. Propriedade intelectual",
+    content: `Marcas, interface, textos e imagens pertencem à KA Bijoux, aos fabricantes ou aos respectivos licenciantes. Nenhum conteúdo pode ser reproduzido ou usado de forma enganosa sem autorização.`,
+  },
+  {
+    title: "10. Disponibilidade e responsabilidade",
+    content: `Podem ocorrer indisponibilidades de rede, hospedagem, banco, gateway ou transportador. A KA Bijoux adota medidas razoáveis de continuidade e segurança e não exclui responsabilidades que não possam ser afastadas pelo Código de Defesa do Consumidor ou por outra lei aplicável.`,
+  },
+  {
+    title: "11. Privacidade",
+    content: `O tratamento de dados, fornecedores, retenção e direitos LGPD estão descritos na Política de Privacidade. A exclusão preserva somente os registros necessários a obrigações legais, segurança, fraude, estorno e contestação.`,
+  },
+  {
+    title: "12. Alterações e contato",
+    content: `Alterações materiais serão identificadas por nova versão e comunicadas pelo canal disponível quando exigido. O uso posterior não substitui consentimento específico quando a lei o exigir.
+
+**${LEGAL_IDENTITY.legalName}** · CNPJ **${LEGAL_IDENTITY.cnpj}**
+Representante legal: **${LEGAL_IDENTITY.legalRepresentative}**
+Endereço: **${LEGAL_ADDRESS_INLINE}**
+E-mail: **${LEGAL_IDENTITY.email}**`,
   },
 ];
 
 export default function TermosPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
+    <main className="mx-auto max-w-3xl px-5 py-12 sm:px-6 sm:py-16">
       <h1 className="mb-2 text-3xl font-black text-gray-900">Termos de Uso</h1>
-      <p className="mb-10 text-sm text-gray-500">
-        KA Bijoux · Itaúna, MG · Última atualização: julho de 2026
+      <p className="mb-5 text-sm text-gray-500">
+        KA Bijoux · versão 3.0 · última atualização: 3 de agosto de 2026
       </p>
 
       <div className="space-y-10">
         {sections.map((section) => (
           <section key={section.title}>
             <h2 className="mb-3 text-lg font-bold text-gray-900">{section.title}</h2>
-            <div className="text-sm leading-relaxed text-gray-600 whitespace-pre-line">
-              {section.content.split(/(\*\*.*?\*\*)/).map((part, i) =>
+            <div className="whitespace-pre-line text-sm leading-relaxed text-gray-600">
+              {section.content.split(/(\*\*.*?\*\*)/).map((part, index) =>
                 part.startsWith("**") && part.endsWith("**") ? (
-                  <strong key={i} className="font-semibold text-gray-800">
+                  <strong key={index} className="font-semibold text-gray-800">
                     {part.slice(2, -2)}
                   </strong>
                 ) : (
@@ -104,6 +111,18 @@ export default function TermosPage() {
           </section>
         ))}
       </div>
+
+      <p className="mt-12 border-t pt-6 text-sm text-gray-600">
+        Consulte a{" "}
+        <Link href="/privacidade" className="font-semibold text-rose-800 underline">
+          Política de Privacidade
+        </Link>{" "}
+        ou a{" "}
+        <Link href="/excluir-conta" className="font-semibold text-rose-800 underline">
+          página de exclusão de conta
+        </Link>
+        .
+      </p>
     </main>
   );
 }

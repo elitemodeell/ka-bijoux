@@ -1,95 +1,85 @@
 export const dynamic = "force-dynamic";
-import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
-import { apiSuccess, apiError } from "@/lib/utils";
 
-// POST /api/admin/orders/[id]/refund — emite reembolso via Mercado Pago
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+import { NextRequest } from "next/server";
+import { requireAdmin } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { apiError, apiSuccess } from "@/lib/utils";
+import { createPaymentService } from "@/lib/payments/payment-service";
+import { requestOrderRefund } from "@/lib/payments/webhook-processor";
+import {
+  PaymentConfigurationError,
+  PaymentProviderError,
+  PaymentValidationError,
+} from "@/lib/payments/types";
+
+// POST /api/admin/orders/[id]/refund — solicita estorno total do Pix no Asaas.
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
-    await requireAdmin(req);
+    await requireAdmin(request);
 
     const order = await prisma.order.findUnique({
       where: { id: params.id },
-      include: { payment: true },
+      select: {
+        id: true,
+        payment: { select: { id: true, provider: true } },
+      },
     });
-
     if (!order) return apiError("Pedido não encontrado.", 404);
     if (!order.payment) return apiError("Pedido sem pagamento associado.", 400);
-    if (order.payment.status !== "PAGO") {
-      return apiError("Só é possível reembolsar pagamentos aprovados.", 400);
-    }
-    if (!order.payment.gatewayId) {
-      return apiError("ID de pagamento externo não encontrado.", 400);
-    }
-
-    const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-    if (!token) {
-      // Mock em dev
-      await prisma.payment.update({
-        where: { id: order.payment.id },
-        data: { status: "REEMBOLSADO", refundedAt: new Date() },
-      });
-      await prisma.order.update({
-        where: { id: params.id },
-        data: { status: "CANCELADO" },
-      });
-      return apiSuccess({ message: "Reembolso simulado (dev) realizado com sucesso." });
-    }
-
-    // Chama a API de reembolso do Mercado Pago
-    const mpRes = await fetch(
-      `https://api.mercadopago.com/v1/payments/${order.payment.gatewayId}/refunds`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "X-Idempotency-Key": `refund-${order.id}`,
-        },
-        body: JSON.stringify({}), // sem body = reembolso total
-      }
-    );
-
-    if (!mpRes.ok) {
-      const err = await mpRes.json().catch(() => ({})) as Record<string, unknown>;
-      console.error("MP refund error:", err);
+    if (
+      order.payment.provider &&
+      order.payment.provider !== "ASAAS"
+    ) {
       return apiError(
-        `Erro ao processar reembolso: ${(err as { message?: string }).message ?? mpRes.statusText}`,
-        502
+        "O provedor original deste pagamento não possui estorno ativo.",
+        409
       );
     }
 
-    // Atualiza banco e devolve estoque
-    const items = await prisma.orderItem.findMany({ where: { orderId: params.id } });
+    const result = await requestOrderRefund(
+      order.id,
+      createPaymentService(),
+      "Estorno total solicitado pelo administrador."
+    );
 
-    await prisma.$transaction([
-      prisma.payment.update({
-        where: { id: order.payment.id },
-        data: { status: "REEMBOLSADO", refundedAt: new Date() },
-      }),
-      prisma.order.update({
-        where: { id: params.id },
-        data: { status: "CANCELADO" },
-      }),
-      prisma.orderStatusHistory.create({
-        data: { orderId: params.id, status: "CANCELADO", note: "Reembolso emitido pelo admin." },
-      }),
-      ...items.map((item) =>
-        prisma.product.update({
-          where: { id: item.productId },
-          data: { stock: { increment: item.quantity } },
-        })
-      ),
-    ]);
+    return apiSuccess({
+      status: result.status,
+      stockRestored: result.stockRestored,
+      message:
+        result.status === "REFUNDED"
+          ? "Estorno confirmado e estoque reconciliado."
+          : "Estorno solicitado à Asaas e aguardando confirmação.",
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Acesso não autorizado") {
+      return apiError("Não autorizado.", 401);
+    }
+    if (error instanceof PaymentConfigurationError) {
+      console.error("Configuração Asaas indisponível para estorno.");
+      return apiError("Serviço de pagamento indisponível.", 503);
+    }
+    if (error instanceof PaymentValidationError) {
+      return apiError(error.message, 409);
+    }
+    if (error instanceof PaymentProviderError) {
+      console.error("Falha no estorno Asaas:", {
+        operation: error.operation,
+        statusCode: error.statusCode,
+        providerCode: error.providerCode,
+      });
+      return apiError(
+        error.retryable
+          ? "Falha temporária ao solicitar o estorno. Tente novamente."
+          : "A Asaas recusou a solicitação de estorno.",
+        error.retryable ? 503 : 502
+      );
+    }
 
-    return apiSuccess({ message: "Reembolso realizado com sucesso." });
-  } catch (e) {
-    if (e instanceof Error && e.message === "Não autorizado") return apiError("Não autorizado.", 401);
-    console.error("refund error:", e);
-    return apiError("Erro ao processar reembolso.", 500);
+    console.error(
+      "Falha inesperada no estorno:",
+      error instanceof Error ? error.name : "erro desconhecido"
+    );
+    return apiError("Erro ao processar estorno.", 500);
   }
 }

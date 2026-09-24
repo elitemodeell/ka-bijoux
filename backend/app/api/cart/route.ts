@@ -56,63 +56,109 @@ const addItemSchema = z.object({
   quantity: z.number().int().min(1).default(1),
 });
 
-// POST /api/cart — Adicionar item
+class CartMutationError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "CartMutationError";
+  }
+}
+
+// POST /api/cart — Adicionar item de forma serializada por carrinho.
 export async function POST(req: NextRequest) {
   try {
     const customer = await requireCustomer(req);
-    const body = await req.json();
-    const { productId, variationId, quantity } = addItemSchema.parse(body);
+    const { productId, variationId, quantity } = addItemSchema.parse(await req.json());
 
-    const productFilters = buildProductIdentityFilters(productId);
     const product = await prisma.product.findFirst({
-      where: { active: true, OR: productFilters },
+      where: { active: true, OR: buildProductIdentityFilters(productId) },
       include: { variations: true },
     });
     if (!product) return apiError("Produto não encontrado.", 404);
 
-    const availableStock = variationId
-      ? product.variations.find((v) => v.id === variationId)?.stock ?? 0
-      : product.stock;
-
-    if (availableStock < quantity) return apiError("Estoque insuficiente.", 400);
-
-    const cart = await getOrCreateCart(customer.id);
-
-    const unitPrice = variationId
-      ? Number(product.price) + Number(product.variations.find((v) => v.id === variationId)?.priceModifier ?? 0)
-      : Number(product.promotionalPrice ?? product.price);
-
-    const existingItem = cart.items.find(
-      (i) => i.productId === product.id && i.variationId === (variationId ?? null)
-    );
-
-    if (existingItem) {
-      const newQty = existingItem.quantity + quantity;
-      if (availableStock < newQty) return apiError("Estoque insuficiente.", 400);
-      await prisma.cartItem.update({
-        where: { id: existingItem.id },
-        data: { quantity: newQty },
-      });
-    } else {
-      await prisma.cartItem.create({
-        data: { cartId: cart.id, productId: product.id, variationId, quantity, unitPrice },
-      });
+    const variation = variationId
+      ? product.variations.find(
+          (candidate) => candidate.id === variationId && candidate.active
+        )
+      : null;
+    if (variationId && !variation) {
+      return apiError("Variação não encontrada ou indisponível.", 409);
     }
 
-    const updatedCart = await prisma.cart.findUnique({
-      where: { id: cart.id },
-      include: cartInclude,
+    const availableStock = variation?.stock ?? product.stock;
+    const basePrice = Number(product.promotionalPrice ?? product.price);
+    const unitPrice = basePrice + Number(variation?.priceModifier ?? 0);
+    const cartRecord = await getOrCreateCart(customer.id);
+
+    await prisma.$transaction(async (tx) => {
+      // O lock da linha do carrinho fecha o read-then-create, inclusive quando
+      // variationId é NULL (NULL não é protegido pelo @@unique do PostgreSQL).
+      await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "carts" WHERE "id" = ${cartRecord.id} FOR UPDATE
+      `;
+
+      const matchingItems = await tx.cartItem.findMany({
+        where: {
+          cartId: cartRecord.id,
+          productId: product.id,
+          variationId: variationId ?? null,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+      const existingQuantity = matchingItems.reduce(
+        (sum, item) => sum + item.quantity,
+        0
+      );
+      const newQuantity = existingQuantity + quantity;
+      if (availableStock < newQuantity) {
+        throw new CartMutationError("Estoque insuficiente.", 409);
+      }
+
+      if (matchingItems.length === 0) {
+        await tx.cartItem.create({
+          data: {
+            cartId: cartRecord.id,
+            productId: product.id,
+            variationId: variationId ?? null,
+            quantity,
+            unitPrice,
+          },
+        });
+        return;
+      }
+
+      await tx.cartItem.update({
+        where: { id: matchingItems[0].id },
+        data: { quantity: newQuantity, unitPrice },
+      });
+      if (matchingItems.length > 1) {
+        await tx.cartItem.deleteMany({
+          where: { id: { in: matchingItems.slice(1).map((item) => item.id) } },
+        });
+      }
     });
 
-    const totals = calculateCartTotals(updatedCart!);
-    return apiSuccess({ ...updatedCart, ...totals, itemCount: updatedCart!.items.length });
-  } catch (e: unknown) {
-    if (e instanceof z.ZodError) return apiError(e.errors[0].message, 422);
-    if (e instanceof Error && e.message === "Não autorizado") return apiError("Não autorizado.", 401);
+    const updatedCart = await prisma.cart.findUnique({
+      where: { id: cartRecord.id },
+      include: cartInclude,
+    });
+    if (!updatedCart) return apiError("Carrinho não encontrado.", 404);
+
+    const totals = calculateCartTotals(updatedCart);
+    return apiSuccess({
+      ...updatedCart,
+      ...totals,
+      itemCount: updatedCart.items.length,
+    });
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof CartMutationError) return apiError(error.message, error.status);
+    if (error instanceof Error && error.message === "Não autorizado") {
+      return apiError("Não autorizado.", 401);
+    }
+    console.error("Erro ao adicionar ao carrinho:", error);
     return apiError("Erro ao adicionar ao carrinho.", 500);
   }
 }
-
 // DELETE /api/cart — Limpar carrinho
 export async function DELETE(req: NextRequest) {
   try {

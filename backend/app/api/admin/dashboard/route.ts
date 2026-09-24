@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, PaymentStatus } from "@prisma/client";
 
 // GET /api/admin/dashboard
 export async function GET(req: NextRequest) {
@@ -24,7 +24,9 @@ export async function GET(req: NextRequest) {
       monthOrders,
       recentOrders,
     ] = await Promise.all([
-      prisma.order.count(),
+      prisma.order.count({
+        where: { payment: { is: { status: PaymentStatus.PAGO } } },
+      }),
       prisma.order.count({
         where: {
           status: {
@@ -46,12 +48,26 @@ export async function GET(req: NextRequest) {
       ),
       prisma.customer.count({ where: { active: true } }),
       prisma.order.aggregate({
-        where: { createdAt: { gte: today }, status: { not: OrderStatus.CANCELADO } },
+        where: {
+          payment: {
+            is: {
+              status: PaymentStatus.PAGO,
+              paidAt: { gte: today },
+            },
+          },
+        },
         _sum: { total: true },
         _count: true,
       }),
       prisma.order.aggregate({
-        where: { createdAt: { gte: monthStart }, status: { not: OrderStatus.CANCELADO } },
+        where: {
+          payment: {
+            is: {
+              status: PaymentStatus.PAGO,
+              paidAt: { gte: monthStart },
+            },
+          },
+        },
         _sum: { total: true },
         _count: true,
       }),

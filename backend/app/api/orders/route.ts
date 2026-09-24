@@ -1,185 +1,144 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
+
 import { NextRequest } from "next/server";
+import { OrderStatus, Prisma, ShippingType } from "@prisma/client";
 import { z } from "zod";
+import { requireAdmin, requireCustomer } from "@/lib/auth";
+import {
+  createOrResumeCheckout,
+  type CheckoutPaymentService,
+} from "@/lib/checkout/checkout-service";
+import { CheckoutError } from "@/lib/checkout/domain";
+import { toPublicOrder } from "@/lib/checkout/public-order";
+import {
+  isGooglePlayMobileRequest,
+  toGooglePlayPublicOrder,
+} from "@/lib/google-play-distribution";
+import {
+  getPaymentService,
+  getPaymentServiceForMethod,
+} from "@/lib/payments/payment-service";
+import { reconcileOrderPayment } from "@/lib/payments/webhook-processor";
 import { prisma } from "@/lib/prisma";
-import { requireCustomer, requireAdmin } from "@/lib/auth";
-import { processPayment } from "@/lib/payment";
-import { apiSuccess, apiError, generateOrderNumber } from "@/lib/utils";
-import { OrderStatus, ShippingType, PaymentMethod } from "@prisma/client";
+import { rateLimit, RATE_LIMITS } from "@/lib/ratelimit";
+import { apiError, apiSuccess } from "@/lib/utils";
 
-const checkoutSchema = z.object({
-  addressId: z.string().optional(),
-  shippingType: z.nativeEnum(ShippingType),
-  shippingPrice: z.number().min(0),
-  paymentMethod: z.nativeEnum(PaymentMethod),
-  couponCode: z.string().optional(),
-  notes: z.string().optional(),
-});
+const checkoutSchema = z
+  .object({
+    addressId: z.string().min(1).max(100).optional(),
+    shippingType: z.nativeEnum(ShippingType),
+    shippingOptionId: z.string().trim().min(1).max(100).optional(),
+    couponCode: z.string().trim().min(1).max(50).optional(),
+    notes: z.string().trim().max(1000).optional(),
+    idempotencyKey: z.string().uuid("Chave de idempotência inválida."),
+    paymentMethod: z.enum(["PIX", "CREDIT_CARD", "BOLETO"]).default("PIX"),
+    installmentCount: z.number().int().min(1).max(3).default(1),
+  })
+  .strict();
 
-// POST /api/orders — Cliente finaliza compra
-export async function POST(req: NextRequest) {
-  try {
-    const customer = await requireCustomer(req);
-    const body = await req.json();
-    const data = checkoutSchema.parse(body);
-
-    const cart = await prisma.cart.findUnique({
-      where: { customerId: customer.id },
-      include: {
-        items: {
-          include: {
-            product: { include: { images: { take: 1, orderBy: { order: "asc" } } } },
-            variation: true,
+const orderQueryInclude = Prisma.validator<Prisma.OrderInclude>()({
+  items: {
+    include: {
+      product: {
+        select: {
+          images: { take: 1, orderBy: { order: "asc" } },
+          active: true,
+          distributionChannels: true,
+          playStoreStatus: true,
+          contentClassification: true,
+          policyReviewStatus: true,
+          category: {
+            select: {
+              active: true,
+              distributionChannels: true,
+              playStoreStatus: true,
+              contentClassification: true,
+              policyReviewStatus: true,
+            },
           },
         },
       },
-    });
+    },
+  },
+  payment: true,
+  address: true,
+  statusHistory: { orderBy: { createdAt: "desc" } },
+});
 
-    if (!cart || cart.items.length === 0) return apiError("Carrinho vazio.", 400);
+// A configuração só é carregada quando uma cobrança realmente precisa ser criada.
+const paymentService: CheckoutPaymentService = {
+  assertAccountIdentity: () => getPaymentService().assertAccountIdentity(),
+  findOrCreateCustomer: (request) =>
+    getPaymentService().findOrCreateCustomer(request),
+  createPixPayment: (request) => getPaymentService().createPixPayment(request),
+  createCreditCardCheckout: (request) =>
+    getPaymentServiceForMethod("CREDIT_CARD").createCreditCardCheckout(request),
+  createBoletoPayment: (request) =>
+    getPaymentServiceForMethod("BOLETO").createBoletoPayment(request),
+  reconcileOrderPayment: async (orderId) => {
+    const service = getPaymentService();
+    await reconcileOrderPayment(orderId, service, `checkout:${orderId}`);
+  },
+};
 
-    // Validar endereço (obrigatório para entrega, opcional para retirada)
-    if (data.shippingType !== ShippingType.RETIRADA && !data.addressId) {
-      return apiError("Endereço de entrega obrigatório.", 400);
-    }
-
-    // Verificar estoque de todos os itens
-    for (const item of cart.items) {
-      const stock = item.variation?.stock ?? item.product.stock;
-      if (stock < item.quantity) {
-        return apiError(`Produto "${item.product.name}" sem estoque suficiente.`, 400);
-      }
-    }
-
-    // Calcular totais
-    const subtotal = cart.items.reduce(
-      (sum, item) => sum + Number(item.unitPrice) * item.quantity,
-      0
+// POST /api/orders — Pix implícito e cálculo financeiro integralmente no servidor.
+export async function POST(req: NextRequest) {
+  try {
+    const limited = await rateLimit(req, RATE_LIMITS.payment);
+    if (limited) return limited;
+    const customer = await requireCustomer(req);
+    const input = checkoutSchema.parse(await req.json());
+    const googlePlay = isGooglePlayMobileRequest(req);
+    const order = await createOrResumeCheckout(
+      customer.id,
+      input,
+      paymentService,
+      { distribution: googlePlay ? "GOOGLE_PLAY" : "WEB_FULL" }
     );
-    const total = subtotal + data.shippingPrice;
-
-    const orderNumber = generateOrderNumber();
-
-    // Criar pedido com todos os itens
-    const order = await prisma.order.create({
-      data: {
-        orderNumber,
-        status: OrderStatus.CRIADO,
-        customerId: customer.id,
-        addressId: data.addressId,
-        shippingType: data.shippingType,
-        shippingPrice: data.shippingPrice,
-        subtotal,
-        total,
-        notes: data.notes,
-        items: {
-          create: cart.items.map((item) => ({
-            productId: item.productId,
-            variationId: item.variationId,
-            productName: item.product.name,
-            productImage: item.product.images[0]?.url,
-            variationName: item.variation
-              ? `${item.variation.name}: ${item.variation.value}`
-              : null,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            totalPrice: Number(item.unitPrice) * item.quantity,
-          })),
-        },
-        statusHistory: {
-          create: { status: OrderStatus.CRIADO, note: "Pedido criado" },
-        },
-      },
-      include: {
-        items: true,
-        customer: { select: { id: true, name: true, email: true, phone: true } },
-      },
-    });
-
-    // Processar pagamento
-    const paymentResult = await processPayment({
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      amount: total,
-      method: data.paymentMethod,
-      customer: { name: customer.name, email: customer.email },
-    });
-
-    const paymentStatus = paymentResult.success ? "AGUARDANDO" : "RECUSADO";
-
-    await prisma.payment.create({
-      data: {
-        orderId: order.id,
-        method: data.paymentMethod,
-        status: paymentStatus as "AGUARDANDO" | "RECUSADO",
-        amount: total,
-        gatewayId: paymentResult.gatewayId,
-        pixCode: paymentResult.pixCode,
-        pixExpiration: paymentResult.pixExpiration,
-        gatewayData: paymentResult.checkoutUrl ? { checkoutUrl: paymentResult.checkoutUrl } : undefined,
-      },
-    });
-
-    // Ambos PIX e Checkout Pro (cartão) são assíncronos — status definido via webhook
-    const newStatus = paymentResult.success
-      ? OrderStatus.AGUARDANDO_PAGAMENTO
-      : OrderStatus.CANCELADO;
-
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        status: newStatus,
-        statusHistory: {
-          create: { status: newStatus },
-        },
-      },
-    });
-
-    // Limpar carrinho
-    await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
-
-    const finalOrder = await prisma.order.findUnique({
-      where: { id: order.id },
-      include: {
-        items: true,
-        payment: true,
-        customer: { select: { id: true, name: true, email: true } },
-        address: true,
-      },
-    });
-
-    return apiSuccess(finalOrder, 201);
-  } catch (e) {
-    if (e instanceof z.ZodError) return apiError(e.errors[0].message, 422);
-    if (e instanceof Error && e.message === "Não autorizado") return apiError("Não autorizado.", 401);
-    console.error(e);
+    return apiSuccess(
+      googlePlay ? toGooglePlayPublicOrder(order) : toPublicOrder(order),
+      201
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof CheckoutError) {
+      return apiError(error.message, error.status, error.code);
+    }
+    if (error instanceof Error && error.message === "Não autorizado") {
+      return apiError("Não autorizado.", 401);
+    }
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      (error.code === "P2002" || error.code === "P2034")
+    ) {
+      return apiError("O checkout foi atualizado simultaneamente. Tente novamente.", 409);
+    }
+    console.error("Erro ao finalizar pedido:", error);
     return apiError("Erro ao finalizar pedido.", 500);
   }
 }
 
-// GET /api/orders — Admin lista todos | Cliente lista os seus
+// GET /api/orders — admin lista todos; cliente lista somente os seus.
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-
-    // Tenta autenticar como admin primeiro
     const adminHeader = req.headers.get("x-admin-request");
-    if (adminHeader === "true") {
-      await requireAdmin(req);
+    const googlePlay = isGooglePlayMobileRequest(req);
 
+    if (!googlePlay && adminHeader === "true") {
+      await requireAdmin(req);
       const status = searchParams.get("status");
-      const page = Number(searchParams.get("page") ?? 1);
+      const page = Math.max(1, Number(searchParams.get("page") ?? 1));
       const pageSize = 20;
       const skip = (page - 1) * pageSize;
-
       const where = status ? { status: status as OrderStatus } : {};
+
       const [orders, total] = await Promise.all([
         prisma.order.findMany({
           where,
           include: {
+            ...orderQueryInclude,
             customer: { select: { id: true, name: true, email: true } },
-            items: { include: { product: { include: { images: { take: 1 } } } } },
-            payment: true,
-            address: true,
           },
           orderBy: { createdAt: "desc" },
           skip,
@@ -188,43 +147,31 @@ export async function GET(req: NextRequest) {
         prisma.order.count({ where }),
       ]);
 
-      return apiSuccess({ orders, total, page, totalPages: Math.ceil(total / pageSize) });
+      return apiSuccess({
+        orders: orders.map(toPublicOrder),
+        total,
+        page,
+        totalPages: Math.ceil(total / pageSize),
+      });
     }
 
-    // Cliente vê seus próprios pedidos
     const customer = await requireCustomer(req);
     const orders = await prisma.order.findMany({
       where: { customerId: customer.id },
-      include: {
-        items: { include: { product: { include: { images: { take: 1 } } } } },
-        payment: true,
-        address: true,
-      },
+      include: orderQueryInclude,
       orderBy: { createdAt: "desc" },
     });
 
-    return apiSuccess(orders);
-  } catch (e) {
-    if (e instanceof Error && e.message === "Não autorizado") return apiError("Não autorizado.", 401);
-    return apiError("Erro ao buscar pedidos.", 500);
-  }
-}
-
-async function decreaseStock(items: Array<{ productId: string; variationId: string | null; quantity: number }>) {
-  for (const item of items) {
-    if (item.variationId) {
-      await prisma.productVariation.update({
-        where: { id: item.variationId },
-        data: { stock: { decrement: item.quantity } },
-      });
-    } else {
-      await prisma.product.update({
-        where: { id: item.productId },
-        data: {
-          stock: { decrement: item.quantity },
-          soldCount: { increment: item.quantity },
-        },
-      });
+    return apiSuccess(
+      orders.map((order) =>
+        googlePlay ? toGooglePlayPublicOrder(order) : toPublicOrder(order)
+      )
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message === "Não autorizado") {
+      return apiError("Não autorizado.", 401);
     }
+    console.error("Erro ao buscar pedidos:", error);
+    return apiError("Erro ao buscar pedidos.", 500);
   }
 }

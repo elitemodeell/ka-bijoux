@@ -1,1530 +1,945 @@
-import { useEffect, useState, useCallback, useRef, type ComponentProps } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  Image, ImageBackground, RefreshControl,
-  Animated, Easing, Dimensions, Linking,
+  Animated,
+  FlatList,
+  useWindowDimensions,
+  Alert,
+  Text as NativeText,
+  type TextProps,
+  Easing,
+  Linking,
+  Modal,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFonts } from "expo-font";
+import { categoryArtwork, storyArtwork, instagramProfile, thumbnail } from "@/components/home/brand";
+import { Image, type ImageSource } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
+import { useRouter } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useVideoPlayer, VideoView } from "expo-video";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { ProductCard } from "@/components/product/ProductCard";
-import { productsApi, categoriesApi, storiesApi } from "@/services/api";
-import { getVisibleMobileCategories } from "@/lib/catalogVisibility";
-import { useCartStore } from "@/stores/cartStore";
+import { Colors, BorderRadius, Shadows } from "@/constants/theme";
+import { applyChildrenCampaign } from "@/constants/homeCampaign";
+import { homeApi } from "@/services/api";
 import { useAuthStore } from "@/stores/authStore";
+import { useCartStore } from "@/stores/cartStore";
+import type {
+  HomeBanner,
+  HomeCategory,
+  HomeProductSection,
+  HomeQuickCategory,
+  HomeStory,
+  HomeStoryItem,
+  MobileHomePayload,
+} from "@/types/home";
 
-const SITE = process.env.EXPO_PUBLIC_API_URL ?? "https://ka-bijoux-backend.vercel.app";
-const WHATSAPP = "5537999999999";
-const { width: SW } = Dimensions.get("window");
-const CARD_W = Math.floor((SW - 32 - 12) / 2);
-
-// ── Hero Banners ─────────────────────────────────────────────────
-const BANNERS = [
-  {
-    id: "1",
-    img: `${SITE}/banners/banner-ferias-com-estilo-mobile.webp`,
-    title: "Férias com Estilo",
-    subtitle: "Ofertas para viajar, sair e se cuidar",
-    cta: "Quero Aproveitar",
-    route: "/produtos?new=true",
-  },
-  {
-    id: "2",
-    img: `${SITE}/banners/banner-mala-pronta-look-completo-mobile.webp`,
-    title: "Mala Pronta, Look Completo",
-    subtitle: "Capinhas, bolsas e acessórios",
-    cta: "Comprar Agora",
-    route: "/produtos",
-  },
-  {
-    id: "3",
-    img: `${SITE}/banners/banner-destino-ferias-mobile.webp`,
-    title: "Destino: Férias",
-    subtitle: "Acessórios e bijuterias com alegria",
-    cta: "Ver Ofertas",
-    route: "/produtos?category=bijuterias",
-  },
-  {
-    id: "4",
-    img: `${SITE}/banners/banner-brilhe-nas-ferias-mobile.webp`,
-    title: "Brilhe nas Férias",
-    subtitle: "Peças delicadas para seu visual",
-    cta: "Quero Brilhar",
-    route: "/produtos?category=bijuterias",
-  },
-];
-
-// ── Stories ──────────────────────────────────────────────────────
-type StoryType = { id: string; label: string; img: string; route: string };
-
-const HIGHLIGHT_COVERS: Record<string, string> = {
-  novidades:   `${SITE}/images/stories/highlights/novidades.jpg`,
-  promocoes:   `${SITE}/images/stories/highlights/promocoes.jpg`,
-  lancamentos: `${SITE}/images/stories/highlights/lancamentos.jpg`,
-  clientes:    `${SITE}/images/stories/highlights/clientes.jpg`,
-  ofertas:     `${SITE}/images/stories/highlights/ofertas.jpg`,
-};
-
-const STORY_FALLBACK: StoryType[] = [
-  { id: "novidades",   label: "Novidades",   img: HIGHLIGHT_COVERS.novidades,   route: "/produtos?new=true" },
-  { id: "promocoes",   label: "Promoções",   img: HIGHLIGHT_COVERS.promocoes,   route: "/produtos?promo=true" },
-  { id: "lancamentos", label: "Lançamentos", img: HIGHLIGHT_COVERS.lancamentos, route: "/produtos" },
-  { id: "clientes",    label: "Clientes",    img: HIGHLIGHT_COVERS.clientes,    route: "/produtos" },
-  { id: "ofertas",     label: "Ofertas",     img: HIGHLIGHT_COVERS.ofertas,     route: "/produtos?promo=true" },
-];
-
-function getHighlightCover(str: string): string | null {
-  const key = str
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "");
-  const match = Object.keys(HIGHLIGHT_COVERS).find((k) => key.includes(k));
-  return match ? HIGHLIGHT_COVERS[match] : null;
+const SITE = process.env.EXPO_PUBLIC_API_URL ?? "https://kabijoux.com.br";
+const CACHE_KEY = "ka-mobile-home-v2";
+function Text({ style, ...props }: TextProps) {
+  return <NativeText {...props} style={[{ fontFamily: 'Inter' }, style]} />;
 }
 
-// ── Quick categories ─────────────────────────────────────────────
-type IoniconName = ComponentProps<typeof Ionicons>["name"];
-type QuickCategory =
-  | { label: string; icon: "new"; route: string; plus?: never }
-  | { label: string; icon: IoniconName; route: string; plus?: boolean };
+async function openInstagram(href = instagramProfile) {
+  // HTTPS universal/app links open Instagram when supported, otherwise the browser.
+  try { await Linking.openURL(href); }
+  catch { Alert.alert('Instagram', 'Não foi possível abrir o Instagram. Tente novamente.'); }
+}
 
-const QUICK_CATS: QuickCategory[] = [
-  { label: "Novidades", icon: "sparkles-outline", route: "/produtos?new=true" },
-  { label: "Promoções", icon: "pricetag-outline", route: "/produtos?promo=true" },
-  { label: "Lançamentos", icon: "new", route: "/produtos" },
-  { label: "Bijuterias", icon: "diamond-outline", route: "/produtos?category=bijuterias" },
-  { label: "Capinhas", icon: "phone-portrait-outline", route: "/produtos?category=capinhas-acessorios-celular" },
-  { label: "Sex Shop", icon: "heart-outline", route: "/categoria/sex-shop", plus: true },
-];
+function resolveUrl(value?: string | null): string | null;
+function resolveUrl(value?: number | ImageSource | null): number | ImageSource | null;
+function resolveUrl(value?: string | number | ImageSource | null): string | number | ImageSource | null;
+function resolveUrl(value?: string | number | ImageSource | null) {
+  if (!value) return null;
+  if (typeof value !== "string") return value;
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${SITE}${value.startsWith("/") ? value : `/${value}`}`;
+}
 
-// ── Payment methods ──────────────────────────────────────────────
-const PAYMENTS = [
-  { label: "Pix",        color: "#22c7b8" },
-  { label: "Visa",       color: "#1f5cc9" },
-  { label: "Mastercard", color: "#f15a24" },
-  { label: "Amex",       color: "#2878c8" },
-  { label: "Elo",        color: "#444" },
-  { label: "Boleto",     color: "#444" },
-];
+function isSafeStoreHref(value: string | null | undefined, allowedCategorySlugs: Set<string>) {
+  if (!value) return false;
+  try {
+    const parsed = new URL(value, SITE);
+    const pathname = parsed.pathname;
+    if (pathname.startsWith("/(tabs)/")) return true;
+    if (pathname === "/produtos") {
+      const category = parsed.searchParams.get("category") ?? parsed.searchParams.get("cat");
+      return !category || allowedCategorySlugs.has(category);
+    }
+    if (pathname.startsWith("/produto/")) return true;
+    if (pathname.startsWith("/categoria/")) {
+      const slug = pathname.split("/")[2];
+      return Boolean(slug && allowedCategorySlugs.has(slug));
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
 
-// ── Ticker ───────────────────────────────────────────────────────
-const TICKER = [
-  "💖 Novidades selecionadas para você",
-  "📱 Capinhas estilosas para o seu celular",
-  "🏡 Utilidades charmosas para sua rotina",
-  "✨ Bijuterias delicadas para o dia a dia",
-  "🛍️ Acessórios femininos com estilo",
-  "🚚 Envio para todo o Brasil",
-  "💳 Pix e cartão disponíveis",
-  "🎁 Presentes especiais para quem você ama",
-].join("   •   ");
+function toMobileRoute(href: string) {
+  if (href.startsWith("/categoria/")) {
+    const slug = href.split("/")[2]?.split("?")[0];
+    return slug ? `/produtos?category=${encodeURIComponent(slug)}` : "/produtos";
+  }
+  return href.replace("?sort=", "?ordem=");
+}
 
-// ── Testimonials ─────────────────────────────────────────────────
-const TESTIMONIALS = [
-  {
-    name: "Mariana Costa",
-    city: "Itaúna – MG",
-    text: "Amei os brincos que comprei! A qualidade é ótima e a entrega foi super rápida. Com certeza vou comprar mais vezes!",
-    stars: 5,
-    avatar: "MC",
-  },
-  {
-    name: "Julia Fernandes",
-    city: "Belo Horizonte – MG",
-    text: "Os óculos são lindíssimos e chegaram muito bem embalados. A loja é incrível, atendimento maravilhoso!",
-    stars: 5,
-    avatar: "JF",
-  },
-  {
-    name: "Ana Beatriz Lima",
-    city: "São Paulo – SP",
-    text: "Já é a quarta vez que compro na KA Bijoux. Os produtos são exatamente como nas fotos. Super recomendo!",
-    stars: 5,
-    avatar: "AB",
-  },
-];
-
-// ────────────────────────────────────────────────────────────────
-// AnnouncementBar — ticker rolante (P3: texto sem truncamento)
-// ────────────────────────────────────────────────────────────────
-function AnnouncementBar() {
-  const x = useRef(new Animated.Value(SW)).current;
-  const textW = TICKER.length * 8;
-
-  useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(x, {
-          toValue: -textW,
-          duration: (SW + textW) * 14,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-        Animated.timing(x, { toValue: SW, duration: 0, useNativeDriver: true }),
-      ])
-    );
-    anim.start();
-    return () => anim.stop();
-  }, []);
-
+function isHomePayload(value: unknown): value is MobileHomePayload {
+  if (!value || typeof value !== "object") return false;
+  const payload = value as Partial<MobileHomePayload>;
   return (
-    <View style={s.ticker}>
-      <Animated.Text
-        style={[s.tickerText, { transform: [{ translateX: x }], width: textW + SW + 100 }]}
+    payload.schemaVersion === 2 &&
+    Array.isArray(payload.banners) &&
+    Array.isArray(payload.stories) &&
+    Array.isArray(payload.categories) &&
+    Array.isArray(payload.sections) &&
+    Boolean(payload.finalCta)
+  );
+}
+
+function AnnouncementBar({ messages }: { messages: string[] }) {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const [sequenceWidth, setSequenceWidth] = useState(0);
+  useEffect(() => {
+    if (!sequenceWidth) return;
+    translateX.setValue(0);
+    const animation = Animated.loop(Animated.timing(translateX, {
+      toValue: -sequenceWidth, duration: sequenceWidth * 30,
+      easing: Easing.linear, useNativeDriver: true,
+    }));
+    animation.start();
+    return () => animation.stop();
+  }, [sequenceWidth, translateX]);
+  if (!messages.length) return null;
+  return <LinearGradient colors={['#fff1f6', '#ffffff', '#ffe8f1']} style={styles.announcement}>
+    <Animated.View style={[styles.announcementTrack, { transform: [{ translateX }] }]}>
+      {[0, 1].map(copy => <View key={copy} style={styles.announcementTrack}
+        accessibilityElementsHidden={copy === 1} importantForAccessibility={copy === 1 ? 'no-hide-descendants' : 'auto'}
+        onLayout={copy === 0 ? event => setSequenceWidth(event.nativeEvent.layout.width) : undefined}>
+        {messages.map((message, index) => <View key={index} style={styles.announcementItem}>
+          <Text style={styles.announcementText}>{message}</Text><View style={styles.announcementDot} />
+        </View>)}
+      </View>)}
+    </Animated.View>
+    <LinearGradient pointerEvents="none" colors={['#fff1f6', 'rgba(255,241,246,0)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.announcementFade, styles.announcementFadeLeft]} />
+    <LinearGradient pointerEvents="none" colors={['rgba(255,232,241,0)', '#ffe8f1']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.announcementFade, styles.announcementFadeRight]} />
+  </LinearGradient>;
+}
+
+function Header({ itemCount, onNavigate }: { itemCount: number; onNavigate: (href: string) => void }) {
+  return (
+    <View style={styles.header}>
+      <Image
+        source={resolveUrl("/images/brand/ka-bijoux-logo-header-320.png")}
+        style={styles.logo}
+        contentFit="contain"
+        cachePolicy="memory-disk"
+        accessibilityLabel="KA Bijoux"
+      />
+      <TouchableOpacity
+        style={styles.search}
+        onPress={() => onNavigate("/(tabs)/busca")}
+        accessibilityRole="button"
+        accessibilityLabel="Pesquisar produtos"
       >
-        {TICKER}
-      </Animated.Text>
+        <Text style={styles.searchText} numberOfLines={1}>O que você procura?</Text>
+        <View style={styles.searchButton}>
+          <Ionicons name="search" size={15} color="#fff" />
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.headerButton} accessibilityLabel="Abrir carrinho" onPress={() => onNavigate("/(tabs)/carrinho")}>
+        <Ionicons name="bag-outline" size={22} color={Colors.textPrimary} />
+        {itemCount > 0 ? (
+          <View style={styles.cartBadge}>
+            <Text style={styles.cartBadgeText}>{Math.min(itemCount, 99)}</Text>
+          </View>
+        ) : null}
+      </TouchableOpacity>
+
     </View>
   );
 }
 
-// ────────────────────────────────────────────────────────────────
-// SexShopCard — glassmorphism com imagem de fundo (P7)
-// ────────────────────────────────────────────────────────────────
-function SexShopCard({ onPress }: { onPress: () => void }) {
-  return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={s.ssWrapper}>
-      <ImageBackground
-        source={{ uri: `${SITE}/banners/ka-intima-hero-premium-mobile.webp` }}
-        style={s.ssContainer}
-        imageStyle={{ borderRadius: BorderRadius["2xl"] }}
-      >
-        <LinearGradient
-          colors={[
-            "rgba(64,5,29,0.97)",
-            "rgba(178,15,78,0.90)",
-            "rgba(255,79,135,0.62)",
-            "rgba(75,5,33,0.97)",
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={s.ssGrad}
-        >
-          {/* glow blob top-left */}
-          <View style={s.ssGlow} pointerEvents="none" />
-
-          {/* glass heart icon */}
-          <View style={s.ssHeart}>
-            <Ionicons name="heart" size={28} color="rgba(255,240,250,0.95)" />
-          </View>
-
-          <View style={s.ssContent}>
-            <View style={s.ssSpecialBadge}>
-              <Text style={s.ssSpecialBadgeText}>ÁREA ESPECIAL</Text>
-            </View>
-            <Text style={s.ssTitle}>Entrar no Sex Shop</Text>
-            <Text style={s.ssSub}>Lingerie e produtos especiais</Text>
-          </View>
-
-          {/* circular white arrow */}
-          <View style={s.ssArrowCircle}>
-            <Ionicons name="chevron-forward" size={20} color="#b30f51" />
-          </View>
-        </LinearGradient>
-      </ImageBackground>
-    </TouchableOpacity>
+function HeroCarousel({ banners, onNavigate }: { banners: HomeBanner[]; onNavigate: (href: string) => void }) {
+  const { width } = useWindowDimensions();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const carouselRef = useRef<FlatList<HomeBanner>>(null);
+  const physicalIndex = useRef(banners.length > 1 ? 1 : 0);
+  const interacting = useRef(false);
+  const carouselItems = useMemo(
+    () => banners.length > 1 ? [banners[banners.length - 1], ...banners, banners[0]] : banners,
+    [banners],
   );
-}
-
-// ────────────────────────────────────────────────────────────────
-// LingerieBar
-// ────────────────────────────────────────────────────────────────
-function LingerieBar({ onNav }: { onNav: (r: string) => void }) {
-  return (
-    <View style={s.lingRow}>
-      <TouchableOpacity style={s.lingBtn} onPress={() => onNav("/produtos?category=lingerie")}>
-        <Ionicons name="heart-outline" size={14} color={Colors.primary} />
-        <Text style={s.lingText}>Lingerie</Text>
-      </TouchableOpacity>
-      <View style={s.lingDivider} />
-      <TouchableOpacity style={s.lingBtn} onPress={() => onNav("/produtos?category=sex-shop")}>
-        <Text style={s.lingText}>Moda Íntima</Text>
-        <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-// ────────────────────────────────────────────────────────────────
-// HeroBanners — carrossel com título + subtítulo + CTA (P6)
-// ────────────────────────────────────────────────────────────────
-function HeroBanners({ onNav }: { onNav: (r: string) => void }) {
-  const [idx, setIdx] = useState(0);
-  const ref = useRef<ScrollView>(null);
 
   useEffect(() => {
-    const t = setInterval(() => {
-      setIdx((p) => {
-        const n = (p + 1) % BANNERS.length;
-        ref.current?.scrollTo({ x: n * SW, animated: true });
-        return n;
-      });
-    }, 4000);
-    return () => clearInterval(t);
-  }, []);
+    physicalIndex.current = banners.length > 1 ? 1 : 0;
+    setActiveIndex(0);
+    requestAnimationFrame(() => carouselRef.current?.scrollToIndex({ index: physicalIndex.current, animated: false }));
+  }, [banners, width]);
 
+  useEffect(() => {
+    if (banners.length < 2) return;
+    const timer = setInterval(() => {
+      if (interacting.current) return;
+      const nextPhysicalIndex = physicalIndex.current + 1;
+      const firstSource = resolveUrl(banners[0].mobileImage || banners[0].image);
+      if (physicalIndex.current === banners.length && typeof firstSource === "string") {
+        void Image.prefetch(firstSource, "memory-disk");
+      }
+      carouselRef.current?.scrollToIndex({ index: nextPhysicalIndex, animated: true });
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [banners]);
+
+  const settleAt = useCallback((nextPhysicalIndex: number) => {
+    if (banners.length < 2) {
+      setActiveIndex(0);
+      return;
+    }
+    physicalIndex.current = nextPhysicalIndex;
+    if (nextPhysicalIndex === 0) {
+      setActiveIndex(banners.length - 1);
+      physicalIndex.current = banners.length;
+      requestAnimationFrame(() => carouselRef.current?.scrollToIndex({ index: banners.length, animated: false }));
+      return;
+    }
+    if (nextPhysicalIndex === banners.length + 1) {
+      setActiveIndex(0);
+      physicalIndex.current = 1;
+      requestAnimationFrame(() => carouselRef.current?.scrollToIndex({ index: 1, animated: false }));
+      return;
+    }
+    setActiveIndex(nextPhysicalIndex - 1);
+  }, [banners.length]);
+
+  if (!banners.length) return null;
   return (
-    <View>
-      <ScrollView
-        ref={ref}
+    <View style={styles.heroWrap}>
+      <FlatList
+        ref={carouselRef}
+        data={carouselItems}
         horizontal
         pagingEnabled
+        bounces={false}
         showsHorizontalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onMomentumScrollEnd={(e) =>
-          setIdx(Math.round(e.nativeEvent.contentOffset.x / SW))
-        }
-      >
-        {BANNERS.map((b) => (
+        initialScrollIndex={banners.length > 1 ? 1 : 0}
+        initialNumToRender={3}
+        maxToRenderPerBatch={2}
+        windowSize={3}
+        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
+        keyExtractor={(banner, index) => `${banner.id}-${index}`}
+        onScrollBeginDrag={() => { interacting.current = true; }}
+        onScrollEndDrag={() => { interacting.current = false; }}
+        onMomentumScrollEnd={(event) => {
+          interacting.current = false;
+          settleAt(Math.round(event.nativeEvent.contentOffset.x / width));
+        }}
+        renderItem={({ item: banner, index }) => (
           <TouchableOpacity
-            key={b.id}
-            activeOpacity={0.96}
-            onPress={() => onNav(b.route)}
-            style={{ width: SW }}
+            style={[styles.heroSlide, { width }]}
+            accessibilityLabel={`${banner.title}. ${banner.cta}`}
+            activeOpacity={0.94}
+            onPress={() => onNavigate(banner.href)}
           >
-            <View style={{ width: SW, height: SW * 0.74 }}>
-              <Image
-                source={{ uri: b.img }}
-                style={{ width: "100%", height: "100%" }}
-                resizeMode="cover"
-              />
-              {/* gradient overlay at bottom */}
-              <LinearGradient
-                colors={["transparent", "rgba(0,0,0,0.58)"]}
-                style={s.slideOverlay}
-                pointerEvents="none"
-              />
-              {/* text + CTA */}
-              <View style={s.slideInfo} pointerEvents="none">
-                <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={s.slideTitle} numberOfLines={1}>{b.title}</Text>
-                  {b.subtitle ? (
-                    <Text style={s.slideSub} numberOfLines={1}>{b.subtitle}</Text>
-                  ) : null}
-                </View>
-                <View style={s.slideCTA}>
-                  <Text style={s.slideCTAText}>{b.cta}</Text>
-                </View>
-              </View>
-            </View>
+            <Image
+              source={resolveUrl(banner.mobileImage || banner.image)}
+              style={StyleSheet.absoluteFill}
+              contentFit="contain"
+              cachePolicy="memory-disk"
+              priority={index <= 2 ? "high" : "normal"}
+              transition={180}
+            />
           </TouchableOpacity>
-        ))}
-      </ScrollView>
-      <View style={s.dots}>
-        {BANNERS.map((_, i) => (
-          <View key={i} style={[s.dot, i === idx && s.dotActive]} />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-// ────────────────────────────────────────────────────────────────
-// StoriesRow — busca de /api/stories com fallback (P11)
-// ────────────────────────────────────────────────────────────────
-function StoriesRow({ onNav }: { onNav: (r: string) => void }) {
-  const [stories, setStories] = useState<StoryType[]>(STORY_FALLBACK);
-
-  useEffect(() => {
-    let alive = true;
-    async function load() {
-      try {
-        const res = await storiesApi.list();
-        const groups: any[] = res.data?.data;
-        if (!alive || !Array.isArray(groups) || groups.length === 0) return;
-        const mapped = groups
-          .filter((g) => g.isActive !== false && Array.isArray(g.items) && g.items.length > 0)
-          .slice(0, 6)
-          .map((g): StoryType => ({
-            id: g.id,
-            label: g.title,
-            img:
-              getHighlightCover(g.title) ||
-              getHighlightCover(g.id) ||
-              g.coverImageUrl ||
-              g.cover ||
-              STORY_FALLBACK[0].img,
-            route: "/produtos",
-          }));
-        if (alive && mapped.length > 0) setStories(mapped);
-      } catch {
-        // keep fallback
-      }
-    }
-    load();
-    return () => { alive = false; };
-  }, []);
-
-  return (
-    <View style={s.storiesBox}>
-      <View style={s.storiesHeader}>
-        <View style={{ flex: 1 }}>
-          <View style={s.storiesBadge}>
-            <Text style={s.storiesBadgeText}>TOQUE PARA VER</Text>
-          </View>
-          <Text style={s.storiesTitle}>Acompanhe nossos stories</Text>
-          <Text style={s.storiesSub}>Novidades, promoções e achadinhos em destaque.</Text>
-        </View>
-        <View style={s.storiesPlayBtn}>
-          <Ionicons name="play-circle-outline" size={24} color={Colors.primary} />
-        </View>
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 16, paddingBottom: 4, paddingTop: 8 }}
-      >
-        {stories.map((story) => (
-          <TouchableOpacity
-            key={story.id}
-            style={s.storyItem}
-            onPress={() => onNav(story.route)}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={[Colors.primary, "#c8274a", "#ff4d6d"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={s.storyRing}
-            >
-              <View style={s.storyInner}>
-                <Image source={{ uri: story.img }} style={s.storyImg} />
-              </View>
-            </LinearGradient>
-            <Text style={s.storyLabel} numberOfLines={1}>{story.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
-}
-
-// ────────────────────────────────────────────────────────────────
-// FeriasBanner — banner estático de campanha (P3)
-// ────────────────────────────────────────────────────────────────
-function FeriasBanner({ onNav }: { onNav: (r: string) => void }) {
-  return (
-    <TouchableOpacity
-      onPress={() => onNav("/produtos?new=true")}
-      activeOpacity={0.96}
-      style={{ marginTop: 14 }}
-    >
-      <Image
-        source={{ uri: `${SITE}/banners/banner-destino-ferias-mobile.webp` }}
-        style={{ width: SW, height: SW * 0.75 }}
-        resizeMode="cover"
+        )}
       />
-    </TouchableOpacity>
+      <View style={styles.dots}>
+        {banners.map((banner, index) => (
+          <View key={banner.id} style={[styles.dot, index === activeIndex && styles.dotActive]} />
+        ))}
+      </View>
+    </View>
   );
 }
 
-// ────────────────────────────────────────────────────────────────
-// FeriasPromoStrip — faixa "FÉRIAS COM ESTILO ✈️" (P3)
-// ────────────────────────────────────────────────────────────────
-function FeriasPromoStrip({ onNav }: { onNav: (r: string) => void }) {
-  return (
-    <TouchableOpacity
-      onPress={() => onNav("/produtos?new=true")}
-      activeOpacity={0.88}
-      style={{ marginTop: 4 }}
-    >
-      <LinearGradient
-        colors={["#db2777", "#f43f5e", "#fb923c"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={s.feriaStrip}
-      >
-        <View style={s.feriaLeft}>
-          <View style={s.feriaPlane}>
-            <Text style={{ fontSize: 28 }}>✈️</Text>
-          </View>
-          <View>
-            <Text style={s.feriaTitle}>FÉRIAS COM ESTILO!</Text>
-            <Text style={s.feriaSub}>Ofertas para viajar, sair e se cuidar</Text>
-          </View>
-        </View>
-        <View style={s.feriaBtn}>
-          <Text style={s.feriaBtnText}>QUERO{"\n"}APROVEITAR →</Text>
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-}
+function StoryViewer({ story, onClose, onNavigate }: {
+  story: HomeStory | null;
+  onClose: () => void;
+  onNavigate: (href: string) => void;
+}) {
+  const [itemIndex, setItemIndex] = useState(0);
+  const item = story?.items[itemIndex] ?? null;
+  const videoSource = item?.type === "video" ? resolveUrl(item.src || item.mediaUrl) : null;
+  const player = useVideoPlayer(videoSource, (instance) => {
+    instance.loop = false;
+    instance.play();
+  });
 
-// ────────────────────────────────────────────────────────────────
-// QuickCategoryGrid
-// ────────────────────────────────────────────────────────────────
-function QuickCategoryGrid({ onNav }: { onNav: (r: string) => void }) {
+  useEffect(() => setItemIndex(0), [story?.id]);
+
+  const goNext = () => {
+    if (!story) return;
+    if (itemIndex + 1 >= story.items.length) onClose();
+    else setItemIndex((current) => current + 1);
+  };
+
   return (
-    <View style={s.quickGrid}>
-      {QUICK_CATS.map((cat) => (
-        <TouchableOpacity
-          key={cat.label}
-          style={s.quickItem}
-          onPress={() => onNav(cat.route)}
-          activeOpacity={0.8}
-        >
-          <View style={s.quickCircle}>
-            {cat.icon === "new" ? (
-              <View style={s.quickNewIcon}>
-                <Text style={s.quickNewText}>NEW</Text>
-              </View>
+    <Modal visible={Boolean(story)} animationType="fade" transparent onRequestClose={onClose}>
+      <View style={styles.storyModal}>
+        <SafeAreaView style={styles.storySafe}>
+          <View style={styles.storyTop}>
+            <Text style={styles.storyModalTitle} numberOfLines={1}>{story?.title}</Text>
+            <TouchableOpacity onPress={onClose} style={styles.storyClose}>
+              <Ionicons name="close" size={25} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.storyProgress}>
+            {story?.items.map((storyItem, index) => (
+              <View key={storyItem.id} style={[styles.storyProgressBar, index <= itemIndex && styles.storyProgressActive]} />
+            ))}
+          </View>
+          <View style={styles.storyMedia}>
+            {item?.type === "video" ? (
+              <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
+            ) : item ? (
+              <>
+                <Image
+                  source={resolveUrl(item.src || item.mediaUrl)}
+                  style={[StyleSheet.absoluteFill, styles.storyMediaBackground]}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                />
+                <View style={[StyleSheet.absoluteFill, styles.storyMediaShade]} />
+                <Image
+                  source={resolveUrl(item.src || item.mediaUrl)}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
+                  transition={140}
+                />
+              </>
             ) : (
-              <View style={s.quickIconWrap}>
-                <Ionicons name={cat.icon} size={24} color={Colors.primary} />
-                {cat.plus ? (
-                  <View style={s.quickPlusBadge}>
-                    <Ionicons name="add" size={10} color="#fff" />
-                  </View>
-                ) : null}
+              <View style={styles.storyUnavailable}>
+                <Ionicons name="image-outline" size={42} color="#fff" />
+                <Text style={styles.storyUnavailableText}>Story indisponível.</Text>
               </View>
             )}
           </View>
-          <Text style={s.quickLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
-            {cat.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+          {item?.text ? <Text style={styles.storyText}>{item.text}</Text> : null}
+          <View style={styles.storyActions}>
+            {itemIndex > 0 ? (
+              <TouchableOpacity style={styles.storyNavButton} onPress={() => setItemIndex((current) => current - 1)}>
+                <Ionicons name="arrow-back" size={20} color="#fff" />
+                <Text style={styles.storyNavText}>Anterior</Text>
+              </TouchableOpacity>
+            ) : <View />}
+            {item?.link || item?.linkUrl ? (
+              <TouchableOpacity
+                style={styles.storyLinkButton}
+                onPress={() => {
+                  const href = item?.link || item?.linkUrl;
+                  if (href) onNavigate(href);
+                  onClose();
+                }}
+              >
+                <Text style={styles.storyLinkText}>{item?.buttonText || "Ver produtos"}</Text>
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity style={styles.storyNavButton} onPress={goNext}>
+              <Text style={styles.storyNavText}>{story && itemIndex + 1 >= story.items.length ? "Fechar" : "Próximo"}</Text>
+              <Ionicons name="arrow-forward" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </View>
+    </Modal>
   );
 }
 
-// ────────────────────────────────────────────────────────────────
-// ProductSection — grade 2 colunas
-// ────────────────────────────────────────────────────────────────
-type Prod = {
-  id: string; slug?: string | null; name: string; price: number;
-  promotionalPrice?: number | null; stock: number;
-  images: Array<{ url: string }>; isNew?: boolean; featured?: boolean;
-};
+function Stories({ stories, onOpen }: { stories: HomeStory[]; onOpen: (story: HomeStory) => void }) {
+  const open = (story: HomeStory) => {
+    const href = story.items.flatMap(item => [item.link, item.linkUrl]).find(value => {
+      try { return !!value && /(^|\.)instagram\.com$/.test(new URL(value).hostname); } catch { return false; }
+    });
+    if (href) void openInstagram(href);
+    else onOpen(story);
+  };
+  return <LinearGradient colors={['#ffffff', '#fff8fb', '#fff2f7']} style={styles.storiesSection}>
+    <Text style={styles.storyHeading}>Stories da KA<Text style={{ color: '#ff7a4d' }}>*</Text></Text>
+    <Text style={styles.storySubtitle}>Mês das Crianças, novidades, ofertas, clientes e nossos stories do Instagram.</Text>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storyList}>
+      <TouchableOpacity style={styles.storyItem} onPress={() => void openInstagram()} accessibilityLabel="Abrir KA Stories no Instagram">
+        <LinearGradient colors={['#ffe6a1', '#ffafd1', '#ff4182']} style={styles.storyRing}>
+          <View style={styles.storyInner}>
+            <Image source={thumbnail(resolveUrl('/images/brand/ka-bijoux-logo-story-icon.png'), 256)} style={styles.storyCover} contentFit="contain" cachePolicy="memory-disk" />
+          </View>
+        </LinearGradient>
+        <View style={styles.instagramBadge}><Ionicons name="logo-instagram" size={13} color="#ec4899" /></View>
+        <Text style={styles.storyLabel}>KA Stories</Text>
+        <Text style={styles.instagramCaption}>Instagram</Text>
+      </TouchableOpacity>
+      {stories.map(story => <TouchableOpacity key={story.id} style={styles.storyItem} onPress={() => open(story)} accessibilityLabel={`Abrir ${story.title}`}>
+        <LinearGradient colors={['#ffe6a1', '#ffafd1', '#ff4182']} style={styles.storyRing}>
+          <View style={styles.storyInner}>
+            <Image source={
+              /^\/images\/stories\/[^/]+-cover\.jpg$/.test(story.cover || '')
+                ? storyArtwork[story.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()] || thumbnail(resolveUrl(story.cover || story.coverImageUrl), 256)
+                : thumbnail(resolveUrl(story.cover || story.coverImageUrl), 256)
+            } style={styles.storyCover} contentFit="cover" cachePolicy="memory-disk" />
+          </View>
+        </LinearGradient>
+        <Text style={styles.storyLabel}>{story.title}</Text>
+      </TouchableOpacity>)}
+    </ScrollView>
+  </LinearGradient>;
+}
 
-function ProductSection({
-  label, title, subtitle, products, route,
-}: {
-  label?: string; title: string; subtitle?: string; products: unknown[]; route?: string;
+function Campaign({ campaign, onNavigate }: {
+  campaign: MobileHomePayload["campaign"];
+  onNavigate: (href: string) => void;
 }) {
-  const router = useRouter();
-  if (!products.length) return null;
   return (
-    <View style={s.section}>
-      <View style={s.sectionHeader}>
-        <View style={{ flex: 1 }}>
-          {label && <Text style={s.sectionLabel}>{label}</Text>}
-          <Text style={s.sectionTitle}>{title}</Text>
-          {subtitle && <Text style={s.sectionSub}>{subtitle}</Text>}
-        </View>
-        <TouchableOpacity onPress={() => router.push((route ?? "/produtos") as never)}>
-          <Text style={s.seeAll}>Ver mais →</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={s.productGrid}>
-        {(products as Prod[]).slice(0, 10).map((item) => (
-          <View key={item.id} style={{ width: CARD_W }}>
-            <ProductCard product={item} />
-          </View>
-        ))}
-      </View>
+    <>
       <TouchableOpacity
-        style={s.viewAllBtn}
-        onPress={() => router.push((route ?? "/produtos") as never)}
+        style={styles.campaignImageWrap}
+        onPress={() => onNavigate(campaign.href)}
+        accessibilityRole="button"
+        accessibilityLabel="Mês das Crianças - Cabelo Maluco. Ver ofertas"
       >
-        <Text style={s.viewAllBtnText}>Ver todos os produtos →</Text>
+        <Image source={resolveUrl(campaign.image)} style={styles.campaignImage} contentFit="contain" cachePolicy="memory-disk" />
       </TouchableOpacity>
-    </View>
+      <TouchableOpacity
+        onPress={() => onNavigate(campaign.href)}
+        activeOpacity={0.9}
+        accessibilityRole="button"
+        accessibilityLabel="Ver ofertas do Mês das Crianças"
+      >
+        <LinearGradient colors={["#F72570", "#FF6F61", "#FF914D"]} style={styles.campaignStrip}>
+          <View style={styles.campaignIcon}><Ionicons name="color-palette-outline" size={25} color="#fff" /></View>
+          <View style={styles.campaignText}>
+            <Text style={styles.campaignTitle}>{campaign.promoTitle}</Text>
+            <Text style={styles.campaignSubtitle}>{campaign.promoSubtitle}</Text>
+          </View>
+          <View style={styles.campaignButton}><Text style={styles.campaignButtonText}>{campaign.cta}</Text></View>
+        </LinearGradient>
+      </TouchableOpacity>
+    </>
   );
 }
 
-// ────────────────────────────────────────────────────────────────
-// FeaturesStrip (faixa rosa de benefícios)
-// ────────────────────────────────────────────────────────────────
-function FeaturesStrip({ onNav }: { onNav: (r: string) => void }) {
-  return (
-    <LinearGradient
-      colors={[Colors.primary, "#e83e5a"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-      style={s.featStrip}
-    >
-      {[
-        { emoji: "🎁", title: "Envio e retirada",   sub: "Escolha a melhor forma" },
-        { emoji: "💳", title: "Pix e cartão",        sub: "Pagamento facilitado" },
-        { emoji: "🚀", title: "Compra segura",       sub: "Pedido acompanhado" },
-      ].map((f, i) => (
-        <View key={i} style={s.featStripItem}>
-          <Text style={{ fontSize: 22 }}>{f.emoji}</Text>
-          <Text style={s.featStripTitle}>{f.title}</Text>
-          <Text style={s.featStripSub}>{f.sub}</Text>
-        </View>
-      ))}
-      <TouchableOpacity style={s.featStripBtn} onPress={() => onNav("/produtos")}>
-        <Text style={s.featStripBtnText}>Aproveitar →</Text>
-      </TouchableOpacity>
+function QuickCategories({ categories, onNavigate }: { categories: HomeQuickCategory[]; onNavigate: (href: string) => void }) {
+  if (!categories.length) return null;
+  return <LinearGradient colors={['#fff', '#fffafd', '#fff6fa']} style={styles.quickSection}>
+    <View style={styles.quickFrame}><View style={styles.quickGrid}>
+      {categories.map(category => <TouchableOpacity key={category.href} style={styles.quickCard}
+        accessibilityLabel={`Abrir categoria ${category.label}. ${category.description}`} onPress={() => onNavigate(category.href)}>
+        <LinearGradient colors={['#fff', '#fff2f6', '#ffe8ef']} style={styles.quickIcon}>
+          <View style={styles.quickIconRing} />
+          <Image source={categoryArtwork[category.icon]} style={{ width: 56, height: 56 }} contentFit="contain" />
+        </LinearGradient>
+        <Text style={styles.quickTitle}>{category.label}</Text>
+        <Text style={styles.quickDescription}>{category.description}</Text>
+        <LinearGradient colors={['#ff5b8d', '#f43069']} style={styles.quickArrow}><Ionicons name="chevron-forward" size={16} color="#fff" /></LinearGradient>
+      </TouchableOpacity>)}
+    </View></View>
+  </LinearGradient>;
+}
+
+function SpecialArea({ category, onNavigate }: { category?: HomeCategory; onNavigate: (href: string) => void }) {
+  if (!category) return null;
+  return <TouchableOpacity style={styles.specialArea} onPress={() => onNavigate(`/categoria/${category.slug}`)} accessibilityLabel="Entrar no Sex Shop">
+    <LinearGradient colors={['#40051d', '#b20f4e', '#ff4f87', '#4b0521']} style={styles.specialInner}>
+      <Image source={categoryArtwork.heart} style={{ width: 56, height: 56 }} />
+      <View style={{ flex: 1 }}><Text style={styles.specialLabel}>ÁREA ESPECIAL</Text>
+        <Text style={styles.specialTitle}>Entrar no Sex Shop</Text>
+        <Text style={styles.specialSubtitle}>{category.description || 'Lingerie e produtos especiais'}</Text>
+      </View><Ionicons name="chevron-forward" size={20} color="#fff" />
     </LinearGradient>
-  );
+  </TouchableOpacity>;
 }
 
-// ────────────────────────────────────────────────────────────────
-// Depoimentos — 3 avaliações de clientes (P4)
-// ────────────────────────────────────────────────────────────────
-function Depoimentos() {
+function ProductSection({ section, onNavigate }: { section: HomeProductSection; onNavigate: (href: string) => void }) {
+  if (!section.products.length) return null;
   return (
-    <View style={s.depoSection}>
-      <View style={{ alignItems: "center", marginBottom: 16 }}>
-        <Text style={s.depoBadge}>AVALIAÇÕES</Text>
-        <Text style={s.depoTitle}>O que nossas clientes dizem</Text>
+    <View style={[styles.productSection, section.background === "subtle" && styles.productSectionSubtle]}>
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionHeaderCopy}>
+          {section.label ? <Text style={styles.eyebrow}>{section.label.toUpperCase()}</Text> : null}
+          <Text style={styles.productSectionTitle}>{section.title}</Text>
+          {section.subtitle ? <Text style={styles.productSectionSubtitle}>{section.subtitle}</Text> : null}
+        </View>
+        <TouchableOpacity onPress={() => onNavigate(section.route)}><Text style={styles.more}>Ver mais →</Text></TouchableOpacity>
       </View>
-      {TESTIMONIALS.map((t) => (
-        <View key={t.name} style={s.depoCard}>
-          <Text style={s.depoStars}>{"★".repeat(t.stars)}</Text>
-          <Text style={s.depoText}>"{t.text}"</Text>
-          <View style={s.depoAuthor}>
-            <LinearGradient
-              colors={["#f472b6", "#ec4899"]}
-              style={s.depoAvatar}
-            >
-              <Text style={s.depoAvatarText}>{t.avatar}</Text>
-            </LinearGradient>
-            <View>
-              <Text style={s.depoName}>{t.name}</Text>
-              <Text style={s.depoCity}>{t.city}</Text>
-            </View>
-          </View>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-// ────────────────────────────────────────────────────────────────
-// DarkCTASection
-// ────────────────────────────────────────────────────────────────
-function DarkCTASection({ onNav }: { onNav: (r: string) => void }) {
-  return (
-    <LinearGradient colors={["#17070C", "#200a12", "#080204"]} style={s.darkCta}>
-      <Text style={s.darkCtaBadge}>SUA LOJA FAVORITA</Text>
-      <Text style={s.darkCtaTitle}>
-        Pronta para se sentir{"\n"}
-        <Text style={{ color: Colors.primary }}>ainda mais linda?</Text>
-      </Text>
-      <Text style={s.darkCtaDesc}>
-        Veja nossa coleção completa e encontre o acessório perfeito para cada momento.
-      </Text>
-      <TouchableOpacity style={s.darkCtaBtn} onPress={() => onNav("/produtos")}>
-        <Text style={s.darkCtaBtnText}>Ver coleção ✨</Text>
-      </TouchableOpacity>
-    </LinearGradient>
-  );
-}
-
-// ────────────────────────────────────────────────────────────────
-// FeatureCards
-// ────────────────────────────────────────────────────────────────
-function FeatureCards() {
-  const items = [
-    { icon: "car-outline" as const,              title: "Entrega rápida",        sub: "Para todo Brasil" },
-    { icon: "shield-checkmark-outline" as const, title: "Compra segura",         sub: "Dados protegidos" },
-    { icon: "diamond-outline" as const,          title: "Produtos selecionados", sub: "Qualidade garantida" },
-    { icon: "gift-outline" as const,             title: "Mimos exclusivos",      sub: "Em todos os pedidos" },
-  ];
-  return (
-    <View style={s.featCardsBg}>
-      <View style={s.featCards}>
-        {items.map((f, i) => (
-          <View key={i} style={s.featCard}>
-            <View style={s.featCardIconWrap}>
-              <Ionicons name={f.icon} size={28} color={Colors.primary} />
-            </View>
-            <Text style={s.featCardTitle}>{f.title}</Text>
-            <Text style={s.featCardSub}>{f.sub}</Text>
-          </View>
+      <View style={styles.productGrid}>
+        {section.products.map((product) => (
+          <View key={product.id} style={styles.productCell}><ProductCard product={product} badgeSeal={section.badgeSeal} /></View>
         ))}
       </View>
+      <TouchableOpacity style={styles.allButton} onPress={() => onNavigate(section.route)}>
+        <Text style={styles.allButtonText}>{section.moreLabel} →</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
-// ────────────────────────────────────────────────────────────────
-// FooterDark
-// ────────────────────────────────────────────────────────────────
-function FooterDark() {
+function Benefits({ benefits, onNavigate }: { benefits: MobileHomePayload["benefits"]; onNavigate: (href: string) => void }) {
+  const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
+    gift: "gift-outline",
+    card: "card-outline",
+    shield: "shield-checkmark-outline",
+  };
   return (
-    <View style={s.footerDark}>
-      <Text style={s.brandKA}>KA</Text>
-      <Text style={s.brandBijoux}>bijoux</Text>
-      <Text style={s.brandDesc}>
-        Bijuterias, óculos, capinhas e acessórios femininos com curadoria delicada para deixar sua rotina mais bonita.
-      </Text>
+    <LinearGradient colors={[Colors.primary, "#e83e5a"]} style={styles.benefits}>
+      {benefits.map((benefit) => (
+        <View key={benefit.title} style={styles.benefitItem}>
+          <Ionicons name={icons[benefit.icon] ?? "checkmark-circle-outline"} size={25} color="#fff" />
+          <View style={styles.benefitCopy}>
+            <Text style={styles.benefitTitle}>{benefit.title}</Text>
+            <Text style={styles.benefitSubtitle}>{benefit.subtitle}</Text>
+          </View>
+        </View>
+      ))}
+      <TouchableOpacity style={styles.benefitButton} onPress={() => onNavigate("/produtos")}>
+        <Text style={styles.benefitButtonText}>Aproveitar →</Text>
+      </TouchableOpacity>
+    </LinearGradient>
+  );
+}
 
-      <View style={s.socialRow}>
-        {[
-          { label: "Instagram", icon: "logo-instagram", url: "https://instagram.com/kabijoux" },
-          { label: "Facebook",  icon: "logo-facebook",  url: "https://facebook.com/kabijoux" },
-          { label: "WhatsApp",  icon: "logo-whatsapp",  url: `https://wa.me/${WHATSAPP}` },
-        ].map(({ label, icon, url }) => (
-          <TouchableOpacity
-            key={label}
-            style={s.socialBtn}
-            onPress={() => Linking.openURL(url)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name={icon as any} size={20} color="#fff" />
+function FinalCta({ cta, onNavigate }: { cta: MobileHomePayload["finalCta"]; onNavigate: (href: string) => void }) {
+  return (
+    <LinearGradient colors={["#1A0A0F", "#2D0A18", "#1A0A0F"]} style={styles.finalCta}>
+      <Text style={styles.finalCtaLabel}>{cta.label.toUpperCase()}</Text>
+      <Text style={styles.finalCtaTitle}>{cta.titlePrefix}</Text>
+      <Text style={styles.finalCtaHighlight}>{cta.titleHighlight}</Text>
+      <Text style={styles.finalCtaDescription}>{cta.description}</Text>
+      <TouchableOpacity
+        style={styles.finalCtaButton}
+        onPress={() => onNavigate(cta.href)}
+        accessibilityRole="button"
+        accessibilityLabel="Ver novidades do Mês das Crianças"
+      >
+        <Text style={styles.finalCtaButtonText}>{cta.button}</Text>
+      </TouchableOpacity>
+    </LinearGradient>
+  );
+}
+
+function RealReviews({ reviews }: { reviews: MobileHomePayload["reviews"] }) {
+  if (!reviews.length) return null;
+  return (
+    <View style={styles.reviews}>
+      <Text style={styles.eyebrow}>AVALIAÇÕES REAIS</Text>
+      <Text style={styles.sectionHeading}>O que nossas clientes dizem</Text>
+      {reviews.map((review) => (
+        <View key={review.id} style={styles.reviewCard}>
+          <Text style={styles.reviewStars}>{"★".repeat(Math.max(1, Math.min(5, review.rating)))}</Text>
+          <Text style={styles.reviewText}>“{review.comment}”</Text>
+          <Text style={styles.reviewAuthor}>
+            {review.customerName}{review.city ? ` • ${review.city}${review.state ? `/${review.state}` : ""}` : ""}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function CategoryGrid({ categories, onNavigate }: { categories: HomeCategory[]; onNavigate: (href: string) => void }) {
+  if (!categories.length) return null;
+  return (
+    <View style={styles.categoriesSection}>
+      <Text style={styles.eyebrow}>CATÁLOGO</Text>
+      <Text style={styles.sectionHeading}>Todas as categorias</Text>
+      <View style={styles.categoryGrid}>
+        {categories.map((category) => (
+          <TouchableOpacity key={category.id} style={styles.categoryCard} onPress={() => onNavigate(`/produtos?category=${category.slug}`)}>
+            {category.imageUrl ? (
+              <Image source={resolveUrl(category.imageUrl)} style={styles.categoryImage} contentFit="cover" cachePolicy="memory-disk" />
+            ) : (
+              <View style={[styles.categoryImage, styles.categoryPlaceholder]}>
+                <Ionicons name="sparkles-outline" size={28} color={Colors.primary} />
+              </View>
+            )}
+            <View style={styles.categoryCopy}>
+              <Text style={styles.categoryTitle} numberOfLines={2}>{category.name}</Text>
+              <Text style={styles.categoryCount}>{category.mobileProductCount} produtos</Text>
+            </View>
           </TouchableOpacity>
         ))}
       </View>
+    </View>
+  );
+}
 
-      <View style={s.contactCard}>
-        <View style={s.contactLeft}>
-          <View style={s.contactIcon}>
-            <Ionicons name="headset-outline" size={22} color={Colors.primary} />
-          </View>
-          <View>
-            <Text style={s.contactTitle}>Fale com a gente</Text>
-            <Text style={s.contactSub}>Segunda a Sexta</Text>
-            <Text style={s.contactSub}>09h às 18h</Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          style={s.waBtn}
-          onPress={() => Linking.openURL(`https://wa.me/${WHATSAPP}`)}
-          activeOpacity={0.85}
-        >
-          <Text style={s.waBtnText}>WhatsApp →</Text>
-        </TouchableOpacity>
+function HomeSkeleton() {
+  return (
+    <View style={styles.skeletonWrap}>
+      <View style={[styles.skeleton, styles.skeletonHero]} />
+      <View style={styles.skeletonRow}>
+        {[0, 1, 2, 3].map((item) => <View key={item} style={[styles.skeleton, styles.skeletonCircle]} />)}
       </View>
-
-      <Text style={s.payTitle}>FORMAS DE PAGAMENTO</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={s.payRow}
-      >
-        {PAYMENTS.map((p) => (
-          <View key={p.label} style={s.payChip}>
-            <Text style={[s.payChipText, { color: p.color }]}>{p.label}</Text>
-          </View>
-        ))}
-      </ScrollView>
-
-      <View style={s.footerBottom}>
-        <Ionicons name="heart" size={20} color={Colors.primary} />
-        <Text style={s.footerLove}>Feito com amor</Text>
-        <Text style={s.footerLoveSub}>para você brilhar todos os dias.</Text>
-        <Text style={s.footerCopy}>© 2026 KA Bijoux</Text>
+      <View style={[styles.skeleton, styles.skeletonTitle]} />
+      <View style={styles.productGrid}>
+        {[0, 1, 2, 3].map((item) => <View key={item} style={[styles.skeleton, styles.skeletonProduct]} />)}
       </View>
     </View>
   );
 }
 
-// ────────────────────────────────────────────────────────────────
-// Data helpers
-// ────────────────────────────────────────────────────────────────
-function mergeUnique(...pools: unknown[][]): Prod[] {
-  const seen = new Set<string>();
-  const result: Prod[] = [];
-  for (const pool of pools) {
-    for (const p of pool as Prod[]) {
-      if (p?.id && !seen.has(p.id)) {
-        seen.add(p.id);
-        result.push(p);
-      }
-    }
+type HomeBlock =
+  | { key: "special"; type: "special"; category?: HomeCategory }
+  | { key: "hero"; type: "hero"; banners: HomeBanner[] }
+  | { key: "stories"; type: "stories"; stories: HomeStory[] }
+  | { key: "campaign"; type: "campaign"; campaign: MobileHomePayload["campaign"] }
+  | { key: "quick"; type: "quick"; categories: HomeQuickCategory[] }
+  | { key: string; type: "products"; section: HomeProductSection }
+  | { key: "benefits"; type: "benefits"; benefits: MobileHomePayload["benefits"] }
+  | { key: "reviews"; type: "reviews"; reviews: MobileHomePayload["reviews"] }
+  | { key: "final"; type: "final"; cta: MobileHomePayload["finalCta"] };
+
+const HomeBlockView = memo(function HomeBlockView({ block, onNavigate, onOpenStory }: {
+  block: HomeBlock;
+  onNavigate: (href: string) => void;
+  onOpenStory: (story: HomeStory) => void;
+}) {
+  switch (block.type) {
+    case "special": return <SpecialArea category={block.category} onNavigate={onNavigate} />;
+    case "hero": return <HeroCarousel banners={block.banners} onNavigate={onNavigate} />;
+    case "stories": return <Stories stories={block.stories} onOpen={onOpenStory} />;
+    case "campaign": return <Campaign campaign={block.campaign} onNavigate={onNavigate} />;
+    case "quick": return <QuickCategories categories={block.categories} onNavigate={onNavigate} />;
+    case "products": return <ProductSection section={block.section} onNavigate={onNavigate} />;
+    case "benefits": return <Benefits benefits={block.benefits} onNavigate={onNavigate} />;
+    case "reviews": return <RealReviews reviews={block.reviews} />;
+    case "final": return <FinalCta cta={block.cta} onNavigate={onNavigate} />;
   }
-  return result;
-}
-
-function takeSection(pool: Prod[], usedIds: Set<string>, n: number): Prod[] {
-  const result: Prod[] = [];
-  for (const p of pool) {
-    if (!usedIds.has(p.id)) {
-      result.push(p);
-      usedIds.add(p.id);
-      if (result.length >= n) break;
-    }
-  }
-  return result;
-}
-
-// ────────────────────────────────────────────────────────────────
-// HomeScreen
-// ────────────────────────────────────────────────────────────────
-type HomeCategory = {
-  id: string;
-  name: string;
-  slug: string;
-  mobileProductCount?: number | null;
-  _count?: { products: number };
-};
-
-interface HomeData {
-  categories: HomeCategory[];
-  ofertas: Prod[];
-  achadinhos: Prod[];
-  novidades: Prod[];
-  maisVendidos: Prod[];
-  paraPresentes: Prod[];
-  beleza: Prod[];
-}
+});
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { customer } = useAuthStore();
-  const { itemCount, fetchCart } = useCartStore();
-  const [data, setData] = useState<HomeData>({
-    categories: [], ofertas: [], achadinhos: [],
-    novidades: [], maisVendidos: [], paraPresentes: [], beleza: [],
+  const tabBarHeight = useBottomTabBarHeight();
+  const [fontsLoaded, fontError] = useFonts({
+    PlayfairDisplay: require('../../assets/fonts/PlayfairDisplay-Bold.ttf'),
+    Inter: require('../../assets/fonts/Inter-Regular.ttf'),
   });
+  const customer = useAuthStore((state) => state.customer);
+  const itemCount = useCartStore((state) => state.itemCount);
+  const fetchCart = useCartStore((state) => state.fetchCart);
+  const [home, setHome] = useState<MobileHomePayload | null>(null);
+  const [selectedStory, setSelectedStory] = useState<HomeStory | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [offline, setOffline] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const activeController = useRef<AbortController | null>(null);
+  const hasHomeContent = useRef(false);
+  const allowedCategorySlugs = useMemo(
+    () => new Set(home?.categories.map((category) => category.slug) ?? []),
+    [home?.categories]
+  );
+  const themedHome = useMemo(() => (home ? applyChildrenCampaign(home) : null), [home]);
 
-  const nav = useCallback((route: string) => router.push(route as never), [router]);
-
-  // P5 — 4 chamadas paralelas, pools específicos por seção (igual ao site)
-  async function loadData() {
-    try {
-      const q = { withImage: true, line: "normal" };
-      const [catRes, mainRes, featuredRes, newRes, promoRes] = await Promise.allSettled([
-        categoriesApi.list(),
-        productsApi.list({ ...q, pageSize: 50 }),
-        productsApi.list({ ...q, featured: true, pageSize: 24 }),
-        productsApi.list({ ...q, "new": true, pageSize: 24 }),
-        productsApi.list({ ...q, promo: true, pageSize: 24 }),
-      ]);
-
-      const cats   = catRes.status      === "fulfilled" ? getVisibleMobileCategories<HomeCategory>(catRes.value.data.data ?? [], { limit: 8 }) : [];
-      const mainP  = mainRes.status     === "fulfilled" ? (mainRes.value.data.data?.products     ?? []) : [];
-      const featP  = featuredRes.status === "fulfilled" ? (featuredRes.value.data.data?.products ?? []) : [];
-      const newP   = newRes.status      === "fulfilled" ? (newRes.value.data.data?.products      ?? []) : [];
-      const promoP = promoRes.status    === "fulfilled" ? (promoRes.value.data.data?.products    ?? []) : [];
-
-      const allPool = mergeUnique(mainP, featP, newP, promoP);
-      const usedIds = new Set<string>();
-
-      const ofertas       = takeSection(mergeUnique(promoP, featP, mainP), usedIds, 8);
-      const achadinhos    = takeSection(mergeUnique(mainP),                usedIds, 8);
-      const novidades     = takeSection(mergeUnique(newP, mainP),          usedIds, 8);
-      const maisVendidos  = takeSection(mergeUnique(featP, mainP),         usedIds, 10);
-      const paraPresentes = takeSection(allPool,                           usedIds, 8);
-      const beleza        = takeSection(allPool,                           usedIds, 8);
-
-      setData({ categories: cats, ofertas, achadinhos, novidades, maisVendidos, paraPresentes, beleza });
-    } catch (e) {
-      console.error("[Home] loadData:", e);
-    } finally {
-      setRefreshing(false);
+  const navigate = useCallback((href: string) => {
+    if (!isSafeStoreHref(href, allowedCategorySlugs)) return;
+    if (/^https?:\/\//i.test(href)) {
+      const parsed = new URL(href);
+      if (parsed.hostname === "kabijoux.com.br" || parsed.hostname.endsWith(".kabijoux.com.br")) {
+        router.push(toMobileRoute(`${parsed.pathname}${parsed.search}`) as never);
+      } else {
+        Linking.openURL(href);
+      }
+      return;
     }
-  }
+    router.push(toMobileRoute(href) as never);
+  }, [allowedCategorySlugs, router]);
+
+  const loadHome = useCallback(async (refresh = false) => {
+    activeController.current?.abort();
+    const controller = new AbortController();
+    activeController.current = controller;
+    if (refresh) setRefreshing(true);
+    else setLoading(true);
+    setError(null);
+
+    const networkRequest = (async () => {
+      try {
+        return await homeApi.get(controller.signal);
+      } catch (firstError) {
+        if (controller.signal.aborted) throw firstError;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        return homeApi.get(controller.signal);
+      }
+    })();
+
+    if (!refresh) {
+      try {
+        const cached = await AsyncStorage.getItem(CACHE_KEY);
+        const parsed = cached ? JSON.parse(cached) : null;
+        if (isHomePayload(parsed)) {
+          setHome(parsed);
+          hasHomeContent.current = true;
+          setLoading(false);
+        }
+      } catch {
+        await AsyncStorage.removeItem(CACHE_KEY).catch(() => undefined);
+      }
+    }
+
+    try {
+      const response = await networkRequest;
+      const payload = response.data?.data;
+      if (!isHomePayload(payload)) throw new Error("Resposta inválida da Home");
+      setHome(payload);
+      hasHomeContent.current = true;
+      setOffline(false);
+      void AsyncStorage.setItem(CACHE_KEY, JSON.stringify(payload));
+    } catch (requestError) {
+      if (controller.signal.aborted) return;
+      setOffline(true);
+      setError(hasHomeContent.current ? "Sem conexão. Exibindo os dados salvos." : "Não foi possível carregar a loja.");
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
-    loadData();
-    if (customer) fetchCart();
-  }, [customer]);
+    void loadHome();
+    return () => activeController.current?.abort();
+  }, [loadHome]);
 
-  const onRefresh = useCallback(() => { setRefreshing(true); loadData(); }, []);
+  useEffect(() => {
+    if (customer) void fetchCart();
+  }, [customer, fetchCart]);
 
-  const { categories, ofertas, achadinhos, novidades, maisVendidos, paraPresentes, beleza } = data;
+  const homeBlocks = useMemo<HomeBlock[]>(() => {
+    if (!themedHome) return [];
+    const special: HomeBlock = { key: "special", type: "special", category: themedHome.categories.find((category) => category.slug === "sex-shop") };
+    const featured: HomeBlock[] = [
+      { key: "hero", type: "hero", banners: themedHome.banners },
+      { key: "stories", type: "stories", stories: themedHome.stories },
+      { key: "campaign", type: "campaign", campaign: themedHome.campaign },
+      { key: "quick", type: "quick", categories: themedHome.quickCategories },
+    ];
+    const blocks: HomeBlock[] = Platform.OS === "ios" ? [...featured, special] : [special, ...featured];
+    themedHome.sections.forEach((section, index) => {
+      blocks.push({ key: `products-${section.id}`, type: "products", section });
+      if (index === 1) blocks.push({ key: "benefits", type: "benefits", benefits: themedHome.benefits });
+    });
+    blocks.push(
+      { key: "reviews", type: "reviews", reviews: themedHome.reviews },
+      { key: "final", type: "final", cta: themedHome.finalCta },
+    );
+    return blocks;
+  }, [themedHome]);
 
   return (
-    <SafeAreaView style={s.safe} edges={["top"]}>
-
-      {/* Header — P10: barra de busca inline */}
-      <View style={s.header}>
-        <View style={s.headerLogo}>
-          <Text style={s.logoKA}>KA</Text>
-          <Text style={s.logoBijoux}>bijoux</Text>
-        </View>
-
-        <TouchableOpacity
-          style={s.searchBar}
-          onPress={() => router.push("/busca")}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="search-outline" size={15} color={Colors.textMuted} />
-          <Text style={s.searchPlaceholder} numberOfLines={1}>O que você procura?</Text>
-          <View style={s.searchBtn}>
-            <Ionicons name="search" size={13} color="#fff" />
-          </View>
+    <SafeAreaView style={styles.safe} edges={["top"]}>
+      {themedHome ? <AnnouncementBar messages={themedHome.announcements} /> : null}
+      <Header itemCount={itemCount} onNavigate={navigate} />
+      {offline ? (
+        <TouchableOpacity style={styles.offlineBanner} onPress={() => void loadHome(true)}>
+          <Ionicons name="cloud-offline-outline" size={16} color="#7f1d1d" />
+          <Text style={styles.offlineText}>{error} Toque para tentar novamente.</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={s.cartIconBtn}
-          onPress={() => router.push("/(tabs)/carrinho")}
-        >
-          <Ionicons name="bag-outline" size={22} color={Colors.textPrimary} />
-          {itemCount > 0 && (
-            <View style={s.cartBadge}>
-              <Text style={s.cartBadgeText}>{itemCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Ticker */}
-      <AnnouncementBar />
-
-      <ScrollView
-        style={s.scroll}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={Colors.primary}
-          />
-        }
-      >
-
-        {/* Sex Shop banner (P7) */}
-        <SexShopCard onPress={() => nav("/categoria/sex-shop")} />
-        <LingerieBar onNav={nav} />
-
-        {/* Hero banners (P6) */}
-        <View style={{ marginTop: 12 }}>
-          <HeroBanners onNav={nav} />
-        </View>
-
-        {/* Stories (P11) */}
-        <StoriesRow onNav={nav} />
-
-        {/* Férias banner (P3) */}
-        <FeriasBanner onNav={nav} />
-
-        {/* Férias strip (P3) */}
-        <FeriasPromoStrip onNav={nav} />
-
-        {/* Grade de categorias */}
-        <QuickCategoryGrid onNav={nav} />
-
-        {/* Ofertas Relâmpago */}
-        <ProductSection
-          label="IMPERDÍVEIS"
-          title="Ofertas Relâmpago 🔥"
-          products={ofertas}
-          route="/produtos?promo=true"
-        />
-
-        {/* Achadinhos */}
-        <ProductSection
-          label="ACHADOS DA SEMANA"
-          title="Achadinhos KA Bijoux 💖"
-          subtitle="Produtos lindos para comprar sem pensar muito."
-          products={achadinhos}
-        />
-
-        {/* Faixa rosa — P2: movida para cá (após Achadinhos, igual ao site) */}
-        <View style={{ marginTop: 4 }}>
-          <FeaturesStrip onNav={nav} />
-        </View>
-
-        {/* Novidades */}
-        <ProductSection
-          label="CHEGANDO AGORA"
-          title="Novidades 🆕"
-          products={novidades}
-          route="/produtos?new=true"
-        />
-
-        {/* Mais Vendidos */}
-        <ProductSection
-          label="TOP DA SEMANA"
-          title="Mais Vendidos ⭐"
-          products={maisVendidos}
-        />
-
-        {/* Para Presentear */}
-        <ProductSection
-          label="IDEIAS DE PRESENTE"
-          title="Para Presentear 🎁"
-          products={paraPresentes}
-        />
-
-        {/* Beleza e Autocuidado */}
-        <ProductSection
-          label="BELEZA E BEM-ESTAR"
-          title="Beleza e Autocuidado ✨"
-          products={beleza}
-        />
-
-        {/* Depoimentos — P4 */}
-        <Depoimentos />
-
-        {/* CTA escuro */}
-        <DarkCTASection onNav={nav} />
-
-        {/* Cards de benefícios */}
-        <FeatureCards />
-
-        {/* Categorias */}
-        {categories.length > 0 && (
-          <>
-            <View style={s.sectionHeader}>
-              <Text style={s.sectionTitle}>Categorias</Text>
-              <TouchableOpacity onPress={() => router.push("/(tabs)/categorias")}>
-                <Text style={s.seeAll}>Ver todas →</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: Spacing.base, gap: 10, paddingBottom: 4 }}
-            >
-              {categories.map((cat) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={s.catChip}
-                  onPress={() => nav(`/produtos?category=${cat.slug}`)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={s.catChipText}>{cat.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </>
+      ) : null}
+      <FlatList
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight + 16 }]}
+        data={home && (fontsLoaded || fontError) ? homeBlocks : []}
+        keyExtractor={(item) => item.key}
+        renderItem={({ item }) => (
+          <HomeBlockView block={item} onNavigate={navigate} onOpenStory={setSelectedStory} />
         )}
-
-        {/* Rodapé */}
-        <FooterDark />
-
-      </ScrollView>
+        initialNumToRender={4}
+        maxToRenderPerBatch={2}
+        updateCellsBatchingPeriod={50}
+        windowSize={3}
+        removeClippedSubviews={Platform.OS === "android"}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void loadHome(true)} tintColor={Colors.primary} />}
+        ListEmptyComponent={loading || (home && !(fontsLoaded || fontError)) ? <HomeSkeleton /> : !home ? (
+          <View style={styles.errorState}>
+            <Ionicons name="cloud-offline-outline" size={48} color={Colors.primary} />
+            <Text style={styles.errorTitle}>Não foi possível abrir a loja</Text>
+            <Text style={styles.errorDescription}>Verifique sua internet e tente novamente.</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => void loadHome(true)}>
+              <Text style={styles.retryText}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+      />
+      {selectedStory ? <StoryViewer story={selectedStory} onClose={() => setSelectedStory(null)} onNavigate={navigate} /> : null}
     </SafeAreaView>
   );
 }
 
-// ────────────────────────────────────────────────────────────────
-// Styles
-// ────────────────────────────────────────────────────────────────
-const s = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: Colors.background },
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: "#FFF7FA" },
   scroll: { flex: 1 },
-
-  // ── Header (P10) ──────────────────────────────────────────────
+  scrollContent: {},
   header: {
+    minHeight: Platform.OS === "ios" ? 64 : 54,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 10,
-    backgroundColor: Colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    gap: 8,
+    gap: 7,
+    paddingHorizontal: Platform.OS === "ios" ? 14 : 12,
+    paddingVertical: Platform.OS === "ios" ? 8 : 5,
+    backgroundColor: "rgba(255,255,255,0.98)",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#f7cbd7",
+    zIndex: 10,
   },
-  headerLogo: {
-    // natural width
-  },
-  logoKA: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: Colors.primary,
-    lineHeight: 26,
-  },
-  logoBijoux: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: Colors.primary,
-    lineHeight: 13,
-    fontStyle: "italic",
-  },
-  searchBar: {
+  logo: { width: Platform.OS === "ios" ? 48 : 40, height: Platform.OS === "ios" ? 44 : 36 },
+  search: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
-    paddingLeft: 12,
-    paddingRight: 4,
-    paddingVertical: 4,
+    height: Platform.OS === "ios" ? 44 : 36,
+    borderRadius: Platform.OS === "ios" ? 22 : 14,
     borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 6,
-  },
-  searchPlaceholder: {
-    flex: 1,
-    fontSize: 12,
-    color: Colors.textMuted,
-  },
-  searchBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cartIconBtn: {
-    width: 38,
-    height: 38,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-    ...Shadows.sm,
-  },
-  cartBadge: {
-    position: "absolute",
-    top: -3,
-    right: -3,
-    backgroundColor: Colors.primary,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cartBadgeText: { color: "#fff", fontSize: 9, fontWeight: "700" },
-
-  // ── Ticker ────────────────────────────────────────────────────
-  ticker: {
-    height: 36,
-    backgroundColor: "#fff0f3",
-    borderBottomWidth: 1,
-    borderBottomColor: "#ffc0cb",
-    overflow: "hidden",
-    justifyContent: "center",
-  },
-  tickerText: { fontSize: 12, fontWeight: "600", color: Colors.primary },
-
-  // ── SexShopCard (P7) ─────────────────────────────────────────
-  ssWrapper: {
-    marginHorizontal: Spacing.base,
-    marginTop: 14,
-    borderRadius: BorderRadius["2xl"],
-    overflow: "hidden",
-    ...Shadows.md,
-  },
-  ssContainer: {},
-  ssGrad: {
+    borderColor: "#fce7f3",
+    backgroundColor: "#fff9fb",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 18,
-    minHeight: 102,
-    borderRadius: BorderRadius["2xl"],
+    paddingLeft: 13,
   },
-  ssGlow: {
-    position: "absolute",
-    top: -24,
-    left: -24,
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: "rgba(255,255,255,0.15)",
-  },
-  ssHeart: {
-    width: 56,
-    height: 56,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.25)",
-    backgroundColor: "rgba(255,255,255,0.16)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  ssContent: { flex: 1 },
-  ssSpecialBadge: {
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    marginBottom: 5,
-  },
-  ssSpecialBadgeText: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: "rgba(255,240,250,0.9)",
-    letterSpacing: 1.5,
-  },
-  ssTitle: { fontSize: 21, fontWeight: "800", color: "#fff", marginBottom: 2 },
-  ssSub:   { fontSize: 13, color: "rgba(255,240,250,0.85)" },
-  ssArrowCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#500020",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.28,
-    shadowRadius: 14,
-    elevation: 8,
-  },
-
-  // ── LingerieBar ───────────────────────────────────────────────
-  lingRow: {
-    flexDirection: "row",
-    alignSelf: "center",
-    marginTop: 8,
-    marginHorizontal: Spacing.base,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: Colors.pinkLight,
-    backgroundColor: "rgba(255,255,255,0.94)",
-    overflow: "hidden",
-  },
-  lingBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
-  },
-  lingDivider: { width: 1, backgroundColor: Colors.pinkLight },
-  lingText: { fontSize: 13, fontWeight: "800", color: Colors.primary },
-
-  // ── Hero banners (P6) ─────────────────────────────────────────
-  dots:      { flexDirection: "row", justifyContent: "center", gap: 6, marginVertical: 10 },
-  dot:       { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.pinkLight },
-  dotActive: { width: 18, backgroundColor: Colors.primary },
-  slideOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-  },
-  slideInfo: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-  },
-  slideTitle: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#fff",
-    textShadowColor: "rgba(0,0,0,0.45)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  slideSub: {
-    fontSize: 10,
-    color: "rgba(255,255,255,0.82)",
-    marginTop: 2,
-  },
-  slideCTA: {
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 6,
-    flexShrink: 0,
-  },
-  slideCTAText: {
-    color: "#fff",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 0.3,
-  },
-
-  // ── Stories ───────────────────────────────────────────────────
-  storiesBox: {
-    marginTop: 14,
-    marginHorizontal: Spacing.base,
-    borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-    borderColor: Colors.pinkLight,
-    backgroundColor: "#fff7fb",
-    paddingTop: 14,
-    paddingBottom: 12,
-    ...Shadows.sm,
-  },
-  storiesHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    marginBottom: 2,
-  },
-  storiesBadge: {
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    alignSelf: "flex-start",
-    marginBottom: 6,
-  },
-  storiesBadgeText:  { color: "#fff", fontSize: 9, fontWeight: "900", letterSpacing: 0.8 },
-  storiesTitle:      { fontSize: 17, fontWeight: "900", color: Colors.textPrimary },
-  storiesSub:        { fontSize: 11, color: "#8a4b5d", fontWeight: "600", marginTop: 2 },
-  storiesPlayBtn:    {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: "#fff", alignItems: "center", justifyContent: "center",
-    ...Shadows.sm,
-  },
-  storyItem:  { alignItems: "center", width: 72 },
-  storyRing:  { width: 68, height: 68, borderRadius: 34, padding: 3, marginBottom: 6 },
-  storyInner: { flex: 1, borderRadius: 31, overflow: "hidden", borderWidth: 2, borderColor: "#fff" },
-  storyImg:   { width: "100%", height: "100%" },
-  storyLabel: { fontSize: 11, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },
-
-  // ── FeriasBanner (P3) ─────────────────────────────────────────
-  // (Image inline, no extra style needed)
-
-  // ── FeriasPromoStrip (P3) ─────────────────────────────────────
-  feriaStrip: {
-    marginHorizontal: Spacing.base,
-    borderRadius: BorderRadius.xl,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  feriaLeft:  { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
-  feriaPlane: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    backgroundColor: "rgba(255,255,255,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  feriaTitle: { color: "#fff", fontWeight: "900", fontSize: 16, letterSpacing: 0.5 },
-  feriaSub:   { color: "rgba(255,255,255,0.85)", fontSize: 11, marginTop: 2 },
-  feriaBtn: {
-    backgroundColor: "#fff",
-    borderRadius: BorderRadius.xl,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    alignItems: "center",
-    flexShrink: 0,
-  },
-  feriaBtnText: {
-    color: Colors.primary,
-    fontWeight: "900",
-    fontSize: 11,
-    letterSpacing: 0.5,
-    textAlign: "center",
-  },
-
-  // ── QuickCategoryGrid ─────────────────────────────────────────
-  quickGrid: {
-    flexDirection: "row",
-    flexWrap: "nowrap",
-    justifyContent: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 14,
-    gap: 0,
-    backgroundColor: Colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  quickItem:   { width: "16.6667%", alignItems: "center", paddingVertical: 8, gap: 6 },
-  quickCircle: {
-    width: 50, height: 50, borderRadius: 25,
-    backgroundColor: "#fff0f6", alignItems: "center", justifyContent: "center",
-    borderWidth: 2, borderColor: Colors.pinkLight,
-  },
-  quickIconWrap: { position: "relative", alignItems: "center", justifyContent: "center" },
-  quickNewIcon: {
-    width: 34, height: 23, borderRadius: 5,
-    alignItems: "center", justifyContent: "center",
-    borderWidth: 2, borderColor: Colors.primary,
-  },
-  quickNewText: { fontSize: 10, fontWeight: "900", color: Colors.primary },
-  quickPlusBadge: {
-    position: "absolute", right: -6, bottom: -5,
-    width: 16, height: 16, borderRadius: 8,
-    alignItems: "center", justifyContent: "center",
-    backgroundColor: Colors.primary,
-    borderWidth: 2, borderColor: "#fff0f6",
-  },
-  quickLabel: {
-    maxWidth: "100%",
-    fontSize: 9,
-    fontWeight: "700",
-    color: Colors.textPrimary,
-    textAlign: "center",
-  },
-
-  // ── ProductSection ────────────────────────────────────────────
-  section:      { marginTop: 4 },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.base,
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  sectionLabel: { fontSize: 10, fontWeight: "700", color: Colors.primary, letterSpacing: 1, marginBottom: 2 },
-  sectionTitle: { fontSize: FontSizes.md, fontWeight: "700", color: Colors.textPrimary },
-  sectionSub:   { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
-  seeAll:       { fontSize: FontSizes.sm, color: Colors.primary, fontWeight: "600" },
-  productGrid:  { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 16, gap: 12 },
-  viewAllBtn: {
-    marginHorizontal: 16, marginTop: 14, marginBottom: 4,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    paddingVertical: 11,
-    alignItems: "center",
-  },
-  viewAllBtnText: { color: Colors.primary, fontWeight: "700", fontSize: 13 },
-
-  // ── FeaturesStrip ─────────────────────────────────────────────
-  featStrip:       { marginHorizontal: Spacing.base, borderRadius: BorderRadius.xl, padding: 16, gap: 12 },
-  featStripItem:   { alignItems: "center", gap: 3 },
-  featStripTitle:  { color: "#fff", fontWeight: "700", fontSize: 13 },
-  featStripSub:    { color: "rgba(255,255,255,0.8)", fontSize: 10 },
-  featStripBtn:    {
-    backgroundColor: "#fff",
-    borderRadius: BorderRadius.xl,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  featStripBtnText: { color: Colors.primary, fontWeight: "800", fontSize: 13 },
-
-  // ── Depoimentos (P4) ─────────────────────────────────────────
-  depoSection: {
-    marginTop: 20,
-    paddingHorizontal: Spacing.base,
-    paddingBottom: 8,
-    backgroundColor: "#fdf7fb",
-    paddingTop: 24,
-  },
-  depoBadge: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: Colors.primary,
-    letterSpacing: 2,
-    marginBottom: 8,
-  },
-  depoTitle: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: Colors.textPrimary,
-    textAlign: "center",
-    marginBottom: 4,
-  },
-  depoCard: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.pinkLight,
-    padding: 18,
-    marginBottom: 12,
-    ...Shadows.sm,
-  },
-  depoStars:  { color: "#facc15", fontSize: 16, marginBottom: 10 },
-  depoText:   { color: Colors.textSecondary, fontSize: 13, lineHeight: 20, marginBottom: 14 },
-  depoAuthor: { flexDirection: "row", alignItems: "center", gap: 12 },
-  depoAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  depoAvatarText: { color: "#fff", fontSize: 12, fontWeight: "700" },
-  depoName:   { fontSize: 13, fontWeight: "700", color: Colors.textPrimary },
-  depoCity:   { fontSize: 11, color: Colors.textMuted },
-
-  // ── DarkCTA ───────────────────────────────────────────────────
-  darkCta:       { marginTop: 20, paddingHorizontal: 24, paddingVertical: 40, alignItems: "center" },
-  darkCtaBadge:  { fontSize: 10, fontWeight: "800", color: Colors.primary, letterSpacing: 1.5, marginBottom: 12 },
-  darkCtaTitle:  { fontSize: 28, fontWeight: "900", color: "#fff", textAlign: "center", lineHeight: 36, marginBottom: 12 },
-  darkCtaDesc:   { fontSize: 14, color: "rgba(255,255,255,0.65)", textAlign: "center", lineHeight: 22, marginBottom: 24 },
-  darkCtaBtn:    {
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-  },
-  darkCtaBtnText: { color: "#fff", fontWeight: "800", fontSize: 15 },
-
-  // ── FeatureCards ──────────────────────────────────────────────
-  featCardsBg:      { backgroundColor: "#17070C", paddingVertical: 20, paddingHorizontal: 16 },
-  featCards:        { gap: 12 },
-  featCard: {
-    borderRadius: 26, borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    backgroundColor: "rgba(255,255,255,0.055)",
-    padding: 20, alignItems: "center", gap: 8,
-  },
-  featCardIconWrap: {
-    width: 56, height: 56, borderRadius: 18,
-    backgroundColor: "rgba(255,79,135,0.12)",
-    alignItems: "center", justifyContent: "center",
-  },
-  featCardTitle: { fontSize: 15, fontWeight: "900", color: "#fff", textAlign: "center" },
-  featCardSub:   { fontSize: 13, color: "rgba(255,255,255,0.6)", textAlign: "center" },
-
-  // ── Footer ────────────────────────────────────────────────────
-  footerDark: { backgroundColor: "#17070C", paddingHorizontal: 20, paddingTop: 32, paddingBottom: 24 },
-  brandKA:    { fontSize: 40, fontWeight: "900", color: Colors.primary, textAlign: "center", lineHeight: 44 },
-  brandBijoux: {
-    fontSize: 18, fontWeight: "400", color: Colors.primary,
-    textAlign: "center", fontStyle: "italic", marginBottom: 12,
-  },
-  brandDesc: {
-    fontSize: 13, color: "rgba(255,255,255,0.65)",
-    textAlign: "center", lineHeight: 20, marginBottom: 20,
-  },
-  socialRow: { flexDirection: "row", justifyContent: "center", gap: 12, marginBottom: 24 },
-  socialBtn: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: "rgba(255,255,255,0.075)",
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.1)",
-    alignItems: "center", justifyContent: "center",
-  },
-  contactCard: {
-    borderRadius: 28, borderWidth: 1, borderColor: "rgba(255,79,135,0.35)",
-    backgroundColor: "#2a0b15", padding: 18, marginBottom: 24, gap: 14,
-  },
-  contactLeft:  { flexDirection: "row", alignItems: "flex-start", gap: 14 },
-  contactIcon:  {
-    width: 48, height: 48, borderRadius: 16,
-    backgroundColor: Colors.primary + "22",
-    alignItems: "center", justifyContent: "center",
-  },
-  contactTitle: { fontSize: 16, fontWeight: "900", color: "#fff", marginBottom: 4 },
-  contactSub:   { fontSize: 13, color: "rgba(255,255,255,0.6)" },
-  waBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: 14, paddingVertical: 12, alignItems: "center",
-  },
-  waBtnText:    { color: "#fff", fontWeight: "800", fontSize: 14 },
-  payTitle:     { fontSize: 10, fontWeight: "900", color: Colors.primary, letterSpacing: 2, textAlign: "center", marginBottom: 14 },
-  payRow:       { gap: 10, paddingBottom: 4 },
-  payChip: {
-    minWidth: 90, height: 48, borderRadius: 16,
-    backgroundColor: "#fff",
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.15)",
-    alignItems: "center", justifyContent: "center", paddingHorizontal: 12,
-  },
-  payChipText:  { fontWeight: "900", fontSize: 13, letterSpacing: 0.5 },
-  footerBottom: { marginTop: 24, alignItems: "center", gap: 4 },
-  footerLove:   { fontSize: 18, fontStyle: "italic", color: "#fff", fontWeight: "500" },
-  footerLoveSub:{ fontSize: 13, color: "rgba(255,255,255,0.55)" },
-  footerCopy:   { fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 8 },
-
-  // ── Category chips ────────────────────────────────────────────
-  catChip: {
-    backgroundColor: Colors.pinkSoft,
-    paddingHorizontal: 16, paddingVertical: 8,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5, borderColor: Colors.pinkLight,
-  },
-  catChipText: { fontSize: FontSizes.sm, color: Colors.primaryDark, fontWeight: "600" },
+  searchText: { flex: 1, color: "#9b7280", fontSize: Platform.OS === "ios" ? 14 : 12 },
+  searchButton: { width: Platform.OS === "ios" ? 38 : 30, height: Platform.OS === "ios" ? 38 : 30, marginRight: 4, borderRadius: Platform.OS === "ios" ? 19 : 12, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center" },
+  headerButton: { width: Platform.OS === "ios" ? 42 : 38, height: Platform.OS === "ios" ? 42 : 38, alignItems: "center", justifyContent: "center" },
+  cartBadge: { position: "absolute", right: 0, top: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
+  cartBadgeText: { color: "#fff", fontSize: 9, fontWeight: "800" },
+  announcement: { height: 32, justifyContent: "center", overflow: "hidden", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#fce7f3" },
+  announcementTrack: { flexDirection: "row", alignItems: "center", flexShrink: 0, alignSelf: "flex-start" },
+  announcementItem: { flexDirection: "row", alignItems: "center", flexShrink: 0 },
+  announcementText: { color: "#db2777", fontSize: 12, fontWeight: "600", paddingHorizontal: 20 },
+  announcementDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#f9a8d4" },
+  announcementFade: { position: "absolute", top: 0, bottom: 0, width: 24 },
+  announcementFadeLeft: { left: 0 },
+  announcementFadeRight: { right: 0 },
+  offlineBanner: { minHeight: 38, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#fee2e2", flexDirection: "row", gap: 7, alignItems: "center" },
+  offlineText: { flex: 1, color: "#7f1d1d", fontSize: 11, fontWeight: "600" },
+  heroWrap: { marginTop: Platform.OS === "ios" ? 0 : 10 },
+  heroSlide: { width: "100%", aspectRatio: 3 / 2, backgroundColor: "#FFF7FA" },
+  dots: { position: "absolute", left: 0, right: 0, bottom: 10, zIndex: 4, flexDirection: "row", justifyContent: "center", gap: 6 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.7)" },
+  dotActive: { width: 20, backgroundColor: "#29BFC7" },
+  storiesSection: { marginHorizontal: 10, marginTop: 10, padding: 10, borderRadius: 18, borderWidth: 1, borderColor: '#fce7f3', ...Shadows.sm },
+  storyHeading: { fontFamily: 'PlayfairDisplay', fontSize: 23, color: '#8a0032' },
+  storySubtitle: { marginTop: 4, fontSize: 11, lineHeight: 15, color: '#3d0f1a' },
+  instagramBadge: { position: 'absolute', top: 54, right: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  instagramCaption: { marginTop: 3, fontSize: 9, color: '#9ca3af' },
+  eyebrow: { color: Colors.primary, fontSize: 10, fontWeight: "900", letterSpacing: 1.5, marginBottom: 4 },
+  sectionHeading: { color: "#6e1430", fontSize: 23, lineHeight: 28, fontFamily: "PlayfairDisplay" },
+  storyList: { paddingTop: 10, paddingBottom: 2, gap: 10 },
+  storyItem: { width: 74, alignItems: "center" },
+  storyRing: { width: 64, height: 64, borderRadius: 32, padding: 3 },
+  storyInner: { flex: 1, borderRadius: 29, padding: 2, backgroundColor: "#fff" },
+  storyCover: { flex: 1, borderRadius: 27, backgroundColor: "#ffe5ee" },
+  storyLabel: { marginTop: 5, color: "#48101f", fontSize: 10, fontWeight: "700", width: 74, textAlign: "center" },
+  storyModal: { flex: 1, backgroundColor: "rgba(9,2,5,0.98)" },
+  storySafe: { flex: 1 },
+  storyTop: { height: 52, paddingHorizontal: 14, flexDirection: "row", alignItems: "center" },
+  storyModalTitle: { flex: 1, color: "#fff", fontSize: 16, fontWeight: "800" },
+  storyClose: { width: 42, height: 42, alignItems: "center", justifyContent: "center" },
+  storyProgress: { flexDirection: "row", gap: 4, paddingHorizontal: 12, paddingBottom: 8 },
+  storyProgressBar: { flex: 1, height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.25)" },
+  storyProgressActive: { backgroundColor: Colors.primary },
+  storyMedia: { flex: 1, marginHorizontal: 8, borderRadius: 18, overflow: "hidden", backgroundColor: "#14070c" },
+  storyMediaBackground: { opacity: 0.36, transform: [{ scale: 1.08 }] },
+  storyMediaShade: { backgroundColor: "rgba(20,7,12,0.34)" },
+  storyUnavailable: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
+  storyUnavailableText: { color: "#fff", fontSize: 14 },
+  storyText: { color: "#fff", textAlign: "center", fontSize: 15, paddingHorizontal: 18, paddingTop: 12 },
+  storyActions: { minHeight: 76, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  storyNavButton: { minWidth: 82, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 10 },
+  storyNavText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  storyLinkButton: { backgroundColor: Colors.primary, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 10 },
+  storyLinkText: { color: "#fff", fontSize: 11, fontWeight: "900" },
+  campaignImageWrap: { marginTop: 14, width: "100%", aspectRatio: 3 / 2, backgroundColor: "#FFF7FA" },
+  campaignImage: { width: "100%", height: "100%" },
+  campaignStrip: { flexWrap: "wrap", margin: 12, marginTop: 12, borderRadius: 20, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, ...Shadows.md },
+  campaignIcon: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: "rgba(255,255,255,0.35)", alignItems: "center", justifyContent: "center" },
+  campaignText: { flex: 1 },
+  campaignTitle: { color: "#fff", fontSize: 20, fontWeight: "900", textTransform: "uppercase" },
+  campaignSubtitle: { color: "#FFF7C2", fontSize: 12, lineHeight: 17, marginTop: 4 },
+  campaignButton: { width: '100%', minHeight: 48, paddingHorizontal: 20, paddingVertical: 14, borderRadius: 16, backgroundColor: "#fff", justifyContent: 'center' },
+  campaignButtonText: { color: "#d5296b", fontSize: 13, fontWeight: "900", textAlign: "center", textTransform: "uppercase" },
+  quickSection: { paddingHorizontal: 10, paddingVertical: 12 },
+  quickFrame: { padding: 8, borderRadius: 22, borderWidth: 1, borderColor: '#fce7f3', backgroundColor: '#fff', ...Shadows.sm },
+  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  quickCard: { flexBasis: '30%', flexGrow: 1, maxWidth: '32%', minHeight: 164, paddingTop: 10, paddingHorizontal: 5, paddingBottom: 40, borderRadius: 18, borderWidth: 1, borderColor: '#fce7f3', backgroundColor: '#fffafd', alignItems: 'center', ...Shadows.sm },
+  quickIcon: { width: 58, height: 58, borderRadius: 29, borderWidth: 1, borderColor: '#ffc5d4', alignItems: 'center', justifyContent: 'center', marginBottom: 7, ...Shadows.sm },
+  quickIconRing: { position: 'absolute', top: 5, bottom: 5, left: 5, right: 5, borderRadius: 30, borderWidth: 1, borderColor: '#fff' },
+  quickTitle: { color: '#192131', fontSize: 12, fontWeight: '800', textAlign: 'center' },
+  quickDescription: { color: '#687080', fontSize: 10, textAlign: 'center', marginTop: 4, lineHeight: 13 },
+  quickArrow: { position: 'absolute', bottom: 10, right: 10, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  specialArea: { margin: 10, borderRadius: 28, overflow: 'hidden' },
+  specialInner: { padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  specialLabel: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 1 },
+  specialTitle: { fontFamily: 'PlayfairDisplay', color: '#fff', fontSize: 24, marginVertical: 4 },
+  specialSubtitle: { color: '#ffe4ef', fontSize: 12 },
+  productSection: { paddingHorizontal: 16, paddingVertical: 24, backgroundColor: "#fff" },
+  productSectionSubtle: { backgroundColor: Colors.pinkPale },
+  sectionHeader: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginBottom: 16 },
+  sectionHeaderCopy: { flex: 1 },
+  productSectionTitle: { color: "#111827", fontSize: 30, lineHeight: 36, fontFamily: "PlayfairDisplay" },
+  productSectionSubtitle: { color: "#826672", fontSize: 11, lineHeight: 16, marginTop: 4 },
+  more: { color: Colors.primary, fontSize: 11, fontWeight: "800" },
+  productGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  productCell: { width: "48%", flexGrow: 1, flexBasis: "45%", marginBottom: 2 },
+  allButton: { alignSelf: "center", marginTop: 16, minHeight: 46, borderRadius: 23, backgroundColor: Colors.primary, paddingHorizontal: 22, maxWidth: "100%", alignItems: "center", justifyContent: "center" },
+  allButtonText: { color: "#fff", fontSize: 12, fontWeight: "900" },
+  benefits: { paddingVertical: 24, paddingHorizontal: 24, gap: 16 },
+  benefitItem: { flexDirection: "row", alignItems: "center", gap: 12 },
+  benefitCopy: { flex: 1 },
+  benefitTitle: { color: "#fff", fontSize: 18, fontWeight: "900" },
+  benefitSubtitle: { color: "rgba(255,255,255,0.8)", fontSize: 14, lineHeight: 19, marginTop: 2 },
+  benefitButton: { alignSelf: "center", minHeight: 48, paddingHorizontal: 24, borderRadius: 16, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
+  benefitButtonText: { color: "#db2777", fontSize: 14, fontWeight: "900" },
+  finalCta: { paddingHorizontal: 24, paddingVertical: 72, alignItems: "center" },
+  finalCtaLabel: { color: "#f472b6", fontSize: 14, fontWeight: "700", letterSpacing: 2 },
+  finalCtaTitle: { marginTop: 16, color: "#fff", fontFamily: "PlayfairDisplay", fontSize: 34, lineHeight: 40, fontWeight: "800", textAlign: "center" },
+  finalCtaHighlight: { color: "#fb7185", fontFamily: "PlayfairDisplay", fontSize: 34, lineHeight: 40, fontWeight: "800", textAlign: "center" },
+  finalCtaDescription: { color: "#9ca3af", fontSize: 18, lineHeight: 26, textAlign: "center", marginTop: 20 },
+  finalCtaButton: { marginTop: 32, minHeight: 52, borderRadius: 16, paddingHorizontal: 32, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center" },
+  finalCtaButtonText: { color: "#fff", fontSize: 16, fontWeight: "800" },
+  reviews: { padding: 16, paddingTop: 32, backgroundColor: "#fff8fb" },
+  reviewCard: { marginTop: 12, borderRadius: 20, padding: 16, backgroundColor: "#fff", borderWidth: 1, borderColor: "#f8d2dc", ...Shadows.sm },
+  reviewStars: { color: "#f6b51b", letterSpacing: 2, fontSize: 16 },
+  reviewText: { color: "#5c4550", fontSize: 13, lineHeight: 20, marginTop: 8 },
+  reviewAuthor: { color: "#7b1837", fontSize: 11, fontWeight: "800", marginTop: 10 },
+  categoriesSection: { padding: 16, paddingTop: 30 },
+  categoryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 15 },
+  categoryCard: { width: "48%", flexGrow: 1, flexBasis: "45%", borderRadius: 20, overflow: "hidden", backgroundColor: "#fff", borderWidth: 1, borderColor: "#f6cfda", ...Shadows.sm },
+  categoryImage: { width: "100%", height: 112, backgroundColor: "#ffeaf0" },
+  categoryPlaceholder: { alignItems: "center", justifyContent: "center" },
+  categoryCopy: { padding: 11 },
+  categoryTitle: { color: "#4c1425", fontSize: 13, fontWeight: "900", minHeight: 32 },
+  categoryCount: { color: "#9b7581", fontSize: 10, marginTop: 3 },
+  loadingMore: { paddingVertical: 22 },
+  footer: { marginTop: 28, backgroundColor: "#17070c", paddingHorizontal: 24, paddingVertical: 34, alignItems: "center" },
+  footerLogo: { color: "#ff6b91", fontSize: 28, fontWeight: "900" },
+  footerText: { color: "#cab9c0", fontSize: 11, textAlign: "center", lineHeight: 17, marginTop: 8 },
+  footerCopy: { color: "#806d75", fontSize: 9, marginTop: 16 },
+  skeletonWrap: { paddingBottom: 20 },
+  skeleton: { backgroundColor: "#f5e6eb", overflow: "hidden" },
+  skeletonHero: { width: "100%", aspectRatio: 3 / 2, marginTop: 10 },
+  skeletonRow: { flexDirection: "row", gap: 14, padding: 16 },
+  skeletonCircle: { width: 64, height: 64, borderRadius: 32 },
+  skeletonTitle: { width: 210, height: 26, borderRadius: 8, margin: 16 },
+  skeletonProduct: { width: "48%", flexGrow: 1, flexBasis: "45%", height: 240, borderRadius: 20 },
+  errorState: { minHeight: 440, alignItems: "center", justifyContent: "center", padding: 28 },
+  errorTitle: { color: "#4c1425", fontSize: 20, fontWeight: "900", marginTop: 14, textAlign: "center" },
+  errorDescription: { color: "#826672", fontSize: 13, marginTop: 6, textAlign: "center" },
+  retryButton: { marginTop: 18, minHeight: 46, borderRadius: 23, paddingHorizontal: 24, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center" },
+  retryText: { color: "#fff", fontSize: 13, fontWeight: "900" },
 });

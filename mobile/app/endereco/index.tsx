@@ -5,11 +5,13 @@ import {
   Platform, ScrollView, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { addressesApi } from "@/services/api";
 import { Button } from "@/components/ui/Button";
+import { useCheckoutStore } from "@/stores/checkoutStore";
+import { useAuthStore } from "@/stores/authStore";
 
 type Address = {
   id: string; label?: string; street: string; number: string;
@@ -27,6 +29,11 @@ const EMPTY_FORM: AddressForm = {
   neighborhood: "", city: "", state: "", zipCode: "",
 };
 
+const formatCep = (value: string) => {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
+};
+
 const REQUIRED_FIELDS: Array<keyof AddressForm> = ["street", "number", "neighborhood", "city", "state", "zipCode"];
 const FIELD_LABELS: Record<keyof AddressForm, string> = {
   label: "Identificação (ex: Casa, Trabalho)",
@@ -37,12 +44,18 @@ const FIELD_LABELS: Record<keyof AddressForm, string> = {
 
 export default function EnderecoScreen() {
   const router = useRouter();
+  const { select } = useLocalSearchParams<{ select?: string }>();
+  const customer = useAuthStore((state) => state.customer);
+  const setCheckoutAddress = useCheckoutStore((state) => state.setAddress);
   const [addresses, setAddresses]   = useState<Address[]>([]);
   const [loading, setLoading]       = useState(true);
   const [saving, setSaving]         = useState(false);
   const [showForm, setShowForm]     = useState(false);
   const [form, setForm]             = useState<AddressForm>(EMPTY_FORM);
   const [error, setError]           = useState("");
+  const [editingId, setEditingId]   = useState<string | null>(null);
+  const [loadingCep, setLoadingCep] = useState(false);
+  const [lastCep, setLastCep]       = useState("");
 
   async function fetchAddresses() {
     try {
@@ -57,7 +70,28 @@ export default function EnderecoScreen() {
 
   useEffect(() => { fetchAddresses(); }, []);
 
+  useEffect(() => {
+    const cleanZip = form.zipCode.replace(/\D/g, "");
+    if (cleanZip.length !== 8 || cleanZip === lastCep) return;
+    const timer = setTimeout(async () => {
+      setLoadingCep(true);
+      setError("");
+      try {
+        const response = await addressesApi.lookupPostalCode(cleanZip);
+        const found = response.data.data as Pick<AddressForm, "street" | "neighborhood" | "city" | "state" | "zipCode">;
+        setForm((current) => ({ ...current, ...found, zipCode: cleanZip }));
+        setLastCep(cleanZip);
+      } catch {
+        setError("Não foi possível localizar este CEP. Tente novamente.");
+      } finally {
+        setLoadingCep(false);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [form.zipCode, lastCep]);
+
   async function handleSave() {
+    if (saving) return;
     for (const field of REQUIRED_FIELDS) {
       if (!form[field].trim()) {
         setError(`O campo "${FIELD_LABELS[field].replace(" *", "")}" é obrigatório.`);
@@ -74,7 +108,7 @@ export default function EnderecoScreen() {
     setSaving(true);
     setError("");
     try {
-      await addressesApi.create({
+      const payload = {
         label: form.label || undefined,
         street: form.street.trim(),
         number: form.number.trim(),
@@ -83,16 +117,45 @@ export default function EnderecoScreen() {
         city: form.city.trim(),
         state: form.state.trim().toUpperCase(),
         zipCode: form.zipCode.replace(/\D/g, ""),
-      });
+      };
+      const response = editingId
+        ? await addressesApi.update(editingId, payload)
+        : await addressesApi.create(payload);
+      const saved = response.data.data as Address;
+      if (select === "1" && customer && saved?.id) setCheckoutAddress(saved.id, customer.id);
       setForm(EMPTY_FORM);
+      setEditingId(null);
+      setLastCep("");
       setShowForm(false);
       await fetchAddresses();
-    } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setError(msg ?? "Erro ao salvar endereço.");
+    } catch {
+      setError("Não foi possível salvar o endereço. Tente novamente.");
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleSelect(address: Address) {
+    if (select !== "1" || !customer) return;
+    setCheckoutAddress(address.id, customer.id);
+    router.back();
+  }
+
+  function handleEdit(address: Address) {
+    setEditingId(address.id);
+    setLastCep(address.zipCode.replace(/\D/g, ""));
+    setForm({
+      label: address.label ?? "",
+      street: address.street,
+      number: address.number,
+      complement: address.complement ?? "",
+      neighborhood: address.neighborhood,
+      city: address.city,
+      state: address.state,
+      zipCode: address.zipCode.replace(/\D/g, ""),
+    });
+    setError("");
+    setShowForm(true);
   }
 
   async function handleSetDefault(id: string) {
@@ -141,7 +204,7 @@ export default function EnderecoScreen() {
       {showForm ? (
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
-            <Text style={styles.formTitle}>Novo Endereço</Text>
+            <Text style={styles.formTitle}>{editingId ? "Editar Endereço" : "Novo Endereço"}</Text>
 
             {error ? (
               <View style={styles.errorBox}>
@@ -153,7 +216,7 @@ export default function EnderecoScreen() {
               <View key={key} style={styles.inputGroup}>
                 <Text style={styles.label}>{FIELD_LABELS[key]}</Text>
                 <TextInput
-                  value={form[key]}
+                  value={key === "zipCode" ? formatCep(form[key]) : form[key]}
                   onChangeText={(v) => {
                     let val = v;
                     if (key === "zipCode") val = v.replace(/\D/g, "").substring(0, 8);
@@ -168,9 +231,10 @@ export default function EnderecoScreen() {
                   placeholderTextColor={Colors.textLight}
                   keyboardType={key === "zipCode" ? "number-pad" : "default"}
                   autoCapitalize={key === "state" ? "characters" : "words"}
-                  maxLength={key === "state" ? 2 : key === "zipCode" ? 8 : undefined}
+                  maxLength={key === "state" ? 2 : key === "zipCode" ? 9 : undefined}
                   style={styles.input}
                 />
+                {key === "zipCode" && loadingCep ? <ActivityIndicator size="small" color={Colors.primary} style={styles.cepLoading} /> : null}
               </View>
             ))}
 
@@ -178,7 +242,7 @@ export default function EnderecoScreen() {
               <Button
                 label="Cancelar"
                 variant="outline"
-                onPress={() => { setShowForm(false); setForm(EMPTY_FORM); setError(""); }}
+                onPress={() => { setShowForm(false); setEditingId(null); setLastCep(""); setForm(EMPTY_FORM); setError(""); }}
                 style={{ flex: 1 }}
               />
               <Button
@@ -210,7 +274,11 @@ export default function EnderecoScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <View style={[styles.addressCard, item.isDefault && styles.addressCardDefault]}>
+            <TouchableOpacity
+              style={[styles.addressCard, item.isDefault && styles.addressCardDefault]}
+              onPress={() => handleSelect(item)}
+              activeOpacity={select === "1" ? 0.75 : 1}
+            >
               <View style={styles.addressTop}>
                 <View style={{ flex: 1 }}>
                   {item.label && <Text style={styles.addressLabel}>{item.label}</Text>}
@@ -231,6 +299,16 @@ export default function EnderecoScreen() {
               </View>
 
               <View style={styles.addressActions}>
+                {select === "1" && (
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => handleSelect(item)}>
+                    <Ionicons name="checkmark-circle-outline" size={16} color={Colors.primary} />
+                    <Text style={styles.actionBtnText}>Usar este</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={styles.actionBtn} onPress={() => handleEdit(item)}>
+                  <Ionicons name="create-outline" size={16} color={Colors.primary} />
+                  <Text style={styles.actionBtnText}>Editar</Text>
+                </TouchableOpacity>
                 {!item.isDefault && (
                   <TouchableOpacity
                     style={styles.actionBtn}
@@ -248,7 +326,7 @@ export default function EnderecoScreen() {
                   <Text style={[styles.actionBtnText, { color: Colors.error }]}>Remover</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
         />
       )}
@@ -307,6 +385,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14,
     fontSize: FontSizes.base, color: Colors.textPrimary,
   },
+  cepLoading: { position: "absolute", right: 14, bottom: 14 },
   emptyIcon:  { fontSize: 56, marginBottom: 12 },
   emptyTitle: { fontSize: FontSizes.md, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },
   emptyText:  { fontSize: FontSizes.sm, color: Colors.textMuted, textAlign: "center", marginTop: 6 },

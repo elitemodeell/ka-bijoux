@@ -1,199 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Prisma } from "@prisma/client";
 import AnnouncementBar from "@/components/loja/AnnouncementBar";
 import ProductCard from "@/components/loja/ProductCard";
 import AnimatedSection from "@/components/loja/AnimatedSection";
 import KABijouxStories from "@/components/loja/KABijouxStories";
 import QuickCategoryBar from "@/components/loja/QuickCategoryBar";
-import { getPublicCategoryName } from "@/lib/catalog";
-import { prisma } from "@/lib/prisma";
-import {
-  findBlingProductForSource,
-  isAdultImageUrl,
-  type ProductCardProduct,
-} from "@/lib/bling-catalog";
-import { getProductCatalogLine, matchesCatalogLine } from "@/lib/product-line";
+import type { ProductCardProduct } from "@/lib/bling-catalog";
+import { HOME_SECTION_DEFINITIONS, pickHomeBadge } from "@/lib/home-content";
+import { getHomeSections } from "@/lib/home-sections";
 
 export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "KA Bijoux — Bijuterias, Óculos e Acessórios Femininos",
   description:
-    "Descubra bijuterias, óculos de sol, capinhas e acessórios com estilo. Entrega para todo o Brasil. KA Bijoux — elegância que combina com você.",
+    "Descubra bijuterias, óculos de sol, capinhas e acessórios com estilo. Retirada e opções de entrega disponíveis no checkout. KA Bijoux — elegância que combina com você.",
 };
 
-interface HomeSections {
-  ofertasRelampago: ProductCardProduct[];
-  achadinhos: ProductCardProduct[];
-  novidades: ProductCardProduct[];
-  maisVendidos: ProductCardProduct[];
-  paraPresentes: ProductCardProduct[];
-  belezaAutocuidado: ProductCardProduct[];
-}
-
-const homeProductSelect = {
-  id: true,
-  name: true,
-  slug: true,
-  price: true,
-  promotionalPrice: true,
-  stock: true,
-  featured: true,
-  isNew: true,
-  sku: true,
-  blingId: true,
-  category: { select: { name: true, slug: true } },
-  subcategory: { select: { name: true, slug: true } },
-  images: {
-    orderBy: { order: "asc" as const },
-    take: 1,
-    select: { url: true, alt: true },
-  },
-};
-
-function pickBadge(id: string, options: string[]): string {
-  const n = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return options[n % options.length];
-}
-
-function mergeUniqueProducts(...pools: ProductCardProduct[][]): ProductCardProduct[] {
-  const products = new Map<string, ProductCardProduct>();
-
-  for (const product of pools.flat()) {
-    if (!products.has(product.id)) products.set(product.id, product);
-  }
-
-  return Array.from(products.values());
-}
-
-async function fetchPool(filters: {
-  limit: number;
-  featured?: boolean;
-  isNew?: boolean;
-  promo?: boolean;
-  sort?: "createdAt" | "best_sellers";
-}): Promise<ProductCardProduct[]> {
-  const where: Prisma.ProductWhereInput = {
-    active: true,
-    images: { some: {} },
-    category: { slug: { not: "sex-shop" } },
-  };
-  if (filters.featured) where.featured = true;
-  if (filters.isNew) where.isNew = true;
-  if (filters.promo) where.promotionalPrice = { not: null };
-
-  const products = await prisma.product.findMany({
-    where,
-    select: homeProductSelect,
-    orderBy: filters.sort === "best_sellers" ? { soldCount: "desc" } : { createdAt: "desc" },
-    take: filters.limit,
-  });
-
-  return products
-    .map((product) => mapDbProductToCard(product))
-    .filter((product): product is ProductCardProduct => Boolean(product))
-    .filter((product) => Boolean(product.image))
-    .filter((product) => matchesCatalogLine(toProductLineSource(product), "normal"));
-}
-
-function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof homeProductSelect }>): ProductCardProduct | null {
-  const bling = findBlingProductForSource({
-    blingId: product.blingId,
-    sku: product.sku,
-    slug: product.slug,
-    name: product.name,
-  });
-
-  const isAdultCategory = product.category?.slug === "sex-shop";
-  const rawDbImages = product.images.map((image) => ({ url: image.url, alt: image.alt ?? product.name }));
-  const dbImages = isAdultCategory ? rawDbImages : rawDbImages.filter((image) => !isAdultImageUrl(image.url));
-  const promotionalPrice = bling
-    ? null
-    : product.promotionalPrice
-      ? Number(product.promotionalPrice)
-      : null;
-  const category = product.category
-    ? { name: getPublicCategoryName(product.category), slug: product.category.slug }
-    : null;
-  const subcategory = product.subcategory
-    ? { name: product.subcategory.name, slug: product.subcategory.slug }
-    : null;
-  const catalogLine = getProductCatalogLine({
-    name: product.name,
-    categorySlug: category?.slug,
-    categoryName: category?.name,
-    subcategorySlug: subcategory?.slug,
-    subcategoryName: subcategory?.name,
-  });
-
-  return {
-    id: product.id,
-    name: product.name,
-    slug: product.slug,
-    price: bling?.price ?? Number(product.price),
-    promotionalPrice,
-    promo: promotionalPrice,
-    badge: product.isNew ? "Novo" : product.featured ? "Destaque" : null,
-    stock: product.stock,
-    sku: product.sku,
-    blingId: bling?.blingId ?? product.blingId,
-    category,
-    subcategory,
-    images: dbImages,
-    image: dbImages[0]?.url ?? null,
-    sourceOrder: 100000,
-    priceSource: bling ? "BLING" : "DATABASE",
-    imageSource: dbImages.length ? "DATABASE" : "NONE",
-    catalogLine,
-    isAdult: catalogLine === "adult",
-  } satisfies ProductCardProduct;
-}
-
-function toProductLineSource(product: ProductCardProduct) {
-  return {
-    name: product.name,
-    categorySlug: product.category?.slug,
-    categoryName: product.category?.name,
-    subcategorySlug: product.subcategory?.slug,
-    subcategoryName: product.subcategory?.name,
-  };
-}
-
-async function getHomeSections(): Promise<HomeSections> {
-  const [main, featured, newProds, promo] = await Promise.all([
-    fetchPool({ limit: 70 }),
-    fetchPool({ limit: 24, featured: true, sort: "best_sellers" }),
-    fetchPool({ limit: 24, isNew: true }),
-    fetchPool({ limit: 24, promo: true }),
-  ]);
-
-  const productPool = mergeUniqueProducts(main, featured, newProds, promo);
-
-  const usedIds = new Set<string>();
-
-  function takeSection(priority: ProductCardProduct[], n: number): ProductCardProduct[] {
-    const ordered = mergeUniqueProducts(priority, productPool);
-    const result: ProductCardProduct[] = [];
-    for (const p of ordered) {
-      if (!usedIds.has(p.id)) {
-        result.push(p);
-        usedIds.add(p.id);
-        if (result.length >= n) break;
-      }
-    }
-    return result;
-  }
-
-  const ofertasRelampago  = takeSection([...promo, ...featured, ...main], 8);
-  const achadinhos        = takeSection(main, 8);
-  const novidades         = takeSection([...newProds, ...main], 8);
-  const maisVendidos      = takeSection([...featured, ...main], 10);
-  const paraPresentes     = takeSection(main, 8);
-  const belezaAutocuidado = takeSection(main, 8);
-
-  return { ofertasRelampago, achadinhos, novidades, maisVendidos, paraPresentes, belezaAutocuidado };
-}
+const [offersConfig, findsConfig, newConfig, bestConfig, giftsConfig, beautyConfig] =
+  HOME_SECTION_DEFINITIONS;
 
 export default async function HomePage() {
   const {
@@ -222,14 +47,14 @@ export default async function HomePage() {
           <AnimatedSection className="flex items-end justify-between mb-6 sm:mb-10">
             <div>
               <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-2 block">
-                Imperdíveis
+                {offersConfig.label}
               </span>
               <h2 className="font-playfair text-3xl font-bold text-gray-900 sm:text-4xl">
-                Ofertas Relâmpago 🔥
+                {offersConfig.title}
               </h2>
             </div>
             <Link
-              href="/produtos"
+              href={offersConfig.route}
               className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200 flex-shrink-0"
             >
               Ver mais →
@@ -238,11 +63,11 @@ export default async function HomePage() {
 
           <SectionGrid
             products={ofertasRelampago}
-            badgeOptions={["Imperd\u00edvel", "Oferta", "Super Pre\u00e7o", "Corre!", "Aproveite"]}
+            badgeOptions={offersConfig.badges}
             keyPrefix="offer"
             badgeSeal
-            moreHref="/produtos"
-            moreLabel="Ver todos os produtos"
+            moreHref={offersConfig.route}
+            moreLabel={offersConfig.moreLabel}
           />
         </div>
       </section>
@@ -253,15 +78,15 @@ export default async function HomePage() {
           <AnimatedSection className="flex items-end justify-between mb-6 sm:mb-10">
             <div>
               <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-2 block">
-                Achados da semana
+                {findsConfig.label}
               </span>
               <h2 className="font-playfair text-3xl font-bold text-gray-900 sm:text-4xl">
-                Achadinhos KA Bijoux 💖
+                {findsConfig.title}
               </h2>
-              <p className="text-gray-500 text-sm mt-1">Produtos lindos para comprar sem pensar muito.</p>
+              <p className="text-gray-500 text-sm mt-1">{findsConfig.subtitle}</p>
             </div>
             <Link
-              href="/produtos"
+              href={findsConfig.route}
               className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200 flex-shrink-0"
             >
               Ver mais →
@@ -270,11 +95,11 @@ export default async function HomePage() {
 
           <SectionGrid
             products={achadinhos}
-            badgeOptions={["Achadinho", "Queridinho", "Boa Compra", "Favorito"]}
+            badgeOptions={findsConfig.badges}
             keyPrefix="ach"
             revealStep={55}
-            moreHref="/produtos"
-            moreLabel="Ver mais achadinhos"
+            moreHref={findsConfig.route}
+            moreLabel={findsConfig.moreLabel}
           />
         </div>
       </section>
@@ -294,8 +119,8 @@ export default async function HomePage() {
             <div className="flex items-center gap-3 text-center sm:text-left">
               <span className="text-3xl">💳</span>
               <div>
-                <p className="font-bold text-lg">Pix e cartão</p>
-                <p className="text-white/80 text-sm">Formas de pagamento disponíveis</p>
+                <p className="font-bold text-lg">Pix via Asaas</p>
+                <p className="text-white/80 text-sm">Pagamento seguro e confirmado</p>
               </div>
             </div>
             <div className="h-px sm:h-10 w-full sm:w-px bg-white/20" />
@@ -322,14 +147,14 @@ export default async function HomePage() {
           <AnimatedSection className="flex items-end justify-between mb-8 sm:mb-12">
             <div>
               <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-2 block">
-                Chegando agora
+                {newConfig.label}
               </span>
               <h2 className="font-playfair text-3xl font-bold text-gray-900 sm:text-4xl">
-                Novidades 🆕
+                {newConfig.title}
               </h2>
             </div>
             <Link
-              href="/produtos?new=true"
+              href={newConfig.route}
               className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200 flex-shrink-0"
             >
               Ver todas →
@@ -338,11 +163,11 @@ export default async function HomePage() {
 
           <SectionGrid
             products={novidades}
-            badgeOptions={["Novo", "Lan\u00e7amento", "Chegou"]}
+            badgeOptions={newConfig.badges}
             keyPrefix="new"
             revealStep={60}
-            moreHref="/produtos?new=true"
-            moreLabel="Ver todas as novidades"
+            moreHref={newConfig.route}
+            moreLabel={newConfig.moreLabel}
           />
         </div>
       </section>
@@ -353,14 +178,14 @@ export default async function HomePage() {
           <AnimatedSection className="flex items-end justify-between mb-8 sm:mb-12">
             <div>
               <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-2 block">
-                Top da semana
+                {bestConfig.label}
               </span>
               <h2 className="font-playfair text-3xl font-bold text-gray-900 sm:text-4xl">
-                Mais Vendidos ⭐
+                {bestConfig.title}
               </h2>
             </div>
             <Link
-              href="/produtos?ordem=mais-vendidos"
+              href={bestConfig.route}
               className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200 flex-shrink-0"
             >
               Ver todos →
@@ -369,11 +194,11 @@ export default async function HomePage() {
 
           <SectionGrid
             products={maisVendidos}
-            badgeOptions={["Mais Vendido", "Destaque", "Top"]}
+            badgeOptions={bestConfig.badges}
             keyPrefix="mv"
             revealStep={45}
-            moreHref="/produtos?ordem=mais-vendidos"
-            moreLabel="Ver mais vendidos"
+            moreHref={bestConfig.route}
+            moreLabel={bestConfig.moreLabel}
           />
         </div>
       </section>
@@ -384,14 +209,14 @@ export default async function HomePage() {
           <AnimatedSection className="flex items-end justify-between mb-8 sm:mb-12">
             <div>
               <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-2 block">
-                Ideias de presente
+                {giftsConfig.label}
               </span>
               <h2 className="font-playfair text-3xl font-bold text-gray-900 sm:text-4xl">
-                Para Presentear 🎁
+                {giftsConfig.title}
               </h2>
             </div>
             <Link
-              href="/produtos"
+              href={giftsConfig.route}
               className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200 flex-shrink-0"
             >
               Ver mais →
@@ -400,11 +225,11 @@ export default async function HomePage() {
 
           <SectionGrid
             products={paraPresentes}
-            badgeOptions={["Presente", "Especial", "Mimo", "Encanto"]}
+            badgeOptions={giftsConfig.badges}
             keyPrefix="gft"
             revealStep={60}
-            moreHref="/produtos"
-            moreLabel="Ver opções para presentear"
+            moreHref={giftsConfig.route}
+            moreLabel={giftsConfig.moreLabel}
           />
         </div>
       </section>
@@ -415,14 +240,14 @@ export default async function HomePage() {
           <AnimatedSection className="flex items-end justify-between mb-8 sm:mb-12">
             <div>
               <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-2 block">
-                Beleza e bem-estar
+                {beautyConfig.label}
               </span>
               <h2 className="font-playfair text-3xl font-bold text-gray-900 sm:text-4xl">
-                Beleza e Autocuidado ✨
+                {beautyConfig.title}
               </h2>
             </div>
             <Link
-              href="/produtos"
+              href={beautyConfig.route}
               className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200 flex-shrink-0"
             >
               Ver mais →
@@ -431,11 +256,11 @@ export default async function HomePage() {
 
           <SectionGrid
             products={belezaAutocuidado}
-            badgeOptions={["Top Beleza", "Favorita", "Tend\u00eancia"]}
+            badgeOptions={beautyConfig.badges}
             keyPrefix="bel"
             revealStep={60}
-            moreHref="/produtos"
-            moreLabel="Ver mais beleza"
+            moreHref={beautyConfig.route}
+            moreLabel={beautyConfig.moreLabel}
           />
         </div>
       </section>
@@ -499,7 +324,7 @@ export default async function HomePage() {
 
 type SectionGridProps = {
   products: ProductCardProduct[];
-  badgeOptions: string[];
+  badgeOptions: readonly string[];
   moreHref: string;
   moreLabel: string;
   keyPrefix?: string;
@@ -524,7 +349,7 @@ function SectionGrid({
             key={`${keyPrefix}-${product.id}`}
             product={{
               ...product,
-              badge: pickBadge(product.id, badgeOptions),
+              badge: pickHomeBadge(product.id, badgeOptions),
             }}
             revealDelay={i * revealStep}
             badgeSeal={badgeSeal}

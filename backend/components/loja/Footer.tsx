@@ -1,17 +1,15 @@
 "use client";
 
-import type { FormEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-
-const WHATSAPP_NUMBER = "5537999999999";
-const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}`;
+import { LEGAL_IDENTITY } from "@/lib/legal-identity";
 
 const benefitCards = [
   {
-    title: "Entrega rápida",
-    subtitle: "Para todo Brasil",
+    title: "Opções de entrega",
+    subtitle: "Exibidas no checkout",
     icon: TruckIcon,
   },
   {
@@ -20,26 +18,25 @@ const benefitCards = [
     icon: ShieldIcon,
   },
   {
-    title: "Produtos selecionados",
-    subtitle: "Qualidade garantida",
+    title: "Catálogo organizado",
+    subtitle: "Detalhes por produto",
     icon: DiamondIcon,
   },
   {
-    title: "Mimos exclusivos",
-    subtitle: "Em todos os pedidos",
+    title: "Controle da conta",
+    subtitle: "Exportação e exclusão",
     icon: GiftIcon,
   },
 ];
 
 const storeLinks = [
   { label: "Início", href: "/" },
+  { label: "Sobre", href: "/sobre" },
   { label: "Produtos", href: "/produtos" },
   { label: "Categorias", href: "/produtos" },
   { label: "Lançamentos", href: "/produtos?new=true" },
   { label: "Promoções", href: "/produtos?promo=true" },
   { label: "Carrinho", href: "/carrinho" },
-  { label: "Meus Pedidos", href: "/carrinho" },
-  { label: "Rastrear Pedido", href: WHATSAPP_LINK, external: true },
 ];
 
 const categoryLinks = [
@@ -54,33 +51,21 @@ const categoryLinks = [
 ];
 
 const helpLinks = [
-  { label: "Central de Atendimento", href: WHATSAPP_LINK, external: true },
-  { label: "Trocas", href: WHATSAPP_LINK, external: true },
-  { label: "Pagamento", href: "/carrinho" },
+  { label: "Entrega e frete", href: "/entrega" },
+  { label: "Trocas e devoluções", href: "/trocas-e-devolucoes" },
+  { label: "Cancelamento e reembolso", href: "/cancelamento-e-reembolso" },
+  { label: "Contato", href: "/contato" },
+  { label: "Cookies", href: "/cookies" },
   { label: "Privacidade", href: "/privacidade" },
-  { label: "Termos", href: "/privacidade" },
-  { label: "Contato", href: WHATSAPP_LINK, external: true },
-];
-
-const socialLinks = [
-  { label: "Instagram", href: "https://instagram.com", icon: InstagramIcon },
-  { label: "Facebook", href: "https://facebook.com", icon: FacebookIcon },
-  { label: "TikTok", href: "https://www.tiktok.com", icon: TikTokIcon },
-  { label: "WhatsApp", href: WHATSAPP_LINK, icon: WhatsAppIcon },
+  { label: "Termos", href: "/termos" },
+  { label: "Excluir conta", href: "/excluir-conta" },
 ];
 
 const paymentMethods = [
-  { name: "Pix", className: "text-[#22c7b8]", mark: "pix" },
-  { name: "Visa", className: "text-[#1f5cc9]", mark: "VISA" },
-  { name: "Mastercard", className: "text-[#f15a24]", mark: "●●" },
-  { name: "American Express", className: "text-[#2878c8]", mark: "AMEX" },
-  { name: "Elo", className: "text-[#111827]", mark: "elo" },
-  { name: "Hipercard", className: "text-[#c41230]", mark: "Hiper" },
-  { name: "Boleto", className: "text-[#111827]", mark: "Boleto" },
+  { name: "Pix via Asaas", className: "text-[#22c7b8]", mark: "pix" },
 ];
 
 export default function Footer() {
-  const [newsletterSent, setNewsletterSent] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => {
@@ -89,12 +74,6 @@ export default function Footer() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  function submitNewsletter(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setNewsletterSent(true);
-    event.currentTarget.reset();
-  }
 
   function backToTop() {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -116,14 +95,13 @@ export default function Footer() {
 
         <Reveal className="mt-14 lg:mt-20">
           <section className="grid gap-10 lg:grid-cols-[1.28fr_0.82fr_0.82fr_1fr] lg:gap-12" aria-label="Rodapé KA Bijoux">
-            <BrandColumn newsletterSent={newsletterSent} onSubmitNewsletter={submitNewsletter} />
+            <BrandColumn />
 
             <FooterLinks title="Loja" links={storeLinks} />
             <FooterLinks title="Categorias" links={categoryLinks} />
 
             <div className="space-y-5">
               <FooterLinks title="Ajuda" links={helpLinks} />
-              <ContactCard />
             </div>
           </section>
         </Reveal>
@@ -142,11 +120,17 @@ export default function Footer() {
               </p>
             </div>
 
-            <p className="text-white/55">© 2026 KA Bijoux</p>
+            <p className="text-white/55">© 2026 {LEGAL_IDENTITY.legalName} · CNPJ {LEGAL_IDENTITY.cnpj}</p>
 
             <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 lg:justify-end" aria-label="Links finais">
               <Link href="/privacidade" className="transition-colors duration-300 hover:text-[#FF4F87]">
                 Política de Privacidade
+              </Link>
+              <Link href="/termos" className="transition-colors duration-300 hover:text-[#FF4F87]">
+                Termos de Uso
+              </Link>
+              <Link href="/excluir-conta" className="transition-colors duration-300 hover:text-[#FF4F87]">
+                Excluir conta
               </Link>
               <Link href="/admin/login" className="transition-colors duration-300 hover:text-[#FF4F87]">
                 Área Administrativa
@@ -170,13 +154,7 @@ export default function Footer() {
   );
 }
 
-function BrandColumn({
-  newsletterSent,
-  onSubmitNewsletter,
-}: {
-  newsletterSent: boolean;
-  onSubmitNewsletter: (event: FormEvent<HTMLFormElement>) => void;
-}) {
+function BrandColumn() {
   return (
     <div className="text-center lg:text-left">
       <Link href="/" aria-label="KA Bijoux" className="inline-flex justify-center lg:justify-start">
@@ -194,43 +172,25 @@ function BrandColumn({
       <p className="mx-auto mt-5 max-w-sm text-[15px] leading-7 text-white/72 lg:mx-0">
         Bijuterias, óculos, capinhas e acessórios femininos com curadoria delicada para deixar sua rotina mais bonita.
       </p>
-
-      <div className="mt-7 flex justify-center gap-3 lg:justify-start" aria-label="Redes sociais">
-        {socialLinks.map((social) => (
-          <SocialButton key={social.label} {...social} />
-        ))}
-      </div>
+      <p className="mx-auto mt-3 max-w-sm text-xs leading-6 text-white/55 lg:mx-0">
+        {LEGAL_IDENTITY.legalName} · CNPJ {LEGAL_IDENTITY.cnpj}<br />
+        {LEGAL_IDENTITY.address.street}, {LEGAL_IDENTITY.address.number}, {LEGAL_IDENTITY.address.district}, {LEGAL_IDENTITY.address.city}/{LEGAL_IDENTITY.address.state}<br />
+        <a className="hover:text-white" href={`mailto:${LEGAL_IDENTITY.email}`}>{LEGAL_IDENTITY.email}</a>
+      </p>
 
       <div className="mt-9 max-w-sm rounded-[26px] border border-white/10 bg-white/[0.045] p-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur lg:max-w-md">
-        <p className="text-lg font-black text-white">Receba Novidades ✨</p>
-        <p className="mt-1 text-sm leading-relaxed text-white/56">Cadastre seu e-mail e fique por dentro das promoções.</p>
-
-        <form onSubmit={onSubmitNewsletter} className="mt-4 flex overflow-hidden rounded-2xl border border-white/12 bg-black/20 focus-within:border-[#FF4F87]/70">
-          <label htmlFor="footer-email" className="sr-only">
-            Seu melhor e-mail
-          </label>
-          <input
-            id="footer-email"
-            name="email"
-            type="email"
-            required
-            placeholder="Seu melhor e-mail"
-            className="min-h-12 min-w-0 flex-1 bg-transparent px-4 text-sm text-white outline-none placeholder:text-white/38"
-          />
-          <button
-            type="submit"
-            className="ka-btn flex min-h-12 w-14 shrink-0 items-center justify-center bg-[#FF4F87] text-white transition-colors duration-300 hover:bg-[#ff6d9c]"
-            aria-label="Cadastrar e-mail"
-          >
-            <SendIcon className="h-5 w-5" />
-          </button>
-        </form>
-
-        {newsletterSent && (
-          <p className="mt-3 text-xs font-semibold text-[#ff9fbd]" role="status">
-            Pronto. Quando tiver novidade bonita, você fica sabendo.
-          </p>
-        )}
+        <p className="text-lg font-black text-white">Privacidade e controle</p>
+        <p className="mt-1 text-sm leading-relaxed text-white/56">
+          Consulte como tratamos dados pessoais ou solicite a exclusão da sua conta.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link href="/privacidade" className="text-sm font-bold text-[#FF6F9C] hover:text-white">
+            Política de Privacidade
+          </Link>
+          <Link href="/excluir-conta" className="text-sm font-bold text-[#FF6F9C] hover:text-white">
+            Excluir conta
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -300,36 +260,6 @@ function BenefitCard({ title, subtitle, icon: Icon }: { title: string; subtitle:
   );
 }
 
-function ContactCard() {
-  return (
-    <article className="rounded-[28px] border border-[#FF4F87]/35 bg-gradient-to-br from-[#2a0b15] via-[#1b0710] to-[#13050a] p-5 shadow-[0_18px_52px_rgba(255,79,135,0.12)]">
-      <div className="flex items-start gap-4">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FF4F87] text-white shadow-[0_14px_28px_rgba(255,79,135,0.35)]">
-          <HeadsetIcon className="h-6 w-6" />
-        </span>
-        <div>
-          <h3 className="text-lg font-black text-white">Fale com a gente</h3>
-          <p className="mt-2 text-sm leading-relaxed text-white/62">
-            Segunda a Sexta
-            <br />
-            09h às 18h
-          </p>
-        </div>
-      </div>
-
-      <a
-        href={WHATSAPP_LINK}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="ka-btn mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#FF4F87] px-5 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(255,79,135,0.28)] transition-all duration-300 hover:bg-[#ff6d9c] sm:w-fit"
-      >
-        WhatsApp
-        <ArrowRightIcon className="h-4 w-4" />
-      </a>
-    </article>
-  );
-}
-
 function PaymentStrip() {
   return (
     <section aria-label="Formas de pagamento" className="text-center">
@@ -347,20 +277,6 @@ function PaymentStrip() {
         ))}
       </div>
     </section>
-  );
-}
-
-function SocialButton({ label, href, icon: Icon }: { label: string; href: string; icon: IconComponent }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={label}
-      className="group flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.075] text-[#FF6F9C] shadow-[0_12px_28px_rgba(255,79,135,0.10)] transition-all duration-300 hover:-translate-y-1 hover:scale-105 hover:border-[#FF4F87]/50 hover:bg-[#FF4F87] hover:text-white hover:shadow-[0_16px_36px_rgba(255,79,135,0.30)]"
-    >
-      <Icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
-    </a>
   );
 }
 
@@ -444,14 +360,6 @@ function InstagramIcon({ className }: { className?: string }) {
       <rect x="3" y="3" width="18" height="18" rx="5" />
       <circle cx="12" cy="12" r="4" />
       <path d="M17.5 6.5h.01" />
-    </svg>
-  );
-}
-
-function FacebookIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M14 8.5V6.7c0-.8.3-1.2 1.4-1.2H17V2.3c-.8-.1-1.7-.2-2.5-.2-2.6 0-4.4 1.6-4.4 4.5v1.9H7.2V12h2.9v9.8H14V12h2.9l.5-3.5H14Z" />
     </svg>
   );
 }

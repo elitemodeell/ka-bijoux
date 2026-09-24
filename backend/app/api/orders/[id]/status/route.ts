@@ -1,104 +1,151 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { OrderStatus, PaymentStatus, ShippingType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
-import { OrderStatus, ShippingType } from "@prisma/client";
 import { sendPushNotification, orderStatusMessage } from "@/lib/notifications";
 
-const schema = z.object({
-  status: z.nativeEnum(OrderStatus),
-  note: z.string().optional(),
-  trackingCode: z.string().optional(),
-});
+const logisticsStatuses = [
+  OrderStatus.EM_SEPARACAO,
+  OrderStatus.PRONTO_PARA_RETIRADA,
+  OrderStatus.SAIU_PARA_ENTREGA,
+  OrderStatus.ENVIADO_CORREIOS,
+  OrderStatus.ENTREGUE,
+] as const;
 
-// PATCH /api/orders/:id/status — Admin atualiza status
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+const schema = z
+  .object({
+    status: z.enum(logisticsStatuses),
+    note: z.string().trim().max(500).optional(),
+    trackingCode: z.string().trim().max(100).optional(),
+  })
+  .strict();
+
+const allowedTransitions: Readonly<Partial<Record<OrderStatus, ReadonlySet<OrderStatus>>>> = {
+  [OrderStatus.PAGAMENTO_APROVADO]: new Set([OrderStatus.EM_SEPARACAO]),
+  [OrderStatus.EM_SEPARACAO]: new Set([
+    OrderStatus.PRONTO_PARA_RETIRADA,
+    OrderStatus.SAIU_PARA_ENTREGA,
+    OrderStatus.ENVIADO_CORREIOS,
+  ]),
+  [OrderStatus.PRONTO_PARA_RETIRADA]: new Set([OrderStatus.ENTREGUE]),
+  [OrderStatus.SAIU_PARA_ENTREGA]: new Set([OrderStatus.ENTREGUE]),
+  [OrderStatus.ENVIADO_CORREIOS]: new Set([OrderStatus.ENTREGUE]),
+};
+
+function isAllowedManualOrderTransition(
+  current: OrderStatus,
+  attempted: OrderStatus
+): boolean {
+  return current === attempted || allowedTransitions[current]?.has(attempted) === true;
+}
+
+// PATCH /api/orders/:id/status — somente etapas logísticas.
+// Estados financeiros são controlados exclusivamente pelo Asaas/webhook.
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await requireAdmin(req);
-    const body = await req.json();
-    const { status, note, trackingCode } = schema.parse(body);
+    const { status, note, trackingCode } = schema.parse(await req.json());
 
     const order = await prisma.order.findUnique({
       where: { id: params.id },
-      include: { items: true, payment: true, customer: true },
+      include: { payment: true, customer: { select: { pushToken: true } } },
     });
     if (!order) return apiError("Pedido não encontrado.", 404);
-
-    const updateData: Record<string, unknown> = { status };
-    if (trackingCode) updateData.shippingTrackingCode = trackingCode;
-
-    // Se pagamento aprovado → baixar estoque (para Pix que foi confirmado)
+    if (order.payment?.status !== PaymentStatus.PAGO) {
+      return apiError(
+        "O pedido só pode avançar na logística após confirmação financeira pelo Asaas.",
+        409
+      );
+    }
+    if (!isAllowedManualOrderTransition(order.status, status)) {
+      return apiError("Transição de status não permitida.", 409);
+    }
     if (
-      status === OrderStatus.PAGAMENTO_APROVADO &&
-      order.status !== OrderStatus.PAGAMENTO_APROVADO
+      status === OrderStatus.ENVIADO_CORREIOS &&
+      (!trackingCode || trackingCode.length < 3)
     ) {
-      for (const item of order.items) {
-        if (item.variationId) {
-          await prisma.productVariation.update({
-            where: { id: item.variationId },
-            data: { stock: { decrement: item.quantity } },
-          });
-        } else {
-          await prisma.product.update({
-            where: { id: item.productId },
-            data: {
-              stock: { decrement: item.quantity },
-              soldCount: { increment: item.quantity },
-            },
-          });
-        }
-      }
-
-      // Atualizar pagamento para PAGO
-      if (order.payment) {
-        await prisma.payment.update({
-          where: { id: order.payment.id },
-          data: { status: "PAGO", paidAt: new Date() },
-        });
-      }
+      return apiError("Informe o código de rastreio dos Correios.", 422);
     }
 
-    const updated = await prisma.order.update({
-      where: { id: params.id },
-      data: {
-        ...updateData,
-        statusHistory: {
-          create: {
-            status,
-            note: note ?? statusNote(status, order.shippingType),
-          },
+    if (order.status === status) {
+      const unchanged = await prisma.order.findUnique({
+        where: { id: order.id },
+        include: {
+          items: true,
+          payment: true,
+          statusHistory: { orderBy: { createdAt: "desc" } },
+          customer: { select: { id: true, name: true, email: true } },
         },
-      },
-      include: {
-        items: true,
-        payment: true,
-        statusHistory: { orderBy: { createdAt: "desc" } },
-        customer: { select: { id: true, name: true, email: true } },
-      },
+      });
+      return apiSuccess(unchanged);
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const changed = await tx.order.updateMany({
+        where: { id: order.id, status: order.status },
+        data: {
+          status,
+          ...(status === OrderStatus.ENVIADO_CORREIOS
+            ? { shippingTrackingCode: trackingCode }
+            : {}),
+        },
+      });
+      if (changed.count !== 1) return null;
+
+      await tx.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          status,
+          note: note || statusNote(status, order.shippingType),
+        },
+      });
+
+      return tx.order.findUnique({
+        where: { id: order.id },
+        include: {
+          items: true,
+          payment: true,
+          statusHistory: { orderBy: { createdAt: "desc" } },
+          customer: { select: { id: true, name: true, email: true } },
+        },
+      });
     });
 
-    // Notificação push para o cliente (best-effort)
+    if (!updated) {
+      return apiError("O pedido foi atualizado simultaneamente. Recarregue e tente novamente.", 409);
+    }
+
     if (order.customer.pushToken) {
-      const msg = orderStatusMessage(status, order.orderNumber, order.shippingType, trackingCode);
-      sendPushNotification({
+      const message = orderStatusMessage(
+        status,
+        order.orderNumber,
+        order.shippingType,
+        trackingCode
+      );
+      void sendPushNotification({
         to: order.customer.pushToken,
-        title: msg.title,
-        body: msg.body,
+        title: message.title,
+        body: message.body,
         data: { orderId: order.id, orderNumber: order.orderNumber },
       });
     }
 
     return apiSuccess(updated);
-  } catch (e) {
-    if (e instanceof z.ZodError) return apiError(e.errors[0].message, 422);
+  } catch (error) {
+    if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof Error && error.message === "Não autorizado") {
+      return apiError("Não autorizado.", 401);
+    }
+    console.error("Erro ao atualizar etapa logística:", error);
     return apiError("Erro ao atualizar status.", 500);
   }
 }
 
 function statusNote(status: OrderStatus, shippingType: ShippingType): string {
   const notes: Partial<Record<OrderStatus, string>> = {
-    [OrderStatus.PAGAMENTO_APROVADO]: "Pagamento aprovado pelo gateway",
     [OrderStatus.EM_SEPARACAO]: "Pedido em separação no estoque",
     [OrderStatus.PRONTO_PARA_RETIRADA]: "Pedido pronto para retirada na loja",
     [OrderStatus.SAIU_PARA_ENTREGA]:
@@ -107,7 +154,6 @@ function statusNote(status: OrderStatus, shippingType: ShippingType): string {
         : "Pedido saiu para entrega",
     [OrderStatus.ENVIADO_CORREIOS]: "Pedido enviado pelos Correios",
     [OrderStatus.ENTREGUE]: "Pedido entregue ao cliente",
-    [OrderStatus.CANCELADO]: "Pedido cancelado",
   };
   return notes[status] ?? "";
 }

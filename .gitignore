@@ -13,6 +13,13 @@ build/
 dist/
 web-build/
 *.jks
+*.keystore
+credentials.json
+android/app/*.jks
+android/app/*.keystore
+mobile/android/app/*.jks
+mobile/android/app/*.keystore
+google-service-account.json
 *.p8
 *.p12
 *.key
@@ -56,6 +63,15 @@ coverage/
 *.tsbuildinfo
 tmp/bling-products-report.*
 tmp/bling-token.local.json
+tmp/etapa4-expo54-reference/
+tmp/etapa5c-pg-cluster/
 reports/**/bling-product-details-raw.json
+checkpoint-etapa4-android-antes.zip
+
+# Backups de banco podem conter dados pessoais e nunca devem entrar no Git
+artifacts/database-backups/*.dump
+artifacts/database-backups/*.backup
+
+.vercel
 
 .vercel

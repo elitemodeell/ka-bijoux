@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { StaticProduct, StaticProductVariant } from "@/lib/static-sex-shop-catalog";
 import { addCartItem } from "@/lib/client-cart";
-import { getDiscountPercentage, getInstallmentInfo, getValidPromotionalPrice } from "@/lib/store-rules";
+import { getDiscountPercentage, getValidPromotionalPrice } from "@/lib/store-rules";
 import ProductCard from "@/components/loja/ProductCard";
 import ProductVariantImage from "@/components/loja/ProductVariantImage";
 
@@ -62,23 +62,23 @@ const fmt = (v: number) =>
 const FAQS = [
   {
     q: "Como funciona a entrega?",
-    a: "Fazemos envio pelos Correios para todo o Brasil. Também oferecemos retirada na loja e entrega por mototáxi em Itaúna – MG no mesmo dia ou no dia seguinte.",
+    a: "As opções disponíveis, valores e prazos são calculados e exibidos no checkout para o endereço informado.",
   },
   {
     q: "Posso trocar ou devolver o produto?",
-    a: "Sim! Temos política de troca e devolução em até 7 dias corridos após o recebimento, conforme o Código de Defesa do Consumidor. Entre em contato pelo WhatsApp para resolver rapidamente.",
+    a: "As solicitações de troca ou devolução seguem os Termos de Uso e a legislação aplicável. O canal oficial ainda precisa ser informado pela loja.",
   },
   {
     q: "Qual o prazo de entrega?",
-    a: "Mototáxi em Itaúna: mesmo dia ou dia seguinte. Pelos Correios: 5 a 15 dias úteis dependendo da região.",
+    a: "O prazo depende da opção de entrega disponível e é mostrado no checkout antes da confirmação.",
   },
   {
     q: "O produto tem garantia?",
-    a: "Trabalhamos apenas com produtos de qualidade. Caso receba algo com defeito ou diferente do pedido, entre em contato que resolvemos na hora.",
+    a: "Produtos com defeito ou diferentes do pedido são tratados conforme a legislação aplicável e os Termos de Uso.",
   },
   {
     q: "Quais são as formas de pagamento?",
-    a: "PIX, cartão de crédito e outras formas de pagamento oferecidas na finalização do pedido.",
+    a: "As formas habilitadas são apresentadas no checkout e processadas com segurança pelo Asaas.",
   },
 ];
 
@@ -147,7 +147,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const promotionalPrice = getValidPromotionalPrice(product.price, product.promotionalPrice);
   const finalPrice = promotionalPrice ?? product.price;
   const discountPct = getDiscountPercentage({ originalPrice: product.price, currentPrice: promotionalPrice });
-  const installment = getInstallmentInfo(finalPrice);
+
   const categoryName = product.categoryName ?? "KA Bijoux";
   const categorySlug = product.categorySlug ?? "produtos";
   const productSubcategoryName = product.subcategoryName ?? subcategoryName;
@@ -336,6 +336,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                 ))}
               </div>
             )}
+
           </div>
 
           {/* Purchase Panel */}
@@ -386,11 +387,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                   <div className="mt-1 flex items-end gap-2">
                     <span className="text-[34px] font-black leading-none text-pink-600">{fmt(finalPrice)}</span>
                   </div>
-                  {installment.eligible && installment.installmentValue && (
-                    <p className="mt-2 text-sm font-semibold text-gray-600">
-                      {installment.label} de {fmt(installment.installmentValue)} sem juros
-                    </p>
-                  )}
+                  <p className="mt-2 text-sm font-semibold text-gray-600">Pagamento seguro via Pix</p>
                 </div>
 
                 {shared && (

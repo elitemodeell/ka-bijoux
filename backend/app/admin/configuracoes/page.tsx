@@ -79,12 +79,12 @@ export default function ConfiguracoesPage() {
 
             {[
               { name: "storeName", label: "Nome da loja", placeholder: "KA Bijoux" },
-              { name: "storeAddress", label: "Endereco", placeholder: "Rua das Flores, 123" },
+              { name: "storeAddress", label: "Endereco", placeholder: "Rua Capitão Vicente, 110, Centro" },
               { name: "storeCity", label: "Cidade", placeholder: "Itauna" },
               { name: "storeState", label: "Estado", placeholder: "MG" },
-              { name: "storeZipCode", label: "CEP", placeholder: "35680-000" },
+              { name: "storeZipCode", label: "CEP", placeholder: "35680-056" },
               { name: "storePhone", label: "Telefone", placeholder: "(37) 99999-9999" },
-              { name: "storeEmail", label: "E-mail", placeholder: "contato@kabijoux.com.br" },
+              { name: "storeEmail", label: "E-mail", placeholder: "adm@kabijoux.com.br" },
               { name: "storeHours", label: "Horario de funcionamento", placeholder: "Seg-Sex: 9h as 18h" },
             ].map((field) => (
               <div key={field.name}>

@@ -4,21 +4,21 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")       // Supabase connection pooler (pgbouncer) — usado em runtime
-  directUrl = env("DIRECT_URL")        // Supabase direct connection — usado apenas para migrations
+  url       = env("DATABASE_URL") // Supabase connection pooler (pgbouncer) — usado em runtime
+  directUrl = env("DIRECT_URL") // Supabase direct connection — usado apenas para migrations
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
 model Admin {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
-  email     String   @unique
+  email     String    @unique
   password  String
   role      AdminRole @default(ADMIN)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@map("admins")
 }
@@ -31,26 +31,34 @@ enum AdminRole {
 // ─── Customer ─────────────────────────────────────────────────────────────────
 
 model Customer {
-  id           String    @id @default(cuid())
-  name         String
-  email        String    @unique
-  phone        String?
-  cpf          String?   @unique
-  passwordHash String
-  active                Boolean   @default(true)
-  pushToken             String?
-  passwordResetCode     String?
-  passwordResetExpires  DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id                        String    @id @default(cuid())
+  name                      String
+  email                     String    @unique
+  authUserId                String?   @unique @db.Uuid
+  authMigratedAt            DateTime?
+  phone                     String?
+  cpf                       String?   @unique
+  passwordHash              String
+  active                    Boolean   @default(true)
+  pushToken                 String?
+  asaasCustomerId           String?   @unique
+  asaasAccountId            String?
+  asaasCreationClaimedAt    DateTime?
+  asaasCreationAttemptCount Int       @default(0)
+  passwordResetCode         String?
+  passwordResetExpires      DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
 
-  addresses     Address[]
-  orders        Order[]
-  cart          Cart?
-  favorites     Favorite[]
-  notifications Notification[]
-  reviews       Review[]
+  addresses        Address[]
+  orders           Order[]
+  cart             Cart?
+  favorites        Favorite[]
+  notifications    Notification[]
+  reviews          Review[]
+  deletionRequests AccountDeletionRequest[]
 
+  @@index([asaasAccountId])
   @@map("customers")
 }
 
@@ -80,15 +88,25 @@ model Address {
 // ─── Category ─────────────────────────────────────────────────────────────────
 
 model Category {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String?
-  imageUrl    String?
-  active      Boolean  @default(true)
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                    String                @id @default(cuid())
+  name                  String
+  slug                  String                @unique
+  description           String?
+  imageUrl              String?
+  active                Boolean               @default(true)
+  order                 Int                   @default(0)
+  distributionChannels  DistributionChannel[] @default([WEB_FULL, ADMIN])
+  playStoreStatus       PlayStoreStatus       @default(PLAY_REVIEW_REQUIRED)
+  playStoreReviewedAt   DateTime?
+  playStoreReviewedBy   String?
+  playStoreReviewNotes  String?               @db.Text
+  contentClassification ContentClassification @default(UNCLASSIFIED)
+  policyReviewStatus    PolicyReviewStatus    @default(UNCLASSIFIED)
+  policyReviewedAt      DateTime?
+  policyReviewedBy      String?
+  policyReviewNotes     String?               @db.Text
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   parentId String?
@@ -98,62 +116,74 @@ model Category {
   subcategoryProducts Product[] @relation("ProductSubcategory")
 
   @@index([parentId, active, order])
+  @@index([active, playStoreStatus])
   @@map("categories")
 }
 
 // ─── Product ──────────────────────────────────────────────────────────────────
 
 model Product {
-  id               String   @id @default(cuid())
-  name             String
-  slug             String   @unique
-  description      String
-  brand            String?
-  ean              String?
-  benefits         String?  @db.Text
-  howToUse         String?  @db.Text
-  composition      String?  @db.Text
-  careInstructions String?  @db.Text
-  packageContents  String?  @db.Text
-  price            Decimal  @db.Decimal(10, 2)
-  promotionalPrice Decimal? @db.Decimal(10, 2)
-  stock            Int      @default(0)
-  minStock         Int      @default(5)
-  weight           Decimal  @default(0.3) @db.Decimal(10, 3)
-  height           Decimal  @default(5)   @db.Decimal(10, 2)
-  width            Decimal  @default(10)  @db.Decimal(10, 2)
-  length           Decimal  @default(15)  @db.Decimal(10, 2)
-  active           Boolean  @default(true)
-  featured         Boolean  @default(false)
-  isNew            Boolean  @default(true)
-  soldCount        Int      @default(0)
-  sku              String?
-  blingId          String?  @unique
-  importSource     ProductImportSource @default(MANUAL)
-  enrichmentStatus ProductEnrichmentStatus @default(NOT_REQUIRED)
-  publicationStatus ProductPublicationStatus @default(IMPORTED)
-  searchTags       String[] @default([])
-  researchSources  Json?
-  researchNotes    String? @db.Text
-  researchedAt     DateTime?
-  importedAt       DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                    String                   @id @default(cuid())
+  name                  String
+  slug                  String                   @unique
+  description           String
+  brand                 String?
+  ean                   String?
+  benefits              String?                  @db.Text
+  howToUse              String?                  @db.Text
+  composition           String?                  @db.Text
+  careInstructions      String?                  @db.Text
+  packageContents       String?                  @db.Text
+  price                 Decimal                  @db.Decimal(10, 2)
+  promotionalPrice      Decimal?                 @db.Decimal(10, 2)
+  stock                 Int                      @default(0)
+  minStock              Int                      @default(5)
+  weight                Decimal                  @default(0.3) @db.Decimal(10, 3)
+  height                Decimal                  @default(5) @db.Decimal(10, 2)
+  width                 Decimal                  @default(10) @db.Decimal(10, 2)
+  length                Decimal                  @default(15) @db.Decimal(10, 2)
+  active                Boolean                  @default(true)
+  featured              Boolean                  @default(false)
+  isNew                 Boolean                  @default(true)
+  soldCount             Int                      @default(0)
+  sku                   String?
+  blingId               String?                  @unique
+  importSource          ProductImportSource      @default(MANUAL)
+  enrichmentStatus      ProductEnrichmentStatus  @default(NOT_REQUIRED)
+  publicationStatus     ProductPublicationStatus @default(IMPORTED)
+  distributionChannels  DistributionChannel[]    @default([WEB_FULL, ADMIN])
+  playStoreStatus       PlayStoreStatus          @default(PLAY_REVIEW_REQUIRED)
+  playStoreReviewedAt   DateTime?
+  playStoreReviewedBy   String?
+  playStoreReviewNotes  String?                  @db.Text
+  contentClassification ContentClassification    @default(UNCLASSIFIED)
+  policyReviewStatus    PolicyReviewStatus       @default(UNCLASSIFIED)
+  policyReviewedAt      DateTime?
+  policyReviewedBy      String?
+  policyReviewNotes     String?                  @db.Text
+  searchTags            String[]                 @default([])
+  researchSources       Json?
+  researchNotes         String?                  @db.Text
+  researchedAt          DateTime?
+  importedAt            DateTime?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
 
-  category   Category @relation("ProductCategory", fields: [categoryId], references: [id])
-  categoryId String
+  category      Category  @relation("ProductCategory", fields: [categoryId], references: [id])
+  categoryId    String
   subcategory   Category? @relation("ProductSubcategory", fields: [subcategoryId], references: [id])
   subcategoryId String?
 
-  images      ProductImage[]
-  variations  ProductVariation[]
-  cartItems   CartItem[]
-  orderItems  OrderItem[]
-  favorites   Favorite[]
-  reviews     Review[]
+  images     ProductImage[]
+  variations ProductVariation[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  favorites  Favorite[]
+  reviews    Review[]
 
   @@index([categoryId])
   @@index([active, publicationStatus])
+  @@index([active, playStoreStatus])
   @@index([featured, active])
   @@index([createdAt])
   @@index([categoryId, active, createdAt])
@@ -187,6 +217,34 @@ enum ProductPublicationStatus {
   MISSING_DESCRIPTION
 }
 
+enum DistributionChannel {
+  WEB_FULL
+  GOOGLE_PLAY
+  ADMIN
+}
+
+enum PlayStoreStatus {
+  PLAY_ALLOWED
+  PLAY_BLOCKED
+  PLAY_REVIEW_REQUIRED
+}
+
+enum ContentClassification {
+  GENERAL
+  LINGERIE_NEUTRAL
+  ADULT_PRODUCT
+  SEXUALLY_EXPLICIT
+  REVIEW_REQUIRED
+  UNCLASSIFIED
+}
+
+enum PolicyReviewStatus {
+  UNCLASSIFIED
+  REVIEW_REQUIRED
+  APPROVED
+  BLOCKED
+}
+
 // ─── ProductImage ─────────────────────────────────────────────────────────────
 
 model ProductImage {
@@ -218,7 +276,7 @@ model ProductVariation {
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
 
-  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId  String
   cartItems  CartItem[]
   orderItems OrderItem[]
@@ -243,15 +301,15 @@ model Cart {
 }
 
 model CartItem {
-  id         String   @id @default(cuid())
-  quantity   Int
-  unitPrice  Decimal  @db.Decimal(10, 2)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(cuid())
+  quantity  Int
+  unitPrice Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  cart        Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cart        Cart              @relation(fields: [cartId], references: [id], onDelete: Cascade)
   cartId      String
-  product     Product  @relation(fields: [productId], references: [id])
+  product     Product           @relation(fields: [productId], references: [id])
   productId   String
   variation   ProductVariation? @relation(fields: [variationId], references: [id])
   variationId String?
@@ -263,29 +321,32 @@ model CartItem {
 // ─── Order ────────────────────────────────────────────────────────────────────
 
 model Order {
-  id                   String        @id @default(cuid())
-  orderNumber          String        @unique
-  status               OrderStatus   @default(CRIADO)
-  subtotal             Decimal       @db.Decimal(10, 2)
-  shippingPrice        Decimal       @default(0) @db.Decimal(10, 2)
-  discount             Decimal       @default(0) @db.Decimal(10, 2)
-  total                Decimal       @db.Decimal(10, 2)
-  shippingType         ShippingType
-  shippingTrackingCode String?
-  notes                String?
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
+  id                     String       @id @default(cuid())
+  orderNumber            String       @unique
+  status                 OrderStatus  @default(CRIADO)
+  subtotal               Decimal      @db.Decimal(10, 2)
+  shippingPrice          Decimal      @default(0) @db.Decimal(10, 2)
+  discount               Decimal      @default(0) @db.Decimal(10, 2)
+  total                  Decimal      @db.Decimal(10, 2)
+  shippingType           ShippingType
+  shippingTrackingCode   String?
+  notes                  String?
+  checkoutIdempotencyKey String?      @unique
+  checkoutRequestHash    String?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
 
-  customer   Customer  @relation(fields: [customerId], references: [id])
+  customer   Customer @relation(fields: [customerId], references: [id])
   customerId String
-  address    Address?  @relation(fields: [addressId], references: [id])
+  address    Address? @relation(fields: [addressId], references: [id])
   addressId  String?
-  coupon     Coupon?   @relation(fields: [couponId], references: [id])
+  coupon     Coupon?  @relation(fields: [couponId], references: [id])
   couponId   String?
 
-  items   OrderItem[]
-  payment Payment?
+  items         OrderItem[]
+  payment       Payment?
   statusHistory OrderStatusHistory[]
+  webhookEvents PaymentWebhookEvent[]
 
   @@index([customerId])
   @@index([status])
@@ -295,17 +356,17 @@ model Order {
 }
 
 model OrderItem {
-  id            String   @id @default(cuid())
+  id            String  @id @default(cuid())
   productName   String
   productImage  String?
   variationName String?
   quantity      Int
-  unitPrice     Decimal  @db.Decimal(10, 2)
-  totalPrice    Decimal  @db.Decimal(10, 2)
+  unitPrice     Decimal @db.Decimal(10, 2)
+  totalPrice    Decimal @db.Decimal(10, 2)
 
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order       Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
   orderId     String
-  product     Product  @relation(fields: [productId], references: [id])
+  product     Product           @relation(fields: [productId], references: [id])
   productId   String
   variation   ProductVariation? @relation(fields: [variationId], references: [id])
   variationId String?
@@ -328,7 +389,12 @@ model OrderStatusHistory {
 enum OrderStatus {
   CRIADO
   AGUARDANDO_PAGAMENTO
+  PAGAMENTO_PENDENTE
   PAGAMENTO_APROVADO
+  PAGAMENTO_EXPIRADO
+  FALHA_NO_PAGAMENTO
+  REEMBOLSO_PENDENTE
+  REEMBOLSADO
   EM_SEPARACAO
   PRONTO_PARA_RETIRADA
   SAIU_PARA_ENTREGA
@@ -346,23 +412,60 @@ enum ShippingType {
 // ─── Payment ──────────────────────────────────────────────────────────────────
 
 model Payment {
-  id            String        @id @default(cuid())
-  method        PaymentMethod
-  status        PaymentStatus @default(AGUARDANDO)
-  amount        Decimal       @db.Decimal(10, 2)
-  gatewayId     String?
-  gatewayData   Json?
-  pixCode       String?       @db.Text
-  pixExpiration DateTime?
-  paidAt        DateTime?
-  refundedAt    DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                   String              @id @default(cuid())
+  provider             PaymentProvider?
+  method               PaymentMethod
+  status               PaymentStatus       @default(AGUARDANDO)
+  amount               Decimal             @db.Decimal(10, 2)
+  gatewayId            String?
+  externalPaymentId    String?
+  externalCustomerId   String?
+  providerAccountId    String?
+  externalCheckoutId   String?
+  externalReference    String?
+  idempotencyKey       String?
+  environment          PaymentEnvironment?
+  installmentCount     Int                 @default(1)
+  installmentValue     Decimal?            @db.Decimal(10, 2)
+  lastProviderStatus   String?
+  gatewayData          Json?
+  checkoutUrl          String?
+  checkoutExpiration   DateTime?
+  boletoUrl            String?
+  boletoDigitableLine  String?             @db.Text
+  boletoExpiration     DateTime?
+  pixCode              String?             @db.Text
+  pixQrCode            String?             @db.Text
+  pixExpiration        DateTime?
+  paidAt               DateTime?
+  confirmedAt          DateTime?
+  receivedAt           DateTime?
+  cancelledAt          DateTime?
+  refundedAt           DateTime?
+  stockCommittedAt     DateTime?
+  creationClaimedAt    DateTime?
+  creationAttemptCount Int                 @default(0)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
 
   order   Order  @relation(fields: [orderId], references: [id])
   orderId String @unique
 
+  @@unique([provider, externalPaymentId])
+  @@unique([provider, externalCheckoutId])
+  @@unique([provider, idempotencyKey])
+  @@index([provider, providerAccountId])
   @@map("payments")
+}
+
+enum PaymentEnvironment {
+  SANDBOX
+  PRODUCTION
+}
+
+enum PaymentProvider {
+  ASAAS
+  MERCADO_PAGO
 }
 
 enum PaymentMethod {
@@ -373,27 +476,73 @@ enum PaymentMethod {
 
 enum PaymentStatus {
   AGUARDANDO
+  EM_ANALISE
   PAGO
   RECUSADO
   CANCELADO
+  EXPIRADO
+  FALHA
+  ESTORNO_PENDENTE
   REEMBOLSADO
+}
+
+model PaymentWebhookEvent {
+  id                  String                  @id @default(cuid())
+  provider            PaymentProvider
+  externalEventId     String
+  eventType           String
+  externalPaymentId   String?
+  payloadHash         String?
+  processingStatus    WebhookProcessingStatus @default(RECEIVED)
+  errorSummary        String?
+  receivedAt          DateTime                @default(now())
+  processingStartedAt DateTime?
+  processedAt         DateTime?
+  attemptCount        Int                     @default(0)
+
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  orderId String?
+
+  @@unique([provider, externalEventId])
+  @@index([externalPaymentId])
+  @@index([orderId])
+  @@index([processingStatus, receivedAt])
+  @@map("payment_webhook_events")
+}
+
+enum WebhookProcessingStatus {
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  IGNORED
+  FAILED
 }
 
 // ─── Coupon ───────────────────────────────────────────────────────────────────
 
 model Coupon {
-  id           String      @id @default(cuid())
-  code         String      @unique
-  description  String?
-  discountType DiscountType
-  discountValue Decimal    @db.Decimal(10, 2)
-  minOrderValue Decimal?   @db.Decimal(10, 2)
-  maxUses       Int?
-  usedCount     Int        @default(0)
-  active        Boolean    @default(true)
-  expiresAt     DateTime?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id                    String                @id @default(cuid())
+  code                  String                @unique
+  description           String?
+  discountType          DiscountType
+  discountValue         Decimal               @db.Decimal(10, 2)
+  minOrderValue         Decimal?              @db.Decimal(10, 2)
+  maxUses               Int?
+  usedCount             Int                   @default(0)
+  active                Boolean               @default(true)
+  distributionChannels  DistributionChannel[] @default([WEB_FULL, ADMIN])
+  playStoreStatus       PlayStoreStatus       @default(PLAY_REVIEW_REQUIRED)
+  playStoreReviewedAt   DateTime?
+  playStoreReviewedBy   String?
+  playStoreReviewNotes  String?               @db.Text
+  contentClassification ContentClassification @default(UNCLASSIFIED)
+  policyReviewStatus    PolicyReviewStatus    @default(UNCLASSIFIED)
+  policyReviewedAt      DateTime?
+  policyReviewedBy      String?
+  policyReviewNotes     String?               @db.Text
+  expiresAt             DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 
   orders Order[]
 
@@ -423,14 +572,24 @@ model Favorite {
 // ─── Notification ─────────────────────────────────────────────────────────────
 
 model Notification {
-  id        String           @id @default(cuid())
-  type      NotificationType
-  title     String
-  body      String
-  data      Json?
-  read      Boolean          @default(false)
-  sentAt    DateTime?
-  createdAt DateTime         @default(now())
+  id                    String                @id @default(cuid())
+  type                  NotificationType
+  title                 String
+  body                  String
+  data                  Json?
+  read                  Boolean               @default(false)
+  sentAt                DateTime?
+  distributionChannels  DistributionChannel[] @default([WEB_FULL, ADMIN])
+  playStoreStatus       PlayStoreStatus       @default(PLAY_REVIEW_REQUIRED)
+  playStoreReviewedAt   DateTime?
+  playStoreReviewedBy   String?
+  playStoreReviewNotes  String?               @db.Text
+  contentClassification ContentClassification @default(UNCLASSIFIED)
+  policyReviewStatus    PolicyReviewStatus    @default(UNCLASSIFIED)
+  policyReviewedAt      DateTime?
+  policyReviewedBy      String?
+  policyReviewNotes     String?               @db.Text
+  createdAt             DateTime              @default(now())
 
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   customerId String
@@ -452,12 +611,22 @@ enum NotificationType {
 // ─── Review ───────────────────────────────────────────────────────────────────
 
 model Review {
-  id        String   @id @default(cuid())
-  rating    Int
-  comment   String?  @db.Text
-  approved  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                    String                @id @default(cuid())
+  rating                Int
+  comment               String?               @db.Text
+  approved              Boolean               @default(false)
+  distributionChannels  DistributionChannel[] @default([WEB_FULL, ADMIN])
+  playStoreStatus       PlayStoreStatus       @default(PLAY_REVIEW_REQUIRED)
+  playStoreReviewedAt   DateTime?
+  playStoreReviewedBy   String?
+  playStoreReviewNotes  String?               @db.Text
+  contentClassification ContentClassification @default(UNCLASSIFIED)
+  policyReviewStatus    PolicyReviewStatus    @default(UNCLASSIFIED)
+  policyReviewedAt      DateTime?
+  policyReviewedBy      String?
+  policyReviewNotes     String?               @db.Text
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   customerId String
@@ -483,26 +652,88 @@ model ConsentLog {
   @@map("consent_logs")
 }
 
+// Solicitações externas de exclusão. O token em texto puro nunca é persistido.
+model AccountDeletionRequest {
+  id          String                       @id @default(cuid())
+  tokenHash   String                       @unique
+  status      AccountDeletionRequestStatus @default(PENDING)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  emailSentAt DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
+  createdAt   DateTime                     @default(now())
+  updatedAt   DateTime                     @updatedAt
+
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+
+  @@index([customerId, status])
+  @@index([expiresAt, status])
+  @@map("account_deletion_requests")
+}
+
+enum AccountDeletionRequestStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  EMAIL_FAILED
+}
+
+// Trilha mínima e pseudonimizada para segurança, fraude e prestação de contas.
+model AccountDeletionAudit {
+  id          String   @id @default(cuid())
+  event       String
+  outcome     String
+  customerRef String?
+  requestRef  String?
+  emailHash   String?
+  ipHash      String?
+  userAgent   String?
+  details     Json?
+  createdAt   DateTime @default(now())
+
+  @@index([customerRef, createdAt])
+  @@index([requestRef, createdAt])
+  @@index([emailHash, createdAt])
+  @@index([ipHash, createdAt])
+  @@map("account_deletion_audits")
+}
+
+// ─── Rate limit compartilhado ───────────────────────────────────────────────
+
+model RateLimitBucket {
+  id        String   @id @db.VarChar(191)
+  count     Int      @default(1)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@map("rate_limit_buckets")
+}
+
 // ─── StoreSettings ────────────────────────────────────────────────────────────
 
 model StoreSettings {
-  id                  String   @id @default(cuid())
-  storeName           String   @default("KA Bijoux")
-  storeAddress        String   @default("")
-  storeCity           String   @default("Itaúna")
-  storeState          String   @default("MG")
-  storeZipCode        String   @default("")
-  storePhone          String   @default("")
-  storeWhatsapp       String?
-  storeEmail          String   @default("")
-  storeHours          String?
-  mototaxiPrice       Decimal  @default(10.00) @db.Decimal(10, 2)
-  mototaxiEnabled     Boolean  @default(true)
-  correiosEnabled     Boolean  @default(true)
-  storePickupEnabled  Boolean  @default(true)
-  logoUrl             String?
-  bannerUrls          String[] @default([])
-  updatedAt           DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  storeName          String   @default("KA Bijoux")
+  storeAddress       String   @default("")
+  storeCity          String   @default("Itaúna")
+  storeState         String   @default("MG")
+  storeZipCode       String   @default("")
+  storePhone         String   @default("")
+  storeWhatsapp      String?
+  storeEmail         String   @default("")
+  storeHours         String?
+  mototaxiPrice      Decimal  @default(10.00) @db.Decimal(10, 2)
+  mototaxiEnabled    Boolean  @default(true)
+  correiosEnabled    Boolean  @default(true)
+  storePickupEnabled Boolean  @default(true)
+  logoUrl            String?
+  bannerUrls         String[] @default([])
+  updatedAt          DateTime @updatedAt
 
   @@map("store_settings")
 }
@@ -510,37 +741,59 @@ model StoreSettings {
 // Stories da home
 
 model StoryGroup {
-  id            String      @id @default(cuid())
-  title         String
-  coverImageUrl String?
-  isActive      Boolean     @default(true)
-  sortOrder     Int         @default(0)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id                    String                @id @default(cuid())
+  title                 String
+  coverImageUrl         String?
+  isActive              Boolean               @default(true)
+  sortOrder             Int                   @default(0)
+  distributionChannels  DistributionChannel[] @default([WEB_FULL, ADMIN])
+  playStoreStatus       PlayStoreStatus       @default(PLAY_REVIEW_REQUIRED)
+  playStoreReviewedAt   DateTime?
+  playStoreReviewedBy   String?
+  playStoreReviewNotes  String?               @db.Text
+  contentClassification ContentClassification @default(UNCLASSIFIED)
+  policyReviewStatus    PolicyReviewStatus    @default(UNCLASSIFIED)
+  policyReviewedAt      DateTime?
+  policyReviewedBy      String?
+  policyReviewNotes     String?               @db.Text
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 
   items StoryItem[]
 
   @@index([isActive, sortOrder])
+  @@index([isActive, playStoreStatus])
   @@map("story_groups")
 }
 
 model StoryItem {
-  id           String        @id @default(cuid())
-  type         StoryItemType
-  mediaUrl     String
-  duration     Int           @default(5)
-  text         String?
-  buttonText   String?
-  linkUrl      String?
-  isActive     Boolean       @default(true)
-  sortOrder    Int           @default(0)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id                    String                @id @default(cuid())
+  type                  StoryItemType
+  mediaUrl              String
+  duration              Int                   @default(5)
+  text                  String?
+  buttonText            String?
+  linkUrl               String?
+  isActive              Boolean               @default(true)
+  sortOrder             Int                   @default(0)
+  distributionChannels  DistributionChannel[] @default([WEB_FULL, ADMIN])
+  playStoreStatus       PlayStoreStatus       @default(PLAY_REVIEW_REQUIRED)
+  playStoreReviewedAt   DateTime?
+  playStoreReviewedBy   String?
+  playStoreReviewNotes  String?               @db.Text
+  contentClassification ContentClassification @default(UNCLASSIFIED)
+  policyReviewStatus    PolicyReviewStatus    @default(UNCLASSIFIED)
+  policyReviewedAt      DateTime?
+  policyReviewedBy      String?
+  policyReviewNotes     String?               @db.Text
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 
   storyGroup   StoryGroup @relation(fields: [storyGroupId], references: [id], onDelete: Cascade)
   storyGroupId String
 
   @@index([storyGroupId, isActive, sortOrder])
+  @@index([isActive, playStoreStatus])
   @@map("story_items")
 }
 

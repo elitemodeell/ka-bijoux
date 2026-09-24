@@ -18,6 +18,7 @@ const FEATURED_LINKS = [
 const ADULT_LINK = { label: "🔞 Linha Adulto", href: "/categoria/sex-shop" };
 
 const MENU_LINKS = [
+  { label: 'Minha conta', href: '/conta' },
   { label: "Início", href: "/" },
   { label: "Novidades", href: "/produtos?new=true" },
   { label: "Promoções", href: "/produtos?promo=true" },
@@ -147,9 +148,9 @@ export default function Navbar() {
           </Link>
 
           <Link
-            href="/admin/login"
+            href='/conta'
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#ead4d4] bg-white/74 text-[#8a4b5d] shadow-[0_12px_24px_rgba(99,44,63,0.08)] sm:h-14 sm:w-14"
-            aria-label="Conta"
+            aria-label='Minha conta'
           >
             <UserIcon className="h-5 w-5" />
           </Link>
@@ -266,6 +267,10 @@ export default function Navbar() {
         </nav>
 
         <div className="relative z-20 flex shrink-0 items-center gap-0.5 self-center">
+          <Link href='/conta' className='group rounded-xl p-2.5 transition-colors hover:bg-pink-50' aria-label='Minha conta'>
+            <UserIcon className='h-[18px] w-[18px] text-gray-500 transition-colors group-hover:text-pink-500' />
+          </Link>
+
           <Link href="/carrinho" className="group relative rounded-xl p-2.5 transition-colors hover:bg-pink-50" aria-label={`Carrinho com ${cartCount} itens`}>
             <BagIcon className="h-[18px] w-[18px] text-gray-500 transition-colors group-hover:text-pink-500" />
             {cartCount > 0 && (

@@ -4,7 +4,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { ordersApi } from "@/services/api";
 import { useAuthStore } from "@/stores/authStore";
@@ -19,6 +19,11 @@ type Order = {
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
   CRIADO:               { label: "Criado",              color: Colors.textMuted,   bg: Colors.surfaceAlt },
   AGUARDANDO_PAGAMENTO: { label: "Aguard. Pagamento",   color: Colors.warning,     bg: Colors.warningLight },
+  PAGAMENTO_PENDENTE:   { label: "Gerando Pix",         color: Colors.warning,     bg: Colors.warningLight },
+  PAGAMENTO_EXPIRADO:   { label: "Pix expirado",        color: Colors.error,       bg: Colors.errorLight },
+  FALHA_NO_PAGAMENTO:   { label: "Falha no pagamento",  color: Colors.error,       bg: Colors.errorLight },
+  REEMBOLSO_PENDENTE:   { label: "Estorno pendente",    color: Colors.warning,     bg: Colors.warningLight },
+  REEMBOLSADO:          { label: "Reembolsado",         color: Colors.info,        bg: Colors.infoLight },
   PAGAMENTO_APROVADO:   { label: "Pago",                color: Colors.success,     bg: Colors.successLight },
   EM_SEPARACAO:         { label: "Em Separação",        color: Colors.info,        bg: Colors.infoLight },
   PRONTO_PARA_RETIRADA: { label: "Pronto p/ Retirada",  color: Colors.primary,     bg: Colors.pinkSoft },

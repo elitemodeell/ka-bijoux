@@ -34,12 +34,9 @@ export function hasMobileProducts(category: CatalogCategoryForVisibility) {
 
 export function getVisibleMobileCategories<T extends CatalogCategoryForVisibility>(
   categories: T[],
-  options: { includeAdult?: boolean; limit?: number } = {}
+  options: { limit?: number } = {}
 ) {
-  const filtered = categories.filter((category) => {
-    if (!options.includeAdult && category.slug === "sex-shop") return false;
-    return hasMobileProducts(category);
-  });
+  const filtered = categories.filter(hasMobileProducts);
 
   return typeof options.limit === "number" ? filtered.slice(0, options.limit) : filtered;
 }

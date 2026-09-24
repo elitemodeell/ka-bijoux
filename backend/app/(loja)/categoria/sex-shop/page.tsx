@@ -105,7 +105,8 @@ const bottomNav = [
   { label: "Pedidos", href: "/carrinho", icon: BoxIcon },
 ];
 
-export default async function SexShopPage({ searchParams = {} }: { searchParams?: SearchParams }) {
+export default async function SexShopPage(props: { searchParams?: Promise<SearchParams> }) {
+  const searchParams = (await props.searchParams) ?? {};
   const promo = getParam(searchParams.promo) === "true";
   const onlyNew = getParam(searchParams.new) === "true";
   const sort = getParam(searchParams.sort) ?? getParam(searchParams.ordem) ?? "createdAt";

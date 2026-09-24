@@ -1,43 +1,68 @@
 import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useRouter } from "expo-router";
+import { Image } from "expo-image";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { categoriesApi } from "@/services/api";
 import { getMobileProductCount, getVisibleMobileCategories } from "@/lib/catalogVisibility";
+import { categoryArtwork } from "@/components/home/brand";
 
-const CATEGORY_EMOJIS: Record<string, string> = {
-  bijuterias: "💍",
-  acessorios: "👜",
-  perfumes: "🌸",
-  presentes: "🎁",
-  "roupas-femininas": "👗",
-  "roupas-masculinas": "👔",
-  capinhas: "📱",
-  beleza: "💄",
-  decoracao: "🏡",
-  oculos: "🕶️",
-  promocoes: "🏷️",
-  novidades: "✨",
-};
+function artworkFor(slug: string) {
+  if (slug.includes("capinha") || slug.includes("celular")) return categoryArtwork.phone;
+  if (slug.includes("bijuter") || slug.includes("relog") || slug.includes("oculos")) return categoryArtwork.diamond;
+  if (slug.includes("presente") || slug.includes("promoc")) return categoryArtwork.tag;
+  if (slug.includes("novidade") || slug.includes("perfume")) return categoryArtwork.new;
+  if (slug.includes("cabelo") || slug.includes("bolsa")) return categoryArtwork.heart;
+  return categoryArtwork.sparkles;
+}
+
+const HOME_CACHE_KEY = "ka-mobile-home-v2";
 
 interface Category {
   id: string; name: string; slug: string; active: boolean;
+  description?: string | null;
   _count?: { products: number };
   mobileProductCount?: number | null;
 }
 
 export default function CategoriasScreen() {
   const router = useRouter();
+  const tabBarHeight = useBottomTabBarHeight();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    categoriesApi.list()
-      .then((res) => setCategories(getVisibleMobileCategories(res.data.data ?? [], { includeAdult: true })))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    void (async () => {
+      try {
+        const cached = await AsyncStorage.getItem(HOME_CACHE_KEY);
+        const parsed = cached ? JSON.parse(cached) : null;
+        if (Array.isArray(parsed?.categories)) {
+          if (!cancelled) {
+            setCategories(getVisibleMobileCategories(parsed.categories));
+            setLoading(false);
+          }
+          return;
+        }
+      } catch {
+        // Cache inválido não deve bloquear o catálogo.
+      }
+      try {
+        const response = await categoriesApi.list();
+        if (!cancelled) setCategories(getVisibleMobileCategories(response.data.data ?? []));
+      } catch {
+        if (!cancelled) setCategories([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   if (loading) {
@@ -58,26 +83,31 @@ export default function CategoriasScreen() {
       <FlatList
         data={categories}
         keyExtractor={(item) => item.id}
-        numColumns={2}
+        numColumns={3}
         columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingBottom: tabBarHeight + 16 }]}
+        initialNumToRender={8}
+        maxToRenderPerBatch={4}
+        updateCellsBatchingPeriod={50}
+        windowSize={5}
+        removeClippedSubviews
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.card}
-            onPress={() => router.push(item.slug === "sex-shop" ? "/categoria/sex-shop" : `/produtos?category=${item.slug}`)}
+            onPress={() => router.push(`/produtos?category=${item.slug}`)}
             activeOpacity={0.8}
           >
-            <View style={styles.emojiContainer}>
-              <Text style={styles.emoji}>
-                {CATEGORY_EMOJIS[item.slug] ?? "🛍️"}
-              </Text>
+            <View style={styles.artworkContainer}>
+              <Image source={artworkFor(item.slug)} style={styles.artwork} contentFit="contain" />
             </View>
-            <Text style={styles.categoryName}>{item.name}</Text>
+            <Text style={styles.categoryName} numberOfLines={2}>{item.name}</Text>
+            {item.description ? <Text style={styles.description} numberOfLines={2}>{item.description}</Text> : null}
             {getMobileProductCount(item) > 0 && (
               <Text style={styles.productCount}>
                 {getMobileProductCount(item)} {getMobileProductCount(item) === 1 ? "produto" : "produtos"}
               </Text>
             )}
+            <View style={styles.arrow}><Ionicons name="arrow-forward" size={14} color="#fff" /></View>
           </TouchableOpacity>
         )}
       />
@@ -95,29 +125,39 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: FontSizes["2xl"], fontWeight: "800", color: Colors.textPrimary },
   subtitle: { fontSize: FontSizes.sm, color: Colors.textMuted, marginTop: 2 },
-  row: { gap: 12 },
-  list: { padding: Spacing.base, gap: 12 },
+  row: { gap: 8 },
+  list: { paddingHorizontal: 10, paddingTop: 8, gap: 8 },
   card: {
     flex: 1,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius["2xl"],
-    padding: 20,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#fce7f3",
+    paddingHorizontal: 5,
+    paddingTop: 10,
+    paddingBottom: 38,
+    minHeight: 164,
     alignItems: "center",
-    gap: 10,
+    gap: 6,
     ...Shadows.sm,
   },
-  emojiContainer: {
-    width: 56, height: 56,
+  artworkContainer: {
+    width: 58, height: 58,
     backgroundColor: Colors.pinkSoft,
-    borderRadius: BorderRadius.xl,
+    borderRadius: 29,
+    borderWidth: 1,
+    borderColor: "#ffc5d4",
     alignItems: "center", justifyContent: "center",
   },
-  emoji: { fontSize: 28 },
+  artwork: { width: 48, height: 48 },
   categoryName: {
-    fontSize: FontSizes.base,
-    fontWeight: "700",
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: "800",
     color: Colors.textPrimary,
     textAlign: "center",
   },
-  productCount: { fontSize: FontSizes.xs, color: Colors.textMuted },
+  description: { fontSize: 9, lineHeight: 12, color: Colors.textMuted, textAlign: "center" },
+  productCount: { fontSize: 9, color: Colors.textMuted },
+  arrow: { position: "absolute", right: 8, bottom: 8, width: 26, height: 26, borderRadius: 13, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center" },
 });

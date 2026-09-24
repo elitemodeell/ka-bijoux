@@ -34,7 +34,7 @@ export const activeSeasonalCampaign: SeasonalCampaign = {
   ctaLabel: "Quero aproveitar",
   ctaHref: "/produtos?new=true",
   image: feriasBannerImage,
-  accent: "Envio para todo o Brasil",
+  accent: "Retirada e entrega local em Itaúna",
   shortcuts: [
     { label: "Bijuterias", href: "/categoria/bijuterias" },
     { label: "Capinhas", href: "/categoria/capinhas-acessorios-celular" },

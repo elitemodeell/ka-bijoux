@@ -13,7 +13,8 @@ const productInclude = {
   variations: { where: { active: true }, orderBy: { order: "asc" as const } },
 };
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     let isAdmin = false;
     try { await requireAdmin(req); isAdmin = true; } catch { /* public request */ }
@@ -141,7 +142,8 @@ const updateSchema = z.object({
   active: z.boolean().optional(),
 });
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await requireAdmin(req);
     const body = await req.json();
@@ -228,7 +230,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await requireAdmin(req);
     await prisma.product.delete({ where: { id: params.id } });

@@ -1,10 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   View, Text, TextInput, StyleSheet, FlatList,
   TouchableOpacity, ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius } from "@/constants/theme";
 import { ProductCard } from "@/components/product/ProductCard";
 import { productsApi } from "@/services/api";
@@ -15,22 +16,33 @@ type Product = {
 };
 
 export default function BuscaScreen() {
+  const tabBarHeight = useBottomTabBarHeight();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const activeSearch = useRef<AbortController | null>(null);
 
   const handleSearch = useCallback(async () => {
-    if (!query.trim()) return;
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery) return;
+    activeSearch.current?.abort();
+    const controller = new AbortController();
+    activeSearch.current = controller;
     setLoading(true);
     setSearched(true);
     try {
-      const res = await productsApi.search(query);
+      const res = await productsApi.search(normalizedQuery, { page: 1, pageSize: 20 }, controller.signal);
+      if (controller.signal.aborted) return;
       setResults(res.data.data?.products ?? []);
+    } catch {
+      if (!controller.signal.aborted) setResults([]);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [query]);
+
+  useEffect(() => () => activeSearch.current?.abort(), []);
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -64,45 +76,46 @@ export default function BuscaScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Resultados */}
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={Colors.primary} size="large" />
-        </View>
-      ) : searched && results.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyIcon}>🔍</Text>
-          <Text style={styles.emptyTitle}>Nenhum resultado</Text>
-          <Text style={styles.emptyText}>Tente buscar por outro termo</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={results}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={styles.list}
-          renderItem={({ item }) => (
-            <View style={{ flex: 1 }}>
-              <ProductCard product={item} />
-            </View>
-          )}
-          ListHeaderComponent={
-            searched && results.length > 0 ? (
-              <Text style={styles.resultCount}>{results.length} resultados para "{query}"</Text>
-            ) : null
-          }
-        />
-      )}
-
-      {/* Estado inicial */}
-      {!searched && (
-        <View style={styles.center}>
-          <Text style={styles.emptyIcon}>✨</Text>
-          <Text style={styles.emptyTitle}>O que você está procurando?</Text>
-          <Text style={styles.emptyText}>Digite o nome de um produto para buscar</Text>
-        </View>
-      )}
+      <FlatList
+        data={loading ? [] : results}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={[styles.list, { paddingBottom: tabBarHeight + 16 }, results.length === 0 && styles.emptyList]}
+        automaticallyAdjustKeyboardInsets
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        initialNumToRender={6}
+        maxToRenderPerBatch={4}
+        updateCellsBatchingPeriod={50}
+        windowSize={5}
+        removeClippedSubviews
+        renderItem={({ item }) => (
+          <View style={{ flex: 1 }}>
+            <ProductCard product={item} />
+          </View>
+        )}
+        ListHeaderComponent={
+          searched && results.length > 0 ? (
+            <Text style={styles.resultCount}>{results.length} resultados para &ldquo;{query}&rdquo;</Text>
+          ) : null
+        }
+        ListEmptyComponent={loading ? (
+          <View style={styles.center}><ActivityIndicator color={Colors.primary} size="large" /></View>
+        ) : searched ? (
+          <View style={styles.center}>
+            <Text style={styles.emptyIcon}>🔍</Text>
+            <Text style={styles.emptyTitle}>Nenhum resultado</Text>
+            <Text style={styles.emptyText}>Tente buscar por outro termo</Text>
+          </View>
+        ) : (
+          <View style={styles.center}>
+            <Text style={styles.emptyIcon}>✨</Text>
+            <Text style={styles.emptyTitle}>O que você está procurando?</Text>
+            <Text style={styles.emptyText}>Digite o nome de um produto para buscar</Text>
+          </View>
+        )}
+      />
     </SafeAreaView>
   );
 }
@@ -141,11 +154,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   searchBtnText: { color: "#fff", fontWeight: "700", fontSize: FontSizes.sm },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
+  center: { flex: 1, minHeight: 260, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyTitle: { fontSize: FontSizes.md, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },
   emptyText: { fontSize: FontSizes.sm, color: Colors.textMuted, textAlign: "center", marginTop: 6 },
   row: { gap: 12 },
   list: { padding: Spacing.base, gap: 12 },
+  emptyList: { flexGrow: 1 },
   resultCount: { fontSize: FontSizes.sm, color: Colors.textMuted, marginBottom: 8 },
 });

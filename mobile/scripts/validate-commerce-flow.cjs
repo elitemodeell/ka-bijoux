@@ -1,0 +1,44 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const root = path.resolve(__dirname, "..");
+const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
+const checkout = read("app/checkout/index.tsx");
+const payment = read("app/checkout/pagamento.tsx");
+const tabs = read("app/(tabs)/_layout.tsx");
+const addresses = read("app/endereco/index.tsx");
+const product = read("app/produto/[id].tsx");
+const productCard = read("components/product/ProductCard.tsx");
+const cart = read("app/(tabs)/carrinho.tsx");
+const checkoutStore = read("stores/checkoutStore.ts");
+const cartStore = read("stores/cartStore.ts");
+const api = read("services/api.ts");
+
+assert.ok(checkout.includes("useFocusEffect"), "Checkout não recarrega endereços ao voltar");
+assert.ok(checkout.includes("addressCustomerId === customer.id"), "Endereço persistido não está isolado por Customer");
+assert.ok(checkout.includes("shippingApi.calculate(requestedZip, requestedAddressId"), "Frete não usa endereço selecionado");
+assert.ok(checkout.includes('!opt.available ? "Indisponível"'), "Frete indisponível ainda pode aparecer como grátis");
+assert.ok(checkout.includes("Math.max(insets.bottom"), "Checkout não respeita safe area inferior");
+assert.ok(checkout.includes("items.length > 0"), "Checkout não bloqueia carrinho vazio");
+assert.ok(addresses.includes("lookupPostalCode"), "Formulário não consulta CEP");
+assert.ok(addresses.includes("addressesApi.update"), "Formulário não edita endereço");
+assert.ok(addresses.includes("setCheckoutAddress"), "Gerenciador não devolve seleção ao checkout");
+assert.ok(checkoutStore.includes("addressCustomerId"), "Seleção de endereço não está vinculada ao Customer");
+assert.ok(product.includes('handleCartAction(action: "add" | "buy")'), "Produto não separa ações de compra");
+assert.ok(product.includes("cartActionLock.current"), "Produto não bloqueia toque duplo");
+assert.ok(product.includes("Math.min(activeStock, quantity + 1)"), "Quantidade do produto ignora estoque");
+assert.ok(product.includes("Math.max(insets.bottom"), "Produto não respeita safe area inferior");
+assert.ok(productCard.includes('handleCartAction(action: "add" | "buy")'), "Card não separa adicionar e comprar agora");
+assert.ok(cartStore.includes('"BUY_NOW"'), "Comprar agora não substitui atomicamente o contexto de compra");
+assert.ok(api.includes('"BUY_NOW"'), "Contrato do carrinho não diferencia compra imediata");
+assert.ok(cart.includes("mutatingItemId"), "Carrinho não bloqueia mutações concorrentes");
+assert.ok(cart.includes("item.variation?.stock ?? item.product.stock"), "Carrinho não respeita estoque da variação");
+assert.ok(cartStore.includes("pendingBuyNow"), "Comprar agora não bloqueia concorrência global");
+assert.ok(payment.includes("useSafeAreaInsets"), "Pagamento não respeita safe area inferior");
+assert.ok(payment.includes("submitLock.current"), "Pagamento não bloqueia duplo toque");
+assert.ok(payment.includes("Tentar novamente"), "Pagamento não oferece nova tentativa idempotente");
+assert.ok(payment.includes("response?.data?.code"), "Pagamento não diferencia falhas do checkout");
+assert.ok(tabs.includes("60 + insets.bottom"), "Barra de abas não inclui a safe area do sistema");
+
+console.log("Commerce mobile: 25/25 verificações aprovadas.");

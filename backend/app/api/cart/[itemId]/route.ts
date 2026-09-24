@@ -5,7 +5,8 @@ import { requireCustomer } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
 
 // PATCH /api/cart/:itemId — Atualizar quantidade
-export async function PATCH(req: NextRequest, { params }: { params: { itemId: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ itemId: string }> }) {
+  const params = await props.params;
   try {
     const customer = await requireCustomer(req);
     const { quantity } = z.object({ quantity: z.number().int().min(1) }).parse(await req.json());
@@ -32,7 +33,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { itemId: st
 }
 
 // DELETE /api/cart/:itemId — Remover item
-export async function DELETE(req: NextRequest, { params }: { params: { itemId: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ itemId: string }> }) {
+  const params = await props.params;
   try {
     const customer = await requireCustomer(req);
 

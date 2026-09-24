@@ -81,7 +81,7 @@ export default function VideoSection() {
               {[
                 { n: "5 anos", l: "de experiência" },
                 { n: "100%", l: "seleção especial" },
-                { n: "Envio", l: "para todo Brasil" },
+                { n: "Entrega", l: "opções no checkout" },
               ].map(({ n, l }) => (
                 <div key={n} className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
                   <p className="text-white font-bold text-sm mb-0.5">{n}</p>
