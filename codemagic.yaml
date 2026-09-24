@@ -138,7 +138,7 @@ workflows:
           cd "$CM_BUILD_DIR/mobile"
           workspace="ios/$XCODE_WORKSPACE"
           test -d "$workspace" || { echo "Missing Xcode workspace: $workspace" >&2; exit 1; }
-          entitlements="$(find ios -name '*.entitlements' -type f | head -1)"
+          entitlements="$(find ios -name '*.entitlements' -type f -print -quit)"
           test -n "$entitlements" || { echo "Missing iOS entitlements file" >&2; exit 1; }
           apple_sign_in="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' "$entitlements" 2>/dev/null || true)"
           [[ "$apple_sign_in" == *Default* ]] || { echo "Sign in with Apple entitlement is missing" >&2; exit 1; }
@@ -149,7 +149,7 @@ workflows:
           test "$bundle_id" = "$BUNDLE_ID" || { echo "Unexpected native bundle identifier: $bundle_id" >&2; exit 1; }
           test "$marketing_version" = "$MARKETING_VERSION" || { echo "Unexpected native marketing version: $marketing_version" >&2; exit 1; }
           test "$current_project_version" = "$BUILD_NUMBER" || { echo "Unexpected native build number: $current_project_version" >&2; exit 1; }
-          icon_json="$(find ios -path '*AppIcon.appiconset/Contents.json' -type f | head -1)"
+          icon_json="$(find ios -path '*AppIcon.appiconset/Contents.json' -type f -print -quit)"
           test -n "$icon_json" || { echo "Missing App Icon asset catalog" >&2; exit 1; }
           node - "$icon_json" <<'NODE'
           const fs = require('fs');
@@ -208,12 +208,12 @@ workflows:
         script: |
           set -euo pipefail
           cd "$CM_BUILD_DIR/mobile"
-          ipa="$(find build/ios/ipa -name '*.ipa' -type f | head -1)"
+          ipa="$(find build/ios/ipa -name '*.ipa' -type f -print -quit)"
           test -n "$ipa"
           rm -rf /tmp/ka-bijoux-ipa
           mkdir -p /tmp/ka-bijoux-ipa
           unzip -q "$ipa" -d /tmp/ka-bijoux-ipa
-          app="$(find /tmp/ka-bijoux-ipa/Payload -maxdepth 1 -name '*.app' -type d | head -1)"
+          app="$(find /tmp/ka-bijoux-ipa/Payload -maxdepth 1 -name '*.app' -type d -print -quit)"
           test -n "$app"
           info="$app/Info.plist"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info")" = "$BUNDLE_ID"
