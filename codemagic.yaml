@@ -61,7 +61,7 @@ workflows:
             echo "Possible embedded financial key or private key detected" >&2
             exit 1
           fi
-          if git grep -I -n -i 'zuno' -- codemagic.yaml mobile/app.json mobile/eas.json; then
+          if git grep -I -n -i 'zuno' -- mobile/app.json mobile/eas.json; then
             echo "Foreign project reference detected" >&2
             exit 1
           fi
