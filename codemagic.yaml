@@ -146,8 +146,10 @@ workflows:
           [[ "$apple_sign_in" == *Default* ]] || { echo "Sign in with Apple entitlement is missing" >&2; exit 1; }
           build_settings="$(xcodebuild -workspace "$workspace" -scheme "$XCODE_SCHEME" -configuration Release -showBuildSettings)"
           bundle_id="$(awk -F ' = ' '/^[[:space:]]*PRODUCT_BUNDLE_IDENTIFIER = / { print $2; exit }' <<< "$build_settings")"
-          marketing_version="$(awk -F ' = ' '/^[[:space:]]*MARKETING_VERSION = / { print $2; exit }' <<< "$build_settings")"
-          current_project_version="$(awk -F ' = ' '/^[[:space:]]*CURRENT_PROJECT_VERSION = / { print $2; exit }' <<< "$build_settings")"
+          info_plist="$(find ios -maxdepth 2 -name 'Info.plist' -type f -print -quit)"
+          test -n "$info_plist" || { echo "Missing application Info.plist" >&2; exit 1; }
+          marketing_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info_plist")"
+          current_project_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info_plist")"
           test "$bundle_id" = "$BUNDLE_ID" || { echo "Unexpected native bundle identifier: $bundle_id" >&2; exit 1; }
           test "$marketing_version" = "$MARKETING_VERSION" || { echo "Unexpected native marketing version: $marketing_version" >&2; exit 1; }
           test "$current_project_version" = "$BUILD_NUMBER" || { echo "Unexpected native build number: $current_project_version" >&2; exit 1; }
