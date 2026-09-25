@@ -331,6 +331,30 @@ describe("AsaasPaymentProvider offline contract", () => {
     expect(updateCall).toBeDefined();
   });
 
+  it("omits the optional mobile phone instead of allowing it to block customer creation", async () => {
+    const http = scriptedFetch(
+      response({ data: [] }),
+      response(customerPayload())
+    );
+    const provider = new AsaasPaymentProvider({ config, fetch: http.fetch });
+
+    const result = await provider.findOrCreateCustomer({
+      ...paymentRequest().customer,
+      persistedExternalCustomerId: null,
+      phone: "(31) 99999-9999",
+    });
+
+    expect(result.created).toBe(true);
+    const createCall = http.mock.mock.calls.find(
+      ([url, init]) => String(url).endsWith("/customers") && init?.method === "POST"
+    );
+    expect(createCall).toBeDefined();
+    expect(JSON.parse(String(createCall?.[1]?.body))).toMatchObject({
+      externalReference: "customer-1",
+    });
+    expect(JSON.parse(String(createCall?.[1]?.body))).not.toHaveProperty("mobilePhone");
+  });
+
   it("fails closed when the same CPF has more than one active Asaas customer", async () => {
     const http = scriptedFetch(response({
       data: [customerPayload(), { ...customerPayload(), id: "cus_asaas_2" }],

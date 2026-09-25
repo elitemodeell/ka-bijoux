@@ -823,7 +823,10 @@ function normalizeCustomer(
     name: requiredText(customer.name, "nome do cliente"),
     cpfCnpj,
     email,
-    phone: customer.phone ? digits(customer.phone) || null : null,
+    // O celular é opcional no cadastro Asaas e permanece no pedido para a
+    // entrega. Não o enviamos ao provedor: números legados/portados que a
+    // validação do Asaas rejeita não podem bloquear Pix ou cartão.
+    phone: null,
   };
 }
 
