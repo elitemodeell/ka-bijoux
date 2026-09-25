@@ -15,10 +15,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kabijoux.app",
-      "buildNumber": "15",
+      "buildNumber": "16",
       "usesAppleSignIn": true,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "A KA Bijoux usa sua localização somente quando você solicitar, para preencher seu endereço de entrega."
       }
     },
     "android": {

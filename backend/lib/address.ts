@@ -9,6 +9,8 @@ export const addressInputSchema = z.object({
   city: z.string().trim().min(2).max(100),
   state: z.string().trim().length(2).transform((value) => value.toUpperCase()),
   zipCode: z.string().transform((value) => value.replace(/\D/g, "")).refine((value) => value.length === 8, "CEP inválido."),
+  recipientName: z.string().trim().min(2).max(100).optional(),
+  recipientPhone: z.string().transform((value) => value.replace(/\D/g, "")).refine((value) => value.length === 10 || value.length === 11, "Telefone inválido.").optional(),
 }).strict();
 
 export type AddressInput = z.infer<typeof addressInputSchema>;

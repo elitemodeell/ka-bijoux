@@ -33,7 +33,8 @@ check("perfil oferece Privacidade e permissões", profile.includes("/privacidade
 check("tela de privacidade abre ajustes do sistema", privacy.includes("Linking.openSettings()"));
 check("tela lista notificações, localização e câmera/fotos", privacy.includes('title="Notificações"') && privacy.includes('title="Localização"') && privacy.includes('title="Câmera e fotos"'));
 check("tela contém links legais e exclusão", privacy.includes("LEGAL_LINKS.terms") && privacy.includes("LEGAL_LINKS.privacy") && privacy.includes("LEGAL_LINKS.accountDeletion"));
-check("endereço manual por CEP continua disponível", address.includes('zipCode: "CEP *"') && address.includes("addressesApi.lookupPostalCode") && address.includes('label="Salvar"'));
+check("endereço manual por CEP continua disponível", address.includes("addressesApi.lookupPostalCode") && address.includes("Salvar endereço"));
+check("localização só é solicitada por ação do usuário", address.includes("requestForegroundPermissionsAsync") && address.includes("completeWithLocation") && !rootLayout.match(/requestForegroundPermissionsAsync/));
 check("app.json não solicita permissões Android", Array.isArray(config.expo.android.permissions) && config.expo.android.permissions.length === 0);
 const videoPlugin = config.expo.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === "expo-video");
 check("vídeo não habilita reprodução em segundo plano ou PiP", videoPlugin?.[1]?.supportsBackgroundPlayback === false && videoPlugin?.[1]?.supportsPictureInPicture === false);
@@ -53,7 +54,7 @@ for (const permission of [
 
 const positiveManifestPermissions = [...manifest.matchAll(/<uses-permission\s+android:name="([^"]+)"(?![^>]*tools:node="remove")[^>]*\/>/g)].map((match) => match[1]);
 check("manifest fonte mantém apenas INTERNET como permissão positiva", positiveManifestPermissions.length === 1 && positiveManifestPermissions[0] === "android.permission.INTERNET");
-check("Info.plist não declara descrições de permissões sensíveis", !Object.keys(config.expo.ios.infoPlist ?? {}).some((key) => /^NS.+UsageDescription$/.test(key)));
+check("Info.plist declara somente localização em uso", config.expo.ios.infoPlist?.NSLocationWhenInUseUsageDescription && !Object.keys(config.expo.ios.infoPlist ?? {}).some((key) => /^NS.+Always.+UsageDescription$/.test(key)));
 check("não há API de solicitação de permissão no fluxo inicial", !rootLayout.match(/request.*Permission/i) && !welcome.match(/request.*Permission/i));
 
 const failed = checks.filter((item) => !item.ok);

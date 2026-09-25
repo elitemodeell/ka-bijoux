@@ -1,6 +1,6 @@
 workflows:
   ka-bijoux-ios-release:
-    name: KA Bijoux iOS 1.0.1 (15) - TestFlight
+    name: KA Bijoux iOS 1.0.1 (16) - TestFlight
     instance_type: mac_mini_m2
     max_build_duration: 120
     environment:
@@ -13,7 +13,7 @@ workflows:
       vars:
         BUNDLE_ID: com.kabijoux.app
         MARKETING_VERSION: "1.0.1"
-        BUILD_NUMBER: "15"
+        BUILD_NUMBER: "16"
         APP_STORE_APPLE_ID: "6798015933"
         XCODE_WORKSPACE: KABijoux.xcworkspace
         XCODE_SCHEME: KABijoux
@@ -42,7 +42,7 @@ workflows:
           if (config.name !== 'KA Bijoux') throw new Error('Unexpected application name');
           if (config.ios.bundleIdentifier !== 'com.kabijoux.app') throw new Error('Unexpected bundle identifier');
           if (config.version !== '1.0.1') throw new Error(`Expected version 1.0.1, received ${config.version}`);
-          if (config.ios.buildNumber !== '15') throw new Error(`Expected build 15, received ${config.ios.buildNumber}`);
+          if (config.ios.buildNumber !== '16') throw new Error(`Expected build 16, received ${config.ios.buildNumber}`);
           if (config.ios.usesAppleSignIn !== true) throw new Error('usesAppleSignIn must be true');
           if (config.ios.supportsTablet !== true) throw new Error('iPad support must remain enabled');
           NODE
@@ -229,8 +229,8 @@ workflows:
           codesign -d --entitlements :- "$app" > /tmp/ka-bijoux-entitlements.plist
           /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' /tmp/ka-bijoux-entitlements.plist | grep -q 'Default'
           test -d "$app/Assets.car" -o -f "$app/Assets.car"
-          cp /tmp/ka-bijoux-entitlements.plist build/ios/ipa/KA-Bijoux-build-15-entitlements.plist
-          cp "$app/embedded.mobileprovision" build/ios/ipa/KA-Bijoux-build-15.mobileprovision
+          cp /tmp/ka-bijoux-entitlements.plist build/ios/ipa/KA-Bijoux-build-16-entitlements.plist
+          cp "$app/embedded.mobileprovision" build/ios/ipa/KA-Bijoux-build-16.mobileprovision
 
     artifacts:
       - mobile/build/ios/ipa/*.ipa

@@ -3,15 +3,16 @@ import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   requireCustomer: vi.fn(),
-  address: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), delete: vi.fn() },
+  address: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
 }));
 
 vi.mock("@/lib/auth", () => ({ requireCustomer: mocks.requireCustomer }));
 vi.mock("@/lib/prisma", () => ({ prisma: { address: mocks.address } }));
 
-import { GET as listAddresses } from "@/app/api/customers/me/addresses/route";
+import { GET as listAddresses, POST as createAddress } from "@/app/api/customers/me/addresses/route";
 import { PATCH as updateAddress, DELETE as deleteAddress } from "@/app/api/customers/me/addresses/[id]/route";
 import { GET as lookupPostalCode } from "@/app/api/mobile/addresses/cep/[zipCode]/route";
+import { GET as reverseGeocode } from "@/app/api/mobile/addresses/reverse-geocode/route";
 
 const input = {
   label: "Casa", street: "Rua A", number: "10", complement: "Apto 1",
@@ -24,6 +25,17 @@ beforeEach(() => {
 });
 
 describe("customer address isolation and editing", () => {
+  it("persists recipient data without changing existing address ownership", async () => {
+    mocks.address.count.mockResolvedValue(0);
+    mocks.address.create.mockResolvedValue({ id: "address-1", ...input, recipientName: "Maria Silva", recipientPhone: "37999999999" });
+    const request = new NextRequest("http://localhost/api/customers/me/addresses", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...input, recipientName: "Maria Silva", recipientPhone: "(37) 99999-9999" }),
+    });
+    expect((await createAddress(request)).status).toBe(201);
+    expect(mocks.address.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ customerId: "customer-1", recipientName: "Maria Silva", recipientPhone: "37999999999" }) }));
+  });
+
   it("lists only addresses belonging to the authenticated Customer", async () => {
     mocks.address.findMany.mockResolvedValue([]);
     const response = await listAddresses(new NextRequest("http://localhost/api/customers/me/addresses"));
@@ -69,5 +81,19 @@ describe("postal code lookup", () => {
     const response = await lookupPostalCode(new NextRequest("http://localhost/api/mobile/addresses/cep/123"), { params: Promise.resolve({ zipCode: "123" }) });
     expect(response.status).toBe(422);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("reverse geocoding", () => {
+  it("normalizes a Brazilian reverse-geocoding response", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ address: { postcode: "35681-188", road: "Rua Firmino Cota", suburb: "Santanense", city: "Itaúna", state: "Minas Gerais" } }), { status: 200 })));
+    const response = await reverseGeocode(new NextRequest("http://localhost/api/mobile/addresses/reverse-geocode?latitude=-20.07&longitude=-44.57"));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ data: { zipCode: "35681188", city: "Itaúna", state: "MG" } });
+  });
+
+  it("rejects invalid coordinates", async () => {
+    const response = await reverseGeocode(new NextRequest("http://localhost/api/mobile/addresses/reverse-geocode?latitude=999&longitude=0"));
+    expect(response.status).toBe(422);
   });
 });

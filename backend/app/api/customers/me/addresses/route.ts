@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const customer = await requireCustomer(req);
-    const { label, street, number, complement, neighborhood, city, state, zipCode } =
+    const { label, street, number, complement, neighborhood, city, state, zipCode, recipientName, recipientPhone } =
       addressInputSchema.parse(await req.json());
 
     const count = await prisma.address.count({ where: { customerId: customer.id } });
@@ -44,6 +44,8 @@ export async function POST(req: NextRequest) {
         city,
         state,
         zipCode,
+        recipientName: recipientName || null,
+        recipientPhone: recipientPhone || null,
         isDefault: isFirst,
       },
     });

@@ -10,9 +10,10 @@ type Order = {
   id: string; orderNumber: string; status: OrderStatus;
   subtotal: number; shippingPrice: number; total: number;
   shippingType: ShippingType; shippingTrackingCode?: string;
+  shippingOptionId?: string; shippingServiceName?: string; shippingEstimatedDays?: number;
   notes?: string; createdAt: string;
   customer: { name: string; email: string; phone?: string };
-  address?: { street: string; number: string; complement?: string; neighborhood: string; city: string; state: string; zipCode: string };
+  address?: { street: string; number: string; complement?: string; neighborhood: string; city: string; state: string; zipCode: string; recipientName?: string; recipientPhone?: string };
   items: Array<{ id: string; productName: string; productImage?: string; variationName?: string; quantity: number; unitPrice: number; totalPrice: number }>;
   payment?: { method: string; status: string; pixCode?: string };
   statusHistory: Array<{ id: string; status: OrderStatus; note?: string; createdAt: string }>;
@@ -175,15 +176,20 @@ export default function PedidoDetailPage() {
             <h3 className="font-semibold text-gray-900 mb-3">Entrega</h3>
             <div className="text-sm space-y-1">
               <p className="font-medium">
-                {order.shippingType === ShippingType.CORREIOS && "📦 Correios"}
+                {order.shippingType === ShippingType.CORREIOS && `📦 ${order.shippingServiceName || "Correios"}`}
                 {order.shippingType === ShippingType.MOTOTAXI && "🏍️ Mototáxi - Itaúna"}
                 {order.shippingType === ShippingType.RETIRADA && "🏪 Retirada na loja"}
               </p>
               {order.shippingTrackingCode && (
                 <p className="text-pink-500 font-mono text-xs">{order.shippingTrackingCode}</p>
               )}
+              {order.shippingEstimatedDays !== undefined && order.shippingEstimatedDays !== null && (
+                <p className="text-gray-500">Prazo estimado na compra: {order.shippingEstimatedDays} dias úteis</p>
+              )}
               {order.address && (
                 <div className="text-gray-500 mt-2 space-y-0.5">
+                  {order.address.recipientName && <p className="font-medium text-gray-700">Destinatário: {order.address.recipientName}</p>}
+                  {order.address.recipientPhone && <p>{order.address.recipientPhone}</p>}
                   <p>{order.address.street}, {order.address.number}</p>
                   {order.address.complement && <p>{order.address.complement}</p>}
                   <p>{order.address.neighborhood}</p>

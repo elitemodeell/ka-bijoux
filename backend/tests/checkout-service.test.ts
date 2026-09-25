@@ -39,9 +39,12 @@ const address = {
   zipCode: "35680-000",
   street: "Rua Teste",
   number: "10",
+  complement: "Apto 2",
   neighborhood: "Centro",
   city: "Itaúna",
   state: "MG",
+  recipientName: "Maria Silva",
+  recipientPhone: "37999999999",
 };
 
 const settings = {
@@ -348,6 +351,13 @@ describe("server-authoritative checkout service", () => {
 
     expect(order.shippingPrice).toBe(12.5);
     expect(setup.tx.order.create.mock.calls[0][0].data.shippingPrice).toBe(12.5);
+    expect(setup.tx.order.create.mock.calls[0][0].data).toMatchObject({
+      shippingStreet: "Rua Teste",
+      shippingNumber: "10",
+      shippingZipCode: "35680-000",
+      recipientName: "Maria Silva",
+      recipientPhone: "37999999999",
+    });
   });
 
   it("[02] ignores a negative shippingPrice sent by the client", async () => {

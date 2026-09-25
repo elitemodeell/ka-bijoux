@@ -22,6 +22,10 @@ assert.ok(checkout.includes('!opt.available ? "Indisponível"'), "Frete indispon
 assert.ok(checkout.includes("Math.max(insets.bottom"), "Checkout não respeita safe area inferior");
 assert.ok(checkout.includes("items.length > 0"), "Checkout não bloqueia carrinho vazio");
 assert.ok(addresses.includes("lookupPostalCode"), "Formulário não consulta CEP");
+assert.ok(addresses.includes("requestForegroundPermissionsAsync"), "Formulário não solicita localização sob demanda");
+assert.ok(addresses.includes("reverseGeocodeAsync"), "Formulário não converte localização em endereço");
+assert.ok(addresses.includes("recipientName") && addresses.includes("recipientPhone"), "Destinatário não está integrado ao endereço");
+assert.ok(addresses.includes('number = withoutNumber ? "S/N"'), "Endereço sem número não é persistido com segurança");
 assert.ok(addresses.includes("addressesApi.update"), "Formulário não edita endereço");
 assert.ok(addresses.includes("setCheckoutAddress"), "Gerenciador não devolve seleção ao checkout");
 assert.ok(checkoutStore.includes("addressCustomerId"), "Seleção de endereço não está vinculada ao Customer");
@@ -41,4 +45,4 @@ assert.ok(payment.includes("Tentar novamente"), "Pagamento não oferece nova ten
 assert.ok(payment.includes("response?.data?.code"), "Pagamento não diferencia falhas do checkout");
 assert.ok(tabs.includes("60 + insets.bottom"), "Barra de abas não inclui a safe area do sistema");
 
-console.log("Commerce mobile: 25/25 verificações aprovadas.");
+console.log("Commerce mobile: 29/29 verificações aprovadas.");

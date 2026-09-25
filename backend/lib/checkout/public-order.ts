@@ -36,6 +36,21 @@ export function toPublicOrder(orderValue: unknown) {
     ? paymentArtifactsAreTrusted(payment)
     : false;
   const customer = asObject(order.customer);
+  const linkedAddress = asObject(order.address);
+  const address = order.shippingStreet
+    ? {
+        ...(linkedAddress ?? {}),
+        street: order.shippingStreet,
+        number: order.shippingNumber,
+        complement: order.shippingComplement,
+        neighborhood: order.shippingNeighborhood,
+        city: order.shippingCity,
+        state: order.shippingState,
+        zipCode: order.shippingZipCode,
+        recipientName: order.recipientName,
+        recipientPhone: order.recipientPhone,
+      }
+    : linkedAddress;
   const items = Array.isArray(order.items) ? order.items : null;
   const {
     checkoutIdempotencyKey: _idempotencyKey,
@@ -51,6 +66,7 @@ export function toPublicOrder(orderValue: unknown) {
     shippingPrice: numberValue(order.shippingPrice),
     discount: numberValue(order.discount),
     total: numberValue(order.total),
+    address,
     items: items
       ? items.map((itemValue) => {
           const item = asObject(itemValue) ?? {};

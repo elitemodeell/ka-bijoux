@@ -25,7 +25,21 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     });
 
     if (!order) return apiError("Pedido não encontrado.", 404);
-    return apiSuccess(order);
+    const address = order.shippingStreet
+      ? {
+          ...(order.address ?? {}),
+          street: order.shippingStreet,
+          number: order.shippingNumber,
+          complement: order.shippingComplement,
+          neighborhood: order.shippingNeighborhood,
+          city: order.shippingCity,
+          state: order.shippingState,
+          zipCode: order.shippingZipCode,
+          recipientName: order.recipientName,
+          recipientPhone: order.recipientPhone,
+        }
+      : order.address;
+    return apiSuccess({ ...order, address });
   } catch (e) {
     if (e instanceof Error && e.message === "Não autorizado") return apiError("Não autorizado.", 401);
     return apiError("Erro ao buscar pedido.", 500);

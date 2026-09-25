@@ -5,3 +5,5 @@ tmp/
 /mobile/
 .env*
 backend/.env*
+/backend/.next*/
+/backend/node_modules/

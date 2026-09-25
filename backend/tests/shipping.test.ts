@@ -7,10 +7,20 @@ const item = {
   width: 10,
   length: 15,
   quantity: 1,
+  declaredValue: 25,
+};
+
+const nationalConfig = {
+  storeZipCode: "35680056",
+  packageWeight: 0.1,
+  packageHeight: 4,
+  packageWidth: 16,
+  packageLength: 24,
+  handlingDays: 1,
 };
 
 describe("shipping fails closed without fictitious production prices", () => {
-  it("returns Correios as unavailable when the integration token is absent", async () => {
+  it("hides Correios when the integration token is absent", async () => {
     vi.stubEnv("MELHOR_ENVIO_TOKEN", "");
 
     const options = await calculateShipping("30110-000", [item], {
@@ -18,15 +28,10 @@ describe("shipping fails closed without fictitious production prices", () => {
       mototaxiEnabled: false,
       storePickupEnabled: false,
       mototaxiPrice: 12,
+      ...nationalConfig,
     });
 
-    expect(options).toEqual([
-      expect.objectContaining({
-        id: "correios-unavailable",
-        price: 0,
-        available: false,
-      }),
-    ]);
+    expect(options).toEqual([]);
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
@@ -40,10 +45,10 @@ describe("shipping fails closed without fictitious production prices", () => {
       mototaxiEnabled: false,
       storePickupEnabled: false,
       mototaxiPrice: 12,
+      ...nationalConfig,
     });
 
-    expect(options).toHaveLength(1);
-    expect(options[0]).toMatchObject({ id: "correios-unavailable", available: false, price: 0 });
+    expect(options).toEqual([]);
     expect(consoleError).toHaveBeenCalled();
   });
 
@@ -103,11 +108,10 @@ describe("shipping fails closed without fictitious production prices", () => {
       mototaxiEnabled: false,
       storePickupEnabled: false,
       mototaxiPrice: 12,
+      ...nationalConfig,
     });
 
-    expect(options).toEqual([
-      expect.objectContaining({ id: "correios-unavailable", available: false, price: 0 }),
-    ]);
+    expect(options).toEqual([]);
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
@@ -128,13 +132,29 @@ describe("shipping fails closed without fictitious production prices", () => {
       mototaxiEnabled: false,
       storePickupEnabled: false,
       mototaxiPrice: 12,
+      ...nationalConfig,
     });
 
     expect(String(fetchMock.mock.calls[0][0])).toBe(
       "https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate"
     );
     expect(options).toContainEqual(
-      expect.objectContaining({ id: SHIPPING_OPTION_IDS.pac, available: true, price: 18.9 })
+      expect.objectContaining({ id: SHIPPING_OPTION_IDS.pac, available: true, price: 18.9, estimatedDays: 5 })
     );
+    const request = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    expect(request.from.postal_code).toBe("35680056");
+    expect(request.options.insurance_value).toBe(25);
+    expect(request.package.weight).toBe(0.4);
+  });
+
+  it("blocks national quotes until real package data is configured", async () => {
+    vi.stubEnv("MELHOR_ENVIO_TOKEN", "synthetic-token");
+    vi.stubEnv("MELHOR_ENVIO_SANDBOX", "true");
+    const options = await calculateShipping("30110-000", [item], {
+      correiosEnabled: true, mototaxiEnabled: false, storePickupEnabled: false, mototaxiPrice: 12,
+      storeZipCode: "35680056", handlingDays: 1,
+    });
+    expect(options).toEqual([]);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 });

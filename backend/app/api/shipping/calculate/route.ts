@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
         width: Number(item.product.width),
         length: Number(item.product.length),
         quantity: item.quantity,
+        declaredValue: Number(item.unitPrice),
       })),
       {
         correiosEnabled: config.correiosEnabled,
@@ -65,6 +66,11 @@ export async function POST(req: NextRequest) {
         storeCity: config.storeCity,
         storeState: config.storeState,
         storeZipCode: config.storeZipCode,
+        packageWeight: config.shippingPackageWeight ? Number(config.shippingPackageWeight) : null,
+        packageHeight: config.shippingPackageHeight ? Number(config.shippingPackageHeight) : null,
+        packageWidth: config.shippingPackageWidth ? Number(config.shippingPackageWidth) : null,
+        packageLength: config.shippingPackageLength ? Number(config.shippingPackageLength) : null,
+        handlingDays: config.shippingHandlingDays,
       },
       address ? { city: address.city, state: address.state } : undefined
     );

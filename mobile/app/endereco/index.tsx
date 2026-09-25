@@ -1,392 +1,108 @@
-import { useEffect, useState, useCallback } from "react";
-import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput, ActivityIndicator, KeyboardAvoidingView,
-  Platform, ScrollView, Alert,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import * as Location from "expo-location";
+import { LinearGradient } from "expo-linear-gradient";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { addressesApi } from "@/services/api";
 import { Button } from "@/components/ui/Button";
 import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useAuthStore } from "@/stores/authStore";
 
-type Address = {
-  id: string; label?: string; street: string; number: string;
-  complement?: string; neighborhood: string; city: string;
-  state: string; zipCode: string; isDefault: boolean;
-};
+type Address = { id: string; label?: string; street: string; number: string; complement?: string; neighborhood: string; city: string; state: string; zipCode: string; isDefault: boolean; recipientName?: string; recipientPhone?: string };
+type AddressForm = { label: string; street: string; number: string; complement: string; neighborhood: string; city: string; state: string; zipCode: string; recipientName: string; recipientPhone: string };
+type LocatedAddress = Pick<AddressForm, "street" | "neighborhood" | "city" | "state" | "zipCode">;
 
-type AddressForm = {
-  label: string; street: string; number: string; complement: string;
-  neighborhood: string; city: string; state: string; zipCode: string;
+const EMPTY_FORM: AddressForm = { label: "Casa", street: "", number: "", complement: "", neighborhood: "", city: "", state: "", zipCode: "", recipientName: "", recipientPhone: "" };
+const STATE_CODES: Record<string, string> = {
+  acre: "AC", alagoas: "AL", amapá: "AP", amazonas: "AM", bahia: "BA", ceará: "CE", "distrito federal": "DF", "espírito santo": "ES", goiás: "GO", maranhão: "MA", "mato grosso": "MT", "mato grosso do sul": "MS", "minas gerais": "MG", pará: "PA", paraíba: "PB", paraná: "PR", pernambuco: "PE", piauí: "PI", "rio de janeiro": "RJ", "rio grande do norte": "RN", "rio grande do sul": "RS", rondônia: "RO", roraima: "RR", "santa catarina": "SC", "são paulo": "SP", sergipe: "SE", tocantins: "TO",
 };
+const cleanDigits = (value: string) => value.replace(/\D/g, "");
+const formatCep = (value: string) => { const digits = cleanDigits(value).slice(0, 8); return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits; };
+const formatPhone = (value: string) => { const digits = cleanDigits(value).replace(/^55(?=\d{10,11}$)/, "").slice(0, 11); if (digits.length <= 2) return digits; if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`; if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`; return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`; };
+const normalizeState = (value?: string | null) => { const normalized = value?.trim() ?? ""; return normalized.length === 2 ? normalized.toUpperCase() : STATE_CODES[normalized.toLocaleLowerCase("pt-BR")] ?? ""; };
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number): Promise<T> => { let timer: ReturnType<typeof setTimeout> | undefined; try { return await Promise.race([promise, new Promise<T>((_, reject) => { timer = setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs); })]); } finally { if (timer) clearTimeout(timer); } };
 
-const EMPTY_FORM: AddressForm = {
-  label: "", street: "", number: "", complement: "",
-  neighborhood: "", city: "", state: "", zipCode: "",
-};
-
-const formatCep = (value: string) => {
-  const digits = value.replace(/\D/g, "").slice(0, 8);
-  return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
-};
-
-const REQUIRED_FIELDS: Array<keyof AddressForm> = ["street", "number", "neighborhood", "city", "state", "zipCode"];
-const FIELD_LABELS: Record<keyof AddressForm, string> = {
-  label: "Identificação (ex: Casa, Trabalho)",
-  street: "Rua *", number: "Número *", complement: "Complemento",
-  neighborhood: "Bairro *", city: "Cidade *", state: "Estado (UF) *",
-  zipCode: "CEP *",
-};
+function Field({ label, value, onChangeText, placeholder, keyboardType = "default", autoCapitalize = "words", maxLength }: { label: string; value: string; onChangeText: (value: string) => void; placeholder?: string; keyboardType?: "default" | "number-pad" | "phone-pad"; autoCapitalize?: "none" | "words" | "characters"; maxLength?: number }) {
+  return <View style={styles.fieldGroup}><Text style={styles.fieldLabel}>{label}</Text><View style={styles.inputWrap}><TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor="#aaa3ab" keyboardType={keyboardType} autoCapitalize={autoCapitalize} maxLength={maxLength} style={styles.input} /></View></View>;
+}
 
 export default function EnderecoScreen() {
-  const router = useRouter();
-  const { select } = useLocalSearchParams<{ select?: string }>();
-  const customer = useAuthStore((state) => state.customer);
-  const setCheckoutAddress = useCheckoutStore((state) => state.setAddress);
-  const [addresses, setAddresses]   = useState<Address[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [saving, setSaving]         = useState(false);
-  const [showForm, setShowForm]     = useState(false);
-  const [form, setForm]             = useState<AddressForm>(EMPTY_FORM);
-  const [error, setError]           = useState("");
-  const [editingId, setEditingId]   = useState<string | null>(null);
-  const [loadingCep, setLoadingCep] = useState(false);
-  const [lastCep, setLastCep]       = useState("");
+  const router = useRouter(); const insets = useSafeAreaInsets(); const { select } = useLocalSearchParams<{ select?: string }>();
+  const customer = useAuthStore((state) => state.customer); const setCheckoutAddress = useCheckoutStore((state) => state.setAddress);
+  const [addresses, setAddresses] = useState<Address[]>([]); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState<AddressForm>(EMPTY_FORM); const [withoutNumber, setWithoutNumber] = useState(false); const [error, setError] = useState(""); const [notice, setNotice] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null); const [loadingCep, setLoadingCep] = useState(false); const [lastCep, setLastCep] = useState(""); const [locationStep, setLocationStep] = useState<"" | "location" | "address">("");
+  const cepRequest = useRef(0); const locationRequest = useRef(0); const editRevision = useRef(0);
 
-  async function fetchAddresses() {
-    try {
-      const res = await addressesApi.list();
-      setAddresses(res.data.data ?? []);
-    } catch {
-      setAddresses([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => { fetchAddresses(); }, []);
+  const fetchAddresses = useCallback(async () => { try { const res = await addressesApi.list(); setAddresses(res.data.data ?? []); } catch { setAddresses([]); } finally { setLoading(false); } }, []);
+  useEffect(() => { void fetchAddresses(); }, [fetchAddresses]);
+  useEffect(() => () => { cepRequest.current += 1; locationRequest.current += 1; }, []);
+  const updateField = <K extends keyof AddressForm>(key: K, value: AddressForm[K]) => { editRevision.current += 1; setError(""); setNotice(""); setForm((current) => ({ ...current, [key]: value })); };
 
   useEffect(() => {
-    const cleanZip = form.zipCode.replace(/\D/g, "");
-    if (cleanZip.length !== 8 || cleanZip === lastCep) return;
-    const timer = setTimeout(async () => {
-      setLoadingCep(true);
-      setError("");
-      try {
-        const response = await addressesApi.lookupPostalCode(cleanZip);
-        const found = response.data.data as Pick<AddressForm, "street" | "neighborhood" | "city" | "state" | "zipCode">;
-        setForm((current) => ({ ...current, ...found, zipCode: cleanZip }));
-        setLastCep(cleanZip);
-      } catch {
-        setError("Não foi possível localizar este CEP. Tente novamente.");
-      } finally {
-        setLoadingCep(false);
-      }
-    }, 350);
+    if (!showForm) return; const cleanZip = cleanDigits(form.zipCode); if (cleanZip.length !== 8 || cleanZip === lastCep) return;
+    const requestId = ++cepRequest.current; const revision = editRevision.current;
+    const timer = setTimeout(async () => { setLoadingCep(true); setError(""); try { const response = await addressesApi.lookupPostalCode(cleanZip); if (requestId !== cepRequest.current || revision !== editRevision.current) return; const found = response.data.data as LocatedAddress; setForm((current) => ({ ...current, ...found, zipCode: cleanZip })); setLastCep(cleanZip); setNotice(found.street ? "CEP encontrado. Complete o número e confira os dados." : "CEP regional encontrado. Complete o endereço manualmente."); } catch (requestError) { if (requestId !== cepRequest.current) return; const status = (requestError as { response?: { status?: number } }).response?.status; setError(status === 404 ? "CEP não encontrado. Confira os números ou preencha manualmente." : "Não foi possível consultar o CEP agora. Você pode continuar manualmente."); } finally { if (requestId === cepRequest.current) setLoadingCep(false); } }, 350);
     return () => clearTimeout(timer);
-  }, [form.zipCode, lastCep]);
+  }, [form.zipCode, lastCep, showForm]);
+
+  const openNewForm = () => { setForm({ ...EMPTY_FORM, recipientName: customer?.name ?? "", recipientPhone: cleanDigits(customer?.phone ?? "") }); setEditingId(null); setWithoutNumber(false); setLastCep(""); setError(""); setNotice(""); setShowForm(true); };
+  const closeForm = () => { cepRequest.current += 1; locationRequest.current += 1; setShowForm(false); setEditingId(null); setWithoutNumber(false); setLastCep(""); setForm(EMPTY_FORM); setError(""); setNotice(""); setLocationStep(""); };
+
+  const completeWithLocation = async () => {
+    if (Platform.OS !== "ios") { Alert.alert("Preenchimento manual", "A localização automática está disponível no iPhone. Você pode preencher pelo CEP normalmente."); return; }
+    const requestId = ++locationRequest.current; const revision = editRevision.current; setError(""); setNotice(""); setLocationStep("location");
+    try {
+      let permission = await Location.getForegroundPermissionsAsync(); if (permission.status !== "granted" && permission.canAskAgain) permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== "granted") { setLocationStep(""); if (!permission.canAskAgain) Alert.alert("Localização bloqueada", "Ative a localização da KA Bijoux nos Ajustes do iPhone ou continue preenchendo manualmente.", [{ text: "Continuar manualmente", style: "cancel" }, { text: "Abrir Ajustes", onPress: () => void Linking.openSettings() }]); else setError("Localização não autorizada. O preenchimento manual continua disponível."); return; }
+      const position = await withTimeout(Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }), 15_000); if (requestId !== locationRequest.current) return; setLocationStep("address");
+      const native = (await withTimeout(Location.reverseGeocodeAsync(position.coords), 12_000))[0];
+      let located: LocatedAddress = { zipCode: cleanDigits(native?.postalCode ?? "").slice(0, 8), street: native?.street?.trim() || "", neighborhood: native?.district?.trim() || native?.subregion?.trim() || "", city: native?.city?.trim() || native?.subregion?.trim() || "", state: normalizeState(native?.region) };
+      if (!located.zipCode || !located.street || !located.city || !located.state) { try { const fallback = (await addressesApi.reverseGeocode(position.coords.latitude, position.coords.longitude)).data.data as LocatedAddress; located = { ...located, ...Object.fromEntries(Object.entries(fallback).filter(([, value]) => Boolean(value))) } as LocatedAddress; } catch { /* Campos ausentes ficam editáveis. */ } }
+      if (requestId !== locationRequest.current || revision !== editRevision.current) return; if (located.zipCode) setLastCep(located.zipCode); setForm((current) => ({ ...current, ...located, number: current.number }));
+      setNotice((position.coords.accuracy ?? 0) > 100 ? "Localização aproximada encontrada. Confira e complete todos os dados antes de salvar." : "Endereço encontrado! Confira os dados e informe o número antes de salvar.");
+    } catch { if (requestId === locationRequest.current) setError("Não foi possível identificar seu endereço automaticamente. Tente novamente ou preencha manualmente."); } finally { if (requestId === locationRequest.current) setLocationStep(""); }
+  };
+
+  const handleUnknownCep = () => Alert.alert("Encontrar meu CEP", "Use sua localização ou consulte o endereço no site oficial dos Correios.", [{ text: "Cancelar", style: "cancel" }, ...(Platform.OS === "ios" ? [{ text: "Usar localização", onPress: () => void completeWithLocation() }] : []), { text: "Consultar Correios", onPress: () => void Linking.openURL("https://buscacepinter.correios.com.br/app/endereco/index.php") }]);
 
   async function handleSave() {
-    if (saving) return;
-    for (const field of REQUIRED_FIELDS) {
-      if (!form[field].trim()) {
-        setError(`O campo "${FIELD_LABELS[field].replace(" *", "")}" é obrigatório.`);
-        return;
-      }
-    }
-    if (form.zipCode.replace(/\D/g, "").length !== 8) {
-      setError("CEP inválido."); return;
-    }
-    if (form.state.length !== 2) {
-      setError("Estado inválido. Use a sigla com 2 letras (ex: MG)."); return;
-    }
-
-    setSaving(true);
-    setError("");
-    try {
-      const payload = {
-        label: form.label || undefined,
-        street: form.street.trim(),
-        number: form.number.trim(),
-        complement: form.complement.trim() || undefined,
-        neighborhood: form.neighborhood.trim(),
-        city: form.city.trim(),
-        state: form.state.trim().toUpperCase(),
-        zipCode: form.zipCode.replace(/\D/g, ""),
-      };
-      const response = editingId
-        ? await addressesApi.update(editingId, payload)
-        : await addressesApi.create(payload);
-      const saved = response.data.data as Address;
-      if (select === "1" && customer && saved?.id) setCheckoutAddress(saved.id, customer.id);
-      setForm(EMPTY_FORM);
-      setEditingId(null);
-      setLastCep("");
-      setShowForm(false);
-      await fetchAddresses();
-    } catch {
-      setError("Não foi possível salvar o endereço. Tente novamente.");
-    } finally {
-      setSaving(false);
-    }
+    if (saving) return; const number = withoutNumber ? "S/N" : form.number.trim(); const required: [string, string][] = [["Rua / Avenida", form.street], ["Número", number], ["Bairro", form.neighborhood], ["Cidade", form.city], ["Estado", form.state], ["CEP", form.zipCode], ["Nome de quem vai receber", form.recipientName], ["Telefone de contato", form.recipientPhone]]; const missing = required.find(([, value]) => !value.trim());
+    if (missing) return setError(`O campo "${missing[0]}" é obrigatório.`); if (cleanDigits(form.zipCode).length !== 8) return setError("Informe um CEP válido com 8 dígitos."); if (normalizeState(form.state).length !== 2) return setError("Informe a sigla do estado com 2 letras."); if (![10, 11].includes(cleanDigits(form.recipientPhone).length)) return setError("Informe um telefone válido com DDD.");
+    setSaving(true); setError("");
+    try { const payload = { label: form.label || undefined, street: form.street.trim(), number, complement: form.complement.trim() || undefined, neighborhood: form.neighborhood.trim(), city: form.city.trim(), state: normalizeState(form.state), zipCode: cleanDigits(form.zipCode), recipientName: form.recipientName.trim(), recipientPhone: cleanDigits(form.recipientPhone) }; const response = editingId ? await addressesApi.update(editingId, payload) : await addressesApi.create(payload); const saved = response.data.data as Address; if (select === "1" && customer && saved?.id) setCheckoutAddress(saved.id, customer.id); closeForm(); await fetchAddresses(); if (select === "1" && saved?.id) router.back(); } catch (saveError) { const message = (saveError as { response?: { data?: { error?: string } } }).response?.data?.error; setError(message || "Não foi possível salvar o endereço. Confira os dados e tente novamente."); } finally { setSaving(false); }
   }
 
-  function handleSelect(address: Address) {
-    if (select !== "1" || !customer) return;
-    setCheckoutAddress(address.id, customer.id);
-    router.back();
-  }
+  function handleSelect(address: Address) { if (select !== "1" || !customer) return; setCheckoutAddress(address.id, customer.id); router.back(); }
+  function handleEdit(address: Address) { setEditingId(address.id); setLastCep(cleanDigits(address.zipCode)); setWithoutNumber(address.number === "S/N"); setForm({ label: address.label ?? "Outro", street: address.street, number: address.number === "S/N" ? "" : address.number, complement: address.complement ?? "", neighborhood: address.neighborhood, city: address.city, state: address.state, zipCode: cleanDigits(address.zipCode), recipientName: address.recipientName ?? customer?.name ?? "", recipientPhone: cleanDigits(address.recipientPhone ?? customer?.phone ?? "") }); setError(""); setNotice(""); setShowForm(true); }
+  async function handleSetDefault(id: string) { try { await addressesApi.setDefault(id); setAddresses((current) => current.map((address) => ({ ...address, isDefault: address.id === id }))); } catch { Alert.alert("Erro", "Não foi possível definir o endereço padrão."); } }
+  function handleDelete(id: string) { Alert.alert("Remover endereço", "Deseja remover este endereço?", [{ text: "Cancelar", style: "cancel" }, { text: "Remover", style: "destructive", onPress: async () => { try { await addressesApi.delete(id); await fetchAddresses(); } catch { Alert.alert("Erro", "Não foi possível remover o endereço."); } } }]); }
 
-  function handleEdit(address: Address) {
-    setEditingId(address.id);
-    setLastCep(address.zipCode.replace(/\D/g, ""));
-    setForm({
-      label: address.label ?? "",
-      street: address.street,
-      number: address.number,
-      complement: address.complement ?? "",
-      neighborhood: address.neighborhood,
-      city: address.city,
-      state: address.state,
-      zipCode: address.zipCode.replace(/\D/g, ""),
-    });
-    setError("");
-    setShowForm(true);
-  }
-
-  async function handleSetDefault(id: string) {
-    try {
-      await addressesApi.setDefault(id);
-      setAddresses((prev) =>
-        prev.map((a) => ({ ...a, isDefault: a.id === id }))
-      );
-    } catch {
-      Alert.alert("Erro", "Não foi possível definir o endereço padrão.");
-    }
-  }
-
-  async function handleDelete(id: string) {
-    Alert.alert("Remover endereço", "Deseja remover este endereço?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Remover", style: "destructive",
-        onPress: async () => {
-          try {
-            await addressesApi.delete(id);
-            setAddresses((prev) => prev.filter((a) => a.id !== id));
-          } catch {
-            Alert.alert("Erro", "Não foi possível remover o endereço.");
-          }
-        },
-      },
-    ]);
-  }
-
-  return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="close" size={22} color={Colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Meus Endereços</Text>
-        {!showForm && (
-          <TouchableOpacity onPress={() => { setShowForm(true); setError(""); }} style={styles.addBtn}>
-            <Ionicons name="add" size={22} color={Colors.primary} />
-          </TouchableOpacity>
-        )}
-        {showForm && <View style={{ width: 40 }} />}
-      </View>
-
-      {showForm ? (
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
-            <Text style={styles.formTitle}>{editingId ? "Editar Endereço" : "Novo Endereço"}</Text>
-
-            {error ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
-
-            {(Object.keys(EMPTY_FORM) as Array<keyof AddressForm>).map((key) => (
-              <View key={key} style={styles.inputGroup}>
-                <Text style={styles.label}>{FIELD_LABELS[key]}</Text>
-                <TextInput
-                  value={key === "zipCode" ? formatCep(form[key]) : form[key]}
-                  onChangeText={(v) => {
-                    let val = v;
-                    if (key === "zipCode") val = v.replace(/\D/g, "").substring(0, 8);
-                    if (key === "state")   val = v.toUpperCase().substring(0, 2);
-                    setForm((p) => ({ ...p, [key]: val }));
-                  }}
-                  placeholder={
-                    key === "zipCode" ? "00000000" :
-                    key === "state"   ? "MG" :
-                    undefined
-                  }
-                  placeholderTextColor={Colors.textLight}
-                  keyboardType={key === "zipCode" ? "number-pad" : "default"}
-                  autoCapitalize={key === "state" ? "characters" : "words"}
-                  maxLength={key === "state" ? 2 : key === "zipCode" ? 9 : undefined}
-                  style={styles.input}
-                />
-                {key === "zipCode" && loadingCep ? <ActivityIndicator size="small" color={Colors.primary} style={styles.cepLoading} /> : null}
-              </View>
-            ))}
-
-            <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
-              <Button
-                label="Cancelar"
-                variant="outline"
-                onPress={() => { setShowForm(false); setEditingId(null); setLastCep(""); setForm(EMPTY_FORM); setError(""); }}
-                style={{ flex: 1 }}
-              />
-              <Button
-                label="Salvar"
-                onPress={handleSave}
-                loading={saving}
-                style={{ flex: 1 }}
-              />
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      ) : loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={Colors.primary} size="large" />
-        </View>
-      ) : addresses.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyIcon}>📍</Text>
-          <Text style={styles.emptyTitle}>Nenhum endereço cadastrado</Text>
-          <Text style={styles.emptyText}>Adicione um endereço para facilitar seus pedidos</Text>
-          <View style={{ marginTop: 20, width: 220 }}>
-            <Button label="Adicionar Endereço" onPress={() => setShowForm(true)} fullWidth />
-          </View>
-        </View>
-      ) : (
-        <FlatList
-          data={addresses}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.addressCard, item.isDefault && styles.addressCardDefault]}
-              onPress={() => handleSelect(item)}
-              activeOpacity={select === "1" ? 0.75 : 1}
-            >
-              <View style={styles.addressTop}>
-                <View style={{ flex: 1 }}>
-                  {item.label && <Text style={styles.addressLabel}>{item.label}</Text>}
-                  <Text style={styles.addressStreet}>
-                    {item.street}, {item.number}
-                    {item.complement ? ` — ${item.complement}` : ""}
-                  </Text>
-                  <Text style={styles.addressCity}>
-                    {item.neighborhood}, {item.city}/{item.state}
-                  </Text>
-                  <Text style={styles.addressZip}>CEP {item.zipCode}</Text>
-                </View>
-                {item.isDefault && (
-                  <View style={styles.defaultBadge}>
-                    <Text style={styles.defaultBadgeText}>Padrão</Text>
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.addressActions}>
-                {select === "1" && (
-                  <TouchableOpacity style={styles.actionBtn} onPress={() => handleSelect(item)}>
-                    <Ionicons name="checkmark-circle-outline" size={16} color={Colors.primary} />
-                    <Text style={styles.actionBtnText}>Usar este</Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity style={styles.actionBtn} onPress={() => handleEdit(item)}>
-                  <Ionicons name="create-outline" size={16} color={Colors.primary} />
-                  <Text style={styles.actionBtnText}>Editar</Text>
-                </TouchableOpacity>
-                {!item.isDefault && (
-                  <TouchableOpacity
-                    style={styles.actionBtn}
-                    onPress={() => handleSetDefault(item.id)}
-                  >
-                    <Ionicons name="star-outline" size={16} color={Colors.primary} />
-                    <Text style={styles.actionBtnText}>Definir padrão</Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  style={[styles.actionBtn, styles.actionBtnDanger]}
-                  onPress={() => handleDelete(item.id)}
-                >
-                  <Ionicons name="trash-outline" size={16} color={Colors.error} />
-                  <Text style={[styles.actionBtnText, { color: Colors.error }]}>Remover</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          )}
-        />
-      )}
-    </SafeAreaView>
-  );
+  return <SafeAreaView style={styles.safe} edges={["top", "bottom"]}><View style={styles.header}><TouchableOpacity accessibilityLabel={showForm ? "Cancelar formulário" : "Voltar"} onPress={showForm ? closeForm : () => router.back()} style={styles.backBtn}><Ionicons name="arrow-back" size={23} color={Colors.textPrimary} /></TouchableOpacity><Text style={styles.title}>{showForm ? (editingId ? "Editar endereço" : "Adicionar endereço") : "Meus endereços"}</Text>{!showForm ? <TouchableOpacity accessibilityLabel="Adicionar endereço" onPress={openNewForm} style={styles.addBtn}><Ionicons name="add" size={23} color={Colors.primary} /></TouchableOpacity> : <View style={{ width: 42 }} />}</View>
+    {showForm ? <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={8} style={{ flex: 1 }}><ScrollView contentContainerStyle={[styles.formContent, { paddingBottom: Math.max(insets.bottom, 16) + 12 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <TouchableOpacity style={styles.locationCard} onPress={() => void completeWithLocation()} disabled={Boolean(locationStep)}><View style={styles.locationIcon}>{locationStep ? <ActivityIndicator color={Colors.primary} /> : <Ionicons name="location" size={25} color={Colors.primary} />}</View><View style={{ flex: 1 }}><Text style={styles.locationTitle}>{locationStep === "location" ? "Identificando sua localização..." : locationStep === "address" ? "Buscando seu endereço..." : "Completar com minha localização"}</Text><Text style={styles.locationHelp}>Usaremos sua localização para preencher o endereço.</Text></View><Ionicons name="chevron-forward" size={24} color={Colors.primary} /></TouchableOpacity>
+      {error ? <View style={styles.messageError}><Ionicons name="alert-circle-outline" size={18} color="#b42318" /><Text style={styles.messageErrorText}>{error}</Text></View> : null}{notice ? <View style={styles.messageSuccess}><Ionicons name="checkmark-circle-outline" size={18} color="#067647" /><Text style={styles.messageSuccessText}>{notice}</Text></View> : null}
+      <View style={styles.formCard}><Text style={styles.sectionTitle}>Endereço</Text><View style={styles.fieldGroup}><View style={styles.labelRow}><Text style={styles.fieldLabel}>CEP</Text><TouchableOpacity onPress={handleUnknownCep}><Text style={styles.cepHelp}>Não sei meu CEP</Text></TouchableOpacity></View><View style={styles.inputWrap}><TextInput value={formatCep(form.zipCode)} onChangeText={(value) => { setLastCep(""); updateField("zipCode", cleanDigits(value).slice(0, 8)); }} placeholder="Ex.: 05410-001" placeholderTextColor="#aaa3ab" keyboardType="number-pad" maxLength={9} style={styles.input} />{loadingCep ? <ActivityIndicator color={Colors.primary} size="small" style={styles.inputLoader} /> : null}</View></View>
+        <Field label="Rua / Avenida" value={form.street} onChangeText={(value) => updateField("street", value)} placeholder="Ex.: Avenida Paulista" /><View style={styles.numberRow}><View style={{ flex: 1 }}><Field label="Número" value={form.number} onChangeText={(value) => updateField("number", value)} placeholder="Ex.: 1234" keyboardType="number-pad" /></View><TouchableOpacity style={styles.noNumber} onPress={() => { setWithoutNumber((current) => !current); updateField("number", ""); }} accessibilityRole="checkbox" accessibilityState={{ checked: withoutNumber }}><View style={[styles.checkbox, withoutNumber && styles.checkboxChecked]}>{withoutNumber ? <Ionicons name="checkmark" size={15} color="#fff" /> : null}</View><Text style={styles.noNumberText}>Sem número</Text></TouchableOpacity></View>
+        <Field label="Complemento (opcional)" value={form.complement} onChangeText={(value) => updateField("complement", value)} placeholder="Ex.: Apto 201, Bloco B" /><Field label="Bairro" value={form.neighborhood} onChangeText={(value) => updateField("neighborhood", value)} placeholder="Ex.: Centro" /><View style={styles.twoColumns}><View style={{ flex: 1.6 }}><Field label="Cidade" value={form.city} onChangeText={(value) => updateField("city", value)} placeholder="Ex.: São Paulo" /></View><View style={{ flex: 0.7 }}><Field label="Estado (UF)" value={form.state} onChangeText={(value) => updateField("state", value.toUpperCase().slice(0, 2))} placeholder="MG" autoCapitalize="characters" maxLength={2} /></View></View>
+        <Text style={styles.compactLabel}>Identificação</Text><View style={styles.labelChoices}>{["Casa", "Trabalho", "Outro"].map((label) => <TouchableOpacity key={label} onPress={() => updateField("label", label)} style={[styles.labelChoice, form.label === label && styles.labelChoiceActive]}><Text style={[styles.labelChoiceText, form.label === label && styles.labelChoiceTextActive]}>{label}</Text></TouchableOpacity>)}</View></View>
+      <View style={styles.formCard}><Text style={styles.sectionTitle}>Quem vai receber</Text><Text style={styles.sectionHelp}>Esses dados ajudam a realizar sua entrega.</Text><Field label="Nome completo" value={form.recipientName} onChangeText={(value) => updateField("recipientName", value)} placeholder="Ex.: Maria Silva" /><Field label="Telefone de contato" value={formatPhone(form.recipientPhone)} onChangeText={(value) => updateField("recipientPhone", cleanDigits(value).slice(0, 11))} placeholder="(11) 98765-4321" keyboardType="phone-pad" /></View>
+      <View style={styles.footerButtons}><TouchableOpacity style={styles.cancelButton} onPress={closeForm}><Text style={styles.cancelButtonText}>Cancelar</Text></TouchableOpacity><TouchableOpacity disabled={saving} onPress={() => void handleSave()} style={{ flex: 1 }}><LinearGradient colors={["#ff4f83", "#d80b4f"]} style={styles.saveButton}>{saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Salvar endereço</Text>}</LinearGradient></TouchableOpacity></View>
+    </ScrollView></KeyboardAvoidingView> : loading ? <View style={styles.center}><ActivityIndicator color={Colors.primary} size="large" /></View> : addresses.length === 0 ? <View style={styles.center}><View style={styles.emptyPin}><Ionicons name="location-outline" size={38} color={Colors.primary} /></View><Text style={styles.emptyTitle}>Nenhum endereço cadastrado</Text><Text style={styles.emptyText}>Adicione um endereço para facilitar seus pedidos.</Text><View style={{ marginTop: 20, width: 230 }}><Button label="Adicionar endereço" onPress={openNewForm} fullWidth /></View></View> : <FlatList data={addresses} keyExtractor={(item) => item.id} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false} renderItem={({ item }) => <TouchableOpacity style={[styles.addressCard, item.isDefault && styles.addressCardDefault]} onPress={() => handleSelect(item)} activeOpacity={select === "1" ? 0.75 : 1}><View style={styles.addressTop}><View style={{ flex: 1 }}>{item.label ? <Text style={styles.addressLabel}>{item.label}</Text> : null}<Text style={styles.addressStreet}>{item.street}, {item.number}{item.complement ? ` — ${item.complement}` : ""}</Text><Text style={styles.addressCity}>{item.neighborhood}, {item.city}/{item.state}</Text><Text style={styles.addressZip}>CEP {formatCep(item.zipCode)}</Text>{item.recipientName ? <Text style={styles.addressRecipient}>Recebe: {item.recipientName}</Text> : null}</View>{item.isDefault ? <View style={styles.defaultBadge}><Text style={styles.defaultBadgeText}>Padrão</Text></View> : null}</View><View style={styles.addressActions}>{select === "1" ? <TouchableOpacity style={styles.actionBtn} onPress={() => handleSelect(item)}><Ionicons name="checkmark-circle-outline" size={16} color={Colors.primary} /><Text style={styles.actionBtnText}>Usar este</Text></TouchableOpacity> : null}<TouchableOpacity style={styles.actionBtn} onPress={() => handleEdit(item)}><Ionicons name="create-outline" size={16} color={Colors.primary} /><Text style={styles.actionBtnText}>Editar</Text></TouchableOpacity>{!item.isDefault ? <TouchableOpacity style={styles.actionBtn} onPress={() => void handleSetDefault(item.id)}><Ionicons name="star-outline" size={16} color={Colors.primary} /><Text style={styles.actionBtnText}>Definir padrão</Text></TouchableOpacity> : null}<TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={() => handleDelete(item.id)}><Ionicons name="trash-outline" size={16} color={Colors.error} /><Text style={[styles.actionBtnText, { color: Colors.error }]}>Remover</Text></TouchableOpacity></View></TouchableOpacity>} />}
+  </SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: Colors.background },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40 },
-  header: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: Spacing.base, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: Colors.surface, alignItems: "center", justifyContent: "center", ...Shadows.sm,
-  },
-  addBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: Colors.pinkSoft, alignItems: "center", justifyContent: "center",
-  },
-  title: { fontSize: FontSizes.lg, fontWeight: "800", color: Colors.textPrimary },
-  list:  { padding: Spacing.base, gap: 12 },
-
-  addressCard: {
-    backgroundColor: Colors.surface, borderRadius: BorderRadius["2xl"],
-    padding: 16, ...Shadows.sm,
-    borderWidth: 1.5, borderColor: "transparent",
-  },
-  addressCardDefault: { borderColor: Colors.primary },
-  addressTop:    { flexDirection: "row", gap: 12, marginBottom: 12 },
-  addressLabel:  { fontSize: FontSizes.xs, fontWeight: "700", color: Colors.primary, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 },
-  addressStreet: { fontSize: FontSizes.base, fontWeight: "600", color: Colors.textPrimary },
-  addressCity:   { fontSize: FontSizes.sm, color: Colors.textMuted, marginTop: 2 },
-  addressZip:    { fontSize: FontSizes.xs, color: Colors.textMuted, marginTop: 2 },
-  defaultBadge:  { backgroundColor: Colors.pinkSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: BorderRadius.full, height: 26, justifyContent: "center" },
-  defaultBadgeText: { fontSize: FontSizes.xs, color: Colors.primary, fontWeight: "700" },
-
-  addressActions: { flexDirection: "row", gap: 10, borderTopWidth: 1, borderTopColor: Colors.border, paddingTop: 10 },
-  actionBtn:      { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: BorderRadius.lg, backgroundColor: Colors.pinkSoft },
-  actionBtnDanger:{ backgroundColor: Colors.errorLight },
-  actionBtnText:  { fontSize: FontSizes.xs, fontWeight: "600", color: Colors.primary },
-
-  formContent: { padding: Spacing.base, gap: 0 },
-  formTitle:   { fontSize: FontSizes.lg, fontWeight: "800", color: Colors.textPrimary, marginBottom: 16 },
-  errorBox:    { backgroundColor: Colors.errorLight, borderRadius: BorderRadius.lg, padding: 12, marginBottom: 12 },
-  errorText:   { color: Colors.error, fontSize: FontSizes.sm, fontWeight: "500" },
-  inputGroup:  { gap: 6, marginBottom: 12 },
-  label:       { fontSize: FontSizes.sm, fontWeight: "600", color: Colors.textPrimary },
-  input: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1.5, borderColor: Colors.border,
-    borderRadius: BorderRadius.xl,
-    paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: FontSizes.base, color: Colors.textPrimary,
-  },
-  cepLoading: { position: "absolute", right: 14, bottom: 14 },
-  emptyIcon:  { fontSize: 56, marginBottom: 12 },
-  emptyTitle: { fontSize: FontSizes.md, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },
-  emptyText:  { fontSize: FontSizes.sm, color: Colors.textMuted, textAlign: "center", marginTop: 6 },
+  safe: { flex: 1, backgroundColor: "#fff8fa" }, center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40 }, header: { minHeight: 64, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16 },
+  backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", ...Shadows.sm }, addBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: "#ffe8f0", alignItems: "center", justifyContent: "center" }, title: { flex: 1, textAlign: "center", fontSize: 20, fontWeight: "800", color: "#16131a" }, formContent: { paddingHorizontal: 16, paddingTop: 6, gap: 12 },
+  locationCard: { minHeight: 78, flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 18, borderWidth: 1, borderColor: "#ffcfe0", backgroundColor: "rgba(255,255,255,0.76)", ...Shadows.sm }, locationIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#ffe8f0", alignItems: "center", justifyContent: "center" }, locationTitle: { color: "#17131a", fontSize: 15, fontWeight: "800" }, locationHelp: { color: "#817982", fontSize: 12, lineHeight: 17, marginTop: 3 },
+  messageError: { flexDirection: "row", gap: 8, alignItems: "flex-start", backgroundColor: "#ffebe8", borderRadius: 12, padding: 11 }, messageErrorText: { flex: 1, color: "#b42318", fontSize: 12, lineHeight: 17 }, messageSuccess: { flexDirection: "row", gap: 8, alignItems: "flex-start", backgroundColor: "#eafaf2", borderRadius: 12, padding: 11 }, messageSuccessText: { flex: 1, color: "#067647", fontSize: 12, lineHeight: 17 },
+  formCard: { borderRadius: 20, backgroundColor: "rgba(255,255,255,0.9)", padding: 14, gap: 11, ...Shadows.sm }, sectionTitle: { color: "#17131a", fontSize: 19, fontWeight: "900" }, sectionHelp: { marginTop: -6, color: "#817982", fontSize: 12, lineHeight: 17 }, fieldGroup: { gap: 5 }, labelRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, fieldLabel: { color: "#17131a", fontSize: 13, fontWeight: "700" }, cepHelp: { color: Colors.primary, fontSize: 12, fontWeight: "700", textDecorationLine: "underline" }, inputWrap: { minHeight: 48, justifyContent: "center" }, input: { minHeight: 48, borderRadius: 13, borderWidth: 1, borderColor: "#d8cfd4", backgroundColor: "#fff", paddingHorizontal: 13, paddingVertical: 10, paddingRight: 42, color: "#17131a", fontSize: 14 }, inputLoader: { position: "absolute", right: 14 },
+  numberRow: { flexDirection: "row", alignItems: "flex-end", gap: 12 }, noNumber: { height: 48, flexDirection: "row-reverse", alignItems: "center", gap: 7, paddingBottom: 1 }, noNumberText: { color: "#2d2830", fontSize: 12 }, checkbox: { width: 24, height: 24, borderRadius: 7, borderWidth: 1.5, borderColor: "#cabec5", backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }, checkboxChecked: { backgroundColor: Colors.primary, borderColor: Colors.primary }, twoColumns: { flexDirection: "row", gap: 10 }, compactLabel: { color: "#17131a", fontSize: 13, fontWeight: "700", marginTop: 1 }, labelChoices: { flexDirection: "row", gap: 8 }, labelChoice: { flex: 1, minHeight: 38, borderRadius: 19, borderWidth: 1, borderColor: "#ead7df", backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }, labelChoiceActive: { borderColor: Colors.primary, backgroundColor: "#ffe8f0" }, labelChoiceText: { color: "#6f6670", fontSize: 12, fontWeight: "700" }, labelChoiceTextActive: { color: Colors.primary },
+  footerButtons: { flexDirection: "row", gap: 10, marginTop: 2 }, cancelButton: { flex: 1, minHeight: 50, borderRadius: 16, borderWidth: 1.5, borderColor: Colors.primary, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" }, cancelButtonText: { color: Colors.primary, fontSize: 14, fontWeight: "800" }, saveButton: { minHeight: 50, borderRadius: 16, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 }, saveButtonText: { color: "#fff", fontSize: 14, fontWeight: "900", textAlign: "center" },
+  list: { padding: Spacing.base, gap: 12, paddingBottom: 28 }, addressCard: { backgroundColor: Colors.surface, borderRadius: BorderRadius["2xl"], padding: 16, ...Shadows.sm, borderWidth: 1.5, borderColor: "transparent" }, addressCardDefault: { borderColor: Colors.primary }, addressTop: { flexDirection: "row", gap: 12, marginBottom: 12 }, addressLabel: { fontSize: FontSizes.xs, fontWeight: "700", color: Colors.primary, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }, addressStreet: { fontSize: FontSizes.base, fontWeight: "600", color: Colors.textPrimary }, addressCity: { fontSize: FontSizes.sm, color: Colors.textMuted, marginTop: 2 }, addressZip: { fontSize: FontSizes.xs, color: Colors.textMuted, marginTop: 2 }, addressRecipient: { fontSize: FontSizes.xs, color: Colors.textMuted, marginTop: 5 }, defaultBadge: { backgroundColor: Colors.pinkSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: BorderRadius.full, height: 26, justifyContent: "center" }, defaultBadgeText: { fontSize: FontSizes.xs, color: Colors.primary, fontWeight: "700" }, addressActions: { flexDirection: "row", flexWrap: "wrap", gap: 8, borderTopWidth: 1, borderTopColor: Colors.border, paddingTop: 10 }, actionBtn: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 9, paddingVertical: 7, borderRadius: BorderRadius.lg, backgroundColor: Colors.pinkSoft }, actionBtnDanger: { backgroundColor: Colors.errorLight }, actionBtnText: { fontSize: FontSizes.xs, fontWeight: "600", color: Colors.primary },
+  emptyPin: { width: 72, height: 72, borderRadius: 36, backgroundColor: "#ffe8f0", alignItems: "center", justifyContent: "center", marginBottom: 14 }, emptyTitle: { fontSize: FontSizes.md, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" }, emptyText: { fontSize: FontSizes.sm, color: Colors.textMuted, textAlign: "center", marginTop: 6 },
 });

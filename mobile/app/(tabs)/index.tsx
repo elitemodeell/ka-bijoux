@@ -137,7 +137,12 @@ function AnnouncementBar({ messages }: { messages: string[] }) {
 
 function Header({ itemCount, onNavigate }: { itemCount: number; onNavigate: (href: string) => void }) {
   return (
-    <View style={styles.header}>
+    <LinearGradient colors={["#fff1f6", "#ffdce9", "#fff4f8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
+      <View pointerEvents="none" style={styles.headerDecor} accessibilityElementsHidden>
+        <Text style={[styles.headerHeart, styles.headerHeartLeft]}>♡</Text>
+        <Text style={[styles.headerHeart, styles.headerHeartCenter]}>♥</Text>
+        <Text style={[styles.headerHeart, styles.headerHeartRight]}>♡</Text>
+      </View>
       <Image
         source={resolveUrl("/images/brand/ka-bijoux-logo-header-320.png")}
         style={styles.logo}
@@ -164,8 +169,7 @@ function Header({ itemCount, onNavigate }: { itemCount: number; onNavigate: (hre
           </View>
         ) : null}
       </TouchableOpacity>
-
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -373,7 +377,7 @@ function Stories({ stories, onOpen }: { stories: HomeStory[]; onOpen: (story: Ho
     else onOpen(story);
   };
   return <LinearGradient colors={['#ffffff', '#fff8fb', '#fff2f7']} style={styles.storiesSection}>
-    <Text style={styles.storyHeading}>Stories da KA<Text style={{ color: '#ff7a4d' }}>*</Text></Text>
+    <Text style={styles.storyHeading}>Stories da KA</Text>
     <Text style={styles.storySubtitle}>Mês das Crianças, novidades, ofertas, clientes e nossos stories do Instagram.</Text>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storyList}>
       <TouchableOpacity style={styles.storyItem} onPress={() => void openInstagram()} accessibilityLabel="Abrir KA Stories no Instagram">
@@ -423,11 +427,22 @@ function Campaign({ campaign, onNavigate }: {
         accessibilityLabel="Ver ofertas do Mês das Crianças"
       >
         <LinearGradient colors={["#F72570", "#FF6F61", "#FF914D"]} style={styles.campaignStrip}>
-          <View style={styles.campaignIcon}><Ionicons name="color-palette-outline" size={25} color="#fff" /></View>
-          <View style={styles.campaignText}>
-            <Text style={styles.campaignTitle}>{campaign.promoTitle}</Text>
-            <Text style={styles.campaignSubtitle}>{campaign.promoSubtitle}</Text>
+          <View style={styles.campaignTopRow}>
+            <View style={styles.campaignIcon}><Ionicons name="color-palette-outline" size={27} color="#fff" /></View>
+            <View style={styles.campaignWordmark}>
+              <View style={styles.campaignTitleRow}>
+                <Text style={[styles.campaignTitleWord, { color: "#FFE151" }]}>MÊS</Text>
+                <Text style={[styles.campaignTitleWord, { color: "#FFFFFF" }]}> DAS </Text>
+                <Text style={[styles.campaignTitleWord, { color: "#55D6E8" }]}>CRIANÇAS</Text>
+                <Text style={styles.campaignStar}>☆</Text>
+              </View>
+              <View style={styles.campaignRibbon}>
+                <Text style={styles.campaignRibbonText}>Cabelo Maluco</Text>
+              </View>
+            </View>
+            <Text style={styles.campaignRainbow}>🌈</Text>
           </View>
+          <Text style={styles.campaignSubtitle}>{campaign.promoSubtitle}</Text>
           <View style={styles.campaignButton}><Text style={styles.campaignButtonText}>{campaign.cta}</Text></View>
         </LinearGradient>
       </TouchableOpacity>
@@ -795,12 +810,17 @@ const styles = StyleSheet.create({
     gap: 7,
     paddingHorizontal: Platform.OS === "ios" ? 14 : 12,
     paddingVertical: Platform.OS === "ios" ? 8 : 5,
-    backgroundColor: "rgba(255,255,255,0.98)",
+    overflow: "hidden",
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#f7cbd7",
     zIndex: 10,
   },
-  logo: { width: Platform.OS === "ios" ? 48 : 40, height: Platform.OS === "ios" ? 44 : 36 },
+  headerDecor: { ...StyleSheet.absoluteFillObject },
+  headerHeart: { position: "absolute", color: "rgba(244,63,126,0.34)", fontSize: 28, fontWeight: "300" },
+  headerHeartLeft: { left: 66, top: 2, transform: [{ rotate: "-12deg" }] },
+  headerHeartCenter: { left: "48%", bottom: -9, color: "rgba(255,255,255,0.58)", fontSize: 22, transform: [{ rotate: "12deg" }] },
+  headerHeartRight: { right: 4, top: -2, transform: [{ rotate: "14deg" }] },
+  logo: { width: Platform.OS === "ios" ? 48 : 40, height: Platform.OS === "ios" ? 44 : 36, zIndex: 1 },
   search: {
     flex: 1,
     height: Platform.OS === "ios" ? 44 : 36,
@@ -811,10 +831,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingLeft: 13,
+    zIndex: 1,
   },
   searchText: { flex: 1, color: "#9b7280", fontSize: Platform.OS === "ios" ? 14 : 12 },
   searchButton: { width: Platform.OS === "ios" ? 38 : 30, height: Platform.OS === "ios" ? 38 : 30, marginRight: 4, borderRadius: Platform.OS === "ios" ? 19 : 12, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center" },
-  headerButton: { width: Platform.OS === "ios" ? 42 : 38, height: Platform.OS === "ios" ? 42 : 38, alignItems: "center", justifyContent: "center" },
+  headerButton: { width: Platform.OS === "ios" ? 42 : 38, height: Platform.OS === "ios" ? 42 : 38, alignItems: "center", justifyContent: "center", zIndex: 1 },
   cartBadge: { position: "absolute", right: 0, top: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
   cartBadgeText: { color: "#fff", fontSize: 9, fontWeight: "800" },
   announcement: { height: 32, justifyContent: "center", overflow: "hidden", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#fce7f3" },
@@ -866,13 +887,19 @@ const styles = StyleSheet.create({
   storyLinkText: { color: "#fff", fontSize: 11, fontWeight: "900" },
   campaignImageWrap: { marginTop: 14, width: "100%", aspectRatio: 3 / 2, backgroundColor: "#FFF7FA" },
   campaignImage: { width: "100%", height: "100%" },
-  campaignStrip: { flexWrap: "wrap", margin: 12, marginTop: 12, borderRadius: 20, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, ...Shadows.md },
-  campaignIcon: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: "rgba(255,255,255,0.35)", alignItems: "center", justifyContent: "center" },
-  campaignText: { flex: 1 },
-  campaignTitle: { color: "#fff", fontSize: 20, fontWeight: "900", textTransform: "uppercase" },
-  campaignSubtitle: { color: "#FFF7C2", fontSize: 12, lineHeight: 17, marginTop: 4 },
-  campaignButton: { width: '100%', minHeight: 48, paddingHorizontal: 20, paddingVertical: 14, borderRadius: 16, backgroundColor: "#fff", justifyContent: 'center' },
-  campaignButtonText: { color: "#d5296b", fontSize: 13, fontWeight: "900", textAlign: "center", textTransform: "uppercase" },
+  campaignStrip: { marginHorizontal: 10, marginTop: 10, marginBottom: 12, borderRadius: 20, paddingHorizontal: 14, paddingTop: 13, paddingBottom: 12, ...Shadows.md },
+  campaignTopRow: { minHeight: 55, flexDirection: "row", alignItems: "center", gap: 9 },
+  campaignIcon: { width: 50, height: 50, borderRadius: 25, borderWidth: 1.2, borderColor: "rgba(255,255,255,0.65)", alignItems: "center", justifyContent: "center" },
+  campaignWordmark: { flex: 1, alignItems: "center", justifyContent: "center" },
+  campaignTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap" },
+  campaignTitleWord: { fontSize: Platform.OS === "ios" ? 17 : 15, lineHeight: 20, fontWeight: "900", letterSpacing: -0.7, textShadowColor: "rgba(151,21,79,0.42)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 1 },
+  campaignStar: { color: "#fff", fontSize: 20, lineHeight: 21, fontWeight: "900", marginLeft: 3 },
+  campaignRibbon: { marginTop: 2, minWidth: "78%", paddingHorizontal: 14, paddingVertical: 1, borderRadius: 12, backgroundColor: "#FFE58A", transform: [{ rotate: "-1deg" }] },
+  campaignRibbonText: { color: "#D52A68", fontFamily: "PlayfairDisplay", fontSize: 16, lineHeight: 20, textAlign: "center", fontStyle: "italic" },
+  campaignRainbow: { width: 35, fontSize: 29, textAlign: "center" },
+  campaignSubtitle: { color: "#FFFFFF", fontSize: 11, lineHeight: 15, marginTop: 8, marginBottom: 10, textAlign: "center" },
+  campaignButton: { width: "100%", minHeight: 48, paddingHorizontal: 20, paddingVertical: 13, borderRadius: 15, backgroundColor: "#fff", justifyContent: "center" },
+  campaignButtonText: { color: "#E32C71", fontSize: 13, fontWeight: "900", textAlign: "center", textTransform: "uppercase" },
   quickSection: { paddingHorizontal: 10, paddingVertical: 12 },
   quickFrame: { padding: 8, borderRadius: 22, borderWidth: 1, borderColor: '#fce7f3', backgroundColor: '#fff', ...Shadows.sm },
   quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

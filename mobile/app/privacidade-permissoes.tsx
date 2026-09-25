@@ -89,7 +89,7 @@ export default function PrivacyPermissionsScreen() {
           <View style={iosStyles.card}>
             <PermissionItem icon="notifications-outline" title="Notificações" status="Não solicitada" description="As atualizações de pedidos ficam disponíveis dentro do aplicativo. Alertas push ainda não estão ativos e, por isso, nenhuma permissão é solicitada." />
             <View style={iosStyles.divider} />
-            <PermissionItem icon="location-outline" title="Localização" status="Não utilizada" description="O endereço é preenchido manualmente por CEP e campos de endereço. O aplicativo não acessa a localização do aparelho." />
+            <PermissionItem icon="location-outline" title="Localização" status="Sob demanda" description="A localização é solicitada somente quando você toca em Completar com minha localização. O preenchimento manual por CEP continua disponível." />
             <View style={iosStyles.divider} />
             <PermissionItem icon="camera-outline" title="Câmera e fotos" status="Não utilizadas" description="O aplicativo não possui, nesta versão, uma função que precise acessar a câmera ou a galeria." />
           </View>
@@ -144,8 +144,8 @@ export default function PrivacyPermissionsScreen() {
           <PermissionItem
             icon="location-outline"
             title="Localização"
-            status="Não utilizada"
-            description="O endereço é preenchido manualmente por CEP e campos de endereço. O aplicativo não acessa a localização do aparelho."
+            status="Sob demanda"
+            description="A localização é solicitada somente quando você toca em Completar com minha localização. O preenchimento manual por CEP continua disponível."
           />
           <View style={styles.divider} />
           <PermissionItem

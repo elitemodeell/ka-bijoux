@@ -294,6 +294,9 @@ export const addressesApi = {
   lookupPostalCode: (zipCode: string) =>
     api.get(`${MOBILE_API_PREFIX}/addresses/cep/${zipCode.replace(/\D/g, "")}`),
 
+  reverseGeocode: (latitude: number, longitude: number) =>
+    api.get(`${MOBILE_API_PREFIX}/addresses/reverse-geocode`, { params: { latitude, longitude } }),
+
   setDefault: (id: string) =>
     api.patch(`/api/customers/me/addresses/${id}/default`),
 

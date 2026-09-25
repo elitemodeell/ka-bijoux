@@ -20,6 +20,14 @@ const boyThree = require("../assets/home/children-crazy-hair/boy-3.webp");
 
 const campaignSlides: Array<Omit<HomeBanner, "href">> = [
   {
+    id: `${CHILDREN_CAMPAIGN_ID}_boy_3`,
+    title: "Mês das Crianças",
+    subtitle: "Presentes, capinhas e acessórios cheios de personalidade",
+    cta: "Comprar agora",
+    image: boyThree,
+    mobileImage: boyThree,
+  },
+  {
     id: `${CHILDREN_CAMPAIGN_ID}_girl_1`,
     title: "Mês das Crianças • Cabelo Maluco",
     subtitle: "Acessórios criativos, coloridos e cheios de personalidade",
@@ -59,14 +67,6 @@ const campaignSlides: Array<Omit<HomeBanner, "href">> = [
     image: girlThree,
     mobileImage: girlThree,
   },
-  {
-    id: `${CHILDREN_CAMPAIGN_ID}_boy_3`,
-    title: "Mês das Crianças",
-    subtitle: "Presentes, capinhas e acessórios cheios de personalidade",
-    cta: "Comprar agora",
-    image: boyThree,
-    mobileImage: boyThree,
-  },
 ];
 
 export function applyChildrenCampaign(home: MobileHomePayload): MobileHomePayload {
@@ -85,9 +85,9 @@ export function applyChildrenCampaign(home: MobileHomePayload): MobileHomePayloa
       ...home.campaign,
       title: "Mês das Crianças",
       subtitle: "Especial Cabelo Maluco",
-      image: boyOne,
-      promoTitle: "Cabelo Maluco 🌈",
-      promoSubtitle: "Cor, criatividade e muita diversão.",
+      image: boyThree,
+      promoTitle: "Mês das Crianças",
+      promoSubtitle: "Acessórios criativos, cor e muita diversão para um Dia das Crianças inesquecível!",
       cta: "Quero aproveitar",
     },
     sections: home.sections.map((section) =>

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { LEGAL_ADDRESS_INLINE, LEGAL_IDENTITY } from "@/lib/legal-identity";
+import { isNationalShippingConfigured } from "@/lib/shipping";
 
 export interface PublicStoreInfo {
   name: string;
@@ -32,6 +33,11 @@ export async function getPublicStoreInfo(): Promise<PublicStoreInfo> {
         mototaxiEnabled: true,
         mototaxiPrice: true,
         correiosEnabled: true,
+        shippingPackageWeight: true,
+        shippingPackageHeight: true,
+        shippingPackageWidth: true,
+        shippingPackageLength: true,
+        shippingHandlingDays: true,
       },
     });
 
@@ -47,9 +53,25 @@ export async function getPublicStoreInfo(): Promise<PublicStoreInfo> {
       pickupEnabled: store?.storePickupEnabled ?? false,
       mototaxiEnabled: store?.mototaxiEnabled ?? false,
       mototaxiPrice: store ? store.mototaxiPrice.toFixed(2) : null,
-      carrierShippingEnabled: Boolean(
-        store?.correiosEnabled && process.env.MELHOR_ENVIO_TOKEN?.trim()
-      ),
+      carrierShippingEnabled: store
+        ? isNationalShippingConfigured({
+            correiosEnabled: store.correiosEnabled,
+            storeZipCode: store.storeZipCode,
+            packageWeight: store.shippingPackageWeight
+              ? Number(store.shippingPackageWeight)
+              : null,
+            packageHeight: store.shippingPackageHeight
+              ? Number(store.shippingPackageHeight)
+              : null,
+            packageWidth: store.shippingPackageWidth
+              ? Number(store.shippingPackageWidth)
+              : null,
+            packageLength: store.shippingPackageLength
+              ? Number(store.shippingPackageLength)
+              : null,
+            handlingDays: store.shippingHandlingDays,
+          })
+        : false,
     };
   } catch {
     return {

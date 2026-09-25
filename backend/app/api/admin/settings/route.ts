@@ -33,6 +33,7 @@ export async function PATCH(req: NextRequest) {
       "storeName", "storeAddress", "storeCity", "storeState", "storeZipCode",
       "storePhone", "storeEmail", "storeHours",
       "mototaxiPrice", "mototaxiEnabled", "correiosEnabled", "storePickupEnabled",
+      "shippingPackageWeight", "shippingPackageHeight", "shippingPackageWidth", "shippingPackageLength", "shippingHandlingDays",
       "logoUrl",
     ];
 
@@ -46,6 +47,12 @@ export async function PATCH(req: NextRequest) {
     if (typeof data.mototaxiPrice === "string") {
       data.mototaxiPrice = parseFloat(data.mototaxiPrice as string);
     }
+    for (const key of ["shippingPackageWeight", "shippingPackageHeight", "shippingPackageWidth", "shippingPackageLength"]) {
+      if (typeof data[key] === "string") data[key] = data[key] === "" ? null : Number(data[key]);
+      if (data[key] !== null && data[key] !== undefined && (!Number.isFinite(data[key]) || Number(data[key]) <= 0)) return apiError("Peso e dimensões da embalagem devem ser positivos.", 422);
+    }
+    if (typeof data.shippingHandlingDays === "string") data.shippingHandlingDays = Number(data.shippingHandlingDays);
+    if (data.shippingHandlingDays !== undefined && (!Number.isInteger(data.shippingHandlingDays) || Number(data.shippingHandlingDays) < 0 || Number(data.shippingHandlingDays) > 30)) return apiError("Prazo de preparação inválido.", 422);
 
     const updated = await prisma.storeSettings.update({
       where: { id: settings.id },

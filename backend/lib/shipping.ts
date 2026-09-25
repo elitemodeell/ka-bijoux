@@ -7,6 +7,7 @@ export interface ShippingItem {
   width: number;
   length: number;
   quantity: number;
+  declaredValue: number;
 }
 
 export interface ShippingOption {
@@ -28,6 +29,11 @@ export interface StoreShippingConfig {
   storeCity?: string;
   storeState?: string;
   storeZipCode?: string;
+  packageWeight?: number | null;
+  packageHeight?: number | null;
+  packageWidth?: number | null;
+  packageLength?: number | null;
+  handlingDays?: number;
 }
 
 export interface ShippingDestination {
@@ -35,8 +41,18 @@ export interface ShippingDestination {
   state: string;
 }
 
+type NationalShippingConfig = Pick<
+  StoreShippingConfig,
+  | "correiosEnabled"
+  | "storeZipCode"
+  | "packageWeight"
+  | "packageHeight"
+  | "packageWidth"
+  | "packageLength"
+  | "handlingDays"
+>;
+
 const ITAUNA_CEP_PREFIX = ["35680", "35681", "35682", "35683", "35684", "35685"];
-const ORIGIN_ZIP = "35680000";
 
 export const SHIPPING_OPTION_IDS = {
   pickup: "pickup",
@@ -69,13 +85,15 @@ function requirePositive(value: number, field: string): number {
   return value;
 }
 
-function consolidateDimensions(items: ShippingItem[]) {
+function consolidateDimensions(items: ShippingItem[], config: StoreShippingConfig) {
   if (items.length === 0) throw new Error("Não há itens para calcular o frete.");
 
   let totalWeight = 0;
   let maxHeight = 0;
   let maxWidth = 0;
   let maxLength = 0;
+  let totalVolume = 0;
+  let declaredValue = 0;
 
   for (const item of items) {
     if (!Number.isInteger(item.quantity) || item.quantity < 1) {
@@ -85,15 +103,47 @@ function consolidateDimensions(items: ShippingItem[]) {
     maxHeight = Math.max(maxHeight, requirePositive(item.height, "altura"));
     maxWidth = Math.max(maxWidth, requirePositive(item.width, "largura"));
     maxLength = Math.max(maxLength, requirePositive(item.length, "comprimento"));
+    totalVolume += item.height * item.width * item.length * item.quantity;
+    declaredValue += requirePositive(item.declaredValue, "valor declarado") * item.quantity;
   }
 
-  // Limites mínimos físicos exigidos pelos serviços postais, não preços fictícios.
+  const packageWeight = requirePositive(Number(config.packageWeight), "peso da embalagem");
+  const packageHeight = requirePositive(Number(config.packageHeight), "altura da embalagem");
+  const packageWidth = requirePositive(Number(config.packageWidth), "largura da embalagem");
+  const packageLength = requirePositive(Number(config.packageLength), "comprimento da embalagem");
+  const packedWidth = Math.max(packageWidth, maxWidth);
+  const packedLength = Math.max(packageLength, maxLength);
+  const packedHeight = Math.max(packageHeight, maxHeight, Math.ceil(totalVolume / (packedWidth * packedLength)));
+
   return {
-    totalWeight: Math.max(0.3, totalWeight),
-    maxHeight: Math.max(2, maxHeight),
-    maxWidth: Math.max(11, maxWidth),
-    maxLength: Math.max(16, maxLength),
+    totalWeight: totalWeight + packageWeight,
+    maxHeight: packedHeight,
+    maxWidth: packedWidth,
+    maxLength: packedLength,
+    declaredValue,
   };
+}
+
+export function isNationalShippingConfigured(config: NationalShippingConfig): boolean {
+  const environment = process.env.MELHOR_ENVIO_SANDBOX?.trim().toLowerCase();
+  const originZip = (config.storeZipCode ?? "").replace(/\D/g, "");
+  const handlingDays = Number(config.handlingDays);
+  const packageValues = [
+    config.packageWeight,
+    config.packageHeight,
+    config.packageWidth,
+    config.packageLength,
+  ].map(Number);
+
+  return Boolean(
+    config.correiosEnabled &&
+      process.env.MELHOR_ENVIO_TOKEN?.trim() &&
+      (environment === "true" || environment === "false") &&
+      originZip.length === 8 &&
+      Number.isInteger(handlingDays) &&
+      handlingDays >= 0 &&
+      packageValues.every((value) => Number.isFinite(value) && value > 0)
+  );
 }
 
 interface MelhorEnvioResult {
@@ -119,7 +169,9 @@ function validRate(value: string | null | undefined): number | null {
 
 async function fetchMelhorEnvioRates(
   destinationZip: string,
-  dims: ReturnType<typeof consolidateDimensions>
+  originZip: string,
+  dims: ReturnType<typeof consolidateDimensions>,
+  handlingDays: number
 ): Promise<MelhorEnvioRates> {
   const token = process.env.MELHOR_ENVIO_TOKEN?.trim();
   const rawSandbox = process.env.MELHOR_ENVIO_SANDBOX?.trim().toLowerCase();
@@ -155,7 +207,7 @@ async function fetchMelhorEnvioRates(
         },
         signal: abortController.signal,
         body: JSON.stringify({
-          from: { postal_code: ORIGIN_ZIP },
+          from: { postal_code: originZip },
           to: { postal_code: destinationZip },
           package: {
             height: dims.maxHeight,
@@ -163,7 +215,7 @@ async function fetchMelhorEnvioRates(
             length: dims.maxLength,
             weight: dims.totalWeight,
           },
-          options: { receipt: false, own_hand: false },
+          options: { receipt: false, own_hand: false, insurance_value: Number(dims.declaredValue.toFixed(2)) },
           services: "1,2",
         }),
       }
@@ -180,8 +232,8 @@ async function fetchMelhorEnvioRates(
     return {
       pac: pac?.error ? null : validRate(pac?.price),
       sedex: sedex?.error ? null : validRate(sedex?.price),
-      pacDays: pac?.delivery_time ?? 0,
-      sedexDays: sedex?.delivery_time ?? 0,
+      pacDays: (pac?.delivery_time ?? 0) + handlingDays,
+      sedexDays: (sedex?.delivery_time ?? 0) + handlingDays,
       unavailableReason:
         pac?.error && sedex?.error
           ? "Os serviços PAC e SEDEX não estão disponíveis para este CEP."
@@ -246,7 +298,19 @@ export async function calculateShipping(
   }
 
   if (config.correiosEnabled && cleanZip.length === 8) {
-    const rates = await fetchMelhorEnvioRates(cleanZip, consolidateDimensions(items));
+    // O frete nacional permanece oculto ao cliente até que toda a configuração
+    // real esteja válida. Nunca exponha uma opção sem preço ou estimativa.
+    if (!isNationalShippingConfigured(config)) return options;
+
+    const originZip = (config.storeZipCode ?? "").replace(/\D/g, "");
+    const handlingDays = Number(config.handlingDays ?? 0);
+    let dimensions: ReturnType<typeof consolidateDimensions>;
+    try {
+      dimensions = consolidateDimensions(items, config);
+    } catch {
+      return options;
+    }
+    const rates = await fetchMelhorEnvioRates(cleanZip, originZip, dimensions, handlingDays);
 
     if (rates.pac !== null) {
       options.push({
@@ -272,17 +336,6 @@ export async function calculateShipping(
       });
     }
 
-    if (rates.pac === null && rates.sedex === null) {
-      options.push({
-        id: "correios-unavailable",
-        type: ShippingType.CORREIOS,
-        name: "Correios",
-        description:
-          rates.unavailableReason ?? "Não foi possível calcular o frete para este CEP.",
-        price: 0,
-        available: false,
-      });
-    }
   }
 
   return options;
