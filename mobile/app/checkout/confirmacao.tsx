@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   Clipboard,
   Image,
   Linking,
@@ -74,6 +75,24 @@ export default function ConfirmacaoScreen() {
   useEffect(() => {
     void loadOrder();
   }, [loadOrder]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") void loadOrder();
+    });
+    return () => subscription.remove();
+  }, [loadOrder]);
+
+  useEffect(() => {
+    const pending =
+      order?.payment?.status === "AGUARDANDO" ||
+      order?.payment?.status === "EM_ANALISE";
+    if (!pending) return;
+    const interval = setInterval(() => {
+      if (AppState.currentState === "active") void loadOrder();
+    }, 5_000);
+    return () => clearInterval(interval);
+  }, [loadOrder, order?.payment?.status]);
 
   function copyPixCode(code: string) {
     Clipboard.setString(code);
@@ -275,6 +294,9 @@ export default function ConfirmacaoScreen() {
                   <Text style={styles.externalButtonText}>
                     Abrir pagamento seguro
                   </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={loadOrder}>
+                  <Text style={styles.retryText}>Atualizar status do pagamento</Text>
                 </TouchableOpacity>
               </View>
             ) : canPayBoleto ? (
