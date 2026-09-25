@@ -56,7 +56,14 @@ export async function POST(req: NextRequest) {
 
     await prisma.$transaction(
       async (tx) => {
-        const cart = await sanitizeGooglePlayCart(customer.id, tx);
+        // A sanitização completa continua na resposta final. Aqui precisamos
+        // apenas do ID do carrinho, evitando uma varredura redundante.
+        const cart = await tx.cart.upsert({
+          where: { customerId: customer.id },
+          update: {},
+          create: { customerId: customer.id },
+          select: { id: true },
+        });
         if (input.mode === "BUY_NOW") {
           await tx.cartItem.deleteMany({
             where: {

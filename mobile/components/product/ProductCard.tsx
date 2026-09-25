@@ -112,12 +112,14 @@ function ProductCardComponent({ product, badgeSeal = false }: ProductCardProps) 
     setCartAction(action);
     try {
       if (action === "buy") {
-        await buyNow(product.id, 1);
+        const operation = buyNow(product.id, 1);
         router.push("/checkout");
+        await operation;
       } else {
         await addItem(product.id, 1);
       }
     } catch {
+      if (action === "buy") router.back();
       Alert.alert("Não foi possível concluir agora", "Tente novamente.");
     } finally {
       actionLock.current = false;

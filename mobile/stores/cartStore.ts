@@ -22,6 +22,7 @@ interface CartState {
   total: number;
   itemCount: number;
   isLoading: boolean;
+  isBuyingNow: boolean;
 
   fetchCart: () => Promise<void>;
   addItem: (productId: string, quantity?: number, variationId?: string) => Promise<void>;
@@ -50,6 +51,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   total: 0,
   itemCount: 0,
   isLoading: false,
+  isBuyingNow: false,
 
   fetchCart: async () => {
     try {
@@ -80,13 +82,15 @@ export const useCartStore = create<CartState>((set, get) => ({
     if (pending) return pending;
     const operation = (async () => {
       const previousCount = get().itemCount;
-      set({ itemCount: quantity });
+      set({ itemCount: quantity, isBuyingNow: true });
       try {
         const response = await cartApi.addItem(productId, quantity, variationId, "BUY_NOW");
         set(cartSnapshot(response.data.data));
       } catch (error) {
         set({ itemCount: previousCount });
         throw error;
+      } finally {
+        set({ isBuyingNow: false });
       }
     })();
     pendingBuyNow.set(key, operation);
@@ -111,5 +115,5 @@ export const useCartStore = create<CartState>((set, get) => ({
     await cartApi.clear();
     set({ items: [], subtotal: 0, total: 0, itemCount: 0 });
   },
-  resetLocal: () => set({ items: [], subtotal: 0, total: 0, itemCount: 0, isLoading: false }),
+  resetLocal: () => set({ items: [], subtotal: 0, total: 0, itemCount: 0, isLoading: false, isBuyingNow: false }),
 }));

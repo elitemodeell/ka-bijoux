@@ -337,8 +337,9 @@ export default function ProdutoScreen() {
     setCartAction(action);
     try {
       if (action === "buy") {
-        await buyNow(product.id, quantity, selectedVariation ?? undefined);
+        const operation = buyNow(product.id, quantity, selectedVariation ?? undefined);
         router.push("/checkout");
+        await operation;
         return;
       }
       await addItem(product.id, quantity, selectedVariation ?? undefined);
@@ -346,6 +347,7 @@ export default function ProdutoScreen() {
       setTimeout(() => setAdded(false), 2000);
     } catch {
       Alert.alert("Erro", "Nao foi possivel adicionar o produto ao carrinho.");
+      if (action === "buy") router.back();
     } finally {
       cartActionLock.current = false;
       setCartAction(null);

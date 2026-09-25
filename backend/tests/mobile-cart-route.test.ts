@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   cartItemUpdate: vi.fn(),
   cartItemCreate: vi.fn(),
   cartItemDeleteMany: vi.fn(),
+  cartUpsert: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({ requireCustomer: mocks.requireCustomer }));
@@ -27,6 +28,7 @@ vi.mock("@/lib/prisma", () => ({
     product: { findFirst: mocks.productFindFirst },
     cartItem: { findFirst: mocks.cartItemFindFirst, update: mocks.cartItemUpdate, create: mocks.cartItemCreate },
     $transaction: async (callback: (tx: unknown) => unknown) => callback({
+      cart: { upsert: mocks.cartUpsert },
       cartItem: { findFirst: mocks.cartItemFindFirst, update: mocks.cartItemUpdate, create: mocks.cartItemCreate, deleteMany: mocks.cartItemDeleteMany },
     }),
   },
@@ -44,6 +46,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.requireCustomer.mockResolvedValue({ id: "customer-1" });
   mocks.productFindFirst.mockResolvedValue({ id: "product-1", price: 10, promotionalPrice: null, stock: 5, variations: [] });
+  mocks.cartUpsert.mockResolvedValue({ id: "cart-1" });
   mocks.sanitizeCart.mockResolvedValue({ id: "cart-1", items: [] });
 });
 
@@ -52,6 +55,7 @@ describe("mobile cart mutations", () => {
     mocks.cartItemFindFirst.mockResolvedValue({ id: "item-1", quantity: 1 });
     const response = await POST(request({ productId: "product-1", quantity: 1, mode: "INCREMENT" }));
     expect(response.status).toBe(201);
+    expect(mocks.sanitizeCart).toHaveBeenCalledTimes(1);
     expect(mocks.cartItemUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ quantity: 2 }) }));
   });
 

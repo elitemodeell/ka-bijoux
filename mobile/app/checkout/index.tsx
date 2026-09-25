@@ -33,7 +33,7 @@ export default function CheckoutEntregaScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { customer } = useAuthStore();
-  const { items, subtotal, updateItem, removeItem } = useCartStore();
+  const { items, subtotal, updateItem, removeItem, isBuyingNow } = useCartStore();
   const {
     zipCode, setZipCode, setAddress,
     shippingOptions, setShippingOptions,
@@ -126,9 +126,9 @@ export default function CheckoutEntregaScreen() {
   );
 
   useEffect(() => {
-    if (!customer || loadingAddr || items.length === 0) return;
+    if (!customer || loadingAddr || isBuyingNow || items.length === 0) return;
     void calcularFrete(selectedAddress?.zipCode ?? "", selectedAddress?.id ?? null);
-  }, [cartSignature, selectedAddress?.id, selectedAddress?.zipCode, selectedAddress?.city, selectedAddress?.state, customer, loadingAddr]);
+  }, [cartSignature, selectedAddress?.id, selectedAddress?.zipCode, selectedAddress?.city, selectedAddress?.state, customer, loadingAddr, isBuyingNow]);
 
   const needsAddress = selectedShipping?.type !== "RETIRADA";
   const canProceed   = items.length > 0 && !!selectedShipping?.available && (!needsAddress || !!selectedAddressId);
@@ -140,6 +140,19 @@ export default function CheckoutEntregaScreen() {
         ? "Selecione um endereço de entrega."
         : "";
   const total        = subtotal + (selectedShipping?.price ?? 0);
+
+  if (isBuyingNow) {
+    return (
+      <SafeAreaView style={styles.safe} edges={["top"]}>
+        {Platform.OS === "ios" ? <LuxuryBackground /> : null}
+        <View style={styles.buyNowLoading}>
+          <ActivityIndicator color={Colors.primary} size="large" />
+          <Text style={styles.buyNowLoadingTitle}>Preparando sua compra...</Text>
+          <Text style={styles.buyNowLoadingText}>Confirmando o produto e o estoque.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -363,6 +376,9 @@ export default function CheckoutEntregaScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Platform.OS === "ios" ? "#fff6f8" : Colors.background },
+  buyNowLoading: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 10 },
+  buyNowLoadingTitle: { color: Colors.textPrimary, fontSize: 20, fontWeight: "700", marginTop: 8 },
+  buyNowLoadingText: { color: Colors.textMuted, fontSize: 14, textAlign: "center" },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: Spacing.base, paddingVertical: 12,
