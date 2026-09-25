@@ -141,7 +141,9 @@ export interface CreatePixPaymentResult extends ProviderPayment {
 export interface CreateCreditCardCheckoutResult {
   provider: ActivePaymentProviderId;
   method: "CREDIT_CARD";
-  externalCheckoutId: string;
+  externalCheckoutId: string | null;
+  externalPaymentId: string | null;
+  externalCustomerId: string | null;
   externalReference: string;
   checkoutUrl: string;
   status: "PENDING";
@@ -290,6 +292,9 @@ export class PaymentProviderError extends PaymentError {
   readonly operation: PaymentProviderOperation;
   readonly statusCode?: number;
   readonly providerCode?: string;
+  readonly endpoint?: string;
+  readonly externalResourceId?: string;
+  readonly correlationId?: string;
   readonly retryable: boolean;
 
   constructor(options: {
@@ -297,6 +302,9 @@ export class PaymentProviderError extends PaymentError {
     operation: PaymentProviderOperation;
     statusCode?: number;
     providerCode?: string;
+    endpoint?: string;
+    externalResourceId?: string;
+    correlationId?: string;
     retryable?: boolean;
   }) {
     super(options.message);
@@ -305,6 +313,9 @@ export class PaymentProviderError extends PaymentError {
     this.operation = options.operation;
     this.statusCode = options.statusCode;
     this.providerCode = options.providerCode;
+    this.endpoint = options.endpoint;
+    this.externalResourceId = options.externalResourceId;
+    this.correlationId = options.correlationId;
     this.retryable = options.retryable ?? false;
   }
 }

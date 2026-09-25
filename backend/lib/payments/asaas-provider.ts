@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { AsaasPaymentConfig } from "./config";
 import {
   CancelPaymentResult,
@@ -50,6 +51,10 @@ interface AsaasPaymentPayload {
   bankSlipUrl?: string | null;
   externalReference?: string | null;
   deleted?: boolean;
+  installment?: string | null;
+  installmentCount?: number | null;
+  installmentNumber?: number | null;
+  totalValue?: number | null;
 }
 
 interface AsaasCheckoutPayload {
@@ -333,46 +338,69 @@ export class AsaasPaymentProvider implements PaymentProvider {
       10,
       1440
     );
-    const callback = normalizeCallback(request.callback);
-    const items = normalizeCheckoutItems(request.items, amount);
-    const customer = normalizeCustomer(request.customer);
-    await this.assertAccountIdentity();
-
-    const checkout = await this.request<AsaasCheckoutPayload>(
-      "create_checkout",
-      "/checkouts",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          billingTypes: ["CREDIT_CARD"],
-          chargeTypes:
-            installmentCount > 1
-              ? ["DETACHED", "INSTALLMENT"]
-              : ["DETACHED"],
-          minutesToExpire,
-          externalReference: orderId,
-          callback,
-          items,
-          customerData: {
-            name: customer.name,
-            cpfCnpj: customer.cpfCnpj,
-            email: customer.email || undefined,
-            phone: customer.phone || undefined,
-          },
-          ...(installmentCount > 1
-            ? { installment: { maxInstallmentCount: installmentCount } }
-            : {}),
-        }),
-      }
+    // Mantemos a validação integral do contrato recebido do checkout, mas
+    // usamos a Fatura hospedada oficial. Assim, nenhum dado do cartão passa
+    // pelo aplicativo ou pelo backend da KA Bijoux.
+    normalizeCallback(request.callback);
+    normalizeCheckoutItems(request.items, amount);
+    const customer = await this.findOrCreateCustomer(request.customer);
+    const existing = await this.findCardPaymentByExternalReference(
+      orderId,
+      customer.externalCustomerId,
+      amount,
+      installmentCount
     );
-    assertCheckoutMatches(checkout, orderId);
-    return normalizeCheckoutResult(
-      checkout,
+
+    let payment = existing;
+    const reusedExistingPayment = Boolean(existing);
+    if (!payment) {
+      const dueDate = new Date(
+        this.now().getTime() + Math.max(minutesToExpire, 24 * 60) * 60_000
+      ).toISOString().slice(0, 10);
+      payment = await this.request<AsaasPaymentPayload>(
+        "create_payment",
+        "/payments",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            customer: customer.externalCustomerId,
+            billingType: "CREDIT_CARD",
+            dueDate,
+            description: `Pedido KA Bijoux #${requiredText(request.orderNumber, "orderNumber")}`,
+            externalReference: orderId,
+            ...(installmentCount > 1
+              ? { installmentCount, totalValue: amount }
+              : { value: amount }),
+          }),
+        }
+      );
+    }
+    assertCardPaymentMatches(payment, {
+      orderId,
+      amount,
+      externalCustomerId: customer.externalCustomerId,
+      installmentCount,
+    });
+    const invoiceUrl = requiredHttpsUrl(payment.invoiceUrl, "invoiceUrl");
+    const expiresAt = new Date(
+      this.now().getTime() + minutesToExpire * 60_000
+    ).toISOString();
+    return {
+      provider: "ASAAS",
+      method: "CREDIT_CARD",
+      externalCheckoutId: null,
+      externalPaymentId: requiredText(payment.id, "id da cobrança"),
+      externalCustomerId: customer.externalCustomerId,
+      externalReference: orderId,
+      checkoutUrl: invoiceUrl,
+      status: "PENDING",
+      rawStatus: requiredText(payment.status, "status da cobrança").toUpperCase(),
       amount,
       installmentCount,
-      false,
-      this.now()
-    );
+      installmentValue: Math.floor(toCents(amount) / installmentCount) / 100,
+      expiresAt,
+      reusedExistingCheckout: reusedExistingPayment,
+    };
   }
 
   async createBoletoPayment(
@@ -627,15 +655,84 @@ export class AsaasPaymentProvider implements PaymentProvider {
     return matches[0] ?? null;
   }
 
+  private async findCardPaymentByExternalReference(
+    orderId: string,
+    externalCustomerId: string,
+    amount: number,
+    installmentCount: number
+  ): Promise<AsaasPaymentPayload | null> {
+    const query = new URLSearchParams({
+      externalReference: orderId,
+      customer: externalCustomerId,
+      billingType: "CREDIT_CARD",
+      limit: "100",
+    });
+    const listed = await this.request<AsaasListResponse<AsaasPaymentPayload>>(
+      "find_payment",
+      `/payments?${query.toString()}`,
+      { method: "GET" }
+    );
+    const matches = (listed.data ?? []).filter(
+      (payment) =>
+        !payment.deleted &&
+        payment.externalReference === orderId &&
+        payment.customer === externalCustomerId &&
+        payment.billingType === "CREDIT_CARD"
+    );
+    if (matches.length === 0) return null;
+
+    // Um parcelamento pode retornar uma cobrança por parcela. Mais de um
+    // agrupamento, porém, indicaria criação duplicada e deve falhar fechado.
+    const groups = new Set(
+      matches.map((payment) => payment.installment || payment.id)
+    );
+    if (groups.size > 1) {
+      throw new PaymentProviderError({
+        operation: "find_payment",
+        message: "Mais de uma cobrança de cartão foi encontrada para o mesmo pedido.",
+      });
+    }
+    const first = matches
+      .slice()
+      .sort(
+        (left, right) =>
+          Number(left.installmentNumber ?? 1) - Number(right.installmentNumber ?? 1)
+      )[0];
+    assertCardPaymentMatches(first, {
+      orderId,
+      amount,
+      externalCustomerId,
+      installmentCount,
+    });
+    return first;
+  }
+
   private async getPixQrCode(
     externalPaymentId: string
   ): Promise<PixPaymentData> {
     const id = requiredText(externalPaymentId, "externalPaymentId");
-    const qr = await this.request<AsaasPixQrCodePayload>(
-      "get_pix_qr_code",
-      `/payments/${encodeURIComponent(id)}/pixQrCode`,
-      { method: "GET" }
-    );
+    let qr: AsaasPixQrCodePayload;
+    try {
+      qr = await this.request<AsaasPixQrCodePayload>(
+        "get_pix_qr_code",
+        `/payments/${encodeURIComponent(id)}/pixQrCode`,
+        { method: "GET" }
+      );
+    } catch (error) {
+      if (error instanceof PaymentProviderError) {
+        throw new PaymentProviderError({
+          message: error.message,
+          operation: error.operation,
+          statusCode: error.statusCode,
+          providerCode: error.providerCode,
+          endpoint: error.endpoint,
+          correlationId: error.correlationId,
+          externalResourceId: id,
+          retryable: error.retryable,
+        });
+      }
+      throw error;
+    }
     return {
       copyAndPaste: requiredText(qr.payload, "payload Pix"),
       qrCodeBase64: requiredText(qr.encodedImage, "imagem do QR Code Pix"),
@@ -648,11 +745,13 @@ export class AsaasPaymentProvider implements PaymentProvider {
     path: string,
     init: RequestInit
   ): Promise<T> {
+    const correlationId = randomUUID();
     const headers = new Headers(init.headers);
     headers.set("Accept", "application/json");
     headers.set("Content-Type", "application/json");
     headers.set("User-Agent", this.config.userAgent);
     headers.set("access_token", this.config.apiKey);
+    headers.set("X-Correlation-Id", correlationId);
 
     const controller = new AbortController();
     const timeout = setTimeout(
@@ -673,6 +772,8 @@ export class AsaasPaymentProvider implements PaymentProvider {
           statusCode: response.status,
           providerCode: providerError.code,
           message: providerError.message,
+          endpoint: `${init.method ?? "GET"} ${path}`,
+          correlationId,
           retryable: response.status === 429 || response.status >= 500,
         });
       }
@@ -682,6 +783,8 @@ export class AsaasPaymentProvider implements PaymentProvider {
       throw new PaymentProviderError({
         operation,
         message: "Falha de comunicação com a Asaas.",
+        endpoint: `${init.method ?? "GET"} ${path}`,
+        correlationId,
         retryable: true,
       });
     } finally {
@@ -779,6 +882,38 @@ function assertExistingPaymentMatches(
   }
 }
 
+function assertCardPaymentMatches(
+  payment: AsaasPaymentPayload,
+  expected: {
+    orderId: string;
+    amount: number;
+    externalCustomerId: string;
+    installmentCount: number;
+  }
+): void {
+  const returnedTotal =
+    expected.installmentCount > 1
+      ? Number(payment.totalValue ?? Number(payment.value) * expected.installmentCount)
+      : Number(payment.value);
+  if (
+    !payment.id ||
+    payment.deleted ||
+    payment.externalReference !== expected.orderId ||
+    payment.customer !== expected.externalCustomerId ||
+    payment.billingType !== "CREDIT_CARD" ||
+    toCents(returnedTotal) !== toCents(expected.amount) ||
+    (expected.installmentCount > 1 &&
+      Number(payment.installmentCount ?? expected.installmentCount) !==
+        expected.installmentCount)
+  ) {
+    throw new PaymentProviderError({
+      operation: "find_payment",
+      externalResourceId: payment.id,
+      message: "A cobrança de cartão encontrada diverge do pedido interno.",
+    });
+  }
+}
+
 function normalizePayment(payment: AsaasPaymentPayload): ProviderPayment {
   return {
     provider: "ASAAS",
@@ -794,7 +929,12 @@ function normalizePayment(payment: AsaasPaymentPayload): ProviderPayment {
     method: mapBillingType(payment.billingType),
     status: mapAsaasPaymentStatus(payment.status),
     rawStatus: requiredText(payment.status, "status da cobrança").toUpperCase(),
-    amount: normalizeMoney(payment.value, "valor da cobrança"),
+    amount: normalizeMoney(
+      payment.billingType === "CREDIT_CARD" && payment.totalValue
+        ? payment.totalValue
+        : payment.value,
+      "valor da cobrança"
+    ),
     dueDate: typeof payment.dueDate === "string" ? payment.dueDate : null,
     invoiceUrl:
       typeof payment.invoiceUrl === "string" ? payment.invoiceUrl : null,
@@ -918,6 +1058,8 @@ function normalizeCheckoutResult(
     provider: "ASAAS",
     method: "CREDIT_CARD",
     externalCheckoutId: requiredText(checkout.id, "id do checkout"),
+    externalPaymentId: null,
+    externalCustomerId: null,
     externalReference: requiredText(
       checkout.externalReference,
       "referência do checkout"

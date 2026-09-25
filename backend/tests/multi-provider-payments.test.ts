@@ -89,13 +89,18 @@ function cardRequest(
   };
 }
 
-function checkoutPayload(overrides: Record<string, unknown> = {}) {
+function cardPaymentPayload(installmentCount = 1, overrides: Record<string, unknown> = {}) {
   return {
-    id: "checkout-1",
-    link: "https://sandbox.asaas.com/checkoutSession/show/checkout-1",
-    status: "ACTIVE",
+    id: "pay-card-1",
+    customer: "cus_1",
+    billingType: "CREDIT_CARD",
+    value: installmentCount > 1 ? 120 / installmentCount : 120,
+    totalValue: installmentCount > 1 ? 120 : undefined,
+    installment: installmentCount > 1 ? "ins_1" : undefined,
+    installmentCount: installmentCount > 1 ? installmentCount : undefined,
+    invoiceUrl: "https://sandbox.asaas.com/i/pay-card-1",
+    status: "PENDING",
     externalReference: "order-1",
-    minutesToExpire: 60,
     ...overrides,
   };
 }
@@ -164,9 +169,17 @@ describe("multi-provider routing", () => {
   });
 });
 
-describe("Asaas hosted credit card checkout", () => {
-  it.each([1, 2, 3])("creates a secure checkout for %sx", async (count) => {
-    const http = scriptedFetch(response(checkoutPayload()));
+describe("Asaas hosted credit card invoice", () => {
+  it.each([1, 2, 3])("creates a secure invoice for %sx", async (count) => {
+    const http = scriptedFetch(
+      response({
+        id: "cus_1",
+        cpfCnpj: "52998224725",
+        externalReference: "customer-1",
+      }),
+      response({ data: [] }),
+      response(cardPaymentPayload(count))
+    );
     const provider = new AsaasPaymentProvider({
       config,
       fetch: http.fetch,
@@ -177,25 +190,29 @@ describe("Asaas hosted credit card checkout", () => {
     expect(result).toMatchObject({
       provider: "ASAAS",
       method: "CREDIT_CARD",
-      externalCheckoutId: "checkout-1",
+      externalCheckoutId: null,
+      externalPaymentId: "pay-card-1",
       externalReference: "order-1",
       amount: 120,
       installmentCount: count,
       status: "PENDING",
     });
     const createCall = http.mock.mock.calls.find(
-      ([url, init]) => String(url).endsWith("/checkouts") && init?.method === "POST"
+      ([url, init]) => String(url).endsWith("/payments") && init?.method === "POST"
     );
     expect(createCall).toBeDefined();
     const body = JSON.parse(String(createCall?.[1]?.body));
-    expect(body.billingTypes).toEqual(["CREDIT_CARD"]);
+    expect(body.billingType).toBe("CREDIT_CARD");
     expect(body.externalReference).toBe("order-1");
-    expect(body.callback.successUrl).toMatch(/^https:/);
     expect(JSON.stringify(body)).not.toMatch(/cardNumber|cvv|creditCardNumber/i);
     if (count > 1) {
-      expect(body.installment.maxInstallmentCount).toBe(count);
+      expect(body.installmentCount).toBe(count);
+      expect(body.totalValue).toBe(120);
+      expect(body.value).toBeUndefined();
     } else {
-      expect(body.installment).toBeUndefined();
+      expect(body.installmentCount).toBeUndefined();
+      expect(body.totalValue).toBeUndefined();
+      expect(body.value).toBe(120);
     }
   });
 
@@ -209,8 +226,16 @@ describe("Asaas hosted credit card checkout", () => {
     ).rejects.toBeInstanceOf(PaymentValidationError);
   });
 
-  it("does not accept the callback as payment confirmation", async () => {
-    const http = scriptedFetch(response(checkoutPayload({ status: "ACTIVE" })));
+  it("does not accept opening the hosted invoice as payment confirmation", async () => {
+    const http = scriptedFetch(
+      response({
+        id: "cus_1",
+        cpfCnpj: "52998224725",
+        externalReference: "customer-1",
+      }),
+      response({ data: [] }),
+      response(cardPaymentPayload())
+    );
     const provider = new AsaasPaymentProvider({ config, fetch: http.fetch });
     const result = await provider.createCreditCardCheckout(cardRequest());
     expect(result.status).toBe("PENDING");

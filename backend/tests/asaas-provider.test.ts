@@ -151,6 +151,29 @@ describe("AsaasPaymentProvider offline contract", () => {
     ).toHaveLength(0);
   });
 
+  it("preserves the external payment id and safe request context when Pix QR retrieval fails", async () => {
+    const http = scriptedFetch(
+      response(customerPayload()),
+      response({ data: [] }),
+      response(paymentPayload()),
+      response(
+        { errors: [{ code: "invalid_action", description: "Pix key is not available." }] },
+        400
+      )
+    );
+    const provider = new AsaasPaymentProvider({ config, fetch: http.fetch });
+
+    await expect(provider.createPixPayment(paymentRequest())).rejects.toMatchObject({
+      name: "PaymentProviderError",
+      operation: "get_pix_qr_code",
+      statusCode: 400,
+      providerCode: "invalid_action",
+      endpoint: "GET /payments/pay_asaas_1/pixQrCode",
+      externalResourceId: "pay_asaas_1",
+      retryable: false,
+    });
+  });
+
   it("fails closed when two charges already exist for the same order", async () => {
     const http = scriptedFetch(
       response(customerPayload()),

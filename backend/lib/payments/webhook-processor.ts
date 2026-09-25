@@ -354,17 +354,17 @@ export async function processAsaasWebhook(
     if (
       localPayment &&
       !localPayment.externalPaymentId &&
-      localPayment.externalCheckoutId &&
-      localPayment.method === PaymentMethod.CARTAO_CREDITO &&
-      providerPayment.method === "CREDIT_CARD" &&
+      providerMethodMatchesLocal(localPayment.method, providerPayment.method) &&
       providerPayment.externalReference === localPayment.order.id &&
-      toCents(providerPayment.amount) === toCents(localPayment.amount)
+      toCents(providerPayment.amount) === toCents(localPayment.amount) &&
+      (!localPayment.order.customer.asaasCustomerId ||
+        localPayment.order.customer.asaasCustomerId ===
+          providerPayment.externalCustomerId)
     ) {
       const linked = await db.payment.updateMany({
         where: {
           id: localPayment.id,
           externalPaymentId: null,
-          externalCheckoutId: localPayment.externalCheckoutId,
         },
         data: {
           externalPaymentId: providerPayment.externalPaymentId,
@@ -435,6 +435,17 @@ export async function processAsaasWebhook(
     }
     return finishFromError(db, claimed, event.externalEventId, error, now);
   }
+}
+
+function providerMethodMatchesLocal(
+  local: PaymentMethod,
+  provider: ProviderPayment["method"]
+): boolean {
+  return (
+    (local === PaymentMethod.PIX && provider === "PIX") ||
+    (local === PaymentMethod.CARTAO_CREDITO && provider === "CREDIT_CARD") ||
+    (local === PaymentMethod.BOLETO && provider === "BOLETO")
+  );
 }
 
 async function applyCheckoutLifecycleEvent(

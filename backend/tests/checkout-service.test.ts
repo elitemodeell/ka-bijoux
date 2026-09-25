@@ -21,6 +21,7 @@ import {
   type CheckoutPaymentService,
 } from "@/lib/checkout/checkout-service";
 import { CheckoutError } from "@/lib/checkout/domain";
+import { PaymentProviderError } from "@/lib/payments/types";
 
 const customer = {
   id: "customer-1",
@@ -468,6 +469,35 @@ describe("failure boundary after local order creation", () => {
         status: "FALHA",
         creationClaimedAt: null,
       },
+    });
+  });
+
+  it("persists a recoverable Pix id when Asaas created the charge before QR failure", async () => {
+    const setup = configureCheckout();
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.mocked(setup.service.createPixPayment).mockRejectedValueOnce(
+      new PaymentProviderError({
+        operation: "get_pix_qr_code",
+        statusCode: 400,
+        providerCode: "invalid_action",
+        endpoint: "GET /payments/pay_orphan/pixQrCode",
+        externalResourceId: "pay_orphan",
+        correlationId: "correlation-1",
+        message: "Pix key is not available.",
+      })
+    );
+
+    await expect(
+      createOrResumeCheckout(customer.id, input(), setup.service)
+    ).rejects.toMatchObject({ code: "PAYMENT_UNAVAILABLE" });
+
+    expect(setup.getStoredOrder().payment).toMatchObject({
+      externalPaymentId: "pay_orphan",
+      externalCustomerId: "cus_1",
+      providerAccountId: "wallet-ka-tests",
+      externalReference: "order-1",
+      idempotencyKey: "order-1:PIX",
+      status: "FALHA",
     });
   });
 });

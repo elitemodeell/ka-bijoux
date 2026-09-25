@@ -546,7 +546,7 @@ async function markPaymentFailure(orderId: string) {
             data: {
               orderId,
               status: OrderStatus.FALHA_NO_PAGAMENTO,
-              note: "Não foi possível gerar a cobrança Pix; nova tentativa permitida.",
+              note: "Não foi possível gerar o pagamento; nova tentativa segura permitida.",
             },
           });
         }
@@ -564,10 +564,55 @@ function safePaymentError(error: unknown) {
       operation: error.operation,
       statusCode: error.statusCode ?? null,
       providerCode: error.providerCode ?? null,
+      description: sanitizeProviderDescription(error.message),
+      endpoint: error.endpoint ?? null,
+      externalResourceId: error.externalResourceId ?? null,
+      correlationId: error.correlationId ?? null,
       retryable: error.retryable,
     };
   }
   return { name: error instanceof Error ? error.name : "UnknownError" };
+}
+
+function sanitizeProviderDescription(value: string): string {
+  return value
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[email]")
+    .replace(/\b\d{6,}\b/g, "[number]")
+    .replace(/\$aact_[A-Za-z0-9_-]+/g, "[token]")
+    .slice(0, 500);
+}
+
+async function persistRecoverablePixFailure(
+  order: CheckoutOrder,
+  account: ProviderAccountIdentity,
+  externalCustomerId: string | undefined,
+  error: PaymentProviderError
+) {
+  if (!error.externalResourceId || !externalCustomerId || !order.payment) return;
+  await prisma.payment.updateMany({
+    where: {
+      id: order.payment.id,
+      OR: [
+        { externalPaymentId: null },
+        { externalPaymentId: error.externalResourceId },
+      ],
+    },
+    data: {
+      provider: PaymentProvider.ASAAS,
+      gatewayId: error.externalResourceId,
+      externalPaymentId: error.externalResourceId,
+      externalCustomerId,
+      providerAccountId: account.accountId,
+      externalReference: order.id,
+      idempotencyKey: `${order.id}:PIX`,
+      status: PaymentStatus.FALHA,
+      creationClaimedAt: null,
+      environment:
+        account.environment === "production"
+          ? PaymentEnvironment.PRODUCTION
+          : PaymentEnvironment.SANDBOX,
+    },
+  });
 }
 
 async function waitForLinkedPayment(orderId: string): Promise<CheckoutOrder | null> {
@@ -596,13 +641,10 @@ async function claimPaymentCreation(order: CheckoutOrder): Promise<CheckoutOrder
     where: {
       id: order.payment.id,
       externalPaymentId: null,
-      OR:
-        order.payment.method === PaymentMethod.CARTAO_CREDITO
-          ? [{ creationClaimedAt: null }]
-          : [
-              { creationClaimedAt: null },
-              { creationClaimedAt: { lt: staleBefore } },
-            ],
+      OR: [
+        { creationClaimedAt: null },
+        { creationClaimedAt: { lt: staleBefore } },
+      ],
     },
     data: {
       status: PaymentStatus.AGUARDANDO,
@@ -674,7 +716,7 @@ async function ensurePixPayment(
   if (linkedByAnotherRequest) return reconcileLinkedPayment(linkedByAnotherRequest, paymentService);
 
   let result: CheckoutPaymentResult;
-  let externalCustomerId: string;
+  let externalCustomerId: string | undefined;
   try {
     externalCustomerId = await ensureExternalCustomer(
       order,
@@ -695,6 +737,14 @@ async function ensurePixPayment(
       ),
     });
   } catch (error) {
+    if (error instanceof PaymentProviderError) {
+      await persistRecoverablePixFailure(
+        order,
+        account,
+        externalCustomerId,
+        error
+      );
+    }
     await markPaymentFailure(order.id);
     if (error instanceof CheckoutError) throw error;
     console.error(
@@ -819,7 +869,10 @@ async function ensureCreditCardCheckout(
   paymentService: CheckoutPaymentService,
   account: ProviderAccountIdentity
 ): Promise<CheckoutOrder> {
-  if (order.payment?.externalCheckoutId && order.payment.checkoutUrl) {
+  if (
+    (order.payment?.externalCheckoutId || order.payment?.externalPaymentId) &&
+    order.payment.checkoutUrl
+  ) {
     return order;
   }
   if (!order.payment || !paymentService.createCreditCardCheckout) {
@@ -862,17 +915,13 @@ async function ensureCreditCardCheckout(
       customer: paymentCustomerInput(currentCustomer, null, account.accountId),
     });
   } catch (error) {
-    // O Checkout hospedado não expõe uma chave idempotente de criação. Em falha
-    // de rede/5xx, o servidor pode ter criado o checkout sem devolver seu ID.
-    // Mantemos a trava local nesse caso para impedir uma segunda cobrança; a
-    // recuperação deve ocorrer por webhook/reconciliação ou intervenção segura.
-    if (!(error instanceof PaymentProviderError && error.retryable)) {
-      await markPaymentFailure(order.id);
-    }
+    // A fatura oficial é sempre pesquisada pelo externalReference antes de
+    // uma nova criação, portanto a trava pode ser liberada inclusive em 5xx.
+    await markPaymentFailure(order.id);
     if (error instanceof CheckoutError) throw error;
     console.error(
-      "Não foi possível criar o checkout hospedado:",
-      error instanceof Error ? error.name : "erro desconhecido"
+      "Não foi possível criar a fatura hospedada de cartão:",
+      safePaymentError(error)
     );
     throw new CheckoutError(
       "Não foi possível abrir o pagamento por cartão agora. Tente novamente com o mesmo pedido.",
@@ -887,7 +936,7 @@ async function ensureCreditCardCheckout(
     result.externalReference !== order.id ||
     Math.round(result.amount * 100) !== Math.round(Number(order.total) * 100) ||
     result.installmentCount !== installments ||
-    !result.externalCheckoutId ||
+    (!result.externalCheckoutId && !result.externalPaymentId) ||
     !result.checkoutUrl.startsWith("https://")
   ) {
     await markPaymentFailure(order.id);
@@ -902,9 +951,23 @@ async function ensureCreditCardCheckout(
     const linked = await tx.payment.updateMany({
       where: {
         orderId: order.id,
-        OR: [
-          { externalCheckoutId: null },
-          { externalCheckoutId: result.externalCheckoutId },
+        AND: [
+          {
+            OR: [
+              { externalPaymentId: null },
+              ...(result.externalPaymentId
+                ? [{ externalPaymentId: result.externalPaymentId }]
+                : []),
+            ],
+          },
+          {
+            OR: [
+              { externalCheckoutId: null },
+              ...(result.externalCheckoutId
+                ? [{ externalCheckoutId: result.externalCheckoutId }]
+                : []),
+            ],
+          },
         ],
       },
       data: {
@@ -912,6 +975,9 @@ async function ensureCreditCardCheckout(
         method: PaymentMethod.CARTAO_CREDITO,
         status: PaymentStatus.AGUARDANDO,
         amount: order.total,
+        gatewayId: result.externalPaymentId ?? result.externalCheckoutId,
+        externalPaymentId: result.externalPaymentId,
+        externalCustomerId: result.externalCustomerId,
         externalCheckoutId: result.externalCheckoutId,
         providerAccountId: account.accountId,
         externalReference: order.id,
