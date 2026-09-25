@@ -245,5 +245,7 @@ workflows:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        submit_to_testflight: true
+        # O grupo interno Team (Expo) recebe automaticamente todas as builds.
+        # Não solicitar Beta App Review, que é exclusiva de teste externo.
+        submit_to_testflight: false
         submit_to_app_store: false
