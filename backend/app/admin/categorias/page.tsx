@@ -88,7 +88,7 @@ export default function CategoriasPage() {
               />
             </div>
           </div>
-          <div className="flex items-center justify-between mt-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form.active}
                 onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))}
@@ -104,7 +104,7 @@ export default function CategoriasPage() {
       )}
 
       <div className="card overflow-hidden p-0">
-        <table className="w-full text-sm">
+        <table className="admin-table w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="text-left py-3 px-4 text-gray-500 font-medium">Nome</th>
@@ -117,7 +117,7 @@ export default function CategoriasPage() {
           <tbody>
             {categories.map((cat) => (
               <tr key={cat.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                <td className="py-3 px-4 font-medium text-gray-900">
+                <td data-label="Nome" className="py-3 px-4 font-medium text-gray-900">
                   <p>{cat.name}</p>
                   {cat.children?.length ? (
                     <p className="mt-1 text-xs font-normal text-pink-500">
@@ -125,10 +125,10 @@ export default function CategoriasPage() {
                     </p>
                   ) : null}
                 </td>
-                <td className="py-3 px-4 text-gray-400 font-mono text-xs">{cat.slug}</td>
-                <td className="py-3 px-4 text-gray-600">{cat._count?.products ?? 0}</td>
-                <td className="py-3 px-4 text-gray-600">{cat.order}</td>
-                <td className="py-3 px-4">
+                <td data-label="Slug" className="py-3 px-4 text-gray-400 font-mono text-xs">{cat.slug}</td>
+                <td data-label="Produtos" className="py-3 px-4 text-gray-600">{cat._count?.products ?? 0}</td>
+                <td data-label="Ordem" className="py-3 px-4 text-gray-600">{cat.order}</td>
+                <td data-label="Status" className="py-3 px-4">
                   <span className={`badge-status ${cat.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                     {cat.active ? "Ativa" : "Inativa"}
                   </span>

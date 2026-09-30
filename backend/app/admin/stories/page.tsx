@@ -352,7 +352,7 @@ export default function AdminStoriesPage() {
         <div className="space-y-5">
           <div className="card overflow-hidden p-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="admin-table w-full text-sm">
                 <thead className="border-b border-gray-100 bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Story</th>
@@ -371,7 +371,7 @@ export default function AdminStoriesPage() {
                         selectedStoryId === story.id ? "bg-pink-50/40" : ""
                       }`}
                     >
-                      <td className="px-4 py-3">
+                      <td data-label="Story" className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <img
                             src={story.cover || DEFAULT_STORY_COVER}
@@ -386,25 +386,25 @@ export default function AdminStoriesPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{story.items.length}</td>
-                      <td className="px-4 py-3 text-gray-600">{story.sortOrder}</td>
-                      <td className="px-4 py-3">
+                      <td data-label="Itens" className="px-4 py-3 text-gray-600">{story.items.length}</td>
+                      <td data-label="Ordem" className="px-4 py-3 text-gray-600">{story.sortOrder}</td>
+                      <td data-label="Status" className="px-4 py-3">
                         <span className={`badge-status ${story.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                           {story.isActive ? "Ativo" : "Inativo"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-500">
+                      <td data-label="Atualizado" className="px-4 py-3 text-gray-500">
                         {story.updatedAt ? formatDate.format(new Date(story.updatedAt)) : "-"}
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-label="Ações" className="px-4 py-3">
                         <div className="flex items-center justify-end gap-2">
-                          <button type="button" onClick={() => startEditStory(story)} className="text-xs font-semibold text-pink-500 hover:text-pink-600">
+                          <button type="button" onClick={() => startEditStory(story)} className="min-h-11 text-xs font-semibold text-pink-500 hover:text-pink-600">
                             Editar
                           </button>
-                          <button type="button" onClick={() => toggleStory(story)} className="text-xs font-semibold text-gray-500 hover:text-gray-800">
+                          <button type="button" onClick={() => toggleStory(story)} className="min-h-11 text-xs font-semibold text-gray-500 hover:text-gray-800">
                             {story.isActive ? "Desativar" : "Ativar"}
                           </button>
-                          <button type="button" onClick={() => deleteStory(story)} className="text-xs font-semibold text-red-500 hover:text-red-600">
+                          <button type="button" onClick={() => deleteStory(story)} className="min-h-11 text-xs font-semibold text-red-500 hover:text-red-600">
                             Excluir
                           </button>
                         </div>
@@ -610,7 +610,7 @@ export default function AdminStoriesPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">Tipo</label>
                 <select
@@ -756,7 +756,7 @@ function StoryPreviewModal({ story, onClose }: { story: StoryGroup; onClose: () 
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4">
-      <div className="relative h-[82vh] max-h-[760px] w-full max-w-sm overflow-hidden rounded-[28px] bg-[#140810] text-white shadow-2xl">
+      <div className="relative h-[82dvh] max-h-[760px] w-full max-w-sm overflow-hidden rounded-[28px] bg-[#140810] text-white shadow-2xl">
         <div className="absolute inset-x-0 top-0 z-20 p-4">
           <div className="mb-3 flex gap-1">
             {(story.items.length ? story.items : [{ id: "empty" }]).map((previewItem, itemIndex) => (
@@ -765,7 +765,7 @@ function StoryPreviewModal({ story, onClose }: { story: StoryGroup; onClose: () 
               </span>
             ))}
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
               <img src={story.cover || DEFAULT_STORY_COVER} alt="" className="h-9 w-9 rounded-full object-cover" />
               <span className="truncate text-sm font-semibold">{story.title}</span>

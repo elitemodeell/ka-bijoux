@@ -108,7 +108,7 @@ export default function PlayDistributionPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-black text-gray-900">Distribuição Google Play</h1>
+      <h1 className="text-2xl font-black text-gray-900 sm:text-3xl">Distribuição Google Play</h1>
       <p className="mt-2 max-w-3xl text-sm text-gray-600">
         Conteúdo não revisado fica fora do aplicativo. Habilitar exige classificação
         permitida, justificativa e confirmação explícita.

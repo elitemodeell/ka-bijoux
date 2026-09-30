@@ -11,8 +11,9 @@ const shippingLabel: Record<ShippingType, string> = {
   RETIRADA: "🏪 Retirada",
 };
 
-async function getOrders() {
+async function getOrders(customerId?: string) {
   return prisma.order.findMany({
+    where: customerId ? { customerId } : undefined,
     include: {
       customer: { select: { id: true, name: true, email: true } },
       payment: true,
@@ -26,8 +27,13 @@ async function getOrders() {
 const formatCurrency = (v: unknown) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v));
 
-export default async function PedidosPage() {
-  const orders = await getOrders();
+export default async function PedidosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ customer?: string }>;
+}) {
+  const params = await searchParams;
+  const orders = await getOrders(params.customer?.trim() || undefined);
 
   const statusCounts = Object.values(OrderStatus).reduce((acc, s) => {
     acc[s] = orders.filter((o) => o.status === s).length;
@@ -61,7 +67,7 @@ export default async function PedidosPage() {
 
       <div className="card overflow-hidden p-0">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="admin-table w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 <th className="text-left py-3 px-4 text-gray-500 font-medium">Pedido</th>
@@ -76,22 +82,22 @@ export default async function PedidosPage() {
             <tbody>
               {orders.map((order) => (
                 <tr key={order.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="py-3 px-4">
+                  <td data-label="Pedido" className="py-3 px-4">
                     <p className="font-mono text-xs text-pink-600 font-bold">{order.orderNumber}</p>
                     <p className="text-xs text-gray-400">{order._count.items} itens</p>
                   </td>
-                  <td className="py-3 px-4">
+                  <td data-label="Cliente" className="py-3 px-4">
                     <p className="font-medium text-gray-800">{order.customer.name}</p>
                     <p className="text-xs text-gray-400">{order.customer.email}</p>
                   </td>
-                  <td className="py-3 px-4 font-semibold">{formatCurrency(order.total)}</td>
-                  <td className="py-3 px-4 text-xs text-gray-600">{shippingLabel[order.shippingType]}</td>
-                  <td className="py-3 px-4"><OrderStatusBadge status={order.status} /></td>
-                  <td className="py-3 px-4 text-gray-400 text-xs">
+                  <td data-label="Total" className="py-3 px-4 font-semibold">{formatCurrency(order.total)}</td>
+                  <td data-label="Entrega" className="py-3 px-4 text-xs text-gray-600">{shippingLabel[order.shippingType]}</td>
+                  <td data-label="Status" className="py-3 px-4"><OrderStatusBadge status={order.status} /></td>
+                  <td data-label="Data" className="py-3 px-4 text-gray-400 text-xs">
                     {new Date(order.createdAt).toLocaleDateString("pt-BR")}
                   </td>
-                  <td className="py-3 px-4">
-                    <Link href={`/admin/pedidos/${order.id}`} className="text-pink-500 hover:text-pink-600 text-xs font-medium">
+                  <td data-label="Ações" className="py-3 px-4">
+                    <Link href={`/admin/pedidos/${order.id}`} className="inline-flex min-h-11 items-center text-xs font-medium text-pink-500 hover:text-pink-600">
                       Gerenciar →
                     </Link>
                   </td>

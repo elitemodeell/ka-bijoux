@@ -344,7 +344,7 @@ export default function EditarProdutoPage() {
                   </button>
                 ))}
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">Preço (R$) *</label>
                   <input name="price" type="number" step="0.01" min="0" value={form.price} onChange={handleChange} required className="input-field" />
@@ -360,14 +360,15 @@ export default function EditarProdutoPage() {
             <div className="card space-y-4">
               <h3 className="font-semibold text-gray-900">Imagens</h3>
               {images.length > 0 && (
-                <div className="grid grid-cols-4 gap-3 sm:grid-cols-6">
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
                   {images.map((url, i) => (
                     <div key={url} className="relative aspect-square overflow-hidden rounded-xl bg-pink-50">
                       <img src={url} alt="" className="h-full w-full object-cover" />
                       <button
                         type="button"
                         onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
-                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-bold text-pink-500 shadow"
+                        aria-label={`Remover imagem ${i + 1}`}
+                        className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full bg-white text-sm font-bold text-pink-500 shadow"
                       >
                         ×
                       </button>
@@ -387,7 +388,7 @@ export default function EditarProdutoPage() {
 
             {/* Variações de cor/modelo */}
             <div className="card space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="font-semibold text-gray-900">Variações de cor / modelo</h3>
                   <p className="text-xs text-gray-400 mt-0.5">
@@ -417,7 +418,7 @@ export default function EditarProdutoPage() {
                       v.isDefault ? "border-pink-300 bg-pink-50" : "border-gray-200 bg-white"
                     }`}
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                       {/* Preview da imagem da variação */}
                       <div className="relative shrink-0">
                         <div className="h-16 w-16 overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
@@ -447,7 +448,7 @@ export default function EditarProdutoPage() {
                       </div>
 
                       {/* Campos da variação */}
-                      <div className="flex-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      <div className="w-full min-w-0 flex-1 grid grid-cols-2 gap-3 sm:grid-cols-4">
                         <div>
                           <label className="mb-1 block text-xs font-medium text-gray-500">Tipo</label>
                           <input
@@ -562,7 +563,7 @@ export default function EditarProdutoPage() {
                   ? "Este produto tem variações. O estoque abaixo é o estoque base; o estoque real por cor está em cada variação acima."
                   : "Estoque total do produto."}
               </p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">Estoque *</label>
                   <input name="stock" type="number" min="0" value={form.stock} onChange={handleChange} required className="input-field" />
@@ -577,7 +578,7 @@ export default function EditarProdutoPage() {
             {/* Dimensões */}
             <div className="card space-y-4">
               <h3 className="font-semibold text-gray-900">Dimensões e peso</h3>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                 {[
                   { name: "weight", label: "Peso (kg)", step: "0.001" },
                   { name: "height", label: "Altura (cm)", step: "0.1" },

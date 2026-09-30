@@ -39,7 +39,7 @@ export default async function ProdutosPage() {
 
       <div className="card overflow-hidden p-0">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="admin-table w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 <th className="text-left py-3 px-4 text-gray-500 font-medium">Produto</th>
@@ -54,7 +54,7 @@ export default async function ProdutosPage() {
             <tbody>
               {products.map((product) => (
                 <tr key={product.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="py-3 px-4">
+                  <td data-label="Produto" className="py-3 px-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl overflow-hidden bg-pink-50 flex-shrink-0">
                         {product.images[0] ? (
@@ -74,11 +74,11 @@ export default async function ProdutosPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-gray-600">
+                  <td data-label="Categoria" className="py-3 px-4 text-gray-600">
                     <p>{product.category.name}</p>
                     {product.subcategory && <p className="text-xs text-gray-400">{product.subcategory.name}</p>}
                   </td>
-                  <td className="py-3 px-4">
+                  <td data-label="Preço" className="py-3 px-4">
                     {product.promotionalPrice ? (
                       <div>
                         <p className="font-semibold text-pink-500">{formatCurrency(product.promotionalPrice)}</p>
@@ -88,7 +88,7 @@ export default async function ProdutosPage() {
                       <p className="font-semibold">{formatCurrency(product.price)}</p>
                     )}
                   </td>
-                  <td className="py-3 px-4">
+                  <td data-label="Estoque" className="py-3 px-4">
                     <span className={`font-semibold ${product.stock <= product.minStock ? "text-red-500" : "text-gray-900"}`}>
                       {product.stock}
                       {product.stock <= product.minStock && (
@@ -96,12 +96,12 @@ export default async function ProdutosPage() {
                       )}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
+                  <td data-label="Status" className="py-3 px-4">
                     <span className={`badge-status ${product.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                       {product.active ? "Ativo" : "Inativo"}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
+                  <td data-label="Revisão" className="py-3 px-4">
                     <span className={`badge-status ${enrichmentLabels[product.enrichmentStatus]?.className ?? "bg-gray-100 text-gray-500"}`}>
                       {enrichmentLabels[product.enrichmentStatus]?.label ?? product.enrichmentStatus}
                     </span>
@@ -109,8 +109,8 @@ export default async function ProdutosPage() {
                       <p className="mt-1 text-[11px] font-semibold text-pink-500">Bling</p>
                     )}
                   </td>
-                  <td className="py-3 px-4">
-                    <Link href={`/admin/produtos/${product.id}`} className="text-pink-500 hover:text-pink-600 text-xs font-medium">
+                  <td data-label="Ações" className="py-3 px-4">
+                    <Link href={`/admin/produtos/${product.id}`} className="inline-flex min-h-11 items-center text-xs font-medium text-pink-500 hover:text-pink-600">
                       Editar →
                     </Link>
                   </td>

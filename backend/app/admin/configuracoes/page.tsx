@@ -150,14 +150,14 @@ export default function ConfiguracoesPage() {
             <div className="border-t border-gray-100 pt-4">
               <h4 className="text-sm font-semibold text-gray-800">Embalagem padrão para envio nacional</h4>
               <p className="mt-1 text-xs text-gray-400">Informe medidas reais da embalagem em centímetros e o peso dela vazia em quilogramas. Os Correios ficam indisponíveis enquanto faltar algum dado.</p>
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {[
                   { name: "shippingPackageWeight", label: "Peso (kg)", step: "0.001" },
                   { name: "shippingPackageHeight", label: "Altura (cm)", step: "0.1" },
                   { name: "shippingPackageWidth", label: "Largura (cm)", step: "0.1" },
                   { name: "shippingPackageLength", label: "Comprimento (cm)", step: "0.1" },
                 ].map((field) => <label key={field.name} className="text-xs font-medium text-gray-600">{field.label}<input name={field.name} type="number" min="0.001" step={field.step} value={(settings as Record<string, string | number | null>)[field.name] ?? ""} onChange={handleChange} className="input-field mt-1" /></label>)}
-                <label className="col-span-2 text-xs font-medium text-gray-600">Prazo de preparação (dias úteis)<input name="shippingHandlingDays" type="number" min="0" max="30" step="1" value={settings.shippingHandlingDays ?? 1} onChange={handleChange} className="input-field mt-1" /></label>
+                <label className="text-xs font-medium text-gray-600 sm:col-span-2">Prazo de preparação (dias úteis)<input name="shippingHandlingDays" type="number" min="0" max="30" step="1" value={settings.shippingHandlingDays ?? 1} onChange={handleChange} className="input-field mt-1" /></label>
               </div>
             </div>
           </div>

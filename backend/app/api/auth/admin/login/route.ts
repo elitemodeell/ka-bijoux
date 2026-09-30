@@ -4,11 +4,11 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { signAdminToken } from "@/lib/auth";
-import { apiSuccess, apiError } from "@/lib/utils";
+import { apiError } from "@/lib/utils";
 
 const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
+  email: z.string().trim().toLowerCase().email("Informe um e-mail válido."),
+  password: z.string().min(1, "Informe sua senha."),
 });
 
 export async function POST(req: NextRequest) {
@@ -16,7 +16,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, password } = schema.parse(body);
 
-    const admin = await prisma.admin.findUnique({ where: { email, active: true } });
+    const admin = await prisma.admin.findFirst({
+      where: { email: { equals: email, mode: "insensitive" }, active: true },
+    });
     if (!admin) return apiError("Credenciais inválidas.", 401);
 
     const valid = await bcrypt.compare(password, admin.password);
@@ -36,12 +38,13 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
+      path: "/",
       maxAge: 60 * 60 * 24, // 24h
     });
 
     return response;
   } catch (e) {
     if (e instanceof z.ZodError) return apiError(e.errors[0].message, 422);
-    return apiError("Erro interno.", 500);
+    return apiError("O servidor não conseguiu concluir o acesso. Tente novamente em instantes.", 500);
   }
 }

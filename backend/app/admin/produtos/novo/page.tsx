@@ -247,7 +247,7 @@ export default function NovoProdutoPage() {
                   Outro valor
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">Preco manual (R$) *</label>
                   <input name="price" type="number" step="0.01" min="0" value={form.price} onChange={handleChange} required placeholder="0,00" className="input-field" />
@@ -270,14 +270,15 @@ export default function NovoProdutoPage() {
               />
               <p className="text-xs text-gray-400">{uploading ? "Enviando imagens..." : "Selecione varias fotos para a galeria do produto."}</p>
               {images.length > 0 && (
-                <div className="grid grid-cols-4 gap-3 sm:grid-cols-6">
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
                   {images.map((url, index) => (
                     <div key={url} className="relative aspect-square overflow-hidden rounded-xl bg-pink-50">
                       <img src={url} alt="" className="h-full w-full object-cover" />
                       <button
                         type="button"
                         onClick={() => setImages((current) => current.filter((_, imageIndex) => imageIndex !== index))}
-                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-bold text-pink-500 shadow"
+                        aria-label={`Remover imagem ${index + 1}`}
+                        className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full bg-white text-sm font-bold text-pink-500 shadow"
                       >
                         x
                       </button>
@@ -289,7 +290,7 @@ export default function NovoProdutoPage() {
 
             <div className="card space-y-4">
               <h3 className="font-semibold text-gray-900">Estoque e variacao opcional</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">Estoque *</label>
                   <input name="stock" type="number" min="0" value={form.stock} onChange={handleChange} required className="input-field" />
@@ -300,7 +301,7 @@ export default function NovoProdutoPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <input name="variationName" value={form.variationName} onChange={handleChange} placeholder="Variacao: Cor" className="input-field" />
                 <input name="variationValue" value={form.variationValue} onChange={handleChange} placeholder="Valor: Rosa" className="input-field" />
                 <input name="variationStock" type="number" min="0" value={form.variationStock} onChange={handleChange} placeholder="Estoque da variacao" className="input-field" />
@@ -310,7 +311,7 @@ export default function NovoProdutoPage() {
 
             <div className="card space-y-4">
               <h3 className="font-semibold text-gray-900">Dimensoes e peso</h3>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                 {[
                   { name: "weight", label: "Peso (kg)", step: "0.001" },
                   { name: "height", label: "Altura (cm)", step: "0.1" },

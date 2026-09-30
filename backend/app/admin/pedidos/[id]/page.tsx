@@ -80,13 +80,13 @@ export default function PedidoDetailPage() {
             <h3 className="font-semibold text-gray-900 mb-4">Itens do Pedido</h3>
             <div className="space-y-3">
               {order.items.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                <div key={item.id} className="flex flex-wrap items-center gap-3 py-2 border-b border-gray-50 last:border-0">
                   <div className="w-12 h-12 bg-pink-50 rounded-xl flex items-center justify-center text-pink-300 text-lg flex-shrink-0">
                     {item.productImage ? (
                       <img src={item.productImage} alt={item.productName} className="w-full h-full object-cover rounded-xl" />
                     ) : "💎"}
                   </div>
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-gray-800">{item.productName}</p>
                     {item.variationName && <p className="text-xs text-gray-400">{item.variationName}</p>}
                     <p className="text-sm text-gray-500">Qtd: {item.quantity} × {formatCurrency(item.unitPrice)}</p>

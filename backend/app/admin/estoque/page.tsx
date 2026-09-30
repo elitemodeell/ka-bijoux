@@ -53,7 +53,7 @@ export default async function EstoquePage() {
       )}
 
       <div className="card overflow-hidden p-0">
-        <table className="w-full text-sm">
+        <table className="admin-table w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="text-left py-3 px-4 text-gray-500 font-medium">Produto</th>
@@ -70,15 +70,15 @@ export default async function EstoquePage() {
               const isLow = product.stock <= product.minStock && !isOut;
               return (
                 <tr key={product.id} className={`border-b border-gray-50 transition-colors ${isOut ? "bg-red-50/50" : isLow ? "bg-yellow-50/50" : "hover:bg-gray-50"}`}>
-                  <td className="py-3 px-4 font-medium text-gray-900">{product.name}</td>
-                  <td className="py-3 px-4 text-gray-500 text-xs">{product.category.name}</td>
-                  <td className="py-3 px-4 text-center">
+                  <td data-label="Produto" className="py-3 px-4 font-medium text-gray-900">{product.name}</td>
+                  <td data-label="Categoria" className="py-3 px-4 text-gray-500 text-xs">{product.category.name}</td>
+                  <td data-label="Estoque atual" className="py-3 px-4 text-center">
                     <span className={`font-bold text-base ${isOut ? "text-red-500" : isLow ? "text-yellow-600" : "text-gray-900"}`}>
                       {product.stock}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-center text-gray-500">{product.minStock}</td>
-                  <td className="py-3 px-4 text-center">
+                  <td data-label="Mínimo" className="py-3 px-4 text-center text-gray-500">{product.minStock}</td>
+                  <td data-label="Situação" className="py-3 px-4 text-center">
                     {isOut ? (
                       <span className="badge-status bg-red-100 text-red-700">Sem estoque</span>
                     ) : isLow ? (
@@ -87,8 +87,8 @@ export default async function EstoquePage() {
                       <span className="badge-status bg-green-100 text-green-700">Normal</span>
                     )}
                   </td>
-                  <td className="py-3 px-4">
-                    <Link href={`/admin/produtos/${product.id}`} className="text-pink-500 hover:text-pink-600 text-xs font-medium">
+                  <td data-label="Ações" className="py-3 px-4">
+                    <Link href={`/admin/produtos/${product.id}`} className="inline-flex min-h-11 items-center text-xs font-medium text-pink-500 hover:text-pink-600">
                       Editar →
                     </Link>
                   </td>

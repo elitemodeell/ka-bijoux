@@ -89,7 +89,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="admin-table w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100">
                 <th className="text-left py-2.5 px-3 text-gray-500 font-medium">Pedido</th>
@@ -103,17 +103,17 @@ export default async function DashboardPage() {
             <tbody>
               {data.recentOrders.map((order) => (
                 <tr key={order.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="py-3 px-3 font-mono text-xs text-pink-600 font-semibold">{order.orderNumber}</td>
-                  <td className="py-3 px-3 text-gray-700">{order.customer.name}</td>
-                  <td className="py-3 px-3 font-semibold">{formatCurrency(order.total)}</td>
-                  <td className="py-3 px-3">
+                  <td data-label="Pedido" className="py-3 px-3 font-mono text-xs text-pink-600 font-semibold">{order.orderNumber}</td>
+                  <td data-label="Cliente" className="py-3 px-3 text-gray-700">{order.customer.name}</td>
+                  <td data-label="Total" className="py-3 px-3 font-semibold">{formatCurrency(order.total)}</td>
+                  <td data-label="Status" className="py-3 px-3">
                     <OrderStatusBadge status={order.status} />
                   </td>
-                  <td className="py-3 px-3 text-gray-400 text-xs">
+                  <td data-label="Data" className="py-3 px-3 text-gray-400 text-xs">
                     {new Date(order.createdAt).toLocaleDateString("pt-BR")}
                   </td>
-                  <td className="py-3 px-3">
-                    <Link href={`/admin/pedidos/${order.id}`} className="text-pink-500 hover:text-pink-600 text-xs font-medium">
+                  <td data-label="Ações" className="py-3 px-3">
+                    <Link href={`/admin/pedidos/${order.id}`} className="inline-flex min-h-11 items-center text-xs font-medium text-pink-500 hover:text-pink-600">
                       Ver →
                     </Link>
                   </td>

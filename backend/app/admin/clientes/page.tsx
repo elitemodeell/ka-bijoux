@@ -61,7 +61,7 @@ export default async function ClientesPage() {
 
       <div className="card overflow-hidden p-0">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="admin-table w-full text-sm">
             <thead className="border-b border-gray-100 bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-gray-500">Cliente</th>
@@ -77,7 +77,7 @@ export default async function ClientesPage() {
                 const last = c.orders[0];
                 return (
                   <tr key={c.id} className="border-b border-gray-50 transition-colors hover:bg-gray-50">
-                    <td className="px-4 py-3">
+                    <td data-label="Cliente" className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-pink-100 text-sm font-bold text-pink-600">
                           {c.name.charAt(0).toUpperCase()}
@@ -88,15 +88,15 @@ export default async function ClientesPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Contato" className="px-4 py-3">
                       <p className="text-gray-700">{c.email}</p>
                       {c.phone && <p className="text-xs text-gray-400">{c.phone}</p>}
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Pedidos" className="px-4 py-3">
                       {c._count.orders > 0 ? (
                         <Link
                           href={`/admin/pedidos?customer=${c.id}`}
-                          className="inline-flex items-center rounded-full bg-pink-50 px-3 py-1 text-xs font-bold text-pink-600 hover:bg-pink-100"
+                          className="inline-flex min-h-11 items-center rounded-full bg-pink-50 px-3 py-1 text-xs font-bold text-pink-600 hover:bg-pink-100"
                         >
                           {c._count.orders} pedido{c._count.orders !== 1 ? "s" : ""}
                         </Link>
@@ -104,7 +104,7 @@ export default async function ClientesPage() {
                         <span className="text-xs text-gray-400">Nenhum</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Último pedido" className="px-4 py-3">
                       {last ? (
                         <div>
                           <p className="font-medium text-gray-700">{fmt(last.total)}</p>
@@ -114,8 +114,8 @@ export default async function ClientesPage() {
                         <span className="text-xs text-gray-400">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{fmtDate(c.createdAt)}</td>
-                    <td className="px-4 py-3">
+                    <td data-label="Cadastro" className="px-4 py-3 text-xs text-gray-500">{fmtDate(c.createdAt)}</td>
+                    <td data-label="Status" className="px-4 py-3">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
                         c.active
                           ? "bg-green-100 text-green-700"
