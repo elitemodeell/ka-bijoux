@@ -40,9 +40,9 @@ export async function POST(req: NextRequest) {
     response.cookies.set("ka-admin-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict",
       path: "/",
-      maxAge: 60 * 60 * 24, // 24h
+      maxAge: 60 * 60 * 8,
     });
 
     return response;

@@ -24,7 +24,7 @@ export function signCustomerToken(payload: CustomerPayload): string {
 }
 
 export function signAdminToken(payload: AdminPayload): string {
-  return jwt.sign(payload, JWT_SECRET! + "-admin", { expiresIn: "24h", algorithm: "HS256" });
+  return jwt.sign(payload, JWT_SECRET! + "-admin", { expiresIn: "8h", algorithm: "HS256" });
 }
 
 export function verifyCustomerToken(token: string): CustomerPayload {

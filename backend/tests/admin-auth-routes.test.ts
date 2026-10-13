@@ -79,7 +79,7 @@ describe("admin authentication routes", () => {
     expect(cookie).toContain("ka-admin-token=signed-admin-token");
     expect(cookie).toContain("Path=/");
     expect(cookie).toContain("HttpOnly");
-    expect(cookie).toContain("SameSite=lax");
+    expect(cookie).toContain("SameSite=strict");
   });
 
   it("stops before the database when the admin login is rate limited", async () => {
@@ -126,5 +126,6 @@ describe("admin authentication routes", () => {
     expect(cookie).toContain("ka-admin-token=");
     expect(cookie).toContain("Path=/");
     expect(cookie).toContain("Max-Age=0");
+    expect(cookie).toContain("SameSite=strict");
   });
 });
