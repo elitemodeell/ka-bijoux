@@ -31,10 +31,13 @@ capturas de tela ou logs.
       senhas; verificar que a senha publicada não foi reutilizada.
 - [ ] Rotacionar pelo mecanismo administrativo autorizado. O seed não deve ser
       executado indiscriminadamente em produção apenas para trocar a senha.
-- [ ] Invalidar sessões existentes. Como os JWTs atuais são stateless, a opção
-      imediata é rotacionar `JWT_SECRET`, sabendo que isso encerra também as
-      sessões de clientes; caso não seja aceitável, aguardar o TTL administrativo
-      reduzido para 8 horas e programar versionamento de sessão em migração futura.
+- [ ] Publicar primeiro a proteção de revogação por `admins.updatedAt` preparada
+      neste branch. Ela grava a versão exata de `updatedAt` no JWT assinado e a
+      compara com a última alteração do administrador, sem exigir migração.
+- [ ] Trocar a senha pelo fluxo autorizado usando Prisma ou, se houver operação
+      SQL controlada, atualizar também `updatedAt = NOW()`. Isso invalida somente
+      as sessões daquele administrador; sessões de clientes e outros admins não
+      são afetadas. Não é necessário rotacionar `JWT_SECRET` para esta finalidade.
 - [ ] Testar login e logout em janela controlada, sem registrar senha ou token.
 - [ ] Confirmar que cinco tentativas por IP em 15 minutos retornam HTTP 429.
 
@@ -51,9 +54,10 @@ capturas de tela ou logs.
 
 ## Banco de dados
 
-- [ ] Revisar deployments construídos desde o commit que adicionou
-      `next.config.env` e pesquisar a connection string apenas em ferramenta
-      segura, sem imprimir seu valor.
+- [x] O domínio atual e os quatro deployments READY anteriores foram inspecionados
+      em 13/10/2026. Todos os 304 bundles públicos referenciados responderam e não
+      apresentaram indicador de URL PostgreSQL, nome `DATABASE_URL` ou host de
+      banco Supabase. Nenhum valor foi exibido.
 - [ ] Se qualquer artefato público contiver host, usuário ou senha, rotacionar a
       senha do usuário PostgreSQL, atualizar `DATABASE_URL`/`DIRECT_URL` e revogar
       a credencial antiga.

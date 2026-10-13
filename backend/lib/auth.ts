@@ -16,6 +16,8 @@ export interface AdminPayload {
   id: string;
   email: string;
   role: string;
+  iat?: number;
+  sessionVersion?: number;
 }
 
 // Legado temporário. Remover após a janela SUPABASE_AUTH_LEGACY_JWT_ACCEPT_UNTIL.
@@ -96,7 +98,22 @@ export async function requireAdmin(req: NextRequest) {
   const admin = await getAdminFromRequest(req);
   if (!admin) throw new Error("Acesso não autorizado");
 
-  const dbAdmin = await prisma.admin.findUnique({ where: { id: admin.id, active: true } });
+  const dbAdmin = await prisma.admin.findUnique({
+    where: { id: admin.id, active: true },
+    select: { updatedAt: true },
+  });
   if (!dbAdmin) throw new Error("Admin não encontrado");
+
+  // jsonwebtoken inclui iat automaticamente. Como updatedAt muda junto com a
+  // senha (ou outra alteracao administrativa), tokens anteriores deixam de
+  // autorizar APIs sem rotacionar JWT_SECRET e sem afetar sessoes de clientes.
+  const databaseVersion = dbAdmin.updatedAt.getTime();
+  const hasExactVersion = Number.isSafeInteger(admin.sessionVersion);
+  const revoked = hasExactVersion
+    ? admin.sessionVersion !== databaseVersion
+    : !Number.isInteger(admin.iat) || admin.iat! < Math.floor(databaseVersion / 1000);
+  if (revoked) {
+    throw new Error("Sessão administrativa revogada");
+  }
   return admin;
 }

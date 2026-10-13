@@ -10,6 +10,7 @@ build/
 
 # ─── Expo / React Native ──────────────────────────────────────
 .expo/
+.expo-security-export-*/
 dist/
 web-build/
 *.jks

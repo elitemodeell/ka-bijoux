@@ -48,6 +48,7 @@ beforeEach(() => {
     password: "password-hash",
     role: "SUPER_ADMIN",
     active: true,
+    updatedAt: new Date("2026-10-13T12:00:00.000Z"),
   });
 });
 
@@ -66,6 +67,10 @@ describe("admin authentication routes", () => {
       },
     });
     expect(mocks.bcryptCompare).toHaveBeenCalledWith("correct-password", "password-hash");
+    expect(mocks.signAdminToken).toHaveBeenCalledWith(expect.objectContaining({
+      id: "admin-1",
+      sessionVersion: Date.parse("2026-10-13T12:00:00.000Z"),
+    }));
     expect(mocks.rateLimit).toHaveBeenCalledWith(
       expect.any(NextRequest),
       expect.objectContaining({ keyPrefix: "admin-auth" })

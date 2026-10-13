@@ -28,7 +28,12 @@ export async function POST(req: NextRequest) {
     const valid = await bcrypt.compare(password, admin.password);
     if (!valid) return apiError("Credenciais inválidas.", 401);
 
-    const token = signAdminToken({ id: admin.id, email: admin.email, role: admin.role });
+    const token = signAdminToken({
+      id: admin.id,
+      email: admin.email,
+      role: admin.role,
+      sessionVersion: admin.updatedAt.getTime(),
+    });
 
     const response = NextResponse.json({
       data: {
