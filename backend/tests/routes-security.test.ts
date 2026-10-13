@@ -31,6 +31,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: routeMocks.prisma }));
 
 import { POST as checkoutPost } from "@/app/api/orders/route";
 import { POST as mercadoPagoWebhookPost } from "@/app/api/payment/webhook/route";
+import { randomUUID } from "node:crypto";
 
 function checkoutRequest(payload: Record<string, unknown>) {
   return new NextRequest("http://localhost/api/orders", {
@@ -40,7 +41,7 @@ function checkoutRequest(payload: Record<string, unknown>) {
       shippingType: "MOTOTAXI",
       shippingOptionId: "mototaxi",
       addressId: "address-1",
-      idempotencyKey: "229b21f0-e893-4f1c-9765-e129612d9ed7",
+      idempotencyKey: randomUUID(),
       ...payload,
     }),
   });

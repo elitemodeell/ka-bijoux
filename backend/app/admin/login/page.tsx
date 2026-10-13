@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError("Informe um e-mail válido, como admin@kabijoux.com.br.");
+      setError("Informe um e-mail válido.");
       return;
     }
     submitting.current = true;
@@ -98,7 +98,7 @@ export default function AdminLoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@kabijoux.com.br"
+                placeholder="seu-email@empresa.com.br"
                 required
                 aria-invalid={Boolean(error)}
                 aria-describedby={error ? "admin-login-error" : undefined}

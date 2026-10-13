@@ -61,13 +61,23 @@ async function seedCategories() {
 async function main() {
   console.log("Iniciando seed do banco de dados KA Bijoux...");
 
-  const adminPassword = await bcrypt.hash("admin123", 12);
+  const adminName = process.env.SEED_ADMIN_NAME?.trim() || "Administrador local";
+  const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  const adminPasswordValue = process.env.SEED_ADMIN_PASSWORD;
+  if (!adminEmail || !adminEmail.includes("@")) {
+    throw new Error("SEED_ADMIN_EMAIL deve conter um e-mail valido.");
+  }
+  if (!adminPasswordValue || adminPasswordValue.length < 16) {
+    throw new Error("SEED_ADMIN_PASSWORD deve ter pelo menos 16 caracteres.");
+  }
+
+  const adminPassword = await bcrypt.hash(adminPasswordValue, 12);
   const admin = await prisma.admin.upsert({
-    where: { email: "admin@kabijoux.com.br" },
-    update: {},
+    where: { email: adminEmail },
+    update: { name: adminName, password: adminPassword },
     create: {
-      name: "Administrador KA Bijoux",
-      email: "admin@kabijoux.com.br",
+      name: adminName,
+      email: adminEmail,
       password: adminPassword,
       role: "SUPER_ADMIN",
     },
@@ -264,34 +274,42 @@ async function main() {
   }
   console.log("Stories criados:", storySeeds.length);
 
-  const customerPassword = await bcrypt.hash("cliente123", 12);
-  await prisma.customer.upsert({
-    where: { email: "cliente@teste.com" },
-    update: {},
-    create: {
-      name: "Cliente Teste",
-      email: "cliente@teste.com",
-      phone: "(37) 98888-8888",
-      passwordHash: customerPassword,
-      addresses: {
-        create: {
-          label: "Casa",
-          street: "Rua Exemplo",
-          number: "456",
-          neighborhood: "Centro",
-          city: "Itauna",
-          state: "MG",
-          zipCode: "35680-000",
-          isDefault: true,
+  if (process.env.SEED_TEST_CUSTOMER_ENABLED === "true") {
+    const customerEmail = process.env.SEED_TEST_CUSTOMER_EMAIL?.trim().toLowerCase();
+    const customerPasswordValue = process.env.SEED_TEST_CUSTOMER_PASSWORD;
+    if (!customerEmail || !customerEmail.includes("@")) {
+      throw new Error("SEED_TEST_CUSTOMER_EMAIL deve conter um e-mail valido.");
+    }
+    if (!customerPasswordValue || customerPasswordValue.length < 16) {
+      throw new Error("SEED_TEST_CUSTOMER_PASSWORD deve ter pelo menos 16 caracteres.");
+    }
+    const customerPassword = await bcrypt.hash(customerPasswordValue, 12);
+    await prisma.customer.upsert({
+      where: { email: customerEmail },
+      update: { passwordHash: customerPassword },
+      create: {
+        name: "Cliente Teste",
+        email: customerEmail,
+        phone: "(00) 00000-0000",
+        passwordHash: customerPassword,
+        addresses: {
+          create: {
+            label: "Endereco sintetico",
+            street: "Rua de Teste",
+            number: "0",
+            neighborhood: "Teste",
+            city: "Itauna",
+            state: "MG",
+            zipCode: "00000-000",
+            isDefault: true,
+          },
         },
       },
-    },
-  });
-  console.log("Cliente de teste criado");
+    });
+    console.log("Cliente sintetico de teste criado");
+  }
 
   console.log("Seed concluido com sucesso!");
-  console.log("Admin: admin@kabijoux.com.br | Senha: admin123");
-  console.log("Cliente: cliente@teste.com | Senha: cliente123");
 }
 
 main()

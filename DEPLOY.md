@@ -110,9 +110,12 @@ npm run db:seed
 **Verificação:** No Supabase, vá em **Table Editor** e confirme que as tabelas foram criadas:
 - `admins`, `customers`, `products`, `categories`, `orders`, `carts`, `payments`, etc.
 
-**Credenciais criadas pelo seed:**
-- Admin: `admin@kabijoux.com.br` / `admin123`
-- Cliente teste: `cliente@teste.com` / `cliente123`
+**Contas criadas pelo seed:**
+- Admin: exige `SEED_ADMIN_EMAIL` e `SEED_ADMIN_PASSWORD` exclusivos no ambiente.
+- Cliente sintético: opcional e desabilitado por padrão.
+
+Nunca publique ou reutilize essas credenciais e não execute seed contra produção
+sem uma revisão operacional específica.
 
 ---
 
@@ -187,7 +190,7 @@ Após o deploy concluir, a Vercel fornecerá uma URL como:
 
 Acesse: `https://SUA_URL.vercel.app/admin/login`
 
-Login: `admin@kabijoux.com.br` / `admin123`
+Login: use a conta administrativa exclusiva configurada para o ambiente.
 
 Verifique cada página:
 
@@ -216,7 +219,7 @@ curl https://SUA_URL.vercel.app/api/products
 # Login do cliente
 curl -X POST https://SUA_URL.vercel.app/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"cliente@teste.com","password":"cliente123"}'
+  -d '{"email":"<EMAIL_DE_TESTE>","password":"<SENHA_DE_TESTE>"}'
 ```
 
 ### 4.3 Testar o app mobile

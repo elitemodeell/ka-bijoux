@@ -50,9 +50,12 @@ yarn db:seed     # Popula com dados iniciais
 ```
 
 Dados criados pelo seed:
-- **Admin**: `admin@kabijoux.com.br` / `admin123`
-- **Cliente teste**: `cliente@teste.com` / `cliente123`
+- **Admin**: definido por `SEED_ADMIN_EMAIL` e `SEED_ADMIN_PASSWORD` no ambiente local
+- **Cliente teste**: opcional; habilite `SEED_TEST_CUSTOMER_ENABLED` e defina credenciais sintéticas próprias
 - 12 categorias + 8 produtos de exemplo
+
+O seed exige senha administrativa com pelo menos 16 caracteres e nunca imprime
+credenciais nos logs. Não reutilize valores de produção.
 
 ### 4. Rodar o backend
 
@@ -78,7 +81,7 @@ yarn start
 
 Acesse: **http://localhost:3000/admin/login**
 
-Login padrão: `admin@kabijoux.com.br` / `admin123`
+Não existe login padrão. Use as credenciais exclusivas configuradas no ambiente.
 
 ### Páginas do painel:
 | Rota | Descrição |

@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { signAdminToken } from "@/lib/auth";
+import { rateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 import { apiError } from "@/lib/utils";
 
 const schema = z.object({
@@ -15,6 +16,9 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { email, password } = schema.parse(body);
+
+    const limited = await rateLimit(req, RATE_LIMITS.adminAuth);
+    if (limited) return limited;
 
     const admin = await prisma.admin.findFirst({
       where: { email: { equals: email, mode: "insensitive" }, active: true },
@@ -28,7 +32,6 @@ export async function POST(req: NextRequest) {
 
     const response = NextResponse.json({
       data: {
-        token,
         admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role },
       },
     });

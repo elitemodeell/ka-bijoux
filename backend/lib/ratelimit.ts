@@ -95,6 +95,12 @@ export const RATE_LIMITS = {
     keyPrefix: "auth",
     failClosed: true,
   },
+  adminAuth: {
+    limit: 5,
+    windowMs: 15 * 60 * 1000,
+    keyPrefix: "admin-auth",
+    failClosed: true,
+  },
   payment: {
     limit: 5,
     windowMs: 60 * 1000,
