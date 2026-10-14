@@ -64,6 +64,23 @@ export async function createSupabasePasswordUser(input: {
   });
 }
 
+export async function updateSupabasePasswordUser(input: {
+  authUserId: string;
+  customerId: string;
+  password: string;
+  isTestAccount: boolean;
+}) {
+  const supabaseAdmin = await adminAuthClient();
+  return supabaseAdmin.auth.admin.updateUserById(input.authUserId, {
+    password: input.password,
+    app_metadata: {
+      customer_id: input.customerId,
+      migration_source: SUPABASE_AUTH_MIGRATION_SOURCE,
+      ...(input.isTestAccount ? { is_test_account: true } : {}),
+    },
+  });
+}
+
 export async function updateSupabasePassword(authUserId: string, password: string) {
   const supabaseAdmin = await adminAuthClient();
   return supabaseAdmin.auth.admin.updateUserById(authUserId, { password });

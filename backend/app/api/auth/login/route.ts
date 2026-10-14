@@ -10,7 +10,7 @@ import {
   isSupabaseAuthTransitionEnabled,
   sessionResponse,
   signInWithSupabasePassword,
-  updateSupabasePassword,
+  updateSupabasePasswordUser,
 } from "@/lib/supabase-auth";
 import { apiSuccess, apiError } from "@/lib/utils";
 import { rateLimit, RATE_LIMITS } from "@/lib/ratelimit";
@@ -19,6 +19,8 @@ const schema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(1),
 });
+
+class SupabaseIdentityMismatchError extends Error {}
 
 function publicCustomer(customer: { id: string; name: string; email: string; phone: string | null }) {
   return { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone };
@@ -50,7 +52,9 @@ async function finishSupabaseLogin(email: string, password: string) {
   });
   if (!customer) return null;
   if (customer.authUserId && customer.authUserId !== result.data.user.id) return null;
-  if (!customer.authUserId && result.data.user.app_metadata?.customer_id !== customer.id) return null;
+  if (result.data.user.app_metadata?.customer_id !== customer.id) {
+    throw new SupabaseIdentityMismatchError();
+  }
 
   if (!customer.authUserId) {
     const linked = await prisma.customer.updateMany({
@@ -70,7 +74,8 @@ async function finishSupabaseLogin(email: string, password: string) {
 async function trySupabaseLogin(email: string, password: string) {
   try {
     return await finishSupabaseLogin(email, password);
-  } catch {
+  } catch (error) {
+    if (error instanceof SupabaseIdentityMismatchError) throw error;
     // A transicao nao pode derrubar o login legado quando o Auth estiver indisponivel.
     console.warn("[auth-login] Supabase Auth indisponivel; usando fallback legado.");
     return null;
@@ -98,7 +103,13 @@ export async function POST(req: NextRequest) {
       let authUserId = customer.authUserId;
       if (authUserId) {
         try {
-          await updateSupabasePassword(authUserId, password);
+          const synced = await updateSupabasePasswordUser({
+            authUserId,
+            customerId: customer.id,
+            password,
+            isTestAccount: isLegacyTestAccount(customer.name, customer.email),
+          });
+          if (synced.error) authUserId = null;
         } catch {
           console.warn("[auth-login] Atualizacao no Supabase Auth indisponivel; usando fallback legado.");
           authUserId = null;
@@ -134,6 +145,7 @@ export async function POST(req: NextRequest) {
     return apiSuccess({ token, accessToken: token, customer: publicCustomer(customer), legacySession: true });
   } catch (error) {
     if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof SupabaseIdentityMismatchError) return apiError("Não autorizado.", 401);
     return apiError("Erro interno.", 500);
   }
 }

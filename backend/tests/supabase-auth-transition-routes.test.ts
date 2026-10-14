@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
   signLegacy: vi.fn(() => "legacy-token"),
   signIn: vi.fn(),
   createAuthUser: vi.fn(),
-  updateAuthPassword: vi.fn(),
+  updateAuthPasswordUser: vi.fn(),
   deleteAuthUser: vi.fn(),
   rateLimit: vi.fn(),
 }));
@@ -43,7 +43,7 @@ vi.mock("@/lib/supabase-auth", () => ({
   isSupabaseAuthTransitionEnabled: () => mocks.transitionEnabled,
   signInWithSupabasePassword: mocks.signIn,
   createSupabasePasswordUser: mocks.createAuthUser,
-  updateSupabasePassword: mocks.updateAuthPassword,
+  updateSupabasePasswordUser: mocks.updateAuthPasswordUser,
   deleteSupabaseUser: mocks.deleteAuthUser,
   sessionResponse: (session: Record<string, unknown>, user: { id: string }) => ({
     token: session.access_token,
@@ -95,7 +95,7 @@ beforeEach(() => {
   mocks.consentDeleteMany.mockResolvedValue({ count: 1 });
   mocks.bcryptCompare.mockResolvedValue(true);
   mocks.bcryptHash.mockResolvedValue("$2b$12$new-hash");
-  mocks.updateAuthPassword.mockResolvedValue({ error: null });
+  mocks.updateAuthPasswordUser.mockResolvedValue({ error: null });
   mocks.deleteAuthUser.mockResolvedValue({ error: null });
   mocks.transaction.mockImplementation(async (input: unknown) => {
     if (typeof input === "function") {
@@ -160,6 +160,34 @@ describe("transição de login para Supabase Auth", () => {
     expect(mocks.customerUpdateMany).not.toHaveBeenCalled();
   });
 
+  it("rejeita usuário inexistente ou inativo sem emitir sessão", async () => {
+    mocks.signIn.mockResolvedValue({ data: { session: null, user: null }, error: new Error("invalid") });
+    mocks.customerFindFirst.mockResolvedValue(null);
+
+    const response = await login(request("login", {
+      email: "ausente@example.test",
+      password: "senha-correta",
+    }));
+
+    expect(response.status).toBe(401);
+    expect(mocks.signLegacy).not.toHaveBeenCalled();
+    expect(mocks.createAuthUser).not.toHaveBeenCalled();
+  });
+
+  it("preserva o rate limit antes de consultar identidades", async () => {
+    mocks.rateLimit.mockResolvedValue(new Response(null, { status: 429 }));
+
+    const response = await login(request("login", {
+      email: customer.email,
+      password: "senha-correta",
+    }));
+
+    expect(response.status).toBe(429);
+    expect(mocks.signIn).not.toHaveBeenCalled();
+    expect(mocks.customerFindFirst).not.toHaveBeenCalled();
+    expect(mocks.signLegacy).not.toHaveBeenCalled();
+  });
+
   it("usa a sessao legada quando o Supabase Auth lanca uma excecao", async () => {
     mocks.signIn.mockRejectedValue(new Error("synthetic auth outage"));
     mocks.customerFindFirst.mockResolvedValue({ ...customer, authUserId: "auth-user-1" });
@@ -174,6 +202,12 @@ describe("transição de login para Supabase Auth", () => {
     expect(mocks.bcryptCompare).toHaveBeenCalledWith("senha-correta", customer.passwordHash);
     expect(mocks.signLegacy).toHaveBeenCalledWith(expect.objectContaining({ id: customer.id }));
     expect(payload.data).toMatchObject({ token: "legacy-token", legacySession: true });
+    expect(mocks.updateAuthPasswordUser).toHaveBeenCalledWith({
+      authUserId: "auth-user-1",
+      customerId: customer.id,
+      password: "senha-correta",
+      isTestAccount: true,
+    });
   });
 
   it("não vincula automaticamente usuário Auth sem metadata do Customer", async () => {
@@ -185,6 +219,21 @@ describe("transição de login para Supabase Auth", () => {
 
     expect(response.status).toBe(401);
     expect(mocks.customerUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejeita identidade Auth vinculada com customer_id incompatível", async () => {
+    mocks.signIn.mockResolvedValue(session("auth-user-1", "different-customer"));
+    mocks.customerFindFirst.mockResolvedValue({ ...customer, authUserId: "auth-user-1" });
+
+    const response = await login(request("login", {
+      email: customer.email,
+      password: "senha-correta",
+    }));
+
+    expect(response.status).toBe(401);
+    expect(mocks.bcryptCompare).not.toHaveBeenCalled();
+    expect(mocks.signLegacy).not.toHaveBeenCalled();
+    expect(mocks.updateAuthPasswordUser).not.toHaveBeenCalled();
   });
 });
 
