@@ -3,6 +3,7 @@ generated-product-images/
 scripts/
 !backend/scripts/
 backend/scripts/*
+# Security guard required by the Vercel build; keep this exception when changing script ignores.
 !backend/scripts/validate-homologation-env.cjs
 tmp/
 /mobile/
