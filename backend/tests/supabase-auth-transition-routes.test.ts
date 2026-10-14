@@ -160,6 +160,22 @@ describe("transição de login para Supabase Auth", () => {
     expect(mocks.customerUpdateMany).not.toHaveBeenCalled();
   });
 
+  it("usa a sessao legada quando o Supabase Auth lanca uma excecao", async () => {
+    mocks.signIn.mockRejectedValue(new Error("synthetic auth outage"));
+    mocks.customerFindFirst.mockResolvedValue({ ...customer, authUserId: "auth-user-1" });
+
+    const response = await login(request("login", {
+      email: customer.email,
+      password: "senha-correta",
+    }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(mocks.bcryptCompare).toHaveBeenCalledWith("senha-correta", customer.passwordHash);
+    expect(mocks.signLegacy).toHaveBeenCalledWith(expect.objectContaining({ id: customer.id }));
+    expect(payload.data).toMatchObject({ token: "legacy-token", legacySession: true });
+  });
+
   it("não vincula automaticamente usuário Auth sem metadata do Customer", async () => {
     mocks.signIn.mockResolvedValue(session("untrusted-auth-user", "different-customer"));
     mocks.customerFindFirst.mockResolvedValue(customer);

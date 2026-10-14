@@ -67,6 +67,16 @@ async function finishSupabaseLogin(email: string, password: string) {
   };
 }
 
+async function trySupabaseLogin(email: string, password: string) {
+  try {
+    return await finishSupabaseLogin(email, password);
+  } catch {
+    // A transicao nao pode derrubar o login legado quando o Auth estiver indisponivel.
+    console.warn("[auth-login] Supabase Auth indisponivel; usando fallback legado.");
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest) {
   const limited = await rateLimit(req, RATE_LIMITS.auth);
   if (limited) return limited;
@@ -75,7 +85,7 @@ export async function POST(req: NextRequest) {
     const { email, password } = schema.parse(await req.json());
 
     if (isSupabaseAuthTransitionEnabled()) {
-      const direct = await finishSupabaseLogin(email, password);
+      const direct = await trySupabaseLogin(email, password);
       if (direct) return apiSuccess(direct);
     }
 
@@ -87,7 +97,12 @@ export async function POST(req: NextRequest) {
     if (isSupabaseAuthTransitionEnabled()) {
       let authUserId = customer.authUserId;
       if (authUserId) {
-        await updateSupabasePassword(authUserId, password);
+        try {
+          await updateSupabasePassword(authUserId, password);
+        } catch {
+          console.warn("[auth-login] Atualizacao no Supabase Auth indisponivel; usando fallback legado.");
+          authUserId = null;
+        }
       } else {
         const created = await createSupabasePasswordUser({
           customerId: customer.id,
@@ -109,7 +124,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (authUserId) {
-        const migrated = await finishSupabaseLogin(email, password);
+        const migrated = await trySupabaseLogin(email, password);
         if (migrated) return apiSuccess({ ...migrated, migratedFromLegacy: true });
       }
     }

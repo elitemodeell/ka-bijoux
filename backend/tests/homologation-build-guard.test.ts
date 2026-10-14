@@ -11,6 +11,7 @@ function environment(): NodeJS.ProcessEnv {
   const anon = jwt("anon");
   return {
     PATH: process.env.PATH,
+    NODE_ENV: "test",
     HOMOLOGATION_MODE: "isolated",
     VERCEL_ENV: "preview",
     VERCEL_GIT_COMMIT_REF: "codex/security-audit-20261013",
@@ -33,7 +34,7 @@ function environment(): NodeJS.ProcessEnv {
   };
 }
 
-function run(overrides: NodeJS.ProcessEnv = {}) {
+function run(overrides: Partial<NodeJS.ProcessEnv> = {}) {
   return spawnSync(process.execPath, [path.join(process.cwd(), "scripts", "validate-homologation-env.cjs")], {
     cwd: process.cwd(),
     env: { ...environment(), ...overrides },
