@@ -2,6 +2,10 @@ const EXPECTED_BRANCH = "codex/security-audit-20261013";
 const HOMOLOG_REF = "pxhsgdfsypvqgmuyvfjt";
 const RUNTIME_ID = "ka-preview-20261013-v1";
 const PROD_MARKERS = ["sxohqngzypmxtmuulfoa", "kabijoux.com.br"];
+const INFORMATIONAL_VERCEL_METADATA = new Set([
+  "VERCEL_PROJECT_PRODUCTION_URL",
+  "NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL",
+]);
 
 function fail(message) {
   console.error(`[homologation-guard] BLOCKED: ${message}`);
@@ -24,6 +28,7 @@ const required = [
 ];
 for (const name of required) if (!process.env[name]?.trim()) fail(`${name} is missing`);
 for (const [name, value] of Object.entries(process.env)) {
+  if (INFORMATIONAL_VERCEL_METADATA.has(name)) continue;
   const normalized = String(value || "").toLowerCase();
   for (const marker of PROD_MARKERS) if (normalized.includes(marker)) fail(`${name} references a production resource`);
 }

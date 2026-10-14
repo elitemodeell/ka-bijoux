@@ -2,6 +2,10 @@ const AUDIT_BRANCH = "codex/security-audit-20261013";
 const HOMOLOG_REF = "pxhsgdfsypvqgmuyvfjt";
 const RUNTIME_ID = "ka-preview-20261013-v1";
 const PROD_MARKERS = ["sxohqngzypmxtmuulfoa", "kabijoux.com.br"];
+const INFORMATIONAL_VERCEL_METADATA = new Set([
+  "VERCEL_PROJECT_PRODUCTION_URL",
+  "NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL",
+]);
 const MOCK_VARIABLES = [
   "HOMOLOGATION_EXTERNAL_MODE", "EMAIL_DELIVERY_MODE", "PAYMENT_PROVIDER_MODE",
   "SHIPPING_PROVIDER_MODE", "BLING_PROVIDER_MODE",
@@ -35,6 +39,7 @@ export function validateHomologationRuntime(env: RuntimeEnvironment = process.en
   ];
   for (const name of required) if (!env[name]?.trim()) blocked(`${name} is missing`);
   for (const [name, value] of Object.entries(env)) {
+    if (INFORMATIONAL_VERCEL_METADATA.has(name)) continue;
     const normalized = String(value || "").toLowerCase();
     if (PROD_MARKERS.some((marker) => normalized.includes(marker))) blocked(`${name} references Production`);
   }
