@@ -110,6 +110,19 @@ beforeEach(() => {
 });
 
 describe("transição de login para Supabase Auth", () => {
+  it("rejeita JSON malformado sem iniciar autenticação", async () => {
+    const response = await login(new NextRequest("https://kabijoux.com.br/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{email:invalid-json}",
+    }));
+
+    expect(response.status).toBe(400);
+    expect(mocks.signIn).not.toHaveBeenCalled();
+    expect(mocks.customerFindFirst).not.toHaveBeenCalled();
+    expect(mocks.signLegacy).not.toHaveBeenCalled();
+  });
+
   it("aceita usuário já migrado e preserva o Customer", async () => {
     mocks.signIn.mockResolvedValue(session());
     mocks.customerFindFirst.mockResolvedValue({ ...customer, authUserId: "auth-user-1" });

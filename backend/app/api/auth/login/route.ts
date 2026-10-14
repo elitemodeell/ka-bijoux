@@ -195,6 +195,7 @@ export async function POST(req: NextRequest) {
     return apiSuccess({ token, accessToken: token, customer: publicCustomer(customer), legacySession: true });
   } catch (error) {
     if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof SyntaxError) return apiError("Requisição inválida.", 400);
     if (error instanceof SupabaseIdentityMismatchError) return apiError("Não autorizado.", 401);
     logLoginFailure(stage, error);
     return apiError("Erro interno.", 500);
