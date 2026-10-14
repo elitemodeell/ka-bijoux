@@ -215,6 +215,7 @@ describe("transição de login para Supabase Auth", () => {
   });
 
   it("falha fechado quando o Supabase rejeita autorizacao", async () => {
+    const failureLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
     mocks.signIn.mockRejectedValue(Object.assign(new Error("forbidden"), { status: 403 }));
     mocks.customerFindFirst.mockResolvedValue({ ...customer, authUserId: "auth-user-1" });
 
@@ -227,6 +228,13 @@ describe("transição de login para Supabase Auth", () => {
     expect(mocks.customerFindFirst).not.toHaveBeenCalled();
     expect(mocks.bcryptCompare).not.toHaveBeenCalled();
     expect(mocks.signLegacy).not.toHaveBeenCalled();
+    expect(failureLog).toHaveBeenCalledWith("[auth-login] failure", {
+      stage: "supabase_direct_sign_in",
+      name: "Error",
+      code: undefined,
+      status: 403,
+    });
+    expect(JSON.stringify(failureLog.mock.calls)).not.toContain("senha-correta");
   });
 
   it("não vincula automaticamente usuário Auth sem metadata do Customer", async () => {
