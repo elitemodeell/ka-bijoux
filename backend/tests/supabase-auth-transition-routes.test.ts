@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { AuthRetryableFetchError } from "@supabase/supabase-js";
 
 const mocks = vi.hoisted(() => ({
   transitionEnabled: true,
@@ -172,6 +173,9 @@ describe("transição de login para Supabase Auth", () => {
     expect(response.status).toBe(401);
     expect(mocks.signLegacy).not.toHaveBeenCalled();
     expect(mocks.createAuthUser).not.toHaveBeenCalled();
+    expect(mocks.customerFindFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ active: true }),
+    }));
   });
 
   it("preserva o rate limit antes de consultar identidades", async () => {
@@ -189,7 +193,7 @@ describe("transição de login para Supabase Auth", () => {
   });
 
   it("usa a sessao legada quando o Supabase Auth lanca uma excecao", async () => {
-    mocks.signIn.mockRejectedValue(new Error("synthetic auth outage"));
+    mocks.signIn.mockRejectedValue(new AuthRetryableFetchError("synthetic auth outage", 503));
     mocks.customerFindFirst.mockResolvedValue({ ...customer, authUserId: "auth-user-1" });
 
     const response = await login(request("login", {
@@ -208,6 +212,21 @@ describe("transição de login para Supabase Auth", () => {
       password: "senha-correta",
       isTestAccount: true,
     });
+  });
+
+  it("falha fechado quando o Supabase rejeita autorizacao", async () => {
+    mocks.signIn.mockRejectedValue(Object.assign(new Error("forbidden"), { status: 403 }));
+    mocks.customerFindFirst.mockResolvedValue({ ...customer, authUserId: "auth-user-1" });
+
+    const response = await login(request("login", {
+      email: customer.email,
+      password: "senha-correta",
+    }));
+
+    expect(response.status).toBe(500);
+    expect(mocks.customerFindFirst).not.toHaveBeenCalled();
+    expect(mocks.bcryptCompare).not.toHaveBeenCalled();
+    expect(mocks.signLegacy).not.toHaveBeenCalled();
   });
 
   it("não vincula automaticamente usuário Auth sem metadata do Customer", async () => {

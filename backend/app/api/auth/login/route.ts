@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
 import { signCustomerToken } from "@/lib/auth";
 import {
@@ -21,6 +22,11 @@ const schema = z.object({
 });
 
 class SupabaseIdentityMismatchError extends Error {}
+
+function isTransientSupabaseError(error: unknown) {
+  if (!isAuthRetryableFetchError(error)) return false;
+  return [0, 408, 429, 500, 502, 503, 504].includes(error.status ?? 0);
+}
 
 function publicCustomer(customer: { id: string; name: string; email: string; phone: string | null }) {
   return { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone };
@@ -76,6 +82,7 @@ async function trySupabaseLogin(email: string, password: string) {
     return await finishSupabaseLogin(email, password);
   } catch (error) {
     if (error instanceof SupabaseIdentityMismatchError) throw error;
+    if (!isTransientSupabaseError(error)) throw error;
     // A transicao nao pode derrubar o login legado quando o Auth estiver indisponivel.
     console.warn("[auth-login] Supabase Auth indisponivel; usando fallback legado.");
     return null;
@@ -109,8 +116,12 @@ export async function POST(req: NextRequest) {
             password,
             isTestAccount: isLegacyTestAccount(customer.name, customer.email),
           });
-          if (synced.error) authUserId = null;
-        } catch {
+          if (synced.error) {
+            if (!isTransientSupabaseError(synced.error)) throw synced.error;
+            authUserId = null;
+          }
+        } catch (error) {
+          if (!isTransientSupabaseError(error)) throw error;
           console.warn("[auth-login] Atualizacao no Supabase Auth indisponivel; usando fallback legado.");
           authUserId = null;
         }
