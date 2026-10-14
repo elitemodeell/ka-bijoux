@@ -12,6 +12,8 @@ import {
   type PaymentProviderId,
   type ProviderPaymentMethod,
 } from "./types";
+import { MockPaymentProvider } from "./mock-provider";
+import { isHomologationMock } from "@/lib/homologation-isolation";
 
 export interface PaymentProviderFactoryOptions {
   env?: PaymentEnvironmentVariables;
@@ -28,7 +30,9 @@ export class PaymentProviderFactory {
     const configured = options.providers ?? {};
     this.providers = { ...configured };
     if (!this.providers.ASAAS) {
-      this.providers.ASAAS = new AsaasPaymentProvider({
+      this.providers.ASAAS = isHomologationMock("PAYMENT_PROVIDER_MODE", this.env)
+        ? new MockPaymentProvider()
+        : new AsaasPaymentProvider({
         config: loadPaymentConfig(this.env),
         fetch: options.fetch,
         now: options.now,

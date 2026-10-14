@@ -23,6 +23,8 @@ import {
   RefundPaymentResult,
 } from "./types";
 import { PaymentProviderFactory } from "./provider-factory";
+import { MockPaymentProvider } from "./mock-provider";
+import { isHomologationMock } from "@/lib/homologation-isolation";
 
 export class PaymentService {
   readonly provider: PaymentProvider;
@@ -186,6 +188,9 @@ export function createPaymentService(
   options: CreatePaymentServiceOptions = {}
 ): PaymentService {
   if (options.provider) return new PaymentService(options.provider);
+  if (isHomologationMock("PAYMENT_PROVIDER_MODE", options.env ?? process.env)) {
+    return new PaymentService(new MockPaymentProvider());
+  }
 
   const config = options.config ?? loadPaymentConfig(options.env);
   return new PaymentService(

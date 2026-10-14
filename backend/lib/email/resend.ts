@@ -1,4 +1,5 @@
 import { LEGAL_IDENTITY } from "@/lib/legal-identity";
+import { isHomologationMock } from "@/lib/homologation-isolation";
 
 const RESEND_EMAILS_ENDPOINT = "https://api.resend.com/emails";
 const RESEND_REQUEST_TIMEOUT_MS = 10_000;
@@ -60,6 +61,9 @@ export function isResendConfigured(): boolean {
 export async function sendTransactionalEmail(
   message: TransactionalEmail
 ): Promise<EmailDeliveryResult> {
+  if (isHomologationMock("EMAIL_DELIVERY_MODE")) {
+    return { ok: true, providerId: `mock-email-${message.idempotencyKey ?? "synthetic"}` };
+  }
   const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) return { ok: false, reason: "not_configured" };
 

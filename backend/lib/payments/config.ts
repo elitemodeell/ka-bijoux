@@ -3,6 +3,7 @@ import {
   type PaymentProviderId,
   type ProviderPaymentMethod,
 } from "./types";
+import { isHomologationMock } from "@/lib/homologation-isolation";
 
 export type AsaasEnvironment = "sandbox" | "production";
 
@@ -51,6 +52,11 @@ function required(env: PaymentEnvironmentVariables, name: string): string {
 export function loadPaymentConfig(
   env: PaymentEnvironmentVariables = process.env
 ): AsaasPaymentConfig {
+  if (isHomologationMock("PAYMENT_PROVIDER_MODE", env)) {
+    throw new PaymentConfigurationError(
+      "Pagamento simulado: chamadas ao Asaas estao bloqueadas neste preview isolado."
+    );
+  }
   const provider =
     env["PAYMENT_DEFAULT_PROVIDER"]?.trim() ||
     required(env, "PAYMENT_PROVIDER");

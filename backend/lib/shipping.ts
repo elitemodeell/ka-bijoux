@@ -1,5 +1,6 @@
 import { ShippingType } from "@prisma/client";
 import { LEGAL_IDENTITY } from "@/lib/legal-identity";
+import { isHomologationMock } from "@/lib/homologation-isolation";
 
 export interface ShippingItem {
   weight: number;
@@ -173,6 +174,10 @@ async function fetchMelhorEnvioRates(
   dims: ReturnType<typeof consolidateDimensions>,
   handlingDays: number
 ): Promise<MelhorEnvioRates> {
+  if (isHomologationMock("SHIPPING_PROVIDER_MODE")) {
+    const weightCents = Math.round(dims.totalWeight * 100);
+    return { pac: Number((12 + weightCents / 100).toFixed(2)), sedex: Number((22 + weightCents / 100).toFixed(2)), pacDays: 6 + handlingDays, sedexDays: 2 + handlingDays };
+  }
   const token = process.env.MELHOR_ENVIO_TOKEN?.trim();
   const rawSandbox = process.env.MELHOR_ENVIO_SANDBOX?.trim().toLowerCase();
 
@@ -300,7 +305,8 @@ export async function calculateShipping(
   if (config.correiosEnabled && cleanZip.length === 8) {
     // O frete nacional permanece oculto ao cliente até que toda a configuração
     // real esteja válida. Nunca exponha uma opção sem preço ou estimativa.
-    if (!isNationalShippingConfigured(config)) return options;
+    const shippingMock = isHomologationMock("SHIPPING_PROVIDER_MODE");
+    if (!shippingMock && !isNationalShippingConfigured(config)) return options;
 
     const originZip = (config.storeZipCode ?? "").replace(/\D/g, "");
     const handlingDays = Number(config.handlingDays ?? 0);
