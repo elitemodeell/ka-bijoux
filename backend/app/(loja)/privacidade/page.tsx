@@ -68,7 +68,7 @@ Não utilizamos os dados para publicidade comportamental nesta versão.`,
 • **Resend:** envio de recuperação de senha e confirmação de exclusão ao e-mail cadastrado.
 • **Vercel ou hospedagem equivalente:** execução do site/API e logs técnicos de segurança e disponibilidade.
 • **Expo/EAS:** build, atualização do aplicativo e dados técnicos indispensáveis a esses serviços; push está inativo no mobile.
-• **Bling:** integração operacional de catálogo/estoque; não foi comprovado envio de dados pessoais de clientes no fluxo atual.
+• **Bling:** utilizado historicamente apenas como fonte de importação do catálogo; a operação atual não acessa a conta nem a API do Bling.
 
 Cloudinary aparece como configuração legada, mas o armazenamento ativo encontrado no código usa Supabase; ele não é declarado como destinatário de dados do usuário sem comprovação de uso. Mercado Pago não é gateway ativo.`,
   },

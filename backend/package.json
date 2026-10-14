@@ -15,7 +15,6 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
     "db:seed:sex-shop": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-sex-shop.ts",
-    "bling:import": "node scripts/import-bling-products.js",
     "products:audit": "node scripts/audit-product-content.js",
     "auth:diagnose": "node scripts/diagnose-supabase-auth-migration.cjs",
     "auth:migrate": "node scripts/migrate-customers-to-supabase-auth.cjs",

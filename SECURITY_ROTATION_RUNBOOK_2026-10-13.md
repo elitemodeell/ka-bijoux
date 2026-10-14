@@ -43,14 +43,15 @@ capturas de tela ou logs.
 
 ## Bling
 
-- [ ] No portal oficial Bling, criar um novo `client_secret` para a aplicação
-      correta e revogar o segredo antigo identificado nesta auditoria.
-- [ ] Atualizar somente os ambientes que realmente usam a integração.
+- [x] A KA Bijoux não depende da API do Bling em runtime. A origem foi usada
+      somente para a importação histórica do catálogo.
+- [ ] A proprietária deve acessar o portal oficial Bling e invalidar o
+      `client_secret` anteriormente exposto. Não é necessário criar ou fornecer
+      um segredo substituto para a KA Bijoux.
 - [ ] Invalidar tokens de acesso/refresh emitidos para a credencial antiga, se
       o portal oferecer essa opção.
-- [ ] Executar uma consulta não destrutiva de catálogo e confirmar que a origem
-      e a conta Bling são as esperadas.
-- [ ] Monitorar falhas 401/403 e uso da credencial antiga por pelo menos 24 h.
+- [ ] Confirmar no portal que a aplicação/credencial antiga ficou inativa. Essa
+      revogação protege a conta da cliente, mas não bloqueia a publicação da KA.
 
 ## Banco de dados
 
