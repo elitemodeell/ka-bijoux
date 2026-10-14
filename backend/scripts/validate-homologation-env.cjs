@@ -1,5 +1,7 @@
 const EXPECTED_BRANCH = "codex/security-audit-20261013";
 const HOMOLOG_REF = "pxhsgdfsypvqgmuyvfjt";
+const HOMOLOG_POOLER_HOST = "aws-1-sa-east-1.pooler.supabase.com";
+const HOMOLOG_POOLER_USER = `postgres.${HOMOLOG_REF}`;
 const RUNTIME_ID = "ka-preview-20261013-v1";
 const PROD_MARKERS = ["sxohqngzypmxtmuulfoa", "kabijoux.com.br"];
 const INFORMATIONAL_VERCEL_METADATA = new Set([
@@ -35,7 +37,16 @@ for (const [name, value] of Object.entries(process.env)) {
 for (const name of ["DATABASE_URL", "DIRECT_URL"]) {
   try {
     const url = new URL(process.env[name]);
-    if (url.hostname !== `db.${HOMOLOG_REF}.supabase.co`) fail(`${name} has an unexpected host`);
+    if (url.protocol !== "postgresql:" || url.hostname !== HOMOLOG_POOLER_HOST)
+      fail(`${name} has an unexpected host or protocol`);
+    if (decodeURIComponent(url.username) !== HOMOLOG_POOLER_USER || !url.password)
+      fail(`${name} has an unexpected database identity`);
+    if (url.pathname !== "/postgres" || url.searchParams.get("sslmode") !== "require")
+      fail(`${name} must use the homologation database with SSL`);
+    if (name === "DATABASE_URL" && (url.port !== "6543" || url.searchParams.get("pgbouncer") !== "true" || url.searchParams.get("connection_limit") !== "1"))
+      fail("DATABASE_URL must use the homologation transaction pooler safely");
+    if (name === "DIRECT_URL" && url.port !== "5432")
+      fail("DIRECT_URL must use the homologation session pooler");
   } catch { fail(`${name} is not a valid database URL`); }
 }
 for (const name of ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL"])

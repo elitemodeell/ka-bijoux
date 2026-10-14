@@ -1,5 +1,7 @@
 const AUDIT_BRANCH = "codex/security-audit-20261013";
 const HOMOLOG_REF = "pxhsgdfsypvqgmuyvfjt";
+const HOMOLOG_POOLER_HOST = "aws-1-sa-east-1.pooler.supabase.com";
+const HOMOLOG_POOLER_USER = `postgres.${HOMOLOG_REF}`;
 const RUNTIME_ID = "ka-preview-20261013-v1";
 const PROD_MARKERS = ["sxohqngzypmxtmuulfoa", "kabijoux.com.br"];
 const INFORMATIONAL_VERCEL_METADATA = new Set([
@@ -22,6 +24,24 @@ function jwtClaim(value: string, claim: string): unknown {
 
 type RuntimeEnvironment = Readonly<Record<string, string | undefined>>;
 
+function validateDatabaseUrl(name: "DATABASE_URL" | "DIRECT_URL", value: string): void {
+  let url: URL;
+  try { url = new URL(value); }
+  catch { blocked(`${name} is not a valid database URL`); }
+  if (url.protocol !== "postgresql:" || url.hostname !== HOMOLOG_POOLER_HOST)
+    blocked(`${name} has an unexpected host or protocol`);
+  if (decodeURIComponent(url.username) !== HOMOLOG_POOLER_USER || !url.password)
+    blocked(`${name} has an unexpected database identity`);
+  if (url.pathname !== "/postgres" || url.searchParams.get("sslmode") !== "require")
+    blocked(`${name} must use the homologation database with SSL`);
+  if (name === "DATABASE_URL") {
+    if (url.port !== "6543" || url.searchParams.get("pgbouncer") !== "true" || url.searchParams.get("connection_limit") !== "1")
+      blocked("DATABASE_URL must use the homologation transaction pooler safely");
+  } else if (url.port !== "5432") {
+    blocked("DIRECT_URL must use the homologation session pooler");
+  }
+}
+
 export function validateHomologationRuntime(env: RuntimeEnvironment = process.env): boolean {
   if (env.VERCEL_ENV === "production") {
     if (env.HOMOLOGATION_MODE === "isolated" || env.HOMOLOGATION_RUNTIME_ID || MOCK_VARIABLES.some((name) => env[name]?.toLowerCase() === "mock")) blocked("homologation configuration leaked into Production");
@@ -43,10 +63,8 @@ export function validateHomologationRuntime(env: RuntimeEnvironment = process.en
     const normalized = String(value || "").toLowerCase();
     if (PROD_MARKERS.some((marker) => normalized.includes(marker))) blocked(`${name} references Production`);
   }
-  for (const name of ["DATABASE_URL", "DIRECT_URL"]) {
-    try { if (new URL(env[name]!).hostname !== `db.${HOMOLOG_REF}.supabase.co`) blocked(`${name} has an unexpected host`); }
-    catch { blocked(`${name} is not a valid database URL`); }
-  }
+  validateDatabaseUrl("DATABASE_URL", env.DATABASE_URL!);
+  validateDatabaseUrl("DIRECT_URL", env.DIRECT_URL!);
   for (const name of ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL"]) if (env[name] !== `https://${HOMOLOG_REF}.supabase.co`) blocked(`${name} has an unexpected project identity`);
   if (env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== env.SUPABASE_ANON_KEY) blocked("public and server anon keys disagree");
   if (jwtClaim(env.SUPABASE_ANON_KEY!, "ref") !== HOMOLOG_REF || jwtClaim(env.SUPABASE_ANON_KEY!, "role") !== "anon") blocked("anon key belongs to an unexpected project or role");

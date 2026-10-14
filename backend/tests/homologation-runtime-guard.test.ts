@@ -10,8 +10,8 @@ function environment(): Record<string, string | undefined> {
   const anon = jwt("anon");
   return {
     HOMOLOGATION_MODE: "isolated", HOMOLOGATION_RUNTIME_ID: "ka-preview-20261013-v1",
-    DATABASE_URL: "postgresql://synthetic:synthetic@db.pxhsgdfsypvqgmuyvfjt.supabase.co:5432/postgres",
-    DIRECT_URL: "postgresql://synthetic:synthetic@db.pxhsgdfsypvqgmuyvfjt.supabase.co:5432/postgres",
+    DATABASE_URL: "postgresql://postgres.pxhsgdfsypvqgmuyvfjt:synthetic@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true&connection_limit=1",
+    DIRECT_URL: "postgresql://postgres.pxhsgdfsypvqgmuyvfjt:synthetic@aws-1-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=require",
     NEXT_PUBLIC_SUPABASE_URL: "https://pxhsgdfsypvqgmuyvfjt.supabase.co",
     SUPABASE_URL: "https://pxhsgdfsypvqgmuyvfjt.supabase.co",
     NEXT_PUBLIC_SUPABASE_ANON_KEY: anon, SUPABASE_ANON_KEY: anon,
@@ -44,6 +44,20 @@ describe("homologation runtime guard", () => {
 
   it("blocks Production project inheritance", () => {
     expect(() => validateHomologationRuntime({ ...environment(), SUPABASE_URL: "https://sxohqngzypmxtmuulfoa.supabase.co" })).toThrow(/BLOCKED/);
+  });
+
+  it("blocks another Supabase pooler and a mismatched tenant", () => {
+    expect(() => validateHomologationRuntime({
+      ...environment(),
+      DATABASE_URL: "postgresql://postgres.sxohqngzypmxtmuulfoa:synthetic@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true&connection_limit=1",
+    })).toThrow(/DATABASE_URL/);
+  });
+
+  it("blocks unsafe transaction-pooler parameters", () => {
+    expect(() => validateHomologationRuntime({
+      ...environment(),
+      DATABASE_URL: "postgresql://postgres.pxhsgdfsypvqgmuyvfjt:synthetic@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require",
+    })).toThrow(/transaction pooler safely/);
   });
 
   it("blocks homologation variables in Production", () => {

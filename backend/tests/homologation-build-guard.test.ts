@@ -15,8 +15,8 @@ function environment(): NodeJS.ProcessEnv {
     VERCEL_ENV: "preview",
     VERCEL_GIT_COMMIT_REF: "codex/security-audit-20261013",
     HOMOLOGATION_RUNTIME_ID: "ka-preview-20261013-v1",
-    DATABASE_URL: "postgresql://synthetic:synthetic@db.pxhsgdfsypvqgmuyvfjt.supabase.co:5432/postgres",
-    DIRECT_URL: "postgresql://synthetic:synthetic@db.pxhsgdfsypvqgmuyvfjt.supabase.co:5432/postgres",
+    DATABASE_URL: "postgresql://postgres.pxhsgdfsypvqgmuyvfjt:synthetic@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true&connection_limit=1",
+    DIRECT_URL: "postgresql://postgres.pxhsgdfsypvqgmuyvfjt:synthetic@aws-1-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=require",
     NEXT_PUBLIC_SUPABASE_URL: "https://pxhsgdfsypvqgmuyvfjt.supabase.co",
     SUPABASE_URL: "https://pxhsgdfsypvqgmuyvfjt.supabase.co",
     NEXT_PUBLIC_SUPABASE_ANON_KEY: anon,
@@ -67,6 +67,22 @@ describe("homologation build guard", () => {
     const result = run({ SUPABASE_URL: "https://sxohqngzypmxtmuulfoa.supabase.co" });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("SUPABASE_URL references a production resource");
+  });
+
+  it("blocks a different shared pooler host", () => {
+    const result = run({
+      DATABASE_URL: "postgresql://postgres.pxhsgdfsypvqgmuyvfjt:synthetic@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true&connection_limit=1",
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("DATABASE_URL has an unexpected host or protocol");
+  });
+
+  it("blocks a session pooler without required SSL", () => {
+    const result = run({
+      DIRECT_URL: "postgresql://postgres.pxhsgdfsypvqgmuyvfjt:synthetic@aws-1-sa-east-1.pooler.supabase.com:5432/postgres",
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("DIRECT_URL must use the homologation database with SSL");
   });
 
   it("blocks an unsafe application JWT secret", () => {
