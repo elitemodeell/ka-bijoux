@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import { isIP } from "net";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -13,6 +14,38 @@ type RateLimitCount = { count: number };
 
 function hashIdentifier(value: string): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function validIp(headerValue: string | null): string | null {
+  if (!headerValue) return null;
+  const candidate = headerValue.split(",")[0]?.trim();
+  return candidate && isIP(candidate) ? candidate : null;
+}
+
+/**
+ * Vercel sobrescreve os cabecalhos de IP e fornece
+ * x-vercel-forwarded-for. Fora da Vercel, so confiamos em cabecalhos de
+ * proxy quando o operador declara explicitamente que existe um proxy
+ * confiavel na frente da aplicacao.
+ */
+export function getRateLimitClientIp(req: NextRequest): string {
+  if (process.env.VERCEL === "1") {
+    return (
+      validIp(req.headers.get("x-vercel-forwarded-for")) ??
+      validIp(req.headers.get("x-forwarded-for")) ??
+      "unknown"
+    );
+  }
+
+  if (process.env.TRUST_PROXY_IP_HEADERS === "true") {
+    return (
+      validIp(req.headers.get("x-forwarded-for")) ??
+      validIp(req.headers.get("x-real-ip")) ??
+      "unknown"
+    );
+  }
+
+  return "unknown";
 }
 
 async function databaseIncr(
@@ -47,10 +80,7 @@ export async function rateLimit(
   config: RateLimitConfig,
   identifier?: string
 ): Promise<NextResponse | null> {
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    req.headers.get("x-real-ip") ??
-    "unknown";
+  const ip = getRateLimitClientIp(req);
 
   const windowSec = Math.floor(config.windowMs / 1000);
   const windowKey = Math.floor(Date.now() / config.windowMs);
@@ -93,6 +123,12 @@ export const RATE_LIMITS = {
     limit: 10,
     windowMs: 15 * 60 * 1000,
     keyPrefix: "auth",
+    failClosed: true,
+  },
+  adminAuth: {
+    limit: 5,
+    windowMs: 15 * 60 * 1000,
+    keyPrefix: "admin-auth",
     failClosed: true,
   },
   payment: {

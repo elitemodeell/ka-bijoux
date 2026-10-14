@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { signAdminToken } from "@/lib/auth";
+import { rateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 import { apiError } from "@/lib/utils";
 
 const schema = z.object({
@@ -16,6 +17,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, password } = schema.parse(body);
 
+    const limited = await rateLimit(req, RATE_LIMITS.adminAuth);
+    if (limited) return limited;
+
     const admin = await prisma.admin.findFirst({
       where: { email: { equals: email, mode: "insensitive" }, active: true },
     });
@@ -24,11 +28,15 @@ export async function POST(req: NextRequest) {
     const valid = await bcrypt.compare(password, admin.password);
     if (!valid) return apiError("Credenciais inválidas.", 401);
 
-    const token = signAdminToken({ id: admin.id, email: admin.email, role: admin.role });
+    const token = signAdminToken({
+      id: admin.id,
+      email: admin.email,
+      role: admin.role,
+      sessionVersion: admin.updatedAt.getTime(),
+    });
 
     const response = NextResponse.json({
       data: {
-        token,
         admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role },
       },
     });
@@ -37,9 +45,9 @@ export async function POST(req: NextRequest) {
     response.cookies.set("ka-admin-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict",
       path: "/",
-      maxAge: 60 * 60 * 24, // 24h
+      maxAge: 60 * 60 * 8,
     });
 
     return response;

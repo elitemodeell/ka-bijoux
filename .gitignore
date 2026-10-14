@@ -10,6 +10,7 @@ build/
 
 # ─── Expo / React Native ──────────────────────────────────────
 .expo/
+.expo-security-export-*/
 dist/
 web-build/
 *.jks
@@ -23,15 +24,19 @@ google-service-account.json
 *.p8
 *.p12
 *.key
+*.pem
 *.mobileprovision
 *.orig.*
 
 # ─── Variáveis de ambiente — NUNCA subir para o git ──────────
 .env
-.env.local
-.env.development
-.env.production
-.env.test
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+.npmrc
+**/.npmrc
 
 # ─── Prisma ───────────────────────────────────────────────────
 prisma/migrations/dev/

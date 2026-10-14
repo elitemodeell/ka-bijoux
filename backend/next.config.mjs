@@ -41,10 +41,6 @@ const nextConfig = {
   typescript: {
     tsconfigPath: "./tsconfig.build.json",
   },
-  // Fallback para build sem DATABASE_URL (Vercel build-time)
-  env: {
-    DATABASE_URL: process.env.DATABASE_URL ?? "postgresql://placeholder:placeholder@localhost:5432/placeholder",
-  },
   images: {
     formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],

@@ -9,7 +9,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: { $queryRaw: mocks.queryRaw },
 }));
 
-import { rateLimit, RATE_LIMITS } from "@/lib/ratelimit";
+import { getRateLimitClientIp, rateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 
 function request() {
   return new NextRequest(
@@ -23,7 +23,39 @@ function request() {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("NODE_ENV", "production");
+  vi.stubEnv("VERCEL", "1");
   mocks.queryRaw.mockResolvedValue([{ count: 1 }]);
+});
+
+describe("trusted client IP", () => {
+  it("prefere o IP inserido pela Vercel ao x-forwarded-for recebido", () => {
+    const req = new NextRequest("https://kabijoux.com.br/api/auth/admin/login", {
+      headers: {
+        "x-vercel-forwarded-for": "198.51.100.42",
+        "x-forwarded-for": "203.0.113.99",
+      },
+    });
+
+    expect(getRateLimitClientIp(req)).toBe("198.51.100.42");
+  });
+
+  it("recusa cabecalho falsificavel fora de um proxy explicitamente confiavel", () => {
+    vi.stubEnv("VERCEL", "");
+    vi.stubEnv("TRUST_PROXY_IP_HEADERS", "");
+    const req = new NextRequest("http://localhost/api/auth/admin/login", {
+      headers: { "x-forwarded-for": "203.0.113.99" },
+    });
+
+    expect(getRateLimitClientIp(req)).toBe("unknown");
+  });
+
+  it("recusa valores que nao sao enderecos IP", () => {
+    const req = new NextRequest("https://kabijoux.com.br/api/auth/admin/login", {
+      headers: { "x-vercel-forwarded-for": "not-an-ip" },
+    });
+
+    expect(getRateLimitClientIp(req)).toBe("unknown");
+  });
 });
 
 describe("database-backed rate limit", () => {

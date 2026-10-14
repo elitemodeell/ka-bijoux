@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   response.cookies.set("ka-admin-token", "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "strict",
     path: "/",
     maxAge: 0,
     expires: new Date(0),
