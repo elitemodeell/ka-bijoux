@@ -1,9 +1,14 @@
 generated-product-images/
-reports/
+/reports/
 scripts/
+!backend/scripts/
+backend/scripts/*
+!backend/scripts/validate-homologation-env.cjs
 tmp/
 /mobile/
 .env*
 backend/.env*
-/backend/.next*/
+/backend/.next*
 /backend/node_modules/
+/backend/supabase/.temp
+/backend/*.tsbuildinfo
