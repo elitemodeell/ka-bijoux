@@ -20,6 +20,8 @@ export interface AdminPayload {
   sessionVersion?: number;
 }
 
+const ADMIN_ROLES = new Set(["ADMIN", "SUPER_ADMIN"]);
+
 // Legado temporário. Remover após a janela SUPABASE_AUTH_LEGACY_JWT_ACCEPT_UNTIL.
 export function signCustomerToken(payload: CustomerPayload): string {
   return jwt.sign(payload, JWT_SECRET!, { expiresIn: "7d", algorithm: "HS256" });
@@ -35,6 +37,39 @@ export function verifyCustomerToken(token: string): CustomerPayload {
 
 export function verifyAdminToken(token: string): AdminPayload {
   return jwt.verify(token, JWT_SECRET! + "-admin", { algorithms: ["HS256"] }) as AdminPayload;
+}
+
+export async function validateAdminSessionToken(token: string): Promise<AdminPayload | null> {
+  try {
+    const payload = verifyAdminToken(token);
+    if (!payload.id || !payload.email || !ADMIN_ROLES.has(payload.role)) return null;
+
+    const dbAdmin = await prisma.admin.findUnique({
+      where: { id: payload.id },
+      select: { id: true, email: true, role: true, active: true, updatedAt: true },
+    });
+    if (!dbAdmin?.active) return null;
+    if (dbAdmin.email.toLowerCase() !== payload.email.toLowerCase() || dbAdmin.role !== payload.role) {
+      return null;
+    }
+
+    const databaseVersion = dbAdmin.updatedAt.getTime();
+    const hasExactVersion = Number.isSafeInteger(payload.sessionVersion);
+    const revoked = hasExactVersion
+      ? payload.sessionVersion !== databaseVersion
+      : !Number.isInteger(payload.iat) || payload.iat! < Math.floor(databaseVersion / 1000);
+    if (revoked) return null;
+
+    return {
+      id: dbAdmin.id,
+      email: dbAdmin.email,
+      role: dbAdmin.role,
+      iat: payload.iat,
+      sessionVersion: databaseVersion,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function legacyCustomerJwtAllowed() {
@@ -83,37 +118,22 @@ export async function requireCustomer(req: NextRequest) {
 }
 
 export async function getAdminFromRequest(req: NextRequest): Promise<AdminPayload | null> {
-  try {
-    const authHeader = req.headers.get("authorization");
-    const cookieToken = req.cookies.get("ka-admin-token")?.value;
-    const token = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : cookieToken;
-    if (!token) return null;
-    return verifyAdminToken(token);
-  } catch {
-    return null;
-  }
+  const authHeader = req.headers.get("authorization");
+  const cookieToken = req.cookies.get("ka-admin-token")?.value;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : cookieToken;
+  if (!token) return null;
+  return validateAdminSessionToken(token);
 }
 
 export async function requireAdmin(req: NextRequest) {
   const admin = await getAdminFromRequest(req);
   if (!admin) throw new Error("Acesso não autorizado");
 
-  const dbAdmin = await prisma.admin.findUnique({
-    where: { id: admin.id, active: true },
-    select: { updatedAt: true },
-  });
-  if (!dbAdmin) throw new Error("Admin não encontrado");
+  return admin;
+}
 
-  // jsonwebtoken inclui iat automaticamente. Como updatedAt muda junto com a
-  // senha (ou outra alteracao administrativa), tokens anteriores deixam de
-  // autorizar APIs sem rotacionar JWT_SECRET e sem afetar sessoes de clientes.
-  const databaseVersion = dbAdmin.updatedAt.getTime();
-  const hasExactVersion = Number.isSafeInteger(admin.sessionVersion);
-  const revoked = hasExactVersion
-    ? admin.sessionVersion !== databaseVersion
-    : !Number.isInteger(admin.iat) || admin.iat! < Math.floor(databaseVersion / 1000);
-  if (revoked) {
-    throw new Error("Sessão administrativa revogada");
-  }
+export async function requireAdminRole(req: NextRequest, roles: readonly string[]) {
+  const admin = await requireAdmin(req);
+  if (!roles.includes(admin.role)) throw new Error("Permissão administrativa insuficiente");
   return admin;
 }

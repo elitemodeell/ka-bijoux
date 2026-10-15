@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import Header from "@/components/admin/Header";
 import Link from "next/link";
+import { requireAdminPageSession } from "@/lib/admin-page-auth";
 
 async function getCustomers() {
   return prisma.customer.findMany({
@@ -25,6 +26,7 @@ const fmtDate = (d: Date) =>
   new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(d);
 
 export default async function ClientesPage() {
+  await requireAdminPageSession();
   const customers = await getCustomers();
 
   const totalRevenue = await prisma.payment.aggregate({

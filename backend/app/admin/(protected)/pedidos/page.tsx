@@ -4,6 +4,7 @@ import Link from "next/link";
 import Header from "@/components/admin/Header";
 import OrderStatusBadge from "@/components/admin/OrderStatusBadge";
 import { OrderStatus, ShippingType } from "@prisma/client";
+import { requireAdminPageSession } from "@/lib/admin-page-auth";
 
 const shippingLabel: Record<ShippingType, string> = {
   CORREIOS: "📦 Correios",
@@ -32,6 +33,7 @@ export default async function PedidosPage({
 }: {
   searchParams: Promise<{ customer?: string }>;
 }) {
+  await requireAdminPageSession();
   const params = await searchParams;
   const orders = await getOrders(params.customer?.trim() || undefined);
 

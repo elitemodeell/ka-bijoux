@@ -112,6 +112,22 @@ describe("admin authentication routes", () => {
     expect(response.headers.get("set-cookie")).toBeNull();
   });
 
+  it("rejects the old password after rotation and accepts the new password", async () => {
+    mocks.bcryptCompare.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+
+    const oldResponse = await login(loginRequest({
+      email: "admin@kabijoux.com.br",
+      password: "old-password",
+    }));
+    const newResponse = await login(loginRequest({
+      email: "admin@kabijoux.com.br",
+      password: "new-password",
+    }));
+
+    expect(oldResponse.status).toBe(401);
+    expect(newResponse.status).toBe(200);
+  });
+
   it("rejects invalid input before querying the database", async () => {
     const response = await login(loginRequest({ email: "invalid", password: "" }));
 

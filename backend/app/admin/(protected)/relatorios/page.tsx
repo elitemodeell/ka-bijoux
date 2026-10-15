@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import Header from "@/components/admin/Header";
 import { PaymentStatus } from "@prisma/client";
+import { requireAdminPageSession } from "@/lib/admin-page-auth";
 
 const STATUS_LABELS: Record<string, string> = {
   CRIADO: "Criado",
@@ -183,6 +184,7 @@ async function getReports(months = 6) {
   };
 }
 export default async function RelatoriosPage() {
+  await requireAdminPageSession();
   const data = await getReports(6);
 
   const totalPaymentRevenue = data.paymentMethods.reduce(

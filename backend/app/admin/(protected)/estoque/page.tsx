@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { prisma } from "@/lib/prisma";
 import Header from "@/components/admin/Header";
 import Link from "next/link";
+import { requireAdminPageSession } from "@/lib/admin-page-auth";
 
 async function getProducts() {
   return prisma.product.findMany({
@@ -12,6 +13,7 @@ async function getProducts() {
 }
 
 export default async function EstoquePage() {
+  await requireAdminPageSession();
   const products = await getProducts();
   const lowStock = products.filter((p) => p.stock <= p.minStock);
   const outOfStock = products.filter((p) => p.stock === 0);

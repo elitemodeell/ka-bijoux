@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import Header from "@/components/admin/Header";
 import Image from "next/image";
+import { requireAdminPageSession } from "@/lib/admin-page-auth";
 
 async function getProducts() {
   return prisma.product.findMany({
@@ -23,6 +24,7 @@ const enrichmentLabels: Record<string, { label: string; className: string }> = {
 };
 
 export default async function ProdutosPage() {
+  await requireAdminPageSession();
   const products = await getProducts();
 
   return (

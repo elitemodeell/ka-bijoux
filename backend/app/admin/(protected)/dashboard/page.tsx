@@ -5,6 +5,7 @@ import Header from "@/components/admin/Header";
 import { prisma } from "@/lib/prisma";
 import { OrderStatus, PaymentStatus } from "@prisma/client";
 import Link from "next/link";
+import { requireAdminPageSession } from "@/lib/admin-page-auth";
 
 async function getDashboardData() {
   const today = new Date();
@@ -55,6 +56,7 @@ async function getDashboardData() {
 }
 
 export default async function DashboardPage() {
+  await requireAdminPageSession();
   const data = await getDashboardData();
 
   const formatCurrency = (v: unknown) =>

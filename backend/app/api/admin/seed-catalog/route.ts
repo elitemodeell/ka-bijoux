@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ensureCatalogCategories } from "@/lib/catalog-db";
 import { STATIC_SEX_SHOP_CATALOG } from "@/lib/static-sex-shop-catalog";
+import { requireAdminRole } from "@/lib/auth";
 
 const BIJOUX_PRODUCTS = [
   {
@@ -70,8 +71,9 @@ const BIJOUX_PRODUCTS = [
 ];
 
 export async function GET(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get("secret");
-  if (secret !== "ka-seed-2026") {
+  try {
+    await requireAdminRole(req, ["SUPER_ADMIN"]);
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

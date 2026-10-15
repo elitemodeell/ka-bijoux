@@ -6,6 +6,7 @@ import { ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus 
 import Header from "@/components/admin/Header";
 import { prisma } from "@/lib/prisma";
 import BlingProductsActions from "./BlingProductsActions";
+import { requireAdminPageSession } from "@/lib/admin-page-auth";
 
 const formatCurrency = (value: unknown) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value));
@@ -21,6 +22,7 @@ const publicationLabels: Record<string, { label: string; className: string }> = 
 };
 
 export default async function ProdutosBlingPage() {
+  await requireAdminPageSession();
   const [products, categories] = await Promise.all([
     prisma.product.findMany({
       where: {
