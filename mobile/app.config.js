@@ -10,6 +10,10 @@ module.exports = ({ config }) => {
   const profile = process.env.EAS_BUILD_PROFILE;
   const previewVersion = process.env.KA_IOS_HOMOLOGATION_VERSION;
   const previewBuildNumber = process.env.KA_IOS_HOMOLOGATION_BUILD_NUMBER;
+  const runtimeVersion = process.env.KA_EAS_RUNTIME_VERSION?.trim();
+  if (runtimeVersion && !["1.0.0", "1.1.0"].includes(runtimeVersion)) {
+    throw new Error("KA_EAS_RUNTIME_VERSION deve ser um runtime publicado da KA Bijoux.");
+  }
   const nonProduction = ["development", "preview"].includes(profile) ||
     profile === "testflight-homologation" ||
     process.env.EXPO_PUBLIC_KA_ENVIRONMENT === "homologation";
@@ -38,9 +42,10 @@ module.exports = ({ config }) => {
       ...config,
       ...(previewVersion ? { version: previewVersion } : {}),
       ios,
+      ...(runtimeVersion ? { runtimeVersion } : {}),
       updates: { ...config.updates, enabled: false },
     };
   }
 
-  return config;
+  return runtimeVersion ? { ...config, runtimeVersion } : config;
 };
