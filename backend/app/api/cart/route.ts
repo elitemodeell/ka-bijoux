@@ -83,6 +83,9 @@ export async function POST(req: NextRequest) {
     if (variationId && !variation) {
       return apiError("Variação não encontrada ou indisponível.", 409);
     }
+    if (!variationId && product.variations.some((candidate) => candidate.active)) {
+      return apiError("Selecione uma variação do produto.", 422);
+    }
 
     const availableStock = variation?.stock ?? product.stock;
     const basePrice = Number(product.promotionalPrice ?? product.price);

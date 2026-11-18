@@ -5,5 +5,10 @@
   "outputDirectory": ".next",
   "env": {
     "NEXT_TELEMETRY_DISABLED": "1"
+  },
+  "git": {
+    "deploymentEnabled": {
+      "codex/catalog-variations-homologation": false
+    }
   }
 }

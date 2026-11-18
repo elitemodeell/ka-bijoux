@@ -218,6 +218,7 @@ async function getContext(
               include: {
                 images: { take: 1, orderBy: { order: "asc" } },
                 category: true,
+                _count: { select: { variations: { where: { active: true } } } },
               },
             },
             variation: true,
@@ -1457,8 +1458,9 @@ export async function createOrResumeCheckout(
                   productId: item.productId,
                   variationId: item.variationId,
                   productName: item.productName,
-                  productImage: source.product.images[0]?.url,
+                  productImage: source.variation?.imageUrl ?? source.product.images[0]?.url,
                   variationName: item.variationName,
+                  sku: item.variationId ? source.variation?.sku : source.product.sku,
                   quantity: item.quantity,
                   unitPrice: centsToDecimal(item.unitPriceCents),
                   totalPrice: centsToDecimal(item.totalPriceCents),

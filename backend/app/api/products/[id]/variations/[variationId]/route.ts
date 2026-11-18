@@ -26,20 +26,18 @@ export async function PATCH(
     const body = await req.json();
     const data = updateSchema.parse(body);
 
-    if (data.isDefault === true) {
-      await prisma.productVariation.updateMany({
-        where: { productId: params.id, id: { not: params.variationId } },
-        data: { isDefault: false },
+    const variation = await prisma.$transaction(async (tx) => {
+      const updated = await tx.productVariation.update({
+        where: { id: params.variationId, productId: params.id },
+        data,
       });
-    }
-
-    const variation = await prisma.productVariation.update({
-      where: { id: params.variationId },
-      data: {
-        ...data,
-        sku: data.sku ?? undefined,
-        imageUrl: data.imageUrl ?? undefined,
-      },
+      if (data.isDefault === true) {
+        await tx.productVariation.updateMany({
+          where: { productId: params.id, id: { not: params.variationId } },
+          data: { isDefault: false },
+        });
+      }
+      return updated;
     });
 
     return apiSuccess(variation);
@@ -56,7 +54,10 @@ export async function DELETE(
   const params = await props.params;
   try {
     await requireAdmin(req);
-    await prisma.productVariation.delete({ where: { id: params.variationId } });
+    await prisma.productVariation.update({
+      where: { id: params.variationId, productId: params.id },
+      data: { active: false, isDefault: false },
+    });
     return apiSuccess({ message: "Variação removida." });
   } catch {
     return apiError("Erro ao remover variação.", 500);

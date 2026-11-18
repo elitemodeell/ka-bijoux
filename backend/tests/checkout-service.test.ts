@@ -119,11 +119,27 @@ function paymentResult(orderId: string): CheckoutPaymentResult {
 }
 
 function configureCheckout(
-  options: { addressFound?: boolean; asaasCustomerId?: string | null } = {}
+  options: { addressFound?: boolean; asaasCustomerId?: string | null; withVariation?: boolean } = {}
 ) {
   let storedOrder: any = null;
   let successfulOrderCreates = 0;
   const cartValue = cart();
+  if (options.withVariation) {
+    Object.assign(cartValue.items[0], {
+      variationId: "variation-1",
+      variation: {
+        id: "variation-1",
+        productId: "product-1",
+        name: "Cor",
+        value: "Branco",
+        active: true,
+        sku: "fixture-white",
+        imageUrl: "/fixtures/white.png",
+        stock: 1,
+        priceModifier: 0,
+      },
+    });
+  }
   const customerValue: any = {
     ...customer,
     asaasCustomerId:
@@ -394,6 +410,19 @@ describe("server-authoritative checkout service", () => {
       code: "ADDRESS_FORBIDDEN",
     });
     expect(setup.tx.order.create).not.toHaveBeenCalled();
+  });
+
+  it("copies the chosen variation identity, SKU and image onto the order", async () => {
+    const setup = configureCheckout({ withVariation: true });
+
+    await createOrResumeCheckout(customer.id, input(), setup.service);
+
+    expect(setup.tx.order.create.mock.calls[0][0].data.items.create[0]).toMatchObject({
+      variationId: "variation-1",
+      variationName: "Cor: Branco",
+      sku: "fixture-white",
+      productImage: "/fixtures/white.png",
+    });
   });
 });
 

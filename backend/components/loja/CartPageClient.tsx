@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   getCartItems,
+  getCartItemKey,
   getCartSubtotal,
   removeCartItem,
   subscribeCart,
@@ -71,7 +72,7 @@ export default function CartPageClient() {
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-3">
           {items.map((item) => (
-            <article key={item.id} className="rounded-[24px] border border-pink-100 bg-white p-3 shadow-[0_14px_40px_rgba(236,72,153,0.08)] sm:p-4">
+            <article key={getCartItemKey(item)} className="rounded-[24px] border border-pink-100 bg-white p-3 shadow-[0_14px_40px_rgba(236,72,153,0.08)] sm:p-4">
               <div className="flex gap-3 sm:gap-4">
                 <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-pink-50 sm:h-28 sm:w-28">
                   {item.image ? (
@@ -86,6 +87,7 @@ export default function CartPageClient() {
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-pink-500">{item.category?.name ?? "KA Bijoux"}</p>
                       <h2 className="mt-1 line-clamp-2 text-base font-black text-gray-950">{item.name}</h2>
+                      {item.variationName && <p className="text-sm text-gray-600">{item.variationName}</p>}
                       <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-500">{item.description}</p>
                     </div>
                     <p className="shrink-0 text-lg font-black text-pink-500">{formatCurrency(item.unitPrice)}</p>
@@ -95,7 +97,7 @@ export default function CartPageClient() {
                     <div className="flex items-center rounded-full border border-pink-100 bg-pink-50 p-1">
                       <button
                         type="button"
-                        onClick={() => changeQuantity(item.id, item.quantity - 1)}
+                        onClick={() => changeQuantity(getCartItemKey(item), item.quantity - 1)}
                         className="h-8 w-8 rounded-full bg-white text-lg font-bold text-pink-500 shadow-sm"
                         aria-label={`Diminuir quantidade de ${item.name}`}
                       >
@@ -104,7 +106,8 @@ export default function CartPageClient() {
                       <span className="w-10 text-center text-sm font-bold text-gray-800">{item.quantity}</span>
                       <button
                         type="button"
-                        onClick={() => changeQuantity(item.id, item.quantity + 1)}
+                        onClick={() => changeQuantity(getCartItemKey(item), item.quantity + 1)}
+                        disabled={item.stock != null && item.quantity >= item.stock}
                         className="h-8 w-8 rounded-full bg-pink-500 text-lg font-bold text-white shadow-sm"
                         aria-label={`Aumentar quantidade de ${item.name}`}
                       >
@@ -116,7 +119,7 @@ export default function CartPageClient() {
                       <p className="text-sm font-black text-gray-900">{formatCurrency(item.unitPrice * item.quantity)}</p>
                       <button
                         type="button"
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => removeItem(getCartItemKey(item))}
                         className="rounded-full border border-gray-100 px-3 py-2 text-xs font-bold text-gray-500 transition-colors hover:border-pink-200 hover:bg-pink-50 hover:text-pink-500"
                       >
                         Remover

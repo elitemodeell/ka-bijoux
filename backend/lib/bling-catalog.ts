@@ -162,7 +162,6 @@ type CatalogCache = {
   byBlingId: Map<string, BlingCatalogProduct>;
   bySku: Map<string, BlingCatalogProduct>;
   bySlug: Map<string, BlingCatalogProduct>;
-  byName: Map<string, BlingCatalogProduct>;
   totals: {
     total: number;
     active: number;
@@ -258,16 +257,13 @@ export function findBlingProductForSource(product: {
 }) {
   const cache = getCatalogCache();
   const blingId = product.blingId ? String(product.blingId).trim() : "";
-  if (blingId && cache.byBlingId.has(blingId)) return cache.byBlingId.get(blingId) ?? null;
+  if (blingId) return cache.byBlingId.get(blingId) ?? null;
 
   const sku = product.sku ? String(product.sku).trim() : "";
-  if (sku && cache.bySku.has(sku)) return cache.bySku.get(sku) ?? null;
+  if (sku) return cache.bySku.get(sku) ?? null;
 
   const slug = product.slug ? String(product.slug).trim() : "";
   if (slug && cache.bySlug.has(slug)) return cache.bySlug.get(slug) ?? null;
-
-  const name = normalizeSearch(product.name ?? "");
-  if (name && cache.byName.has(name)) return cache.byName.get(name) ?? null;
 
   return null;
 }
@@ -312,7 +308,6 @@ export function getProductIdentityKeys(product: {
     product.blingId ? `bling:${product.blingId}` : null,
     product.sku ? `sku:${product.sku}` : null,
     product.slug ? `slug:${product.slug}` : null,
-    product.name ? `name:${normalizeSearch(product.name)}` : null,
   ].filter((value): value is string => Boolean(value));
 }
 
@@ -365,18 +360,19 @@ function getCatalogCache(): CatalogCache {
   const byBlingId = new Map<string, BlingCatalogProduct>();
   const bySku = new Map<string, BlingCatalogProduct>();
   const bySlug = new Map<string, BlingCatalogProduct>();
-  const byName = new Map<string, BlingCatalogProduct>();
+  const ambiguousSkus = new Set<string>();
 
   for (const product of products) {
     byBlingId.set(product.blingId, product);
-    if (product.sku) bySku.set(product.sku, product);
+    if (product.sku && !ambiguousSkus.has(product.sku)) {
+      if (bySku.has(product.sku)) {
+        bySku.delete(product.sku);
+        ambiguousSkus.add(product.sku);
+      } else {
+        bySku.set(product.sku, product);
+      }
+    }
     bySlug.set(product.slug, product);
-    const nameSlug = slugify(product.name);
-    if (nameSlug && !bySlug.has(nameSlug)) bySlug.set(nameSlug, product);
-    byName.set(normalizeSearch(product.name), product);
-    const contentOverride = getProductContentOverride(product);
-    if (contentOverride?.name) byName.set(normalizeSearch(contentOverride.name), product);
-    if (contentOverride?.displayName) byName.set(normalizeSearch(contentOverride.displayName), product);
     if (product.staticSlug) bySlug.set(product.staticSlug, product);
   }
 
@@ -385,7 +381,6 @@ function getCatalogCache(): CatalogCache {
     byBlingId,
     bySku,
     bySlug,
-    byName,
     totals: {
       total: products.length,
       active: products.filter((product) => product.active && product.stock > 0).length,

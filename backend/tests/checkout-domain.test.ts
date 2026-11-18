@@ -53,6 +53,13 @@ function coupon(overrides: Partial<CouponSnapshot> = {}): CouponSnapshot {
 }
 
 describe("checkout catalog pricing", () => {
+  it("rejects an older cart line missing the now-required variation", () => {
+    const item = cartItem();
+    item.product._count = { variations: 2 };
+
+    expectCheckoutCode(() => priceCart([item]), "VARIATION_REQUIRED");
+  });
+
   it("ignores an adulterated client price and uses the current catalog price", () => {
     const item = Object.assign(cartItem(), { clientUnitPrice: 0.01 });
 

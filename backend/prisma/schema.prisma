@@ -375,6 +375,7 @@ model OrderItem {
   productName   String
   productImage  String?
   variationName String?
+  sku           String?
   quantity      Int
   unitPrice     Decimal @db.Decimal(10, 2)
   totalPrice    Decimal @db.Decimal(10, 2)

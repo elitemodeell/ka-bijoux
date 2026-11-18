@@ -14,10 +14,15 @@ const detailInclude = Prisma.validator<Prisma.ProductInclude>()({
 function serialize<T extends {
   price: unknown;
   promotionalPrice: unknown;
+  variations: { priceModifier: unknown }[];
 }>(product: T) {
   return {
     ...product,
     price: Number(product.price),
+    variations: product.variations.map((variation) => ({
+      ...variation,
+      priceModifier: Number(variation.priceModifier),
+    })),
     promotionalPrice: product.promotionalPrice
       ? Number(product.promotionalPrice)
       : null,

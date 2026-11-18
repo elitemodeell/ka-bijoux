@@ -53,6 +53,9 @@ export async function POST(req: NextRequest) {
     if (input.variationId && !variation) {
       return apiError("Variação não encontrada.", 404);
     }
+    if (!input.variationId && product.variations.length > 0) {
+      return apiError("Selecione uma variação do produto.", 422);
+    }
 
     await prisma.$transaction(
       async (tx) => {

@@ -2,6 +2,9 @@
 // Used as fallback when DB is unavailable and for static detail pages
 
 export type StaticProductVariant = {
+  id?: string;
+  stock?: number;
+  priceModifier?: number;
   label: string;
   slug: string;
   color?: string;

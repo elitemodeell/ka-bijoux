@@ -23,6 +23,7 @@ export interface CatalogCartItem {
     price: unknown;
     promotionalPrice: unknown | null;
     stock: number;
+    _count?: { variations: number };
   };
   variation: {
     id: string;
@@ -102,6 +103,10 @@ export function priceCart(items: CatalogCartItem[]): PricedCheckoutItem[] {
     let stock = item.product.stock;
     let modifierCents = 0;
     let variationName: string | null = null;
+
+    if (!item.variationId && item.product._count?.variations) {
+      throw new CheckoutError("Selecione uma variação do produto.", 422, "VARIATION_REQUIRED");
+    }
 
     if (item.variationId) {
       if (!item.variation || item.variation.id !== item.variationId) {
