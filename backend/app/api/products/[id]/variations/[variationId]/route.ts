@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { belongsToCatalogGallery } from "@/lib/catalog-photo";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
@@ -25,6 +26,9 @@ export async function PATCH(
     await requireAdmin(req);
     const body = await req.json();
     const data = updateSchema.parse(body);
+    if (data.imageUrl && !belongsToCatalogGallery(data.imageUrl, params.id, params.variationId)) {
+      return apiError("A foto está vinculada a outro produto ou variação.", 422);
+    }
 
     const variation = await prisma.$transaction(async (tx) => {
       const updated = await tx.productVariation.update({

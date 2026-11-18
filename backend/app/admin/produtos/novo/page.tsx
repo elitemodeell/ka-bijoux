@@ -88,7 +88,7 @@ export default function NovoProdutoPage() {
         if (!res.ok) throw new Error(json.error ?? "Erro ao enviar imagem.");
         uploaded.push(json.data.url);
       }
-      setImages((current) => [...current, ...uploaded]);
+      setImages((current) => [...new Set([...current, ...uploaded])]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao enviar imagens.");
     } finally {

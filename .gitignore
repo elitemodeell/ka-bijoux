@@ -67,6 +67,7 @@ tmp/bling-catalog-snapshot.local.json*
 tmp/bling-catalog-reconciliation.local.json*
 tmp/bling-catalog-review.local.json*
 tmp/bling-catalog-sync.local.json*
+tmp/catalog-photo-audit/
 tmp/etapa4-expo54-reference/
 tmp/etapa5c-pg-cluster/
 reports/**/bling-product-details-raw.json

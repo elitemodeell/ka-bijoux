@@ -140,7 +140,7 @@ export default function EditarProdutoPage() {
     }));
   }
 
-  async function uploadImages(files: FileList | null) {
+  async function uploadImages(files: FileList | null, replaceIndex?: number) {
     if (!files?.length) return;
     setUploading(true);
     setError("");
@@ -149,12 +149,15 @@ export default function EditarProdutoPage() {
       for (const file of Array.from(files)) {
         const body = new FormData();
         body.append("file", file);
+        body.append("productId", id);
         const res = await fetch("/api/admin/products/upload", { method: "POST", body });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "Erro ao enviar imagem.");
         uploaded.push(json.data.url);
       }
-      setImages((prev) => [...prev, ...uploaded]);
+      setImages((prev) => [...new Set(replaceIndex === undefined
+        ? [...prev, ...uploaded]
+        : prev.map((url, index) => index === replaceIndex ? uploaded[0] : url))]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao enviar imagens.");
     } finally {
@@ -169,13 +172,17 @@ export default function EditarProdutoPage() {
     try {
       const body = new FormData();
       body.append("file", file);
+      body.append("productId", id);
+      const variationId = variations.find((variation) => variation._key === key)?.id;
+      if (variationId) body.append("variationId", variationId);
       const res = await fetch("/api/admin/products/upload", { method: "POST", body });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Erro ao enviar imagem da variação.");
       setVariations((prev) =>
         prev.map((v) => v._key === key ? { ...v, imageUrl: json.data.url, _uploading: false } : v)
       );
-    } catch {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao enviar imagem da variação.");
       setVariations((prev) =>
         prev.map((v) => v._key === key ? { ...v, _uploading: false } : v)
       );
@@ -362,8 +369,9 @@ export default function EditarProdutoPage() {
               {images.length > 0 && (
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
                   {images.map((url, i) => (
-                    <div key={url} className="relative aspect-square overflow-hidden rounded-xl bg-pink-50">
-                      <img src={url} alt="" className="h-full w-full object-cover" />
+                    <div key={`${url}-${i}`} className="space-y-1">
+                      <div className="relative aspect-square overflow-hidden rounded-xl bg-pink-50">
+                      <img src={url} alt={`${form.name} – foto ${i + 1}`} className="h-full w-full object-contain" />
                       <button
                         type="button"
                         onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
@@ -372,6 +380,18 @@ export default function EditarProdutoPage() {
                       >
                         ×
                       </button>
+                      </div>
+                      {i === 0 ? <span className="text-xs font-semibold text-gray-700">Foto principal</span> : (
+                        <button type="button" disabled={uploading} className="block text-xs text-pink-700"
+                          onClick={() => setImages((prev) => [prev[i], ...prev.filter((_, index) => index !== i)])}>
+                          Tornar principal
+                        </button>
+                      )}
+                      <label className="block cursor-pointer text-xs text-pink-700">
+                        Substituir<span className="sr-only"> foto {i + 1}</span>
+                        <input type="file" className="sr-only" accept="image/jpeg,image/png,image/webp"
+                          disabled={uploading} onChange={(e) => { void uploadImages(e.target.files, i); e.target.value = ""; }} />
+                      </label>
                     </div>
                   ))}
                 </div>

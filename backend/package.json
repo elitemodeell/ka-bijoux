@@ -17,6 +17,7 @@
     "db:seed:sex-shop": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-sex-shop.ts",
     "bling:import": "node scripts/import-bling-products.js",
     "bling:sync": "node scripts/plan-bling-sync.cjs",
+    "photos:audit": "node scripts/audit-catalog-photos.cjs",
     "products:audit": "node scripts/audit-product-content.js",
     "auth:diagnose": "node scripts/diagnose-supabase-auth-migration.cjs",
     "auth:migrate": "node scripts/migrate-customers-to-supabase-auth.cjs",

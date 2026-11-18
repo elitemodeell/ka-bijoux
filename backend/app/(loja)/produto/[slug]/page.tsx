@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { isQuarantinedCatalogPhoto } from "@/lib/catalog-photo";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { Prisma } from "@prisma/client";
@@ -340,7 +341,7 @@ export default async function ProdutoPage(props: PageProps) {
       ? getSubcategoryPathSlug(dbProduct.subcategory.slug)
       : "";
     const isAdultProduct = dbProduct.category?.slug === "sex-shop";
-    const rawDbImages = dbProduct.images.map((image) => image.url);
+    const rawDbImages = dbProduct.images.map((image) => image.url).filter((url) => !isQuarantinedCatalogPhoto(url));
     const dbImages = isAdultProduct ? rawDbImages : rawDbImages.filter((url) => !isAdultImageUrl(url));
     const galleryImages = dbImages;
     const contentOverride = getProductContentOverride({
@@ -385,7 +386,7 @@ export default async function ProdutoPage(props: PageProps) {
       sku: variation.sku ?? undefined,
       stock: dbProduct.sharedVariationStock ? dbProduct.stock : variation.stock,
       priceModifier: Number(variation.priceModifier),
-      images: variation.imageUrl ? [variation.imageUrl] : undefined,
+      images: variation.imageUrl && !isQuarantinedCatalogPhoto(variation.imageUrl) ? [variation.imageUrl] : undefined,
       label: `${variation.name}: ${variation.value}`,
       slug: `${variation.name}-${variation.value}`
         .normalize("NFD")

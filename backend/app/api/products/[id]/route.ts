@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { belongsToCatalogGallery } from "@/lib/catalog-photo";
 import { z } from "zod";
 import { ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -147,6 +148,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       importSource === ProductImportSource.BLING && !data.enrichmentStatus;
 
     const { images, variations, ...rest } = data;
+    if (images?.some(({ url }) => !belongsToCatalogGallery(url, params.id)) ||
+        variations?.some(({ id, imageUrl }) => imageUrl && !belongsToCatalogGallery(imageUrl, params.id, id))) {
+      return apiError("Uma foto está vinculada a outro produto ou variação.", 422);
+    }
 
     const updated = await prisma.$transaction(async (tx) => {
       const product = await tx.product.update({
@@ -166,7 +171,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         await tx.productImage.deleteMany({ where: { productId: params.id } });
         if (images.length > 0) {
           await tx.productImage.createMany({
-            data: images.map((img, i) => ({
+            data: [...new Map(images.map((image) => [image.url, image])).values()].map((img, i) => ({
               productId: params.id,
               url: img.url,
               alt: img.alt ?? product.name,

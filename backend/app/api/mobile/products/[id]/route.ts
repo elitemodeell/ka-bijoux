@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { googlePlayProductWhere, toGooglePlayPublicData } from "@/lib/google-play-distribution";
 import { apiError, apiSuccess } from "@/lib/utils";
+import { isQuarantinedCatalogPhoto } from "@/lib/catalog-photo";
 
 const detailInclude = Prisma.validator<Prisma.ProductInclude>()({
   category: true,
@@ -16,13 +17,16 @@ function serialize<T extends {
   promotionalPrice: unknown;
   stock: number;
   sharedVariationStock: boolean;
-  variations: { priceModifier: unknown; stock: number }[];
+  images: { url: string }[];
+  variations: { priceModifier: unknown; stock: number; imageUrl: string | null }[];
 }>(product: T) {
   return {
     ...product,
     price: Number(product.price),
+    images: product.images.filter(({ url }) => !isQuarantinedCatalogPhoto(url)),
     variations: product.variations.map((variation) => ({
       ...variation,
+      imageUrl: variation.imageUrl && isQuarantinedCatalogPhoto(variation.imageUrl) ? null : variation.imageUrl,
       stock: product.sharedVariationStock ? product.stock : variation.stock,
       priceModifier: Number(variation.priceModifier),
     })),

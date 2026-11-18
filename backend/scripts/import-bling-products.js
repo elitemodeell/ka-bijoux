@@ -95,7 +95,7 @@ async function main() {
 
   for (const row of products) {
     const normalizedRow = normalizeBlingRow(row);
-    const imageMatch = findImageForProduct(normalizedRow, imageIndex);
+    const imageMatch = findImageForProduct(normalizedRow, imageIndex, false);
     const existing = await findExistingProduct(normalizedRow);
     const imageUrl = existing?.images[0]?.url || normalizedRow.imageUrl ||
       (imageMatch ? materializeImage(imageMatch, normalizedRow) : null);
@@ -410,7 +410,7 @@ function buildImageIndex() {
   return { byId, bySku, semantic };
 }
 
-function findImageForProduct(product, imageIndex) {
+function findImageForProduct(product, imageIndex, includeNameCandidates = true) {
   if (imageIndex.byId.has(product.id)) {
     return { item: imageIndex.byId.get(product.id), reason: "bling_id" };
   }
@@ -419,6 +419,7 @@ function findImageForProduct(product, imageIndex) {
     return { item: imageIndex.bySku.get(product.codigo), reason: "sku" };
   }
 
+  if (!includeNameCandidates) return null;
   const productTokens = tokenize(product.nome);
   let best = null;
   for (const item of imageIndex.semantic) {

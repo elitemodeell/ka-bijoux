@@ -135,6 +135,7 @@ export default function BlingProductsActions({ product, categories }: Props) {
     try {
       const body = new FormData();
       body.append("file", file);
+      body.append("productId", product.id);
       const uploadRes = await fetch("/api/admin/products/upload", { method: "POST", body });
       const uploadJson = await uploadRes.json().catch(() => ({}));
       if (!uploadRes.ok) throw new Error(uploadJson.error ?? "Erro ao enviar imagem.");
