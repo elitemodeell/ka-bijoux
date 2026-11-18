@@ -23,6 +23,7 @@ export interface CatalogCartItem {
     price: unknown;
     promotionalPrice: unknown | null;
     stock: number;
+    sharedVariationStock?: boolean;
     _count?: { variations: number };
   };
   variation: {
@@ -40,6 +41,7 @@ export interface PricedCheckoutItem {
   cartItemId: string;
   productId: string;
   variationId: string | null;
+  usesProductStock: boolean;
   productName: string;
   variationName: string | null;
   quantity: number;
@@ -71,6 +73,11 @@ export function centsToDecimal(cents: number): number {
   return Number((cents / 100).toFixed(2));
 }
 
+function stockUnit(item: CatalogCartItem) {
+  const variation = item.product.sharedVariationStock ? null : item.variationId;
+  return JSON.stringify([item.productId, variation]);
+}
+
 export function priceCart(items: CatalogCartItem[]): PricedCheckoutItem[] {
   if (items.length === 0) {
     throw new CheckoutError("Carrinho vazio.", 400, "EMPTY_CART");
@@ -81,7 +88,7 @@ export function priceCart(items: CatalogCartItem[]): PricedCheckoutItem[] {
     if (!Number.isInteger(item.quantity) || item.quantity < 1) {
       throw new CheckoutError("Quantidade inválida no carrinho.", 409, "INVALID_QUANTITY");
     }
-    const stockKey = `${item.productId}:${item.variationId ?? "__base__"}`;
+    const stockKey = stockUnit(item);
     requestedByStockUnit.set(
       stockKey,
       (requestedByStockUnit.get(stockKey) ?? 0) + item.quantity
@@ -123,12 +130,12 @@ export function priceCart(items: CatalogCartItem[]): PricedCheckoutItem[] {
           "INACTIVE_VARIATION"
         );
       }
-      stock = item.variation.stock;
+      if (!item.product.sharedVariationStock) stock = item.variation.stock;
       modifierCents = decimalToCents(item.variation.priceModifier);
       variationName = `${item.variation.name}: ${item.variation.value}`;
     }
 
-    const stockKey = `${item.productId}:${item.variationId ?? "__base__"}`;
+    const stockKey = stockUnit(item);
     const requestedQuantity = requestedByStockUnit.get(stockKey) ?? item.quantity;
     if (stock < requestedQuantity) {
       throw new CheckoutError(
@@ -151,6 +158,7 @@ export function priceCart(items: CatalogCartItem[]): PricedCheckoutItem[] {
       cartItemId: item.id,
       productId: item.productId,
       variationId: item.variationId,
+      usesProductStock: Boolean(item.variationId && item.product.sharedVariationStock),
       productName: item.product.name,
       variationName,
       quantity: item.quantity,

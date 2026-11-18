@@ -62,6 +62,7 @@ type DbProduct = {
   price: number | string;
   promotionalPrice: number | string | null;
   stock: number;
+  sharedVariationStock: boolean;
   weight: number | string;
   height: number | string;
   width: number | string;
@@ -177,6 +178,7 @@ async function fetchDbProduct(lookup: ProductLookup): Promise<DbProduct | null> 
       price: Number(product.price),
       promotionalPrice: product.promotionalPrice ? Number(product.promotionalPrice) : null,
       stock: product.stock,
+      sharedVariationStock: product.sharedVariationStock,
       weight: Number(product.weight),
       height: Number(product.height),
       width: Number(product.width),
@@ -381,7 +383,7 @@ export default async function ProdutoPage(props: PageProps) {
     const dbVariations = dbProduct.variations.map((variation) => ({
       id: variation.id,
       sku: variation.sku ?? undefined,
-      stock: variation.stock,
+      stock: dbProduct.sharedVariationStock ? dbProduct.stock : variation.stock,
       priceModifier: Number(variation.priceModifier),
       images: variation.imageUrl ? [variation.imageUrl] : undefined,
       label: `${variation.name}: ${variation.value}`,
@@ -391,7 +393,7 @@ export default async function ProdutoPage(props: PageProps) {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, ""),
-      active: variation.stock > 0,
+      active: (dbProduct.sharedVariationStock ? dbProduct.stock : variation.stock) > 0,
     }));
     const overrideVariations = getOverrideVariations(contentOverride);
 

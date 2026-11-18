@@ -62,15 +62,19 @@ async function collect(read) {
   return { capturedAt: new Date().toISOString(), products: [...products.values()], stock };
 }
 
-async function main() {
-  const token = process.env.BLING_ACCESS_TOKEN?.trim();
-  if (!token) throw new Error("BLING_ACCESS_TOKEN não está disponível na sessão autorizada.");
+async function writeSnapshot(token) {
   const snapshot = await collect(createReader(token));
   await fs.mkdir(path.dirname(output), { recursive: true });
   const temporary = `${output}.${process.pid}.tmp`;
   await fs.writeFile(temporary, JSON.stringify(snapshot, null, 2), { mode: 0o600, flag: "wx" });
   await fs.rename(temporary, output);
   console.log(`Bling: ${snapshot.products.length} produtos e ${snapshot.stock.length} registros de saldo. Arquivo local em ${output}.`);
+}
+
+async function main() {
+  const token = process.env.BLING_ACCESS_TOKEN?.trim();
+  if (!token) throw new Error("BLING_ACCESS_TOKEN não está disponível na sessão autorizada.");
+  await writeSnapshot(token);
 }
 
 if (require.main === module) {
@@ -80,4 +84,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { collect, createReader };
+module.exports = { collect, createReader, writeSnapshot };

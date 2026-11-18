@@ -92,6 +92,7 @@ export async function sanitizeGooglePlayCart(
       variation: item.variation
         ? {
             ...item.variation,
+            stock: item.product.sharedVariationStock ? item.product.stock : item.variation.stock,
             priceModifier: Number(item.variation.priceModifier),
           }
         : null,

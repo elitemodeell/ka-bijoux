@@ -22,13 +22,23 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ itemId:
         cart: { customerId: customer.id },
         product: { is: googlePlayProductWhere() },
       },
-      select: { id: true },
+      select: { id: true, cartId: true, productId: true,
+        product: { select: { sharedVariationStock: true, stock: true } } },
     });
     if (!item) {
       await prisma.cartItem.deleteMany({
         where: { id: params.itemId, cart: { customerId: customer.id } },
       });
       return apiError("Item não encontrado.", 404);
+    }
+    if (item.product.sharedVariationStock) {
+      const pool = await prisma.cartItem.aggregate({
+        where: { cartId: item.cartId, productId: item.productId, id: { not: item.id } },
+        _sum: { quantity: true },
+      });
+      if (input.quantity + (pool._sum.quantity ?? 0) > item.product.stock) {
+        return apiError("Estoque insuficiente.", 409);
+      }
     }
     await prisma.cartItem.update({
       where: { id: item.id },

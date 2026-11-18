@@ -61,31 +61,35 @@ function compare(snapshot, local) {
   };
 }
 
-async function main() {
-  const url = process.env.CATALOG_DATABASE_READONLY_URL;
-  if (!url) throw new Error("CATALOG_DATABASE_READONLY_URL não está disponível na sessão autorizada.");
-  const snapshot = JSON.parse(await fs.readFile(path.join(files, "bling-catalog-snapshot.local.json"), "utf8"));
+async function readLocalCatalog(url) {
   const db = new PrismaClient({ datasourceUrl: url });
   try {
     const products = await db.$transaction(async (tx) => {
       await tx.$executeRaw`SET TRANSACTION READ ONLY`;
       return tx.product.findMany({
-        select: { id: true, blingId: true, sku: true, images: { select: { url: true } },
-          variations: { select: { id: true, sku: true, imageUrl: true } } },
+        select: { id: true, blingId: true, sku: true, price: true, stock: true, images: { select: { url: true } },
+          variations: { select: { id: true, sku: true, imageUrl: true, stock: true } } },
       });
     }, { timeout: 60_000 });
-    const local = products.flatMap(({ variations, ...p }) => [
-      p, ...variations.map(({ imageUrl, ...row }) => ({ ...row, parentId: p.id, images: imageUrl ? [imageUrl] : [] })),
+    return products.flatMap(({ variations, ...p }) => [
+      { ...p, price: Number(p.price) },
+      ...variations.map(({ imageUrl, ...row }) => ({ ...row, parentId: p.id, images: imageUrl ? [imageUrl] : [] })),
     ]);
-    const report = compare(snapshot, local);
+  } finally {
+    await db.$disconnect();
+  }
+}
+
+async function main() {
+    const url = process.env.CATALOG_DATABASE_READONLY_URL;
+    if (!url) throw new Error("CATALOG_DATABASE_READONLY_URL não está disponível na sessão autorizada.");
+    const snapshot = JSON.parse(await fs.readFile(path.join(files, "bling-catalog-snapshot.local.json"), "utf8"));
+    const report = compare(snapshot, await readLocalCatalog(url));
     const target = path.join(files, "bling-catalog-reconciliation.local.json");
     const temporary = `${target}.${process.pid}.tmp`;
     await fs.writeFile(temporary, JSON.stringify(report, null, 2), { mode: 0o600, flag: "wx" });
     await fs.rename(temporary, target);
     console.log(`Conciliação somente leitura: ${report.candidates.length} itens. Arquivo local em ${target}.`);
-  } finally {
-    await db.$disconnect();
-  }
 }
 
 if (require.main === module) {
@@ -95,4 +99,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { compare };
+module.exports = { compare, readLocalCatalog };

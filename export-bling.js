@@ -3,7 +3,8 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const querystring = require('querystring');
-const { exec } = require('child_process');
+const { randomBytes } = require('node:crypto');
+const { writeSnapshot } = require('./backend/scripts/snapshot-bling-catalog.cjs');
 
 function loadEnvFile(file) {
   if (!fs.existsSync(file)) return;
@@ -33,6 +34,9 @@ const CLIENT_ID = process.env.BLING_CLIENT_ID;
 const CLIENT_SECRET = process.env.BLING_CLIENT_SECRET;
 const REDIRECT_URI = process.env.BLING_REDIRECT_URI || 'http://localhost:3007';
 const REDIRECT_URL = new URL(REDIRECT_URI);
+if (REDIRECT_URL.protocol !== 'http:' || !['localhost', '127.0.0.1'].includes(REDIRECT_URL.hostname)) {
+  throw new Error('BLING_REDIRECT_URI deve usar HTTP em loopback.');
+}
 const LISTEN_PORT = Number(REDIRECT_URL.port || (REDIRECT_URL.protocol === 'https:' ? 443 : 80));
 
 if (!CLIENT_ID || !CLIENT_SECRET) {
@@ -40,7 +44,9 @@ if (!CLIENT_ID || !CLIENT_SECRET) {
   process.exit(1);
 }
 
-const AUTH_URL = `https://www.bling.com.br/Api/v3/oauth/authorize?response_type=code&client_id=${encodeURIComponent(CLIENT_ID)}&state=exportacao`;
+const state = randomBytes(32).toString('hex');
+const AUTH_URL = new URL('https://www.bling.com.br/Api/v3/oauth/authorize');
+AUTH_URL.search = new URLSearchParams({ response_type: 'code', client_id: CLIENT_ID, state }).toString();
 
 function httpsRequest(options, body = null) {
   return new Promise((resolve, reject) => {
@@ -56,6 +62,7 @@ function httpsRequest(options, body = null) {
       });
     });
     req.on('error', reject);
+    req.setTimeout(15000, () => req.destroy(new Error('Tempo limite da API do Bling.')));
     if (body) req.write(body);
     req.end();
   });
@@ -69,19 +76,19 @@ async function getToken(code) {
   });
   const credentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
   const result = await httpsRequest({
-    hostname: 'www.bling.com.br',
+    hostname: 'api.bling.com.br',
     path: '/Api/v3/oauth/token',
     method: 'POST',
     headers: {
       Authorization: `Basic ${credentials}`,
+      'enable-jwt': '1',
       'Content-Type': 'application/x-www-form-urlencoded',
       'Content-Length': Buffer.byteLength(body)
     }
   }, body);
 
-  if (!result.data.access_token) {
-    console.error('\nErro ao obter token:', JSON.stringify(result.data));
-    process.exit(1);
+  if (result.status !== 200 || typeof result.data?.access_token !== 'string') {
+    throw new Error(`Falha na troca OAuth do Bling (HTTP ${result.status}).`);
   }
 
   return result.data.access_token;
@@ -94,14 +101,17 @@ async function getProducts(token) {
   while (true) {
     process.stdout.write(`\rBuscando pagina ${page} - ${all.length} produtos...`);
     const result = await httpsRequest({
-      hostname: 'www.bling.com.br',
+      hostname: 'api.bling.com.br',
       path: `/Api/v3/produtos?pagina=${page}&limite=100&criterio=1`,
       method: 'GET',
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
     });
 
     const items = result.data?.data;
-    if (!items || items.length === 0) break;
+    if (result.status !== 200 || !Array.isArray(items)) {
+      throw new Error(`Falha ao consultar catálogo do Bling (HTTP ${result.status}).`);
+    }
+    if (items.length === 0) break;
 
     all.push(...items);
     if (items.length < 100) break;
@@ -138,7 +148,7 @@ async function main() {
     const url = new URL(req.url, REDIRECT_URI);
     const code = url.searchParams.get('code');
 
-    if (!code) {
+    if (req.method !== 'GET' || url.pathname !== REDIRECT_URL.pathname || url.searchParams.get('state') !== state || !code) {
       res.writeHead(400);
       res.end('Codigo nao encontrado');
       return;
@@ -149,15 +159,20 @@ async function main() {
     server.close();
 
     console.log('\nCodigo capturado! Obtendo token...');
-    const token = await getToken(code);
-    console.log('Token OK! Buscando produtos...');
-    const products = await getProducts(token);
-    console.log(`\n\nTotal: ${products.length} produtos`);
-
-    const csv = toCSV(products);
-    const file = 'produtos-bling.csv';
-    fs.writeFileSync(file, `\uFEFF${csv}`, 'utf8');
-    console.log(`\nExportado com sucesso: ${file}`);
+    try {
+      const token = await getToken(code);
+      if (process.argv.includes('--snapshot')) {
+        await writeSnapshot(token);
+        return;
+      }
+      const products = await getProducts(token);
+      const file = 'produtos-bling.csv';
+      fs.writeFileSync(file, `\uFEFF${toCSV(products)}`, 'utf8');
+      console.log(`\nExportado com sucesso: ${file}`);
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
   });
 
   server.on('error', (err) => {
@@ -170,10 +185,8 @@ async function main() {
     process.exit(1);
   });
 
-  server.listen(LISTEN_PORT, () => {
-    console.log(`Servidor OK em ${REDIRECT_URI}. Abrindo navegador para autorizacao...`);
-    exec(`start "" "${AUTH_URL}"`);
-    console.log('\nAutorize o app no navegador. Aguardando...');
+  server.listen(LISTEN_PORT, '127.0.0.1', () => {
+    console.log(`Abra a URL oficial para autorizar a coleta:\n${AUTH_URL}`);
   });
 }
 

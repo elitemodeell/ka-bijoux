@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
         if (!variationId && product.variations.length) {
           throw new CartMutationError("Selecione uma variação do produto.", 422);
         }
-        const availableStock = variation?.stock ?? product.stock;
+        const availableStock = product.sharedVariationStock ? product.stock : variation?.stock ?? product.stock;
         const regularPrice = Number(product.price);
         const basePrice = getValidPromotionalPrice(regularPrice, product.promotionalPrice?.toString()) ?? regularPrice;
         const unitPrice = basePrice + Number(variation?.priceModifier ?? 0);
@@ -125,7 +125,13 @@ export async function POST(req: NextRequest) {
           0
         );
         const newQuantity = merge ? Math.max(existingQuantity, quantity) : existingQuantity + quantity;
-        if (availableStock < newQuantity) {
+        const otherOptions = product.sharedVariationStock
+          ? await tx.cartItem.aggregate({
+              where: { cartId: cartRecord.id, productId: product.id, id: { notIn: matchingItems.map((item) => item.id) } },
+              _sum: { quantity: true },
+            })
+          : null;
+        if (availableStock < newQuantity + (otherOptions?._sum.quantity ?? 0)) {
           throw new CartMutationError("Estoque insuficiente.", 409);
         }
 

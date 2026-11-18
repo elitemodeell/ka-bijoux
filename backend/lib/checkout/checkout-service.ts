@@ -1457,6 +1457,7 @@ export async function createOrResumeCheckout(
                 return {
                   productId: item.productId,
                   variationId: item.variationId,
+                  usesProductStock: item.usesProductStock,
                   productName: item.productName,
                   productImage: source.variation?.imageUrl ?? source.product.images[0]?.url,
                   variationName: item.variationName,

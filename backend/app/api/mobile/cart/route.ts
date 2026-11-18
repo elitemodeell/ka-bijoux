@@ -88,8 +88,16 @@ export async function POST(req: NextRequest) {
         const quantity = input.mode === "SET" || input.mode === "BUY_NOW"
           ? input.quantity
           : (existing?.quantity ?? 0) + input.quantity;
-        const availableStock = variation?.stock ?? product.stock;
-        if (quantity > availableStock) throw new Error("CART_STOCK_EXCEEDED");
+        const availableStock = product.sharedVariationStock ? product.stock : variation?.stock ?? product.stock;
+        const otherOptions = product.sharedVariationStock
+          ? await tx.cartItem.aggregate({
+              where: { cartId: cart.id, productId: product.id, id: existing ? { not: existing.id } : undefined },
+              _sum: { quantity: true },
+            })
+          : null;
+        if (quantity + (otherOptions?._sum.quantity ?? 0) > availableStock) {
+          throw new Error("CART_STOCK_EXCEEDED");
+        }
         const unitPrice =
           Number(product.promotionalPrice ?? product.price) +
           Number(variation?.priceModifier ?? 0);

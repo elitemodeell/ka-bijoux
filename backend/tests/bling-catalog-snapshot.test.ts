@@ -4,6 +4,7 @@ import { expect, it, vi } from "vitest";
 const { collect, createReader } = createRequire(import.meta.url)("../scripts/snapshot-bling-catalog.cjs");
 const { compare } = createRequire(import.meta.url)("../scripts/reconcile-bling-catalog.cjs");
 const { buildReviewQueue } = createRequire(import.meta.url)("../scripts/bling-catalog-review.cjs");
+const { prepareSync, applyInHomologation } = createRequire(import.meta.url)("../scripts/plan-bling-sync.cjs");
 
 it("keeps parent and child identities, consults missing images and queries stock by individual ID", async () => {
   const read = vi.fn(async (endpoint: string, _params?: URLSearchParams) => {
@@ -64,4 +65,21 @@ it("consolidates the existing audit by Bling ID without treating a photo referen
       photoEvidence: "referencia-localizada-requer-conferencia" },
     { blingId: "2", photoEvidence: "ausente-no-snapshot" },
   ]);
+});
+
+it("never transfers a parent's quantity to child SKUs or associates children to a lookalike model", async () => {
+  const child = { id: 3, idProdutoPai: 2, codigo: "MAX-BLACK", preco: 24,
+    situacao: "A", variacao: { nome: "Preto" } };
+  const catalog = [
+    { id: "pro", blingId: "1", price: 24, images: [] },
+    { id: "max", blingId: "2", price: 24, images: [] },
+  ];
+  const products = [{ id: 1, nome: "iPhone 11 Pro", formato: "V", preco: 24 },
+    { id: 2, nome: "iPhone 11 Pro Max", formato: "V", preco: 24, estoque: { saldoVirtualTotal: 10 }, variacoes: [child] },
+    child];
+  const shared = prepareSync({ products, stock: [] }, catalog).records[2];
+  expect(shared).toMatchObject({ stock: null, parentId: "max", action: "review-shared-stock" });
+  const verified = prepareSync({ products, stock: [{ produto: { id: 3 }, saldoVirtualTotal: 2 }] }, catalog).records[2];
+  expect(verified).toMatchObject({ stock: 2, parentId: "max", action: "stage-variation" });
+  await expect(applyInHomologation({}, "postgresql://example.test/ka_bijoux_test")).rejects.toThrow("homologação");
 });

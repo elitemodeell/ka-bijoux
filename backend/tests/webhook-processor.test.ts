@@ -36,6 +36,7 @@ interface SeedOrder {
   stockCommittedAt?: Date | null;
   productId?: string;
   variationId?: string | null;
+  usesProductStock?: boolean;
   quantity?: number;
 }
 
@@ -143,6 +144,7 @@ function createWebhookDatabase(options: {
         {
           productId: seed.productId ?? "product-1",
           variationId: seed.variationId ?? null,
+          usesProductStock: seed.usesProductStock,
           quantity: seed.quantity ?? 1,
         },
       ],
@@ -436,6 +438,29 @@ describe("Asaas webhook authentication primitives", () => {
 });
 
 describe("idempotent Asaas webhook processing", () => {
+  it("commits and refunds a variant against the product balance saved on the order", async () => {
+    const database = createWebhookDatabase({
+      productStock: 2,
+      variationStock: 0,
+      seeds: [{ orderId: "order-1", paymentId: "payment-1", externalPaymentId: "pay-1",
+        variationId: "variation-1", usesProductStock: true }],
+    });
+    const process = (event: string, refunded = false) => processAsaasWebhook({
+      rawBody: refunded ? webhookBody(event, "pay-1", "PAYMENT_REFUNDED", "REFUNDED") : webhookBody(event),
+      db: database.db,
+      paymentService: paymentService([refunded
+        ? asaasPayment("order-1", "pay-1", { status: "REFUNDED", rawStatus: "REFUNDED" })
+        : asaasPayment()]),
+      now: fixedNow,
+    });
+    expect((await process("shared-paid")).outcome).toBe("processed");
+    expect(database.getProduct()?.stock).toBe(1);
+    expect(database.getVariation()?.stock).toBe(0);
+    expect((await process("shared-refund", true)).outcome).toBe("processed");
+    expect((await process("shared-refund-repeat", true)).outcome).toBe("ignored");
+    expect(database.getProduct()?.stock).toBe(2);
+    expect(database.getVariation()?.stock).toBe(0);
+  });
   it("[14] processes a valid received Pix and commits stock once", async () => {
     const database = createWebhookDatabase({ productStock: 2 });
     const service = paymentService([asaasPayment()]);

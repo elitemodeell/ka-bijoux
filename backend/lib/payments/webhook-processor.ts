@@ -58,6 +58,7 @@ interface WebhookEventRow {
 interface LocalOrderItem {
   productId: string;
   variationId: string | null;
+  usesProductStock?: boolean;
   quantity: number;
 }
 
@@ -1199,7 +1200,7 @@ async function decrementStock(
     if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
       throw new InsufficientStockError();
     }
-    const changed = item.variationId
+    const changed = item.variationId && !item.usesProductStock
       ? await tx.productVariation.updateMany({
           where: { id: item.variationId, stock: { gte: item.quantity } },
           data: { stock: { decrement: item.quantity } },
@@ -1346,7 +1347,7 @@ async function restoreStock(
   items: LocalOrderItem[]
 ): Promise<void> {
   for (const item of items) {
-    if (item.variationId) {
+    if (item.variationId && !item.usesProductStock) {
       const restored = await tx.productVariation.updateMany({
         where: { id: item.variationId },
         data: { stock: { increment: item.quantity } },

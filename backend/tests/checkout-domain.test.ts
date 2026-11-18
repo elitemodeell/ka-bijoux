@@ -53,6 +53,23 @@ function coupon(overrides: Partial<CouponSnapshot> = {}): CouponSnapshot {
 }
 
 describe("checkout catalog pricing", () => {
+  it("checks combined quantities for options that share a product balance", () => {
+    const items = ["white", "black"].map((id) => {
+      const item = cartItem();
+      item.quantity = 2;
+      item.product.sharedVariationStock = true;
+      item.product.stock = 3;
+      item.variationId = id;
+      item.variation = {
+        id, productId: item.productId, name: "Cor", value: id, active: true, stock: 0, priceModifier: 0,
+      };
+      return item;
+    });
+    expectCheckoutCode(() => priceCart(items), "INSUFFICIENT_STOCK");
+    items[1].quantity = 1;
+    expect(priceCart(items).map(({ variationId, usesProductStock }) => ({ variationId, usesProductStock })))
+      .toEqual([{ variationId: "white", usesProductStock: true }, { variationId: "black", usesProductStock: true }]);
+  });
   it("rejects an older cart line missing the now-required variation", () => {
     const item = cartItem();
     item.product._count = { variations: 2 };
