@@ -96,6 +96,16 @@ Para esta fase, bastam leitura do catálogo e saldos no Bling e um export atual 
 - `photos:repair-production preview` consolidou os dois pacotes comprovados em 13 galerias e 30 vínculos, com SHA-256 `f7f3a6e914aceb2cd0218d657c5c596a7c907bbcd5aed0532e146fab82ac9388`.
 - O novo aplicador de produção não executa por padrão. Para qualquer escrita, exige a URL Supabase, a referência exata do projeto KA BIJOUX, confirmação de backup externo verificado, diretório absoluto de backup local e a frase explícita de aprovação. A tentativa sem essas condições foi recusada. Ele cria um backup restaurável do pacote antes da transação serializável e usa o mesmo teste de identidade e de galeria sem alteração prévia.
 
+### Reforço final de produção e distribuição
+
+- O aplicador passou a exigir que o host ou usuário da conexão identifique `sxohqngzypmxtmuulfoa`, a referência declarada seja a mesma, o SHA-256 calculado corresponda ao pacote aprovado e um backup externo restaurável tenha arquivo e hash efetivamente conferidos. Após conectar, confirma o banco `postgres` e as tabelas `products` e `product_images` antes da transação.
+- O diretório de backup transacional pode existir. Cada aplicação e rollback cria um arquivo exclusivo com `wx`, relê o conteúdo e verifica projeto, hash, pacote e quantidade de alterações antes de gravar no banco.
+- As migrações de SKU do pedido e estoque compartilhado são aditivas. Campos novos de booleano têm `DEFAULT FALSE`; o SKU é opcional. Um teste impede `DROP`, renomeação ou alteração destrutiva nessas migrações, preservando os aplicativos instalados.
+- O pacote comprovado de variações contém duas famílias, seis opções e seis SKUs existentes: Plug M e Silicone para iPhone 11 Pro. Cada opção preserva preço, estoque e fotografia comprovados. O aplicador de variações é restrito à homologação local, verifica novamente IDs, Bling IDs, SKUs, preços e estoques, cria backup e mantém os cadastros históricos irmãos antes de ocultar duplicidades da vitrine.
+- A verificação sandbox preparada usa somente leitura da identidade da conta Asaas e cotação no Melhor Envio. Ela recusa ambientes diferentes de sandbox e não cria clientes, pedidos, pagamentos ou etiquetas.
+- O login Expo/EAS foi autorizado, porém a conta `b10121911` não possui leitura do projeto existente sob o owner `ka-bijoux`. Nenhum projeto, certificado ou assinatura foi recriado. Builds assinados aguardam acesso da conta correta ou convite ao projeto `0d5ab81a-3a19-47f3-96e6-90d8e2767e93`.
+- A regressão final passou com 406 testes backend em 44 suítes, typecheck móvel, lint com zero erros e 46 avisos conhecidos, além de 29 verificações de comércio, 26 de privacidade, 26 de Google Auth, 13 de CPF e o conjunto de autenticação/Apple.
+
 ### Auditoria visual de fotografias
 
 - O comando `npm.cmd run photos:audit --workspace=backend` decodificou o conteúdo de 496 imagens locais, sem arquivos ilegíveis. Encontrou 50 grupos de pixels idênticos e 91 pares perceptualmente parecidos. Pares parecidos entram em revisão porque ângulos ou modelos visualmente próximos podem ser produtos distintos.
