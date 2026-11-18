@@ -8,7 +8,10 @@ const productionHosts = new Set([
 
 module.exports = ({ config }) => {
   const profile = process.env.EAS_BUILD_PROFILE;
+  const previewVersion = process.env.KA_IOS_HOMOLOGATION_VERSION;
+  const previewBuildNumber = process.env.KA_IOS_HOMOLOGATION_BUILD_NUMBER;
   const nonProduction = ["development", "preview"].includes(profile) ||
+    profile === "testflight-homologation" ||
     process.env.EXPO_PUBLIC_KA_ENVIRONMENT === "homologation";
 
   if (nonProduction) {
@@ -27,7 +30,16 @@ module.exports = ({ config }) => {
       throw new Error("Defina a chave pública do Supabase de homologação.");
     }
 
-    return { ...config, updates: { ...config.updates, enabled: false } };
+    const ios = {
+      ...config.ios,
+      ...(previewVersion ? { buildNumber: previewBuildNumber } : {}),
+    };
+    return {
+      ...config,
+      ...(previewVersion ? { version: previewVersion } : {}),
+      ios,
+      updates: { ...config.updates, enabled: false },
+    };
   }
 
   return config;
