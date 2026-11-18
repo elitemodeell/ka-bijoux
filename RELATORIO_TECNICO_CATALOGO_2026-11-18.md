@@ -59,3 +59,9 @@ Nenhum dado de catálogo comercial foi inventado, conciliado automaticamente ou 
 ### Notas propostas para Apple App Store e Google Play
 
 Melhoramos a escolha de cores, modelos e tamanhos nos produtos com opções. O carrinho identifica cada variação separadamente, e a opção selecionada aparece no pedido. Também ajustamos a transição do carrinho para o pagamento.
+
+### Fila de regularização
+
+`node backend/scripts/bling-catalog-review.cjs` reaproveitou a auditoria anterior e consolidou 5.484 produtos distintos por ID do Bling. O arquivo local `tmp/bling-catalog-review.local.json` mantém os motivos de cada sinalização. Quando existir uma conciliação atual, o comando apresenta a evidência de foto e a identidade correspondentes. Uma referência localizada ainda exige conferência da fotografia.
+
+Para esta fase, bastam leitura do catálogo e saldos no Bling e um export atual do catálogo da loja com os vínculos de imagens e variações, ou a conexão PostgreSQL de leitura dedicada. A integração GitHub–Vercel será usada na publicação quando aprovada. A branch continua configurada para bloquear deploy automático.

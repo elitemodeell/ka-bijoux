@@ -3,6 +3,7 @@ import { expect, it, vi } from "vitest";
 
 const { collect, createReader } = createRequire(import.meta.url)("../scripts/snapshot-bling-catalog.cjs");
 const { compare } = createRequire(import.meta.url)("../scripts/reconcile-bling-catalog.cjs");
+const { buildReviewQueue } = createRequire(import.meta.url)("../scripts/bling-catalog-review.cjs");
 
 it("keeps parent and child identities, consults missing images and queries stock by individual ID", async () => {
   const read = vi.fn(async (endpoint: string, _params?: URLSearchParams) => {
@@ -49,4 +50,18 @@ it("requires the correct parent before linking a variant by SKU and flags repeat
   expect(report.duplicateNames).toEqual([[1, 2]]);
   expect(report.sharedImages).toEqual([[1, 2]]);
   expect(report.noPhotoEvidence).toEqual([3]);
+});
+
+it("consolidates the existing audit by Bling ID without treating a photo reference as verified", () => {
+  const baseline = {
+    duplicates: { byName: [{ items: [{ id: "1" }] }] },
+    sharedImages: [{ products: [{ blingId: "1" }] }],
+    products: [{ blingId: "1", sku: "P", semImagem: true }, { blingId: "2", semImagem: true }],
+  };
+  expect(buildReviewQueue(baseline)[0].photoEvidence).toBe("aguardando-snapshot");
+  expect(buildReviewQueue(baseline, { candidates: [{ blingId: 1, blingPhotoCount: 1 }] })).toMatchObject([
+    { blingId: "1", reasons: ["nome-repetido", "referencia-de-imagem-compartilhada", "imagem-ausente-no-export"],
+      photoEvidence: "referencia-localizada-requer-conferencia" },
+    { blingId: "2", photoEvidence: "ausente-no-snapshot" },
+  ]);
 });
