@@ -90,6 +90,12 @@ Para esta fase, bastam leitura do catálogo e saldos no Bling e um export atual 
 - `npm.cmd run photos:prepare-production --workspace=backend` produziu o manifesto de 13 galerias e 30 vínculos.
 - `npm.cmd test --workspace=backend` passou com 403 testes em 42 suítes. O aviso do Vitest sobre o carregador nativo de configuração não afeta o resultado.
 
+### Entrega de revisão e janela de produção
+
+- `photos:pending-review` gerou `tmp/catalog-photo-audit/galerias-pendentes.html` para a equipe da loja. O arquivo contém as 21 galerias pendentes, os 26 arquivos atuais reprovados, nome e SKU, sem publicar imagens ou alterar a identidade visual.
+- `photos:repair-production preview` consolidou os dois pacotes comprovados em 13 galerias e 30 vínculos, com SHA-256 `f7f3a6e914aceb2cd0218d657c5c596a7c907bbcd5aed0532e146fab82ac9388`.
+- O novo aplicador de produção não executa por padrão. Para qualquer escrita, exige a URL Supabase, a referência exata do projeto KA BIJOUX, confirmação de backup externo verificado, diretório absoluto de backup local e a frase explícita de aprovação. A tentativa sem essas condições foi recusada. Ele cria um backup restaurável do pacote antes da transação serializável e usa o mesmo teste de identidade e de galeria sem alteração prévia.
+
 ### Auditoria visual de fotografias
 
 - O comando `npm.cmd run photos:audit --workspace=backend` decodificou o conteúdo de 496 imagens locais, sem arquivos ilegíveis. Encontrou 50 grupos de pixels idênticos e 91 pares perceptualmente parecidos. Pares parecidos entram em revisão porque ângulos ou modelos visualmente próximos podem ser produtos distintos.

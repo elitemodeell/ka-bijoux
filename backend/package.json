@@ -21,6 +21,8 @@
     "photos:repair": "node scripts/apply-catalog-photo-repair.cjs",
     "photos:compile-repair": "node scripts/compile-catalog-photo-repair.cjs",
     "photos:prepare-production": "node scripts/prepare-catalog-production-release.cjs",
+    "photos:pending-review": "node scripts/generate-pending-photo-review.cjs",
+    "photos:repair-production": "node scripts/apply-catalog-photo-repair-production.cjs",
     "products:audit": "node scripts/audit-product-content.js",
     "auth:diagnose": "node scripts/diagnose-supabase-auth-migration.cjs",
     "auth:migrate": "node scripts/migrate-customers-to-supabase-auth.cjs",
