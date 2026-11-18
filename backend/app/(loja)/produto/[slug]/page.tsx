@@ -341,7 +341,7 @@ export default async function ProdutoPage(props: PageProps) {
       ? getSubcategoryPathSlug(dbProduct.subcategory.slug)
       : "";
     const isAdultProduct = dbProduct.category?.slug === "sex-shop";
-    const rawDbImages = dbProduct.images.map((image) => image.url).filter((url) => !isQuarantinedCatalogPhoto(url));
+    const rawDbImages = dbProduct.images.map((image) => image.url).filter((url) => !isQuarantinedCatalogPhoto(url, dbProduct.id));
     const dbImages = isAdultProduct ? rawDbImages : rawDbImages.filter((url) => !isAdultImageUrl(url));
     const galleryImages = dbImages;
     const contentOverride = getProductContentOverride({
@@ -386,7 +386,7 @@ export default async function ProdutoPage(props: PageProps) {
       sku: variation.sku ?? undefined,
       stock: dbProduct.sharedVariationStock ? dbProduct.stock : variation.stock,
       priceModifier: Number(variation.priceModifier),
-      images: variation.imageUrl && !isQuarantinedCatalogPhoto(variation.imageUrl) ? [variation.imageUrl] : undefined,
+      images: variation.imageUrl && !isQuarantinedCatalogPhoto(variation.imageUrl, dbProduct.id) ? [variation.imageUrl] : undefined,
       label: `${variation.name}: ${variation.value}`,
       slug: `${variation.name}-${variation.value}`
         .normalize("NFD")

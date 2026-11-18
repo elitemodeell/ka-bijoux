@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { expect, it } from "vitest";
-import { belongsToCatalogGallery, catalogPhotoPath, normalizeCatalogPhoto } from "@/lib/catalog-photo";
+import { belongsToCatalogGallery, catalogPhotoPath, isQuarantinedCatalogPhoto, normalizeCatalogPhoto } from "@/lib/catalog-photo";
 
 it("standardizes actual pixels deterministically without cropping the product", async () => {
   const image = (background: string) => sharp({ create: { width: 400, height: 200, channels: 3, background } }).png().toBuffer();
@@ -11,6 +11,12 @@ it("standardizes actual pixels deterministically without cropping the product", 
   expect(first.fingerprint).toBe(second.fingerprint);
   expect((await normalizeCatalogPhoto(await image("#ff0000"))).fingerprint).not.toBe(first.fingerprint);
   await expect(normalizeCatalogPhoto(Buffer.from("not an image"))).rejects.toThrow("conteúdo da foto");
+});
+
+it("uses the owning product when excluding a verified wrong link", () => {
+  const file = "/uploads/products/creme-facial-diurno-iqz3q9-02.png";
+  expect(isQuarantinedCatalogPhoto(file, "cmr9al49900092np39qiqz3q9")).toBe(true);
+  expect(isQuarantinedCatalogPhoto(file, "cmr6i1r72002grhf80yqybagb")).toBe(false);
 });
 
 it("rejects cross-product, cross-variant and visually disproved gallery assignments", () => {

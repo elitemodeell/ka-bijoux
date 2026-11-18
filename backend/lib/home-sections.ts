@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { prisma } from "@/lib/prisma";
 import { getPublicCategoryName } from "@/lib/catalog";
 import {
@@ -32,6 +33,7 @@ const homeProductSelect = Prisma.validator<Prisma.ProductSelect>()({
   category: { select: { name: true, slug: true } },
   subcategory: { select: { name: true, slug: true } },
   images: {
+    where: visibleCatalogPhotos,
     orderBy: { order: "asc" },
     take: 1,
     select: { url: true, alt: true },

@@ -1,17 +1,28 @@
 import sharp from "sharp";
 import { createHash } from "node:crypto";
 import quarantinedPhotos from "@/data/catalog-photo-quarantine.json";
+import quarantinedLinks from "@/data/catalog-photo-link-quarantine.json";
+import type { Prisma } from "@prisma/client";
 
 const allowedFormats = new Set(["jpeg", "png", "webp"]);
 const targetSize = 1200;
 const managedPrefix = "/storage/v1/object/public/products/catalog/";
 const safeId = /^[A-Za-z0-9_-]{1,128}$/;
 const quarantine = new Set(quarantinedPhotos);
+const byProduct: Readonly<Record<string, readonly string[]>> = quarantinedLinks;
+export const visibleCatalogPhotos: Prisma.ProductImageWhereInput = {
+  NOT: [
+    ...quarantinedPhotos.map((file) => ({ url: { endsWith: `/${file}` } })),
+    ...Object.entries(byProduct).flatMap(([productId, files]) =>
+      files.map((file) => ({ productId, url: { endsWith: `/${file}` } }))),
+  ],
+};
 
-export function isQuarantinedCatalogPhoto(url: string) {
+export function isQuarantinedCatalogPhoto(url: string, productId?: string) {
   try {
     const pathname = new URL(url, "https://catalog.invalid").pathname;
-    return quarantine.has(decodeURIComponent(pathname.split("/").at(-1) ?? "").toLowerCase());
+    const file = decodeURIComponent(pathname.split("/").at(-1) ?? "").toLowerCase();
+    return quarantine.has(file) || Boolean(productId && byProduct[productId]?.includes(file));
   } catch {
     return false;
   }
@@ -64,7 +75,7 @@ export function belongsToCatalogGallery(url: string, productId: string, variatio
   let pathname: string;
   try {
     const parsed = new URL(url, "https://catalog.invalid");
-    if (!["https:", "http:"].includes(parsed.protocol) || isQuarantinedCatalogPhoto(url)) return false;
+    if (!["https:", "http:"].includes(parsed.protocol) || isQuarantinedCatalogPhoto(url, productId)) return false;
     pathname = parsed.pathname;
   } catch {
     return false;

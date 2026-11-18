@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { googlePlayProductWhere } from "@/lib/google-play-distribution";
 import { apiError, apiSuccess } from "@/lib/utils";
+import { visibleCatalogPhotos } from "@/lib/catalog-photo";
 
 const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
   id: true,
@@ -17,6 +18,7 @@ const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
   category: { select: { name: true, slug: true } },
   subcategory: { select: { name: true, slug: true } },
   images: {
+    where: visibleCatalogPhotos,
     orderBy: { order: "asc" },
     take: 1,
     select: { url: true, alt: true },
