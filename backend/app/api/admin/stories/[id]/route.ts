@@ -65,7 +65,7 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
 
     return apiSuccess(serializeStoryGroup(story));
   } catch (error) {
-    if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof z.ZodError) return apiError(error.issues[0].message, 422);
     return authError(error);
   }
 }

@@ -42,7 +42,7 @@ export async function PATCH(
 
     return apiSuccess(variation);
   } catch (e) {
-    if (e instanceof z.ZodError) return apiError(e.errors[0].message, 422);
+    if (e instanceof z.ZodError) return apiError(e.issues[0].message, 422);
     return apiError("Erro ao atualizar variação.", 500);
   }
 }

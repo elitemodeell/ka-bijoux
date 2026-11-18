@@ -4,13 +4,10 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { ensureCatalogCategories } from "@/lib/catalog-db";
 import { apiSuccess, apiError, slugify } from "@/lib/utils";
 
 export async function GET() {
   try {
-    await ensureCatalogCategories(prisma);
-
     const categories = await prisma.category.findMany({
       where: { active: true, parentId: null },
       orderBy: { order: "asc" },
@@ -88,7 +85,7 @@ export async function POST(req: NextRequest) {
 
     return apiSuccess(category, 201);
   } catch (e) {
-    if (e instanceof z.ZodError) return apiError(e.errors[0].message, 422);
+    if (e instanceof z.ZodError) return apiError(e.issues[0].message, 422);
     return apiError("Erro ao criar categoria.", 500);
   }
 }

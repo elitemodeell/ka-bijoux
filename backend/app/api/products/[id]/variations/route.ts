@@ -60,7 +60,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
     return apiSuccess(variation, 201);
   } catch (e) {
-    if (e instanceof z.ZodError) return apiError(e.errors[0].message, 422);
+    if (e instanceof z.ZodError) return apiError(e.issues[0].message, 422);
     return apiError("Erro ao criar variação.", 500);
   }
 }

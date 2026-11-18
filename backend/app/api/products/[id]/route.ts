@@ -222,7 +222,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     });
     return apiSuccess(updated);
   } catch (e) {
-    if (e instanceof z.ZodError) return apiError(e.errors[0].message, 422);
+    if (e instanceof z.ZodError) return apiError(e.issues[0].message, 422);
     return apiError("Erro ao atualizar produto.", 500);
   }
 }

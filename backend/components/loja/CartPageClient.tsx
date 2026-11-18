@@ -48,10 +48,10 @@ export default function CartPageClient() {
               Ver produtos
             </Link>
             <Link
-              href="/"
+              href="/checkout"
               className="rounded-2xl border border-pink-100 bg-white px-7 py-3 text-sm font-bold text-pink-500 transition-colors hover:bg-pink-50"
             >
-              Voltar para inicio
+              Ver carrinho da conta
             </Link>
           </div>
         </div>
@@ -154,9 +154,9 @@ export default function CartPageClient() {
           </div>
 
           <div className="mt-5 grid gap-2">
-            <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-800">
-              A finalização de compras está disponível no aplicativo KA Bijoux. Este site não oferece atendimento ou checkout por WhatsApp.
-            </p>
+            <Link href="/checkout" className="rounded-2xl bg-pink-600 px-6 py-3 text-center font-bold text-white">
+              Finalizar compra
+            </Link>
             <Link
               href="/produtos"
               className="rounded-2xl border border-pink-100 bg-white px-6 py-3 text-center text-sm font-bold text-pink-500 transition-colors hover:bg-pink-50"

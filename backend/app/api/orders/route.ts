@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
       201
     );
   } catch (error) {
-    if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof z.ZodError) return apiError(error.issues[0].message, 422);
     if (error instanceof CheckoutError) {
       return apiError(error.message, error.status, error.code);
     }

@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
     const cart = await sanitizeGooglePlayCart(customer.id);
     return apiSuccess(toGooglePlayPublicData({ ...cart, ...googlePlayCartTotals(cart) }), 201);
   } catch (error) {
-    if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof z.ZodError) return apiError(error.issues[0].message, 422);
     if (error instanceof Error && error.message === "Não autorizado") {
       return apiError("Não autorizado.", 401);
     }
