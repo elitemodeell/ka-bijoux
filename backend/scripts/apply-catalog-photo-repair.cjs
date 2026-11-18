@@ -1,11 +1,15 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { PrismaClient } = require("@prisma/client");
+const crypto = require("node:crypto");
 
 const select = { id: true, productId: true, url: true, alt: true, order: true, createdAt: true };
 const canonical = (rows) => JSON.stringify([...rows].sort((a, b) => a.id.localeCompare(b.id))
   .map(({ id, productId, url, alt, order, createdAt }) =>
     ({ id, productId, url, alt, order, createdAt: new Date(createdAt).toISOString() })));
+const editorialFingerprint = ({ name, brand, description }) => crypto.createHash("sha256")
+  .update(JSON.stringify({ name, brand: brand ?? null, description }))
+  .digest("hex");
 
 function validate(bundle) {
   if (bundle.projectRef !== "sxohqngzypmxtmuulfoa" || bundle.version !== 1 || !Array.isArray(bundle.galleries)) {
@@ -13,8 +17,11 @@ function validate(bundle) {
   }
   const owners = new Set();
   for (const entry of bundle.galleries) {
-    if (owners.has(entry.productId) || !entry.productId || !entry.sku ||
+    if (owners.has(entry.productId) || !entry.productId ||
         !Array.isArray(entry.before) || !Array.isArray(entry.after)) throw new Error("Galeria inválida.");
+    if (typeof entry.sku !== "string" && typeof entry.editorialFingerprint !== "string") {
+      throw new Error("A gallery without SKU needs a confirmed editorial identity.");
+    }
     owners.add(entry.productId);
     const originals = new Map(entry.before.map((photo) => [photo.id, photo]));
     const seen = new Set();
@@ -41,8 +48,11 @@ async function updateGalleries(db, bundle, rollback, writeBackup) {
     let alreadyApplied = 0;
     for (const gallery of bundle.galleries) {
       const product = await tx.product.findUnique({ where: { id: gallery.productId },
-        select: { sku: true, images: { select } } });
-      if (!product || product.sku !== gallery.sku) throw new Error("Identidade do produto divergiu do pacote.");
+        select: { sku: true, name: true, brand: true, description: true, images: { select } } });
+      if (!product || (typeof gallery.sku === "string" && product.sku !== gallery.sku) ||
+          (typeof gallery.sku !== "string" && editorialFingerprint(product) !== gallery.editorialFingerprint)) {
+        throw new Error("Product identity diverged from the signed package.");
+      }
       const expected = rollback ? gallery.after : gallery.before;
       const desired = rollback ? gallery.before : gallery.after;
       if (canonical(product.images) === canonical(desired)) {
@@ -107,4 +117,4 @@ if (require.main === module) {
   main().catch((error) => { console.error(error.message); process.exitCode = 1; });
 }
 
-module.exports = { updateGalleries, validate };
+module.exports = { updateGalleries, validate, editorialFingerprint };

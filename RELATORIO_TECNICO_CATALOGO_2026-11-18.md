@@ -77,6 +77,19 @@ Para esta fase, bastam leitura do catálogo e saldos no Bling e um export atual 
 
 **Limite operacional:** o Bling é exclusivamente leitura. Nenhuma sincronização escreve no ERP. Nenhuma alteração foi aplicada ao banco de produção. A revisão das fotos e a publicação dependem do export atual do catálogo da loja, ou da leitura autorizada do Supabase, e da homologação dos binários assinados.
 
+### Pacote operacional de fotos
+
+- O compilador `photos:compile-repair` transforma as evidências de leitura do Supabase em um pacote de remoção somente quando a imagem confirmada permanece na própria galeria. Ele conserva IDs, URLs, texto alternativo e datas originais. Os 11 vínculos incorretos sem SKU foram reduzidos a cinco galerias, com 11 remoções e pelo menos uma foto confirmada preservada em cada uma.
+- Para esses registros sem SKU, o aplicador agora exige a impressão SHA-256 do nome, marca e descrição atuais além do ID do produto. Uma mudança editorial interrompe a aplicação em vez de atingir um cadastro diferente.
+- O manifesto local de promoção reúne os dois pacotes comprovados: 13 galerias e 30 vínculos incorretos. Ele registra o SHA-256 de cada pacote e as barreiras de reconsulta, backup verificado, transação serializável, credencial temporária exclusiva da KA BIJOUX e rollback. Ele não contém credenciais nem habilita gravação em produção.
+- As 21 galerias sem reposição comprovada continuam fora desse pacote. Os arquivos atuais foram identificados como incorretos, mas não foram substituídos por imagem genérica, de fornecedor sem licença confirmada ou inferência visual. A origem autorizada ou a confirmação física da loja ainda é necessária para cada reposição.
+
+### Validação desta atualização
+
+- `npm.cmd run photos:compile-repair --workspace=backend` compilou as cinco galerias sem SKU, e os dois pacotes passaram por `photos:repair preview`.
+- `npm.cmd run photos:prepare-production --workspace=backend` produziu o manifesto de 13 galerias e 30 vínculos.
+- `npm.cmd test --workspace=backend` passou com 403 testes em 42 suítes. O aviso do Vitest sobre o carregador nativo de configuração não afeta o resultado.
+
 ### Auditoria visual de fotografias
 
 - O comando `npm.cmd run photos:audit --workspace=backend` decodificou o conteúdo de 496 imagens locais, sem arquivos ilegíveis. Encontrou 50 grupos de pixels idênticos e 91 pares perceptualmente parecidos. Pares parecidos entram em revisão porque ângulos ou modelos visualmente próximos podem ser produtos distintos.

@@ -19,6 +19,8 @@
     "bling:sync": "node scripts/plan-bling-sync.cjs",
     "photos:audit": "node scripts/audit-catalog-photos.cjs",
     "photos:repair": "node scripts/apply-catalog-photo-repair.cjs",
+    "photos:compile-repair": "node scripts/compile-catalog-photo-repair.cjs",
+    "photos:prepare-production": "node scripts/prepare-catalog-production-release.cjs",
     "products:audit": "node scripts/audit-product-content.js",
     "auth:diagnose": "node scripts/diagnose-supabase-auth-migration.cjs",
     "auth:migrate": "node scripts/migrate-customers-to-supabase-auth.cjs",
