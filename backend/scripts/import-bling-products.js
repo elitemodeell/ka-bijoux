@@ -64,7 +64,6 @@ async function main() {
     throw new Error(`Arquivo nao encontrado: ${CSV_PATH}`);
   }
 
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
   fs.mkdirSync(REPORT_DIR, { recursive: true });
 
   const imageIndex = buildImageIndex();
@@ -72,12 +71,19 @@ async function main() {
   const products = rows.filter((row) => row.id && row.nome);
   const duplicates = findDuplicates(products);
 
-  if (process.argv.includes("--report-only")) {
+  if (!process.argv.includes("--apply") || process.argv.includes("--report-only")) {
     writeReport(buildReportOnly(products, duplicates, imageIndex));
     return;
   }
 
-  await ensureBlingCatalogSchema();
+  const database = new URL(process.env.DATABASE_URL ?? "invalid:");
+  if (!["localhost", "127.0.0.1", "[::1]"].includes(database.hostname)) {
+    throw new Error("Use --apply somente com um banco local de homologacao.");
+  }
+  if (duplicates.bySku.length || new Set(products.map((row) => row.id)).size !== products.length) {
+    throw new Error("Resolva os IDs ou SKUs duplicados no relatorio antes de aplicar o lote.");
+  }
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
   const categoryIndex = await ensureCategories();
   const importedIds = [];
   const attention = [];
@@ -89,8 +95,10 @@ async function main() {
 
   for (const row of products) {
     const normalizedRow = normalizeBlingRow(row);
-    const imageMatch = findImageForProduct(normalizedRow, imageIndex);
-    const imageUrl = normalizedRow.imageUrl || (imageMatch ? materializeImage(imageMatch, normalizedRow) : null);
+    const imageMatch = findImageForProduct(normalizedRow, imageIndex, false);
+    const existing = await findExistingProduct(normalizedRow);
+    const imageUrl = existing?.images[0]?.url || normalizedRow.imageUrl ||
+      (imageMatch ? materializeImage(imageMatch, normalizedRow) : null);
     const category = inferCategory(normalizedRow.nome, normalizedRow.categoria);
     const categoryId = categoryIndex.bySlug.get(category.categorySlug) ?? categoryIndex.fallbackId;
     const subcategoryId = category.subcategorySlug
@@ -98,7 +106,6 @@ async function main() {
       : null;
 
     const slug = await uniqueSlug(slugify(normalizedRow.nome), normalizedRow.id);
-    const existing = await findExistingProduct(normalizedRow, slug);
     const existingHasDescription = hasTrustedDescription(existing?.description);
     const description = existingHasDescription ? existing.description : TECH_PLACEHOLDER;
     const hasImage = Boolean(imageUrl || existing?.images?.[0]?.url);
@@ -137,20 +144,24 @@ async function main() {
     };
 
     const product = existing
-      ? await prisma.product.update({ where: { id: existing.id }, data })
-      : await prisma.product.create({ data });
-
-    if (imageUrl) {
-      await prisma.productImage.deleteMany({ where: { productId: product.id } });
-      await prisma.productImage.create({
-        data: {
-          productId: product.id,
-          url: imageUrl,
-          alt: normalizedRow.nome,
-          order: 0,
-        },
-      });
-    }
+      ? await prisma.product.update({
+          where: { id: existing.id },
+          data: {
+            price: data.price,
+            stock: data.stock,
+            importedAt: data.importedAt,
+            ...(normalizedRow.situacao !== "A" ? { active: false } : {}),
+          },
+        })
+      : await prisma.product.create({
+          data: {
+            ...data,
+            active: false,
+            images: imageUrl
+              ? { create: { url: imageUrl, alt: normalizedRow.nome, order: 0 } }
+              : undefined,
+          },
+        });
 
     importedIds.push(product.id);
 
@@ -175,8 +186,8 @@ async function main() {
       imagem: imageUrl,
       semImagem: !hasImage,
       semDescricao: !hasDescription,
-      status: publicationStatus,
-      ativo: active,
+      status: product.publicationStatus,
+      ativo: product.active,
       origemImagem: normalizedRow.imageUrl ? "bling_image" : imageMatch?.reason ?? null,
     });
   }
@@ -210,45 +221,6 @@ async function main() {
   };
 
   writeReport(report);
-}
-
-async function ensureBlingCatalogSchema() {
-  await prisma.$executeRawUnsafe(`
-DO $$ BEGIN
-  CREATE TYPE "ProductImportSource" AS ENUM ('MANUAL', 'BLING');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
-
-DO $$ BEGIN
-  CREATE TYPE "ProductEnrichmentStatus" AS ENUM ('NOT_REQUIRED', 'PENDING_RESEARCH', 'ENRICHED', 'NEEDS_MANUAL_REVIEW', 'MANUAL_REVIEWED');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
-
-DO $$ BEGIN
-  CREATE TYPE "ProductPublicationStatus" AS ENUM ('IMPORTED', 'PENDING_REVIEW', 'APPROVED', 'PUBLISHED', 'HIDDEN', 'MISSING_IMAGE', 'MISSING_DESCRIPTION');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
-
-ALTER TABLE "products"
-  ADD COLUMN IF NOT EXISTS "brand" TEXT,
-  ADD COLUMN IF NOT EXISTS "ean" TEXT,
-  ADD COLUMN IF NOT EXISTS "benefits" TEXT,
-  ADD COLUMN IF NOT EXISTS "howToUse" TEXT,
-  ADD COLUMN IF NOT EXISTS "composition" TEXT,
-  ADD COLUMN IF NOT EXISTS "careInstructions" TEXT,
-  ADD COLUMN IF NOT EXISTS "packageContents" TEXT,
-  ADD COLUMN IF NOT EXISTS "blingId" TEXT,
-  ADD COLUMN IF NOT EXISTS "importSource" "ProductImportSource" NOT NULL DEFAULT 'MANUAL',
-  ADD COLUMN IF NOT EXISTS "enrichmentStatus" "ProductEnrichmentStatus" NOT NULL DEFAULT 'NOT_REQUIRED',
-  ADD COLUMN IF NOT EXISTS "publicationStatus" "ProductPublicationStatus" NOT NULL DEFAULT 'IMPORTED',
-  ADD COLUMN IF NOT EXISTS "searchTags" TEXT[] DEFAULT ARRAY[]::TEXT[],
-  ADD COLUMN IF NOT EXISTS "researchSources" JSONB,
-  ADD COLUMN IF NOT EXISTS "researchNotes" TEXT,
-  ADD COLUMN IF NOT EXISTS "researchedAt" TIMESTAMP(3),
-  ADD COLUMN IF NOT EXISTS "importedAt" TIMESTAMP(3);
-
-CREATE UNIQUE INDEX IF NOT EXISTS "products_blingId_key" ON "products"("blingId");
-`);
 }
 
 async function ensureCategories() {
@@ -438,7 +410,7 @@ function buildImageIndex() {
   return { byId, bySku, semantic };
 }
 
-function findImageForProduct(product, imageIndex) {
+function findImageForProduct(product, imageIndex, includeNameCandidates = true) {
   if (imageIndex.byId.has(product.id)) {
     return { item: imageIndex.byId.get(product.id), reason: "bling_id" };
   }
@@ -447,6 +419,7 @@ function findImageForProduct(product, imageIndex) {
     return { item: imageIndex.bySku.get(product.codigo), reason: "sku" };
   }
 
+  if (!includeNameCandidates) return null;
   const productTokens = tokenize(product.nome);
   let best = null;
   for (const item of imageIndex.semantic) {
@@ -483,13 +456,9 @@ function materializeImage(match, product) {
   return null;
 }
 
-async function findExistingProduct(product, slug) {
-  const or = [{ blingId: product.id }, { slug }];
-  if (product.codigo) or.push({ sku: product.codigo });
-  or.push({ name: { equals: product.nome, mode: "insensitive" } });
-
-  return prisma.product.findFirst({
-    where: { OR: or },
+async function findExistingProduct(product) {
+  return prisma.product.findUnique({
+    where: { blingId: product.id },
     include: { images: { orderBy: { order: "asc" } } },
   });
 }
@@ -685,6 +654,7 @@ function findDuplicates(products) {
 function buildReportOnly(products, duplicates, imageIndex) {
   const productReport = [];
   const attention = [];
+  const byImage = new Map();
 
   for (const row of products) {
     const product = normalizeBlingRow(row);
@@ -702,7 +672,7 @@ function buildReportOnly(products, duplicates, imageIndex) {
     issues.push("necessita_revisao");
 
     attention.push({ id: product.id, nome: product.nome, sku: product.codigo, issues });
-    productReport.push({
+    const entry = {
       blingId: product.id,
       nome: product.nome,
       sku: product.codigo || null,
@@ -718,7 +688,9 @@ function buildReportOnly(products, duplicates, imageIndex) {
       status,
       ativo: product.situacao === "A" && product.estoque > 0 && hasImage,
       origemImagem: product.imageUrl ? "bling_image" : imageMatch?.reason ?? null,
-    });
+    };
+    productReport.push(entry);
+    if (entry.imagem) pushMap(byImage, entry.imagem, entry);
   }
 
   return {
@@ -744,6 +716,12 @@ function buildReportOnly(products, duplicates, imageIndex) {
       duplicadosPorNome: duplicates.byName.length,
     },
     duplicates,
+    sharedImages: [...byImage.entries()]
+      .filter(([, items]) => new Set(items.map((item) => item.blingId)).size > 1)
+      .map(([image, items]) => ({
+        image,
+        products: items.map(({ blingId, sku, nome }) => ({ blingId, sku, nome })),
+      })),
     attention,
     products: productReport,
   };

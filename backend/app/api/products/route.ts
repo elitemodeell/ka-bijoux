@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { Prisma, ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -19,7 +20,7 @@ import {
 const productInclude = {
   category: true,
   subcategory: true,
-  images: { orderBy: { order: "asc" as const }, take: 1 },
+  images: { where: visibleCatalogPhotos, orderBy: { order: "asc" as const }, take: 1 },
   variations: { where: { active: true }, orderBy: { order: "asc" as const } },
 };
 
@@ -38,6 +39,7 @@ const productListSelect = {
   category: { select: { name: true, slug: true } },
   subcategory: { select: { name: true, slug: true } },
   images: {
+    where: visibleCatalogPhotos,
     orderBy: { order: "asc" as const },
     take: 1,
     select: { url: true, alt: true },
@@ -160,9 +162,7 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof p
   const rawDbImages = product.images.map((image) => ({ url: image.url, alt: image.alt ?? product.name }));
   const dbImages = isAdultCategory ? rawDbImages : rawDbImages.filter((i) => !isAdultImageUrl(i.url));
   const images = dbImages;
-  const promotionalPrice = bling
-    ? null
-    : product.promotionalPrice
+  const promotionalPrice = product.promotionalPrice
       ? Number(product.promotionalPrice)
       : null;
   const category = product.category
@@ -194,7 +194,7 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof p
     name: product.name,
     slug: product.slug,
     description: product.description,
-    price: bling?.price ?? Number(product.price),
+    price: Number(product.price),
     promotionalPrice,
     promo: promotionalPrice,
     badge: product.isNew ? "Novo" : product.featured ? "Destaque" : null,
@@ -206,7 +206,7 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof p
     images,
     image: images[0]?.url ?? null,
     sourceOrder: 100000,
-    priceSource: bling ? "BLING" : "DATABASE",
+    priceSource: "DATABASE",
     imageSource: dbImages.length ? "DATABASE" : "NONE",
     catalogLine,
     isAdult: catalogLine === "adult",
@@ -391,7 +391,7 @@ export async function POST(req: NextRequest) {
 
     return apiSuccess(product, 201);
   } catch (e) {
-    if (e instanceof z.ZodError) return apiError(e.errors[0].message, 422);
+    if (e instanceof z.ZodError) return apiError(e.issues[0].message, 422);
     return apiError("Erro ao criar produto.", 500);
   }
 }

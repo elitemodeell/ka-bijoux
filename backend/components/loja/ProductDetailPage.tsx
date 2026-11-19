@@ -27,6 +27,7 @@ type RelatedProduct = {
 };
 
 type ProductDetailProduct = StaticProduct & {
+  id?: string;
   brand?: string | null;
   ean?: string | null;
   benefits?: string | null;
@@ -82,29 +83,6 @@ const FAQS = [
   },
 ];
 
-const DEMO_REVIEWS = [
-  {
-    name: "Mariana C.",
-    avatar: "MC",
-    rating: 5,
-    text: "Produto lindo! Chegou super bem embalado e muito mais bonito do que nas fotos. Super recomendo!",
-    date: "há 3 dias",
-  },
-  {
-    name: "Julia F.",
-    avatar: "JF",
-    rating: 5,
-    text: "Adorei a qualidade! A entrega foi rápida e o produto veio perfeito. Já quero comprar mais.",
-    date: "há 1 semana",
-  },
-  {
-    name: "Ana B.",
-    avatar: "AB",
-    rating: 4,
-    text: "Muito bonito e de boa qualidade. Superou as minhas expectativas!",
-    date: "há 2 semanas",
-  },
-];
 
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -114,14 +92,14 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [cartAdded, setCartAdded] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedVariation, setSelectedVariation] = useState(0);
+  const [selectedVariation, setSelectedVariation] = useState<number | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [favorited, setFavorited] = useState(false);
   const [shared, setShared] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   const variations = product.variations ?? product.variants ?? [];
-  const selectedVariant = variations[selectedVariation] ?? null;
+  const selectedVariant = selectedVariation === null ? null : variations[selectedVariation] ?? null;
 
   const images = useMemo(() => {
     const variantGallery = selectedVariant?.images?.filter(Boolean) ?? [];
@@ -145,13 +123,17 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   useEffect(() => { setSelectedImage(0); }, [selectedVariation]);
   useEffect(() => { setImageError(false); }, [imageUrl]);
   const promotionalPrice = getValidPromotionalPrice(product.price, product.promotionalPrice);
-  const finalPrice = promotionalPrice ?? product.price;
+  const finalPrice = (promotionalPrice ?? product.price) + (selectedVariant?.priceModifier ?? 0);
   const discountPct = getDiscountPercentage({ originalPrice: product.price, currentPrice: promotionalPrice });
 
   const categoryName = product.categoryName ?? "KA Bijoux";
   const categorySlug = product.categorySlug ?? "produtos";
   const productSubcategoryName = product.subcategoryName ?? subcategoryName;
-  const available = product.stock > 0;
+  const stock = variations.length ? selectedVariant?.stock ?? 0 : product.stock;
+  const available = stock > 0 && (!variations.length || Boolean(selectedVariant?.id));
+  const hasStock = variations.length
+    ? variations.some((variant) => variant.id && (variant.stock ?? 0) > 0)
+    : product.stock > 0;
   const isAdult = product.isAdult ?? isAdultProduct(categorySlug, product.subcategorySlug, productSubcategoryName, product.name);
   const publicBrand = publicText(product.brand);
 
@@ -183,12 +165,14 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
 
   function cartPayload() {
     return {
-      id: product.sku || product.slug,
-      name: selectedVariant ? `${product.name} — ${selectedVariant.label}` : product.name,
+      id: (selectedVariant?.id && product.id) || product.sku || product.slug,
+      name: product.name,
+      variationId: selectedVariant?.id,
+      variationName: selectedVariant?.label,
       price: finalPrice,
       image: imageUrl,
-      sku: product.sku,
-      stock: product.stock,
+      sku: selectedVariant?.sku ?? product.sku,
+      stock,
       description: product.shortDescription,
       subcategory: { name: productSubcategoryName, slug: product.subcategorySlug },
       category: { name: categoryName, slug: categorySlug },
@@ -350,7 +334,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[#17070C] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_10px_22px_rgba(23,7,12,0.14)]">KA Bijoux</span>
                     {isAdult && <span className="rounded-full border border-[#5d2038]/20 bg-[#5d2038] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white">18+</span>}
-                    {!available ? (
+                    {!hasStock ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-red-100 bg-red-50 px-3 py-1 text-[11px] font-black text-red-600">
                         <span className="h-2 w-2 rounded-full bg-red-500" />
                         Indisponível
@@ -362,17 +346,6 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                 <h1 className="text-2xl font-black leading-tight tracking-tight text-gray-950 sm:text-[29px]">
                   {product.name}
                 </h1>
-
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <div className="flex gap-0.5">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <span key={s} className={`text-sm ${s <= 4 ? "text-amber-400" : "text-amber-200"}`}>★</span>
-                    ))}
-                  </div>
-                  <span className="text-sm font-black text-gray-800">4.8</span>
-                  <span className="text-xs font-semibold text-gray-400">247 avaliações</span>
-                  <span className="ml-auto text-xs font-semibold text-gray-400">247 avaliações</span>
-                </div>
 
                 <div className="mt-5 overflow-hidden rounded-[24px] border border-pink-100 bg-gradient-to-br from-white via-[#fff7fa] to-[#fff0f6] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
                   <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8b5c6d]">Preço KA Bijoux</p>
@@ -402,7 +375,11 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                         <button
                           key={`${v.slug}-${i}`}
                           type="button"
-                          onClick={() => setSelectedVariation(i)}
+                          onClick={() => {
+                            setSelectedVariation(i);
+                            setQuantity(1);
+                          }}
+                          aria-pressed={selectedVariation === i}
                           disabled={v.active === false}
                           className={`min-h-11 rounded-2xl border px-3.5 text-xs font-black transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-40 ${
                             selectedVariation === i
@@ -437,7 +414,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                     <span className="min-w-[2.5rem] text-center text-base font-black text-gray-900">{quantity}</span>
                     <button
                       type="button"
-                      onClick={() => setQuantity((q) => Math.min(Math.max(product.stock, 1), q + 1))}
+                      onClick={() => setQuantity((q) => Math.min(Math.max(stock, 1), q + 1))}
                       className="flex h-11 w-11 items-center justify-center text-xl font-black text-pink-600 transition-colors hover:bg-pink-50 active:bg-pink-100"
                       aria-label="Aumentar quantidade"
                     >
@@ -605,7 +582,6 @@ function ProductInfoTabs({
           isAdult={isAdult}
         />
       )}
-      <ReviewsTab />
       <QuestionsTab openFaq={openFaq} onFaqToggle={onFaqToggle} />
     </div>
   );
@@ -708,69 +684,6 @@ function UsageTab({
                 <div className="mt-2">
                   <RichText value={section.value} />
                 </div>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-      </div>
-    </div>
-  );
-}
-
-function ReviewsTab() {
-  return (
-    <div className="rounded-[30px] border border-pink-100 bg-white p-5 shadow-[0_20px_50px_rgba(23,7,12,0.06)] sm:p-6">
-      <SectionHeader label="Avaliações" />
-    <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
-      <aside className="rounded-[24px] bg-gradient-to-br from-white to-pink-50 p-5 ring-1 ring-pink-100">
-        <div className="mt-4 flex items-end gap-3">
-          <span className="text-6xl font-black leading-none text-gray-950">4.8</span>
-          <span className="pb-2 text-sm font-bold text-gray-500">de 5</span>
-        </div>
-        <div className="mt-3 flex gap-0.5">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <span key={s} className={`text-xl ${s <= 4 ? "text-amber-400" : "text-amber-200"}`}>★</span>
-          ))}
-        </div>
-        <p className="mt-2 text-sm font-semibold text-gray-500">247 clientes avaliaram a experiência.</p>
-        <div className="mt-5 space-y-2">
-          {[5, 4, 3, 2, 1].map((star) => {
-            const pct = star === 5 ? 72 : star === 4 ? 20 : star === 3 ? 5 : star === 2 ? 2 : 1;
-            return (
-              <div key={star} className="flex items-center gap-2 text-xs">
-                <span className="w-3 text-right font-black text-gray-500">{star}</span>
-                <span className="text-amber-400">★</span>
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-white">
-                  <div className="h-full rounded-full bg-gradient-to-r from-amber-300 to-amber-500" style={{ width: `${pct}%` }} />
-                </div>
-                <span className="w-7 font-bold text-gray-400">{pct}%</span>
-              </div>
-            );
-          })}
-        </div>
-      </aside>
-
-      <div className="space-y-3">
-        {DEMO_REVIEWS.map((review, index) => (
-          <article key={review.name} className={`group rounded-[26px] border p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(23,7,12,0.08)] ${
-            index === 1 ? "border-[#17070C]/10 bg-[#17070C] text-white" : "border-pink-100 bg-white text-gray-900"
-          }`}>
-            <div className="flex items-start gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-400 to-pink-600 text-xs font-black text-white shadow-sm">
-                {review.avatar}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-black">{review.name}</p>
-                  <span className={`text-xs font-semibold ${index === 1 ? "text-white/60" : "text-gray-400"}`}>{review.date}</span>
-                </div>
-                <div className="mt-1 flex gap-0.5">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <span key={s} className={`text-xs ${s <= review.rating ? "text-amber-400" : index === 1 ? "text-white/20" : "text-gray-200"}`}>★</span>
-                  ))}
-                </div>
-                <p className={`mt-2 text-sm leading-relaxed ${index === 1 ? "text-white/75" : "text-gray-600"}`}>{review.text}</p>
               </div>
             </div>
           </article>

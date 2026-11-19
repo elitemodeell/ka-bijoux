@@ -20644,46 +20644,9 @@
     "blingId": "16648889349",
     "sku": "3104000004300",
     "name": "MINI BALANÇA",
-    "displayName": "Mini Balanca Digital de Cozinha",
     "isAdult": false,
     "categoryName": "Utilidades Domesticas",
     "subcategoryName": "Cozinha",
-    "shortDescription": "Mini balanca digital para pesar pequenas quantidades com mais praticidade.",
-    "longDescription": "A Mini Balanca Digital e uma aliada na cozinha e em pequenas medicoes do dia a dia. O cadastro foi associado ao produto principal encontrado na Bling.",
-    "details": [
-      "Indicada para pequenas pesagens.",
-      "Uso pratico em bancada.",
-      "Display digital conforme modelo.",
-      "Ideal para cozinha e organizacao domestica."
-    ],
-    "benefits": null,
-    "howToUse": "Posicione em superficie plana, ligue, zere a tara se necessario e coloque o item a ser pesado.",
-    "composition": null,
-    "careInstructions": "Evite molhar, derrubar ou exceder a capacidade indicada pelo fabricante.",
-    "packageContents": "1 mini balanca digital.",
-    "imageFile": "232-mini-balanca-digital-de-cozinha-3104000004300-digital.png",
-    "galleryImages": [
-      "232-mini-balanca-digital-de-cozinha-3104000004300-digital.png"
-    ],
-    "variations": [
-      {
-        "label": "Digital",
-        "slug": "digital",
-        "color": "#eeeeee",
-        "active": true,
-        "sku": "3104000004300",
-        "imageFile": "232-mini-balanca-digital-de-cozinha-3104000004300-digital.png",
-        "images": [
-          "232-mini-balanca-digital-de-cozinha-3104000004300-digital.png"
-        ]
-      }
-    ],
-    "seoKeywords": [
-      "balanca digital",
-      "mini balanca",
-      "cozinha"
-    ],
-    "researchStatus": "fase2_variacoes_produto_principal",
-    "updatedBy": "codex_lote1_phase2"
+    "displayName": "Mini balança digital"
   }
 ]

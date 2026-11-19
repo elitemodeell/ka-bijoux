@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { belongsToCatalogGallery } from "@/lib/catalog-photo";
 import { z } from "zod";
 import { ProductPublicationStatus } from "@prisma/client";
 import { requireAdmin } from "@/lib/auth";
@@ -16,12 +17,15 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     await requireAdmin(req);
     const body = await req.json();
     const data = replaceImageSchema.parse(body);
+    if (!belongsToCatalogGallery(data.url, params.id)) {
+      return apiError("A foto está vinculada a outro produto ou variação.", 422);
+    }
 
     const product = await prisma.product.findUnique({ where: { id: params.id } });
     if (!product) return apiError("Produto nao encontrado.", 404);
 
     await prisma.$transaction([
-      prisma.productImage.deleteMany({ where: { productId: product.id } }),
+      prisma.productImage.deleteMany({ where: { productId: product.id, OR: [{ order: 0 }, { url: data.url }] } }),
       prisma.productImage.create({
         data: {
           productId: product.id,
@@ -43,7 +47,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
     return apiSuccess({ url: data.url });
   } catch (error) {
-    if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof z.ZodError) return apiError(error.issues[0].message, 422);
     return apiError("Erro ao trocar imagem do produto.", 500);
   }
 }

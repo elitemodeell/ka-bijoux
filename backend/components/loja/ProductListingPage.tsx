@@ -961,9 +961,7 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof p
   const rawDbImages = product.images.map((image) => ({ url: image.url, alt: image.alt ?? product.name }));
   const dbImages = isAdultCategory ? rawDbImages : rawDbImages.filter((i) => !isAdultImageUrl(i.url));
   const images = dbImages;
-  const promotionalPrice = bling
-    ? null
-    : product.promotionalPrice
+  const promotionalPrice = product.promotionalPrice
       ? Number(product.promotionalPrice)
       : null;
   const category = product.category
@@ -985,7 +983,7 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof p
     name: product.name,
     slug: product.slug,
     description: product.description,
-    price: bling?.price ?? Number(product.price),
+    price: Number(product.price),
     promotionalPrice,
     promo: promotionalPrice,
     badge: product.isNew ? "Novo" : product.featured ? "Destaque" : null,
@@ -997,7 +995,7 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof p
     images,
     image: images[0]?.url ?? null,
     sourceOrder: 100000,
-    priceSource: bling ? "BLING" : "DATABASE",
+    priceSource: "DATABASE",
     imageSource: dbImages.length ? "DATABASE" : "NONE",
     catalogLine,
     isAdult: catalogLine === "adult",

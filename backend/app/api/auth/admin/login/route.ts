@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (e) {
-    if (e instanceof z.ZodError) return apiError(e.errors[0].message, 422);
+    if (e instanceof z.ZodError) return apiError(e.issues[0].message, 422);
     return apiError("O servidor não conseguiu concluir o acesso. Tente novamente em instantes.", 500);
   }
 }

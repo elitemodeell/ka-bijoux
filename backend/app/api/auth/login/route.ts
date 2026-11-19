@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
     const token = signCustomerToken({ id: customer.id, email: customer.email, name: customer.name });
     return apiSuccess({ token, accessToken: token, customer: publicCustomer(customer), legacySession: true });
   } catch (error) {
-    if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof z.ZodError) return apiError(error.issues[0].message, 422);
     return apiError("Erro interno.", 500);
   }
 }

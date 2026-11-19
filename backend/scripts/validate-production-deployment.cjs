@@ -5,6 +5,9 @@ const { randomBytes } = require("node:crypto");
 loadEnvConfig(process.cwd());
 
 const BASE_URL = "https://kabijoux.com.br";
+const WRITE_SMOKE_APPROVAL = "I_APPROVE_KA_PRODUCTION_SMOKE_WRITES";
+const writeSmokeApproved =
+  process.env.KA_PRODUCTION_WRITE_SMOKE_APPROVAL === WRITE_SMOKE_APPROVAL;
 const prisma = new PrismaClient();
 const results = [];
 const startedAt = Date.now();
@@ -163,6 +166,20 @@ async function run() {
     `HTTP ${methods.response.status}`
   );
 
+  if (!writeSmokeApproved) {
+    record("production_write_smoke", true, "SKIPPED; read-only default");
+    return;
+  }
+
+  if (!process.env.DATABASE_URL?.trim()) {
+    throw new Error(
+      "DATABASE_URL is required before an approved production write smoke test"
+    );
+  }
+
+  // Prove cleanup access before creating any temporary production record.
+  await prisma.$queryRaw`SELECT 1`;
+
   const invalidWebhook = await request("/api/webhooks/asaas", {
     method: "POST",
     body: JSON.stringify({}),
@@ -283,7 +300,7 @@ async function cleanup() {
     record(
       "unhandled_smoke_error",
       false,
-      error instanceof Error ? error.name : "unknown"
+      error instanceof Error ? `${error.name}: ${error.message}` : "unknown"
     );
   } finally {
     try {

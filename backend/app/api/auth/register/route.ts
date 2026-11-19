@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
       return apiError("Serviço de autenticação temporariamente indisponível.", 503);
     }
   } catch (error) {
-    if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof z.ZodError) return apiError(error.issues[0].message, 422);
     return apiError("Erro interno.", 500);
   }
 }

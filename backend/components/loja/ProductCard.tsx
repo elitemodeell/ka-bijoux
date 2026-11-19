@@ -27,6 +27,7 @@ interface Product {
   slug?: string;
   stock?: number;
   sku?: string | null;
+  variations?: readonly unknown[];
   category?: { name: string; slug?: string } | null;
   subcategory?: { name: string; slug?: string } | null;
 }
@@ -106,6 +107,10 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
 
   function handleAddToCart(event?: MouseEvent<HTMLButtonElement>) {
     event?.stopPropagation();
+    if (normalized.variations?.length) {
+      openQuickShop();
+      return;
+    }
     addCartItem(normalized, 1);
     setCartAdded(true);
     window.setTimeout(() => setCartAdded(false), 1500);

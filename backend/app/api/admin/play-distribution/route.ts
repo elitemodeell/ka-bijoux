@@ -160,7 +160,7 @@ export async function PATCH(req: NextRequest) {
 
     return apiSuccess({ updated: true });
   } catch (error) {
-    if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof z.ZodError) return apiError(error.issues[0].message, 422);
     if (error instanceof Error && error.message.includes("autorizado")) {
       return apiError("Não autorizado.", 401);
     }

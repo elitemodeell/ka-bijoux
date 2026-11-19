@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "next dev --webpack -p 3000",
     "build": "prisma generate && next build --webpack",
     "start": "next start",
     "test": "vitest run",
@@ -16,6 +16,16 @@
     "db:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
     "db:seed:sex-shop": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-sex-shop.ts",
     "bling:import": "node scripts/import-bling-products.js",
+    "bling:sync": "node scripts/plan-bling-sync.cjs",
+    "photos:audit": "node scripts/audit-catalog-photos.cjs",
+    "photos:repair": "node scripts/apply-catalog-photo-repair.cjs",
+    "photos:compile-repair": "node scripts/compile-catalog-photo-repair.cjs",
+    "photos:prepare-production": "node scripts/prepare-catalog-production-release.cjs",
+    "photos:pending-review": "node scripts/generate-pending-photo-review.cjs",
+    "photos:repair-production": "node scripts/apply-catalog-photo-repair-production.cjs",
+    "variations:compile-verified": "node scripts/compile-verified-variations.cjs",
+    "variations:repair": "node scripts/apply-verified-variations.cjs",
+    "integrations:verify-sandbox": "node scripts/verify-sandbox-integrations.cjs",
     "products:audit": "node scripts/audit-product-content.js",
     "auth:diagnose": "node scripts/diagnose-supabase-auth-migration.cjs",
     "auth:migrate": "node scripts/migrate-customers-to-supabase-auth.cjs",
@@ -34,7 +44,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "sharp": "^0.35.3",
-    "zod": "^3.23.8"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -48,7 +58,7 @@
     "tailwindcss": "^3.4.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5",
-    "vitest": "^3.2.6"
+    "vitest": "^5.1.1"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"

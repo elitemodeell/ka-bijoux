@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
+import { getValidPromotionalPrice } from "@/lib/store-rules";
 import { buildProductIdentityFilters } from "@/lib/product-identity";
 
 const cartInclude = {
@@ -51,10 +52,12 @@ export async function GET(req: NextRequest) {
 }
 
 const addItemSchema = z.object({
-  productId: z.string(),
-  variationId: z.string().optional(),
+  productId: z.string().min(1).max(200),
+  variationId: z.string().min(1).max(200).optional(),
   quantity: z.number().int().min(1).default(1),
 });
+
+const mergeSchema = z.object({ items: z.array(addItemSchema.extend({ quantity: z.number().int().min(1).max(99) })).min(1).max(80) }).strict();
 
 class CartMutationError extends Error {
   constructor(message: string, readonly status: number) {
@@ -67,26 +70,9 @@ class CartMutationError extends Error {
 export async function POST(req: NextRequest) {
   try {
     const customer = await requireCustomer(req);
-    const { productId, variationId, quantity } = addItemSchema.parse(await req.json());
-
-    const product = await prisma.product.findFirst({
-      where: { active: true, OR: buildProductIdentityFilters(productId) },
-      include: { variations: true },
-    });
-    if (!product) return apiError("Produto não encontrado.", 404);
-
-    const variation = variationId
-      ? product.variations.find(
-          (candidate) => candidate.id === variationId && candidate.active
-        )
-      : null;
-    if (variationId && !variation) {
-      return apiError("Variação não encontrada ou indisponível.", 409);
-    }
-
-    const availableStock = variation?.stock ?? product.stock;
-    const basePrice = Number(product.promotionalPrice ?? product.price);
-    const unitPrice = basePrice + Number(variation?.priceModifier ?? 0);
+    const body: unknown = await req.json();
+    const merge = typeof body === "object" && body !== null && "items" in body;
+    const items = merge ? mergeSchema.parse(body).items : [addItemSchema.parse(body)];
     const cartRecord = await getOrCreateCart(customer.id);
 
     await prisma.$transaction(async (tx) => {
@@ -96,44 +82,81 @@ export async function POST(req: NextRequest) {
         SELECT "id" FROM "carts" WHERE "id" = ${cartRecord.id} FOR UPDATE
       `;
 
-      const matchingItems = await tx.cartItem.findMany({
-        where: {
-          cartId: cartRecord.id,
-          productId: product.id,
-          variationId: variationId ?? null,
-        },
-        orderBy: { createdAt: "asc" },
-      });
-      const existingQuantity = matchingItems.reduce(
-        (sum, item) => sum + item.quantity,
-        0
-      );
-      const newQuantity = existingQuantity + quantity;
-      if (availableStock < newQuantity) {
-        throw new CartMutationError("Estoque insuficiente.", 409);
-      }
+      for (const { productId, variationId, quantity } of items) {
+        const include = { variations: { where: { active: true } } } as const;
+        let product = await tx.product.findFirst({
+          where: { active: true, id: productId },
+          include,
+        });
+        if (!product) {
+          const candidates = await tx.product.findMany({
+            where: { active: true, OR: buildProductIdentityFilters(productId) },
+            include,
+            take: 2,
+          });
+          if (candidates.length > 1) {
+            throw new CartMutationError("Produto ambíguo. Remova o item e selecione novamente no catálogo.", 409);
+          }
+          product = candidates[0] ?? null;
+        }
+        if (!product) throw new CartMutationError("Produto não encontrado.", 404);
+        const variation = product.variations.find((candidate) => candidate.id === variationId);
+        if (variationId && !variation) {
+          throw new CartMutationError("Variação não encontrada ou indisponível.", 409);
+        }
+        if (!variationId && product.variations.length) {
+          throw new CartMutationError("Selecione uma variação do produto.", 422);
+        }
+        const availableStock = product.sharedVariationStock ? product.stock : variation?.stock ?? product.stock;
+        const regularPrice = Number(product.price);
+        const basePrice = getValidPromotionalPrice(regularPrice, product.promotionalPrice?.toString()) ?? regularPrice;
+        const unitPrice = basePrice + Number(variation?.priceModifier ?? 0);
 
-      if (matchingItems.length === 0) {
-        await tx.cartItem.create({
-          data: {
+        const matchingItems = await tx.cartItem.findMany({
+          where: {
             cartId: cartRecord.id,
             productId: product.id,
             variationId: variationId ?? null,
-            quantity,
-            unitPrice,
           },
+          orderBy: { createdAt: "asc" },
         });
-        return;
-      }
+        const existingQuantity = matchingItems.reduce(
+          (sum, item) => sum + item.quantity,
+          0
+        );
+        const newQuantity = merge ? Math.max(existingQuantity, quantity) : existingQuantity + quantity;
+        const otherOptions = product.sharedVariationStock
+          ? await tx.cartItem.aggregate({
+              where: { cartId: cartRecord.id, productId: product.id, id: { notIn: matchingItems.map((item) => item.id) } },
+              _sum: { quantity: true },
+            })
+          : null;
+        if (availableStock < newQuantity + (otherOptions?._sum.quantity ?? 0)) {
+          throw new CartMutationError("Estoque insuficiente.", 409);
+        }
 
-      await tx.cartItem.update({
-        where: { id: matchingItems[0].id },
-        data: { quantity: newQuantity, unitPrice },
-      });
-      if (matchingItems.length > 1) {
-        await tx.cartItem.deleteMany({
-          where: { id: { in: matchingItems.slice(1).map((item) => item.id) } },
+        if (matchingItems.length === 0) {
+          await tx.cartItem.create({
+            data: {
+              cartId: cartRecord.id,
+              productId: product.id,
+              variationId: variationId ?? null,
+              quantity: newQuantity,
+              unitPrice,
+            },
+          });
+          continue;
+        }
+
+        await tx.cartItem.update({
+          where: { id: matchingItems[0].id },
+          data: { quantity: newQuantity, unitPrice },
         });
+        if (matchingItems.length > 1) {
+          await tx.cartItem.deleteMany({
+            where: { id: { in: matchingItems.slice(1).map((item) => item.id) } },
+          });
+        }
       }
     });
 
@@ -150,7 +173,7 @@ export async function POST(req: NextRequest) {
       itemCount: updatedCart.items.length,
     });
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof z.ZodError) return apiError(error.issues[0].message, 422);
     if (error instanceof CartMutationError) return apiError(error.message, error.status);
     if (error instanceof Error && error.message === "Não autorizado") {
       return apiError("Não autorizado.", 401);

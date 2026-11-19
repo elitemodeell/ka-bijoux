@@ -9,6 +9,8 @@ export type ClientCartMedia = {
 
 export type ClientCartProduct = {
   id: string;
+  variationId?: string;
+  variationName?: string;
   name: string;
   description?: string | null;
   price: number;
@@ -27,6 +29,10 @@ export type ClientCartItem = ClientCartProduct & {
   unitPrice: number;
   addedAt: string;
 };
+
+export function getCartItemKey(item: Pick<ClientCartProduct, "id" | "variationId">) {
+  return JSON.stringify([item.id, item.variationId ?? null]);
+}
 
 export const CART_EVENT = "ka:cart-updated";
 
@@ -88,7 +94,8 @@ export function saveCartItems(items: ClientCartItem[]) {
 export function addCartItem(product: ClientCartProduct, quantity = 1) {
   const normalized = normalizeCartProduct(product);
   const items = getCartItems();
-  const currentIndex = items.findIndex((item) => item.id === normalized.id);
+  if (normalized.stock === 0) return items;
+  const currentIndex = items.findIndex((item) => getCartItemKey(item) === getCartItemKey(normalized));
   const safeQuantity = Math.max(1, quantity);
   const unitPrice = normalized.promo ?? normalized.price;
 
@@ -97,12 +104,12 @@ export function addCartItem(product: ClientCartProduct, quantity = 1) {
       ...items[currentIndex],
       ...normalized,
       unitPrice,
-      quantity: items[currentIndex].quantity + safeQuantity,
+      quantity: Math.min(normalized.stock ?? Infinity, items[currentIndex].quantity + safeQuantity),
     };
   } else {
     items.unshift({
       ...normalized,
-      quantity: safeQuantity,
+      quantity: Math.min(normalized.stock ?? Infinity, safeQuantity),
       unitPrice,
       addedAt: new Date().toISOString(),
     });
@@ -111,18 +118,20 @@ export function addCartItem(product: ClientCartProduct, quantity = 1) {
   return saveCartItems(items);
 }
 
-export function updateCartItem(productId: string, quantity: number) {
+export function updateCartItem(key: string, quantity: number) {
   const items = getCartItems();
   const nextItems =
     quantity <= 0
-      ? items.filter((item) => item.id !== productId)
-      : items.map((item) => (item.id === productId ? { ...item, quantity: Math.max(1, quantity) } : item));
+      ? items.filter((item) => getCartItemKey(item) !== key)
+      : items.map((item) => getCartItemKey(item) === key
+        ? { ...item, quantity: Math.min(item.stock ?? Infinity, quantity) }
+        : item);
 
   return saveCartItems(nextItems);
 }
 
-export function removeCartItem(productId: string) {
-  return saveCartItems(getCartItems().filter((item) => item.id !== productId));
+export function removeCartItem(key: string) {
+  return updateCartItem(key, 0);
 }
 
 export function clearCart() {

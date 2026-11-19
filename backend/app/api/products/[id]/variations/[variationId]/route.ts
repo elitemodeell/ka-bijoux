@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { belongsToCatalogGallery } from "@/lib/catalog-photo";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
@@ -25,26 +26,27 @@ export async function PATCH(
     await requireAdmin(req);
     const body = await req.json();
     const data = updateSchema.parse(body);
-
-    if (data.isDefault === true) {
-      await prisma.productVariation.updateMany({
-        where: { productId: params.id, id: { not: params.variationId } },
-        data: { isDefault: false },
-      });
+    if (data.imageUrl && !belongsToCatalogGallery(data.imageUrl, params.id, params.variationId)) {
+      return apiError("A foto está vinculada a outro produto ou variação.", 422);
     }
 
-    const variation = await prisma.productVariation.update({
-      where: { id: params.variationId },
-      data: {
-        ...data,
-        sku: data.sku ?? undefined,
-        imageUrl: data.imageUrl ?? undefined,
-      },
+    const variation = await prisma.$transaction(async (tx) => {
+      const updated = await tx.productVariation.update({
+        where: { id: params.variationId, productId: params.id },
+        data,
+      });
+      if (data.isDefault === true) {
+        await tx.productVariation.updateMany({
+          where: { productId: params.id, id: { not: params.variationId } },
+          data: { isDefault: false },
+        });
+      }
+      return updated;
     });
 
     return apiSuccess(variation);
   } catch (e) {
-    if (e instanceof z.ZodError) return apiError(e.errors[0].message, 422);
+    if (e instanceof z.ZodError) return apiError(e.issues[0].message, 422);
     return apiError("Erro ao atualizar variação.", 500);
   }
 }
@@ -56,7 +58,10 @@ export async function DELETE(
   const params = await props.params;
   try {
     await requireAdmin(req);
-    await prisma.productVariation.delete({ where: { id: params.variationId } });
+    await prisma.productVariation.update({
+      where: { id: params.variationId, productId: params.id },
+      data: { active: false, isDefault: false },
+    });
     return apiSuccess({ message: "Variação removida." });
   } catch {
     return apiError("Erro ao remover variação.", 500);

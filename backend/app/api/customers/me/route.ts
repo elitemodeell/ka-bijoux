@@ -149,7 +149,7 @@ export async function PATCH(req: NextRequest) {
     return apiSuccess(updated);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const issue = error.errors[0];
+      const issue = error.issues[0];
       const code = issue.path[0] === "cpf"
         ? "CPF_INVALID"
         : issue.path[0] === "phone"

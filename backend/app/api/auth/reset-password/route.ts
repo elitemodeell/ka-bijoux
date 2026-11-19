@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
     return apiSuccess({ message: "Senha redefinida com sucesso." });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return apiError(error.errors[0].message, 422);
+      return apiError(error.issues[0].message, 422);
     }
     console.error("reset-password request failed");
     return apiError("Erro interno.", 500);

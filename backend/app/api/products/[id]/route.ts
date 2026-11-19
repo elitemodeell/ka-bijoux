@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { belongsToCatalogGallery } from "@/lib/catalog-photo";
 import { z } from "zod";
 import { ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -73,20 +74,14 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     // Apply Bling catalog overlays: display name and current price
     // (same strategy the website uses — DB may have stale name/price from import)
-    const blingEntry = findBlingProductForSource({
-      blingId: product.blingId,
-      sku: product.sku,
-      slug: product.slug,
-      name: product.name,
-    });
 
     // A Bling complementa apenas preco; nome, descricao, categoria e imagens
     // continuam sendo o cadastro editado no site.
     const enrichedProduct = {
       ...filteredProduct,
       name: product.name,
-      price: blingEntry ? blingEntry.price : Number(product.price),
-      promotionalPrice: blingEntry ? null : (product.promotionalPrice ? Number(product.promotionalPrice) : null),
+      price: Number(product.price),
+      promotionalPrice: product.promotionalPrice ? Number(product.promotionalPrice) : null,
       description: product.description,
     };
 
@@ -153,79 +148,86 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       importSource === ProductImportSource.BLING && !data.enrichmentStatus;
 
     const { images, variations, ...rest } = data;
-
-    const product = await prisma.product.update({
-      where: { id: params.id },
-      data: {
-        ...rest,
-        importSource,
-        enrichmentStatus: shouldQueueResearch
-          ? ProductEnrichmentStatus.PENDING_RESEARCH
-          : rest.enrichmentStatus,
-        importedAt: importSource === ProductImportSource.BLING ? new Date() : undefined,
-      },
-      include: productInclude,
-    });
-
-    if (images) {
-      await prisma.productImage.deleteMany({ where: { productId: params.id } });
-      if (images.length > 0) {
-        await prisma.productImage.createMany({
-          data: images.map((img, i) => ({
-            productId: params.id,
-            url: img.url,
-            alt: img.alt ?? product.name,
-            order: img.order ?? i,
-          })),
-        });
-      }
+    if (images?.some(({ url }) => !belongsToCatalogGallery(url, params.id)) ||
+        variations?.some(({ id, imageUrl }) => imageUrl && !belongsToCatalogGallery(imageUrl, params.id, id))) {
+      return apiError("Uma foto está vinculada a outro produto ou variação.", 422);
     }
 
-    if (variations) {
-      const incomingIds = variations.filter((v) => v.id).map((v) => v.id as string);
-      await prisma.productVariation.deleteMany({
-        where: { productId: params.id, id: { notIn: incomingIds } },
+    const updated = await prisma.$transaction(async (tx) => {
+      const product = await tx.product.update({
+        where: { id: params.id },
+        data: {
+          ...rest,
+          importSource,
+          enrichmentStatus: shouldQueueResearch
+            ? ProductEnrichmentStatus.PENDING_RESEARCH
+            : rest.enrichmentStatus,
+          importedAt: importSource === ProductImportSource.BLING ? new Date() : undefined,
+        },
+        include: productInclude,
       });
 
-      if (variations.some((v) => v.isDefault)) {
-        const defaultId = variations.find((v) => v.isDefault)?.id;
-        if (defaultId) {
-          await prisma.productVariation.updateMany({
-            where: { productId: params.id, id: { not: defaultId } },
-            data: { isDefault: false },
-          });
-        }
-      }
-
-      for (const v of variations) {
-        if (v.id) {
-          await prisma.productVariation.update({
-            where: { id: v.id },
-            data: {
-              name: v.name, value: v.value,
-              sku: v.sku || null, imageUrl: v.imageUrl || null,
-              stock: v.stock, priceModifier: v.priceModifier,
-              isDefault: v.isDefault, order: v.order, active: v.active,
-            },
-          });
-        } else {
-          await prisma.productVariation.create({
-            data: {
+      if (images) {
+        await tx.productImage.deleteMany({ where: { productId: params.id } });
+        if (images.length > 0) {
+          await tx.productImage.createMany({
+            data: [...new Map(images.map((image) => [image.url, image])).values()].map((img, i) => ({
               productId: params.id,
-              name: v.name, value: v.value,
-              sku: v.sku || null, imageUrl: v.imageUrl || null,
-              stock: v.stock, priceModifier: v.priceModifier,
-              isDefault: v.isDefault, order: v.order, active: v.active,
-            },
+              url: img.url,
+              alt: img.alt ?? product.name,
+              order: img.order ?? i,
+            })),
           });
         }
       }
-    }
 
-    const updated = await prisma.product.findUnique({ where: { id: params.id }, include: productInclude });
+      if (variations) {
+        const incomingIds = variations.filter((v) => v.id).map((v) => v.id as string);
+        await tx.productVariation.updateMany({
+          where: { productId: params.id, id: { notIn: incomingIds } },
+          data: { active: false, isDefault: false },
+        });
+
+        if (variations.some((v) => v.isDefault)) {
+          const defaultId = variations.find((v) => v.isDefault)?.id;
+          if (defaultId) {
+            await tx.productVariation.updateMany({
+              where: { productId: params.id, id: { not: defaultId } },
+              data: { isDefault: false },
+            });
+          }
+        }
+
+        for (const v of variations) {
+          if (v.id) {
+            await tx.productVariation.update({
+              where: { id: v.id, productId: params.id },
+              data: {
+                name: v.name, value: v.value,
+                sku: v.sku || null, imageUrl: v.imageUrl || null,
+                stock: v.stock, priceModifier: v.priceModifier,
+                isDefault: v.isDefault, order: v.order, active: v.active,
+              },
+            });
+          } else {
+            await tx.productVariation.create({
+              data: {
+                productId: params.id,
+                name: v.name, value: v.value,
+                sku: v.sku || null, imageUrl: v.imageUrl || null,
+                stock: v.stock, priceModifier: v.priceModifier,
+                isDefault: v.isDefault, order: v.order, active: v.active,
+              },
+            });
+          }
+        }
+      }
+
+      return tx.product.findUnique({ where: { id: params.id }, include: productInclude });
+    });
     return apiSuccess(updated);
   } catch (e) {
-    if (e instanceof z.ZodError) return apiError(e.errors[0].message, 422);
+    if (e instanceof z.ZodError) return apiError(e.issues[0].message, 422);
     return apiError("Erro ao atualizar produto.", 500);
   }
 }

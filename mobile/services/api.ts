@@ -5,7 +5,7 @@ import { Platform } from "react-native";
 import { getSupabaseClientIfConfigured } from "@/lib/supabase";
 import { logAuthFailure } from "@/lib/authDiagnostics";
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://kabijoux.com.br";
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || (__DEV__ ? "http://127.0.0.1:3000" : "https://kabijoux.com.br");
 export const MOBILE_API_PREFIX = "/api/mobile" as const;
 
 export const api = axios.create({

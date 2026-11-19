@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     return apiSuccess(result);
   } catch (error) {
-    if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof z.ZodError) return apiError(error.issues[0].message, 422);
     console.error(error);
     return apiError("Erro ao enriquecer produtos importados da Bling.", 500);
   }

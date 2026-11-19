@@ -53,6 +53,9 @@ export async function POST(req: NextRequest) {
     if (input.variationId && !variation) {
       return apiError("Variação não encontrada.", 404);
     }
+    if (!input.variationId && product.variations.length > 0) {
+      return apiError("Selecione uma variação do produto.", 422);
+    }
 
     await prisma.$transaction(
       async (tx) => {
@@ -85,8 +88,16 @@ export async function POST(req: NextRequest) {
         const quantity = input.mode === "SET" || input.mode === "BUY_NOW"
           ? input.quantity
           : (existing?.quantity ?? 0) + input.quantity;
-        const availableStock = variation?.stock ?? product.stock;
-        if (quantity > availableStock) throw new Error("CART_STOCK_EXCEEDED");
+        const availableStock = product.sharedVariationStock ? product.stock : variation?.stock ?? product.stock;
+        const otherOptions = product.sharedVariationStock
+          ? await tx.cartItem.aggregate({
+              where: { cartId: cart.id, productId: product.id, id: existing ? { not: existing.id } : undefined },
+              _sum: { quantity: true },
+            })
+          : null;
+        if (quantity + (otherOptions?._sum.quantity ?? 0) > availableStock) {
+          throw new Error("CART_STOCK_EXCEEDED");
+        }
         const unitPrice =
           Number(product.promotionalPrice ?? product.price) +
           Number(variation?.priceModifier ?? 0);
@@ -114,7 +125,7 @@ export async function POST(req: NextRequest) {
     const cart = await sanitizeGooglePlayCart(customer.id);
     return apiSuccess(toGooglePlayPublicData({ ...cart, ...googlePlayCartTotals(cart) }), 201);
   } catch (error) {
-    if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof z.ZodError) return apiError(error.issues[0].message, 422);
     if (error instanceof Error && error.message === "Não autorizado") {
       return apiError("Não autorizado.", 401);
     }

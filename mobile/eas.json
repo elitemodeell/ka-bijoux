@@ -14,11 +14,9 @@
       },
       "env": {
         "EXPO_PUBLIC_APP_DISTRIBUTION": "GOOGLE_PLAY",
-        "EXPO_PUBLIC_API_URL": "https://kabijoux.com.br",
-        "EXPO_PUBLIC_SITE_URL": "https://kabijoux.com.br",
-        "EXPO_PUBLIC_SUPABASE_URL": "https://sxohqngzypmxtmuulfoa.supabase.co",
-        "EXPO_PUBLIC_AUTH_GOOGLE_ENABLED": "true"
-      }
+        "EXPO_PUBLIC_KA_ENVIRONMENT": "homologation"
+      },
+      "environment": "development"
     },
     "preview": {
       "node": "20.19.4",
@@ -29,11 +27,21 @@
       },
       "env": {
         "EXPO_PUBLIC_APP_DISTRIBUTION": "GOOGLE_PLAY",
-        "EXPO_PUBLIC_API_URL": "https://kabijoux.com.br",
-        "EXPO_PUBLIC_SITE_URL": "https://kabijoux.com.br",
-        "EXPO_PUBLIC_SUPABASE_URL": "https://sxohqngzypmxtmuulfoa.supabase.co",
-        "EXPO_PUBLIC_AUTH_GOOGLE_ENABLED": "true"
-      }
+        "EXPO_PUBLIC_KA_ENVIRONMENT": "homologation"
+      },
+      "environment": "preview"
+    },
+    "testflight-homologation": {
+      "node": "20.19.4",
+      "distribution": "store",
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_APP_DISTRIBUTION": "GOOGLE_PLAY",
+        "EXPO_PUBLIC_KA_ENVIRONMENT": "homologation",
+        "KA_IOS_HOMOLOGATION_VERSION": "1.0.2",
+        "KA_IOS_HOMOLOGATION_BUILD_NUMBER": "19"
+      },
+      "environment": "preview"
     },
     "production": {
       "node": "20.19.4",
@@ -48,10 +56,16 @@
         "EXPO_PUBLIC_SITE_URL": "https://kabijoux.com.br",
         "EXPO_PUBLIC_SUPABASE_URL": "https://sxohqngzypmxtmuulfoa.supabase.co",
         "EXPO_PUBLIC_AUTH_GOOGLE_ENABLED": "true"
-      }
+      },
+      "environment": "production"
     }
   },
   "submit": {
+    "testflight-homologation": {
+      "ios": {
+        "ascAppId": "6798015933"
+      }
+    },
     "production": {
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",

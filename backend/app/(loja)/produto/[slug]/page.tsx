@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { isQuarantinedCatalogPhoto } from "@/lib/catalog-photo";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { Prisma } from "@prisma/client";
@@ -62,6 +63,7 @@ type DbProduct = {
   price: number | string;
   promotionalPrice: number | string | null;
   stock: number;
+  sharedVariationStock: boolean;
   weight: number | string;
   height: number | string;
   width: number | string;
@@ -80,6 +82,8 @@ type DbProduct = {
     value: string;
     stock: number;
     priceModifier: number | string;
+    imageUrl: string | null;
+    sku: string | null;
     active: boolean;
   }[];
 };
@@ -175,6 +179,7 @@ async function fetchDbProduct(lookup: ProductLookup): Promise<DbProduct | null> 
       price: Number(product.price),
       promotionalPrice: product.promotionalPrice ? Number(product.promotionalPrice) : null,
       stock: product.stock,
+      sharedVariationStock: product.sharedVariationStock,
       weight: Number(product.weight),
       height: Number(product.height),
       width: Number(product.width),
@@ -200,6 +205,8 @@ async function fetchDbProduct(lookup: ProductLookup): Promise<DbProduct | null> 
          name: variation.name,
          value: variation.value,
          stock: variation.stock,
+         imageUrl: variation.imageUrl,
+         sku: variation.sku,
         priceModifier: Number(variation.priceModifier),
         active: variation.active,
       })),
@@ -334,7 +341,7 @@ export default async function ProdutoPage(props: PageProps) {
       ? getSubcategoryPathSlug(dbProduct.subcategory.slug)
       : "";
     const isAdultProduct = dbProduct.category?.slug === "sex-shop";
-    const rawDbImages = dbProduct.images.map((image) => image.url);
+    const rawDbImages = dbProduct.images.map((image) => image.url).filter((url) => !isQuarantinedCatalogPhoto(url, dbProduct.id));
     const dbImages = isAdultProduct ? rawDbImages : rawDbImages.filter((url) => !isAdultImageUrl(url));
     const galleryImages = dbImages;
     const contentOverride = getProductContentOverride({
@@ -375,6 +382,11 @@ export default async function ProdutoPage(props: PageProps) {
 
     const overrideGalleryImages = getOverrideGalleryImages(contentOverride, galleryImages);
     const dbVariations = dbProduct.variations.map((variation) => ({
+      id: variation.id,
+      sku: variation.sku ?? undefined,
+      stock: dbProduct.sharedVariationStock ? dbProduct.stock : variation.stock,
+      priceModifier: Number(variation.priceModifier),
+      images: variation.imageUrl && !isQuarantinedCatalogPhoto(variation.imageUrl, dbProduct.id) ? [variation.imageUrl] : undefined,
       label: `${variation.name}: ${variation.value}`,
       slug: `${variation.name}-${variation.value}`
         .normalize("NFD")
@@ -382,18 +394,19 @@ export default async function ProdutoPage(props: PageProps) {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, ""),
-      active: variation.stock > 0,
+      active: (dbProduct.sharedVariationStock ? dbProduct.stock : variation.stock) > 0,
     }));
     const overrideVariations = getOverrideVariations(contentOverride);
 
     const adaptedProduct = {
+      id: dbProduct.id,
       slug: canonicalSlug,
       name: dbProduct.name,
       sku: dbProduct.sku ?? blingProduct?.sku ?? "",
       brand: dbProduct.brand ?? undefined,
       ean: dbProduct.ean ?? undefined,
-      price: blingProduct?.price ?? Number(dbProduct.price),
-      promotionalPrice: blingProduct ? null : dbProduct.promotionalPrice ? Number(dbProduct.promotionalPrice) : null,
+      price: Number(dbProduct.price),
+      promotionalPrice: dbProduct.promotionalPrice ? Number(dbProduct.promotionalPrice) : null,
       categoryName: dbProduct.category?.name ?? "KA Bijoux",
       categorySlug: dbProduct.category?.slug ?? "produtos",
       subcategoryName,
@@ -415,7 +428,7 @@ export default async function ProdutoPage(props: PageProps) {
       height: Number(dbProduct.height),
       width: Number(dbProduct.width),
       length: Number(dbProduct.length),
-      variations: overrideVariations.length ? overrideVariations : dbVariations,
+      variations: dbVariations.length ? dbVariations : overrideVariations,
       relatedSlugs: [] as string[],
       relatedProducts,
       badge: dbProduct.isNew ? "Novo" : dbProduct.featured ? "Destaque" : undefined,
@@ -513,9 +526,7 @@ function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | nu
   const isAdultRelated = product.category?.slug === "sex-shop";
   const dbImage = rawDbImage && !isAdultRelated && isAdultImageUrl(rawDbImage) ? null : rawDbImage;
   const image = dbImage ?? null;
-  const promotionalPrice = bling
-    ? null
-    : product.promotionalPrice
+  const promotionalPrice = product.promotionalPrice
       ? Number(product.promotionalPrice)
       : null;
   const category = product.category ? { name: product.category.name, slug: product.category.slug } : null;
@@ -534,7 +545,7 @@ function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | nu
     id: product.id,
     name: product.name,
     slug: product.slug,
-    price: bling?.price ?? Number(product.price),
+    price: Number(product.price),
     promotionalPrice,
     image,
     images: image ? [{ url: image, alt: product.name }] : [],

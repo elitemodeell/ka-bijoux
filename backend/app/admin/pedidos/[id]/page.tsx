@@ -14,7 +14,7 @@ type Order = {
   notes?: string; createdAt: string;
   customer: { name: string; email: string; phone?: string };
   address?: { street: string; number: string; complement?: string; neighborhood: string; city: string; state: string; zipCode: string; recipientName?: string; recipientPhone?: string };
-  items: Array<{ id: string; productName: string; productImage?: string; variationName?: string; quantity: number; unitPrice: number; totalPrice: number }>;
+  items: Array<{ id: string; productName: string; productImage?: string; variationName?: string; sku?: string | null; quantity: number; unitPrice: number; totalPrice: number }>;
   payment?: { method: string; status: string; pixCode?: string };
   statusHistory: Array<{ id: string; status: OrderStatus; note?: string; createdAt: string }>;
 };
@@ -89,6 +89,7 @@ export default function PedidoDetailPage() {
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-gray-800">{item.productName}</p>
                     {item.variationName && <p className="text-xs text-gray-400">{item.variationName}</p>}
+                    {item.sku && <p className="text-xs text-gray-500">SKU {item.sku}</p>}
                     <p className="text-sm text-gray-500">Qtd: {item.quantity} × {formatCurrency(item.unitPrice)}</p>
                   </div>
                   <p className="font-semibold text-gray-900">{formatCurrency(item.totalPrice)}</p>

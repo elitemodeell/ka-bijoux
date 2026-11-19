@@ -51,7 +51,7 @@ export async function PUT(
 
     return apiSuccess(serializeStoryItem(item));
   } catch (error) {
-    if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof z.ZodError) return apiError(error.issues[0].message, 422);
     return authError(error);
   }
 }

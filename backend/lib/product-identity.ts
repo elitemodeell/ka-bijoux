@@ -37,10 +37,7 @@ export function buildProductIdentityFilters(identifier: string) {
       ? findBlingProductForSource({ blingId })
       : getBlingProductBySlug(value)) ??
     findBlingProductForSource({
-      blingId,
       sku: value,
-      slug: value,
-      name: value,
     });
 
   if (blingProduct) {

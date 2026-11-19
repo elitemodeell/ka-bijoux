@@ -101,7 +101,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     });
     return apiSuccess(toGooglePlayPublicData(review), 201);
   } catch (error) {
-    if (error instanceof z.ZodError) return apiError(error.errors[0].message, 422);
+    if (error instanceof z.ZodError) return apiError(error.issues[0].message, 422);
     return apiError("Erro ao salvar avaliação.", 500);
   }
 }

@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     return apiSuccess(address, 201);
   } catch (e) {
-    if (e instanceof z.ZodError) return apiError(e.errors[0].message, 422);
+    if (e instanceof z.ZodError) return apiError(e.issues[0].message, 422);
     if (e instanceof Error && e.message === "Não autorizado")
       return apiError("Não autorizado.", 401);
     return apiError("Erro ao criar endereço.", 500);

@@ -109,6 +109,8 @@ if (releaseTaskRequested && !easBuildWillInjectCredentials && !missingReleaseSig
  * this variant is about 6MiB larger per architecture than default.
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
+def homologationBuild = System.getenv('EXPO_PUBLIC_KA_ENVIRONMENT') == 'homologation' ||
+    System.getenv('EAS_BUILD_PROFILE') in ['development', 'preview']
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -130,6 +132,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 12
         versionName "1.1.0"
+        manifestPlaceholders.kaExpoUpdatesEnabled = (!homologationBuild).toString()
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
     signingConfigs {

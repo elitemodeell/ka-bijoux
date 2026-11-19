@@ -247,7 +247,8 @@ export default function ProdutoScreen() {
         setProduct(p);
         setRelated(res.data.data.related ?? []);
         const def = p.variations.find((v) => v.isDefault) ?? null;
-        if (def && def.stock > 0) setSelectedVariation(def.id);
+        setSelectedVariation(def && def.stock > 0 ? def.id : null);
+        setQuantity(1);
       })
       .catch((err) => { if (err.response?.status === 404) setNotFound(true); })
       .finally(() => setLoading(false));
@@ -322,6 +323,7 @@ export default function ProdutoScreen() {
     if (v.stock === 0) return;
     setVariationError(false);
     setSelectedVariation((prev) => (prev === v.id ? null : v.id));
+    setQuantity(1);
     setSelectedImage(0);
   }
 
@@ -337,9 +339,8 @@ export default function ProdutoScreen() {
     setCartAction(action);
     try {
       if (action === "buy") {
-        const operation = buyNow(product.id, quantity, selectedVariation ?? undefined);
+        await buyNow(product.id, quantity, selectedVariation ?? undefined);
         router.push("/checkout");
-        await operation;
         return;
       }
       await addItem(product.id, quantity, selectedVariation ?? undefined);
@@ -386,12 +387,13 @@ export default function ProdutoScreen() {
   ]));
   const isAvailable = hasVariations ? product.variations.some((v) => v.stock > 0) : product.stock > 0;
   const activeStock = activeVariation ? activeVariation.stock : product.stock;
-  const priceModifier = activeVariation?.priceModifier ?? 0;
+  const priceModifier = Number(activeVariation?.priceModifier ?? 0);
   const basePrice = product.promotionalPrice && product.promotionalPrice < product.price ? product.promotionalPrice : product.price;
   const hasPromo = !!product.promotionalPrice && product.promotionalPrice < product.price;
   const price = Number(basePrice) + priceModifier;
   const discount = hasPromo ? Math.round(((Number(product.price) - Number(product.promotionalPrice!)) / Number(product.price)) * 100) : 0;
-  const variationGroupName = product.variations[0]?.name ?? "Opção";
+  const variationNames = new Set(product.variations.map((variation) => variation.name));
+  const variationGroupName = variationNames.size === 1 ? product.variations[0].name : "Opção";
 
   const description = publicText(product.description);
   const benefits = publicText(product.benefits);
@@ -554,14 +556,17 @@ export default function ProdutoScreen() {
                       style={[styles.variationChip, isSelected && styles.variationChipActive, unavailable && styles.variationChipUnavailable, variationError && !selectedVariation && styles.variationChipError]}
                       onPress={() => handleSelectVariation(v)}
                       disabled={unavailable}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected, disabled: unavailable }}
+                      accessibilityLabel={`${v.name}: ${v.value}`}
                     >
                       {v.imageUrl ? (
                         <View style={styles.variationWithImage}>
                           <ResilientProductImage sources={[resolveUrl(v.imageUrl)]} style={styles.variationThumb} contentFit="cover" compact />
-                          <Text style={[styles.variationText, isSelected && styles.variationTextActive, unavailable && styles.variationTextUnavailable]}>{v.value}</Text>
+                          <Text style={[styles.variationText, isSelected && styles.variationTextActive, unavailable && styles.variationTextUnavailable]}>{variationNames.size === 1 ? v.value : `${v.name}: ${v.value}`}</Text>
                         </View>
                       ) : (
-                        <Text style={[styles.variationText, isSelected && styles.variationTextActive, unavailable && styles.variationTextUnavailable]}>{v.value}</Text>
+                        <Text style={[styles.variationText, isSelected && styles.variationTextActive, unavailable && styles.variationTextUnavailable]}>{variationNames.size === 1 ? v.value : `${v.name}: ${v.value}`}</Text>
                       )}
                       {unavailable && <View style={styles.strikeThrough} />}
                     </TouchableOpacity>
