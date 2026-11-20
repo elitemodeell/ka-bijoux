@@ -1,6 +1,6 @@
 workflows:
   ka-bijoux-ios-release:
-    name: KA Bijoux iOS 1.0.2 (19) - App Store
+    name: KA Bijoux iOS 1.0.3 (20) - App Store
     instance_type: mac_mini_m2
     max_build_duration: 120
     environment:
@@ -12,8 +12,8 @@ workflows:
         - ka_bijoux_apple
       vars:
         BUNDLE_ID: com.kabijoux.app
-        MARKETING_VERSION: "1.0.2"
-        BUILD_NUMBER: "19"
+        MARKETING_VERSION: "1.0.3"
+        BUILD_NUMBER: "20"
         APP_STORE_APPLE_ID: "6798015933"
         XCODE_WORKSPACE: KABijoux.xcworkspace
         XCODE_SCHEME: KABijoux
@@ -41,8 +41,8 @@ workflows:
           const config = require('./mobile/app.json').expo;
           if (config.name !== 'KA Bijoux') throw new Error('Unexpected application name');
           if (config.ios.bundleIdentifier !== 'com.kabijoux.app') throw new Error('Unexpected bundle identifier');
-          if (config.version !== '1.0.2') throw new Error(`Expected version 1.0.2, received ${config.version}`);
-          if (config.ios.buildNumber !== '19') throw new Error(`Expected build 19, received ${config.ios.buildNumber}`);
+          if (config.version !== '1.0.3') throw new Error(`Expected version 1.0.3, received ${config.version}`);
+          if (config.ios.buildNumber !== '20') throw new Error(`Expected build 20, received ${config.ios.buildNumber}`);
           if (config.ios.usesAppleSignIn !== true) throw new Error('usesAppleSignIn must be true');
           if (config.ios.supportsTablet !== true) throw new Error('iPad support must remain enabled');
           NODE
@@ -105,6 +105,18 @@ workflows:
           npx prisma generate
           npx tsc --noEmit -p tsconfig.build.json
           npm test -- --run
+
+      - name: Check production catalog color contract
+        script: |
+          set -euo pipefail
+          curl -fsS --max-time 15 "$EXPO_PUBLIC_API_URL/api/mobile/products/cmr6i1pu5001drhf8cvq4gl22" | node -e '
+            const { data } = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+            const product = data?.product;
+            if (product?.sku !== "3104000004296" || typeof product.assortedColors !== "boolean" ||
+                !(product.fixedColor === null || typeof product.fixedColor === "string")) {
+              throw new Error("Production catalog API does not expose the explicit color contract for build 20.");
+            }
+          '
 
       - name: Validate Apple backend contract
         script: |
@@ -174,8 +186,7 @@ workflows:
         script: |
           set -euo pipefail
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
+            --type IOS_APP_STORE --strict-match-identifier
 
       - name: Add signing certificate to keychain
         script: keychain add-certificates
@@ -229,8 +240,8 @@ workflows:
           codesign -d --entitlements :- "$app" > /tmp/ka-bijoux-entitlements.plist
           /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' /tmp/ka-bijoux-entitlements.plist | grep -q 'Default'
           test -d "$app/Assets.car" -o -f "$app/Assets.car"
-          cp /tmp/ka-bijoux-entitlements.plist build/ios/ipa/KA-Bijoux-build-19-entitlements.plist
-          cp "$app/embedded.mobileprovision" build/ios/ipa/KA-Bijoux-build-19.mobileprovision
+          cp /tmp/ka-bijoux-entitlements.plist build/ios/ipa/KA-Bijoux-build-20-entitlements.plist
+          cp "$app/embedded.mobileprovision" build/ios/ipa/KA-Bijoux-build-20.mobileprovision
 
     artifacts:
       - mobile/build/ios/ipa/*.ipa

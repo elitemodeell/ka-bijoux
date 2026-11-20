@@ -321,7 +321,7 @@ export default function ProdutoScreen() {
   }
 
   function handleSelectVariation(v: Variation) {
-    if (v.stock === 0) return;
+    if (v.stock <= 0) return;
     setVariationError(false);
     setSelectedVariation((prev) => (prev === v.id ? null : v.id));
     setQuantity(1);
@@ -335,12 +335,20 @@ export default function ProdutoScreen() {
       router.push("/(auth)/entrada");
       return;
     }
-    if (product.variations.length > 0 && !selectedVariation) { setVariationError(true); return; }
+    const selectedOption = product.variations.find((variation) => variation.id === selectedVariation);
+    if (product.variations.length > 0 && !selectedOption) {
+      setVariationError(true);
+      return;
+    }
+    if (quantity > (selectedOption?.stock ?? product.stock)) {
+      Alert.alert("Estoque insuficiente", "Reduza a quantidade ou escolha outra opção.");
+      return;
+    }
     cartActionLock.current = true;
     setCartAction(action);
     try {
       if (action === "buy") {
-        await buyNow(product.id, quantity, selectedVariation ?? undefined);
+        await buyNow(product.id, quantity, selectedOption?.id);
         router.push("/checkout");
         return;
       }
@@ -349,7 +357,6 @@ export default function ProdutoScreen() {
       setTimeout(() => setAdded(false), 2000);
     } catch {
       Alert.alert("Erro", "Nao foi possivel adicionar o produto ao carrinho.");
-      if (action === "buy") router.back();
     } finally {
       cartActionLock.current = false;
       setCartAction(null);
@@ -555,7 +562,7 @@ export default function ProdutoScreen() {
               <View style={styles.variations}>
                 {product.variations.map((v) => {
                   const isSelected = selectedVariation === v.id;
-                  const unavailable = v.stock === 0;
+                  const unavailable = v.stock <= 0;
                   return (
                     <TouchableOpacity
                       key={v.id}
