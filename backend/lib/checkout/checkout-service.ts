@@ -7,7 +7,7 @@ import {
   Prisma,
   ShippingType,
 } from "@prisma/client";
-import { isQuarantinedCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { officialDatabaseGallery, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { prisma } from "@/lib/prisma";
 import { calculateShipping, SHIPPING_OPTION_IDS } from "@/lib/shipping";
 import { generateOrderNumber } from "@/lib/utils";
@@ -1460,8 +1460,10 @@ export async function createOrResumeCheckout(
                   variationId: item.variationId,
                   usesProductStock: item.usesProductStock,
                   productName: item.productName,
-                  productImage: source.variation?.imageUrl && !isQuarantinedCatalogPhoto(source.variation.imageUrl, item.productId)
-                    ? source.variation.imageUrl : source.product.images[0]?.url,
+                  productImage: officialDatabaseGallery(
+                    [source.variation?.imageUrl, source.product.images[0]?.url].filter((url): url is string => Boolean(url)),
+                    item.productId,
+                  )[0] ?? null,
                   variationName: item.variationName,
                   sku: item.variationId ? source.variation?.sku : source.product.sku,
                   quantity: item.quantity,

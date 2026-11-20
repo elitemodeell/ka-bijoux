@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { isQuarantinedCatalogPhoto } from "@/lib/catalog-photo";
+import { officialDatabaseGallery } from "@/lib/catalog-photo";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { Prisma } from "@prisma/client";
@@ -333,9 +333,8 @@ export default async function ProdutoPage(props: PageProps) {
       ? getSubcategoryPathSlug(dbProduct.subcategory.slug)
       : "";
     const isAdultProduct = dbProduct.category?.slug === "sex-shop";
-    const rawDbImages = dbProduct.images.map((image) => image.url).filter((url) => !isQuarantinedCatalogPhoto(url, dbProduct.id));
-    const dbImages = isAdultProduct ? rawDbImages : rawDbImages.filter((url) => !isAdultImageUrl(url));
-    const galleryImages = dbImages;
+    const rawDbImages = officialDatabaseGallery(dbProduct.images.map((image) => image.url), dbProduct.id);
+    const galleryImages = isAdultProduct ? rawDbImages : rawDbImages.filter((url) => !isAdultImageUrl(url));
     const contentOverride = getProductContentOverride({
       blingId: dbProduct.blingId,
       sku: dbProduct.sku,
@@ -372,14 +371,12 @@ export default async function ProdutoPage(props: PageProps) {
         ) && !getProductIdentityKeys(product).some((key) => currentIdentity.has(key))
     );
 
-    const visibleGallery = galleryImages.length ? galleryImages : getOverrideGalleryImages(contentOverride, [])
-      .filter((url) => !isQuarantinedCatalogPhoto(url, dbProduct.id));
     const dbVariations = dbProduct.variations.map((variation) => ({
       id: variation.id,
       sku: variation.sku ?? undefined,
       stock: dbProduct.sharedVariationStock ? dbProduct.stock : variation.stock,
       priceModifier: Number(variation.priceModifier),
-      images: variation.imageUrl && !isQuarantinedCatalogPhoto(variation.imageUrl, dbProduct.id) ? [variation.imageUrl] : undefined,
+      images: officialDatabaseGallery(variation.imageUrl ? [variation.imageUrl] : [], dbProduct.id),
       label: `${variation.name}: ${variation.value}`,
       slug: `${variation.name}-${variation.value}`
         .normalize("NFD")
@@ -403,8 +400,8 @@ export default async function ProdutoPage(props: PageProps) {
       categorySlug: dbProduct.category?.slug ?? "produtos",
       subcategoryName,
       subcategorySlug: dbProduct.subcategory?.slug ?? "",
-      imageFile: visibleGallery[0] ?? "",
-      galleryImages: visibleGallery,
+      imageFile: galleryImages[0] ?? "",
+      galleryImages,
       shortDescription:
         dbProduct.description?.split("\n")[0] ??
         contentOverride?.shortDescription ??
@@ -516,7 +513,7 @@ function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | nu
     name: product.name,
   });
 
-  const rawDbImage = product.images[0]?.url ?? null;
+  const rawDbImage = officialDatabaseGallery(product.images.map((image) => image.url), product.id)[0] ?? null;
   const isAdultRelated = product.category?.slug === "sex-shop";
   const dbImage = rawDbImage && !isAdultRelated && isAdultImageUrl(rawDbImage) ? null : rawDbImage;
   const image = dbImage ?? null;

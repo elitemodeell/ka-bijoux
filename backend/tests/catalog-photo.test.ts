@@ -1,7 +1,9 @@
 import { getBlingProductBySlug } from "@/lib/bling-catalog";
+import fs from "node:fs";
+import path from "node:path";
 import sharp from "sharp";
 import { expect, it } from "vitest";
-import { belongsToCatalogGallery, catalogPhotoPath, isQuarantinedCatalogPhoto, normalizeCatalogPhoto } from "@/lib/catalog-photo";
+import { belongsToCatalogGallery, catalogPhotoPath, isQuarantinedCatalogPhoto, normalizeCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
 
 it("standardizes actual pixels deterministically without cropping the product", async () => {
   const image = (background: string) => sharp({ create: { width: 400, height: 200, channels: 3, background } }).png().toBuffer();
@@ -39,4 +41,28 @@ it("keeps the verified P47 fallback and rejects the P9 and cat photos for its ga
   for (const file of [p9, cat]) {
     expect(belongsToCatalogGallery(`/uploads/products/${file}`, productId)).toBe(false);
   }
+});
+
+it("uses only the database gallery for a registered product and drops corrected audit photos", () => {
+  const p47 = "cmr6i1pu5001drhf8cvq4gl22";
+  const correct = "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/7-fone-bluetooth-p47-com-opcoes-de-cores-3104000004296-cores-sortidas.png";
+  const p9 = "/uploads/products/6-fone-bluetooth-p47-com-opcoes-de-cores-3104000004296-azul.png";
+  const cat = "/uploads/products/inferido-fone-bluetooth-p47-3104000004296-03.png";
+  expect(officialDatabaseGallery([correct, p9, cat], p47)).toEqual([correct]);
+  expect(officialDatabaseGallery([p9, cat], p47)).toEqual([]);
+
+  const otherCases = [
+    ["cmr6i1ow1000mrhf80kamcis2", "inferido-mini-robo-aspirador-branco-3104000005812-04.png"],
+    ["cmr6i1z26008mrhf80h2fro4g", "oleo-hidratante-de-cuticula-2fro4g-03.png"],
+    ["cmr9al49900092np39qiqz3q9", "creme-facial-diurno-iqz3q9-02.png"],
+  ] as const;
+  for (const [productId, file] of otherCases) {
+    const kept = `https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/capa-${productId}.png`;
+    expect(officialDatabaseGallery([kept, `/uploads/products/${file}`], productId)).toEqual([kept]);
+  }
+
+  const page = fs.readFileSync(path.resolve(process.cwd(), "app/(loja)/produto/[slug]/page.tsx"), "utf8");
+  const databaseBranch = page.slice(page.indexOf("if (dbProduct)"), page.indexOf("if (blingProduct)"));
+  expect(databaseBranch).toContain("officialDatabaseGallery");
+  expect(databaseBranch).not.toContain("getOverrideGalleryImages");
 });

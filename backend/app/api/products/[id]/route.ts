@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { belongsToCatalogGallery } from "@/lib/catalog-photo";
+import { belongsToCatalogGallery, isQuarantinedCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
 import { z } from "zod";
 import { ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -58,17 +58,25 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     });
 
     const isAdultProduct = product.category?.slug === "sex-shop";
+    const officialImages = product.images.filter((img) => officialDatabaseGallery([img.url], product.id).length > 0);
     const filteredProduct = {
       ...product,
       images: isAdultProduct
-        ? product.images
-        : product.images.filter((img) => !isAdultImageUrl(img.url)),
+        ? officialImages
+        : officialImages.filter((img) => !isAdultImageUrl(img.url)),
+      variations: product.variations.map((variation) => ({
+        ...variation,
+        imageUrl: variation.imageUrl && !isQuarantinedCatalogPhoto(variation.imageUrl, product.id)
+          ? variation.imageUrl
+          : null,
+      })),
     };
     const filteredRelated = related.map((r) => {
       const isAdultRelated = r.category?.slug === "sex-shop";
+      const images = r.images.filter((img) => officialDatabaseGallery([img.url], r.id).length > 0);
       return {
         ...r,
-        images: isAdultRelated ? r.images : r.images.filter((img) => !isAdultImageUrl(img.url)),
+        images: isAdultRelated ? images : images.filter((img) => !isAdultImageUrl(img.url)),
       };
     });
 

@@ -28,6 +28,10 @@ export function isQuarantinedCatalogPhoto(url: string, productId?: string) {
   }
 }
 
+export function officialDatabaseGallery(urls: readonly string[], productId: string) {
+  return urls.filter((url) => Boolean(url) && !isQuarantinedCatalogPhoto(url, productId));
+}
+
 export class CatalogPhotoError extends Error {}
 
 export async function normalizeCatalogPhoto(bytes: Buffer) {
