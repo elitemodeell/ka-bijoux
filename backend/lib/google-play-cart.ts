@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import { isQuarantinedCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { prisma } from "@/lib/prisma";
 import {
   googlePlayProductWhere,
@@ -13,7 +14,7 @@ export const googlePlayCartInclude = Prisma.validator<Prisma.CartInclude>()({
     include: {
       product: {
         include: {
-          images: { orderBy: { order: "asc" }, take: 1 },
+          images: { where: visibleCatalogPhotos, orderBy: [{ order: "asc" }, { id: "asc" }], take: 1 },
         },
       },
       variation: true,
@@ -92,6 +93,8 @@ export async function sanitizeGooglePlayCart(
       variation: item.variation
         ? {
             ...item.variation,
+            imageUrl: item.variation.imageUrl && !isQuarantinedCatalogPhoto(item.variation.imageUrl, item.product.id)
+              ? item.variation.imageUrl : null,
             stock: item.product.sharedVariationStock ? item.product.stock : item.variation.stock,
             priceModifier: Number(item.variation.priceModifier),
           }

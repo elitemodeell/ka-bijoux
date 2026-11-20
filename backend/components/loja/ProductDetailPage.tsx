@@ -35,6 +35,8 @@ type ProductDetailProduct = StaticProduct & {
   composition?: string | null;
   careInstructions?: string | null;
   packageContents?: string | null;
+  assortedColors?: boolean;
+  fixedColor?: string | null;
   categoryName?: string | null;
   categorySlug?: string | null;
   subcategoryName?: string | null;
@@ -143,7 +145,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const material = publicText(product.composition);
   const care = publicText(product.careInstructions);
   const packageContents = publicText(product.packageContents);
-  const color = extractColor(product.name);
+  const color = product.fixedColor ?? extractColor(product.name);
   const purpose = getProductPurpose(product.name, productSubcategoryName, isAdult);
   const optionLabels = variations.map((v) => publicText(v.label)).filter((v): v is string => Boolean(v));
 
@@ -151,7 +153,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
     `Produto: ${product.name}`,
     `Categoria: ${productSubcategoryName || categoryName}`,
     ...(publicBrand ? [`Marca: ${publicBrand}`] : []),
-    ...(color ? [`Cor: ${color}`] : []),
+    ...(product.assortedColors ? ["Cor enviada conforme disponibilidade."] : color ? [`Cor: ${color}`] : []),
     ...(product.weight ? [`Peso: ${product.weight} kg`] : []),
     ...(product.details ?? []),
     ...(isAdult ? ["Uso: Adulto (18+)"] : []),

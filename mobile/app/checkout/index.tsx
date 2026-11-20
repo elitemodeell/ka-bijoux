@@ -187,12 +187,12 @@ export default function CheckoutEntregaScreen() {
           {items.map((item) => (
             Platform.OS === "ios" ? (
               <View key={item.id} style={styles.iosItemRow}>
-                {item.product.images?.[0]?.url ? <Image source={item.product.images[0].url} style={styles.itemImage} contentFit="cover" /> : <View style={[styles.itemImage, styles.itemImageFallback]}><Ionicons name="image-outline" size={24} color={Colors.primary} /></View>}
-                <View style={styles.iosItemCopy}><Text style={styles.iosItemName} numberOfLines={2}>{item.product.name}</Text>{item.variation ? <Text style={styles.itemVariation}>{item.variation.value}</Text> : null}</View>
+                {(item.variation?.imageUrl || item.product.images?.[0]?.url) ? <Image source={item.variation?.imageUrl || item.product.images[0].url} style={styles.itemImage} contentFit="cover" /> : <View style={[styles.itemImage, styles.itemImageFallback]}><Ionicons name="image-outline" size={24} color={Colors.primary} /></View>}
+                <View style={styles.iosItemCopy}><Text style={styles.iosItemName} numberOfLines={2}>{item.product.name}</Text>{item.variation ? <Text style={styles.itemVariation}>{item.variation.name}: {item.variation.value}{item.variation.sku ? ` · SKU ${item.variation.sku}` : ""}</Text> : item.product.sku ? <Text style={styles.itemVariation}>SKU {item.product.sku}</Text> : null}</View>
                 <View style={styles.quantityControl}>
                   <TouchableOpacity accessibilityLabel="Diminuir quantidade" disabled={item.quantity <= 1} onPress={() => void updateItem(item.id, item.quantity - 1)} style={styles.quantityButton}><Ionicons name="remove" size={17} color={item.quantity <= 1 ? "#cdbec4" : "#c90049"} /></TouchableOpacity>
                   <Text style={styles.quantityText}>{item.quantity}</Text>
-                  <TouchableOpacity accessibilityLabel="Aumentar quantidade" onPress={() => void updateItem(item.id, item.quantity + 1)} style={styles.quantityButton}><Ionicons name="add" size={17} color="#c90049" /></TouchableOpacity>
+                  <TouchableOpacity accessibilityLabel="Aumentar quantidade" disabled={item.quantity >= (item.variation?.stock ?? item.product.stock)} onPress={() => void updateItem(item.id, item.quantity + 1)} style={styles.quantityButton}><Ionicons name="add" size={17} color="#c90049" /></TouchableOpacity>
                 </View>
                 <Text style={styles.iosItemPrice}>{fmt(item.unitPrice * item.quantity)}</Text>
                 <TouchableOpacity accessibilityLabel="Remover item" onPress={() => void removeItem(item.id)} style={styles.removeButton}><Ionicons name="trash-outline" size={18} color="#e00054" /></TouchableOpacity>

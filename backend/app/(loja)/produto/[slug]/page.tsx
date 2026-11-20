@@ -64,6 +64,8 @@ type DbProduct = {
   promotionalPrice: number | string | null;
   stock: number;
   sharedVariationStock: boolean;
+  assortedColors: boolean;
+  fixedColor: string | null;
   weight: number | string;
   height: number | string;
   width: number | string;
@@ -105,18 +107,6 @@ type ProductContentOverride = {
   careInstructions?: string | null;
   packageContents?: string | null;
   galleryImages?: string[];
-  variations?: ProductContentVariation[];
-  variants?: ProductContentVariation[];
-};
-
-type ProductContentVariation = {
-  label: string;
-  slug?: string;
-  color?: string;
-  active?: boolean;
-  sku?: string;
-  imageFile?: string;
-  images?: string[];
 };
 
 const contentOverrides = Array.isArray(productContentOverrides)
@@ -176,6 +166,8 @@ async function fetchDbProduct(lookup: ProductLookup): Promise<DbProduct | null> 
       composition: product.composition,
       careInstructions: product.careInstructions,
       packageContents: product.packageContents,
+      assortedColors: product.assortedColors,
+      fixedColor: product.fixedColor,
       price: Number(product.price),
       promotionalPrice: product.promotionalPrice ? Number(product.promotionalPrice) : null,
       stock: product.stock,
@@ -380,7 +372,8 @@ export default async function ProdutoPage(props: PageProps) {
         ) && !getProductIdentityKeys(product).some((key) => currentIdentity.has(key))
     );
 
-    const overrideGalleryImages = getOverrideGalleryImages(contentOverride, galleryImages);
+    const visibleGallery = galleryImages.length ? galleryImages : getOverrideGalleryImages(contentOverride, [])
+      .filter((url) => !isQuarantinedCatalogPhoto(url, dbProduct.id));
     const dbVariations = dbProduct.variations.map((variation) => ({
       id: variation.id,
       sku: variation.sku ?? undefined,
@@ -396,7 +389,6 @@ export default async function ProdutoPage(props: PageProps) {
         .replace(/^-+|-+$/g, ""),
       active: (dbProduct.sharedVariationStock ? dbProduct.stock : variation.stock) > 0,
     }));
-    const overrideVariations = getOverrideVariations(contentOverride);
 
     const adaptedProduct = {
       id: dbProduct.id,
@@ -411,14 +403,16 @@ export default async function ProdutoPage(props: PageProps) {
       categorySlug: dbProduct.category?.slug ?? "produtos",
       subcategoryName,
       subcategorySlug: dbProduct.subcategory?.slug ?? "",
-      imageFile: overrideGalleryImages[0] ?? "",
-      galleryImages: overrideGalleryImages,
+      imageFile: visibleGallery[0] ?? "",
+      galleryImages: visibleGallery,
       shortDescription:
         dbProduct.description?.split("\n")[0] ??
         contentOverride?.shortDescription ??
         "Produto selecionado com carinho pela KA Bijoux.",
       longDescription: dbProduct.description ?? contentOverride?.longDescription ?? "",
       details: contentOverride?.details ?? [] as string[],
+      assortedColors: dbProduct.assortedColors,
+      fixedColor: dbProduct.fixedColor,
       benefits: dbProduct.benefits ?? contentOverride?.benefits ?? undefined,
       howToUse: dbProduct.howToUse ?? contentOverride?.howToUse ?? "",
       composition: dbProduct.composition ?? contentOverride?.composition ?? undefined,
@@ -428,7 +422,7 @@ export default async function ProdutoPage(props: PageProps) {
       height: Number(dbProduct.height),
       width: Number(dbProduct.width),
       length: Number(dbProduct.length),
-      variations: dbVariations.length ? dbVariations : overrideVariations,
+      variations: dbVariations,
       relatedSlugs: [] as string[],
       relatedProducts,
       badge: dbProduct.isNew ? "Novo" : dbProduct.featured ? "Destaque" : undefined,
@@ -566,7 +560,6 @@ function buildBlingDetailProduct(product: BlingCatalogProduct) {
     contentOverride,
     product.images.map((image) => image.url)
   );
-  const variations = getOverrideVariations(contentOverride);
   const productFamily = getProductFamilyName(product.name);
   const relatedProducts = dedupeProductCards(getBlingProductCards({
     categorySlug: product.category.slug,
@@ -605,7 +598,7 @@ function buildBlingDetailProduct(product: BlingCatalogProduct) {
     packageContents: contentOverride?.packageContents ?? undefined,
     relatedSlugs: [] as string[],
     relatedProducts,
-    variations,
+    variations: [],
     badge: product.badge ?? undefined,
     stock: product.stock,
     installments: 3,
@@ -620,46 +613,22 @@ function getOverrideGalleryImages(contentOverride: ProductContentOverride | null
   return overrideImages.length ? overrideImages : fallback;
 }
 
-function getOverrideVariations(contentOverride: ProductContentOverride | null) {
-  const variations = contentOverride?.variations ?? contentOverride?.variants ?? [];
-  return variations
-    .filter((variation) => variation?.label)
-    .map((variation) => ({
-      label: variation.label,
-      slug: variation.slug ?? toVariationSlug(variation.label),
-      color: variation.color,
-      active: variation.active ?? true,
-      sku: variation.sku,
-      imageFile: variation.imageFile ? toPublicImageUrl(variation.imageFile) : undefined,
-      images: variation.images?.filter(Boolean).map(toPublicImageUrl),
-    }));
-}
-
 function toPublicImageUrl(image: string) {
   if (/^https?:\/\//i.test(image) || image.startsWith("/")) return image;
   return `/uploads/products/${image}`;
 }
 
-function toVariationSlug(label: string) {
-  return label
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 function getProductContentOverride(product: { blingId?: string | null; sku?: string | null; name?: string | null }) {
   const blingId = product.blingId ? String(product.blingId).trim() : "";
   const sku = product.sku ? String(product.sku).trim() : "";
-  const normalizedName = normalizeProductText(product.name ?? "").trim();
-
-  return (
-    (blingId ? contentOverrides.find((item) => String(item.blingId ?? "").trim() === blingId) : null) ??
-    (sku ? contentOverrides.find((item) => String(item.sku ?? "").trim() === sku) : null) ??
-    (normalizedName ? contentOverrides.find((item) => normalizeProductText(item.name ?? "").trim() === normalizedName) : null) ??
-    null
-  );
+  const matches = contentOverrides.filter((item) => {
+    const candidateId = String(item.blingId ?? "").trim();
+    const candidateSku = String(item.sku ?? "").trim();
+    if (blingId && candidateId && blingId !== candidateId) return false;
+    if (sku && candidateSku && sku !== candidateSku) return false;
+    return Boolean((blingId && blingId === candidateId) || (sku && sku === candidateSku));
+  });
+  return matches.length === 1 ? matches[0] : null;
 }
 
 function getProductFamilyName(name: string) {

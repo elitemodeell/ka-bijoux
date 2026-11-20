@@ -105,7 +105,7 @@ export default function CarrinhoScreen() {
         renderItem={({ item }) => (
           <View style={styles.item}>
             <ResilientProductImage
-              sources={[item.product.images[0]?.url]}
+              sources={[item.variation?.imageUrl || item.product.images[0]?.url]}
               style={styles.itemImage}
               contentFit="cover"
               compact
@@ -114,8 +114,9 @@ export default function CarrinhoScreen() {
             <View style={styles.itemInfo}>
               <Text style={styles.itemName} numberOfLines={2}>{item.product.name}</Text>
               {item.variation && (
-                <Text style={styles.itemVariation}>{item.variation.name}: {item.variation.value}</Text>
+                <Text style={styles.itemVariation}>{item.variation.name}: {item.variation.value}{item.variation.sku ? ` · SKU ${item.variation.sku}` : ""}</Text>
               )}
+              {!item.variation && item.product.sku ? <Text style={styles.itemVariation}>SKU {item.product.sku}</Text> : null}
               <Text style={styles.itemPrice}>{formatCurrency(item.unitPrice)}</Text>
 
               <View style={styles.qtyRow}>

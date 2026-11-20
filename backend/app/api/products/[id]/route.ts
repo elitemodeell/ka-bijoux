@@ -132,6 +132,8 @@ const updateSchema = z.object({
   enrichmentStatus: z.nativeEnum(ProductEnrichmentStatus).optional(),
   publicationStatus: z.nativeEnum(ProductPublicationStatus).optional(),
   searchTags: z.array(z.string().trim()).optional(),
+  assortedColors: z.boolean().optional(),
+  fixedColor: z.string().trim().min(1).max(100).nullable().optional(),
   featured: z.boolean().optional(),
   isNew: z.boolean().optional(),
   active: z.boolean().optional(),
@@ -158,6 +160,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         where: { id: params.id },
         data: {
           ...rest,
+          fixedColor: rest.assortedColors ? null : rest.fixedColor,
           importSource,
           enrichmentStatus: shouldQueueResearch
             ? ProductEnrichmentStatus.PENDING_RESEARCH

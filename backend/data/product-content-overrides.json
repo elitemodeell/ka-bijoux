@@ -17593,22 +17593,19 @@
   {
     "sku": "3104000004296",
     "blingId": "16648691520",
-    "displayName": "Fone Bluetooth P47 com Opcoes de Cores",
+    "displayName": "Fone Bluetooth P47",
     "seoSlug": "fone-bluetooth-p47",
     "categoryName": "Eletronicos",
     "subcategoryName": "Fones e Acessorios",
-    "imageFile": "fone-bluetooth-p47-3104000004296.png",
+    "imageFile": "7-fone-bluetooth-p47-com-opcoes-de-cores-3104000004296-cores-sortidas.png",
     "shortDescription": "Fone Bluetooth P47 dobrável com som potente, graves encorpados e bateria de longa duração.",
     "fullDescription": "O Fone Bluetooth P47 e uma escolha pratica para uso diario, com visual moderno e facil de combinar com diferentes necessidades. Ideal para quem quer um acessorio funcional, simples de transportar e pronto para ajudar na rotina.",
     "features": [
       "Produto: Fone Bluetooth P47",
       "Categoria: Eletronicos",
       "Material/Composicao visual: Plastico e componentes eletronicos",
-      "Cor/Versao: Preto",
       "Conteudo da embalagem: 1 unidade, salvo indicacao diferente no cadastro",
-      "Codigo/SKU: 3104000004296",
-      "Valor cadastrado: R$ 24",
-      "Estoque cadastrado: 48"
+      "Codigo/SKU: 3104000004296"
     ],
     "usageInstructions": "Conecte ou carregue conforme a indicacao do produto. Antes do primeiro uso, confira a compatibilidade com o aparelho e evite forcar conectores.",
     "careInstructions": "Evite quedas, umidade excessiva e calor intenso. Limpe com pano seco e guarde em local protegido.",
@@ -17618,7 +17615,6 @@
     "name": "FONE BLUETOOTH P47",
     "longDescription": "O Fone Bluetooth P47 oferece som de alta qualidade com graves potentes e agudos nítidos em um design moderno e dobrável. Conexão Bluetooth sem fio de até 10m, bateria de longa duração e almofadas auriculares confortáveis para horas de uso.",
     "details": [
-      "Produto principal com opcoes de cor na plataforma.",
       "Modelo dobravel e facil de guardar.",
       "Conexao sem fio para uso diario.",
       "Ideal para musica, videos e chamadas conforme compatibilidade do aparelho."
@@ -17628,32 +17624,7 @@
     "composition": null,
     "packageContents": "1 fone Bluetooth P47.",
     "galleryImages": [
-      "6-fone-bluetooth-p47-com-opcoes-de-cores-3104000004296-azul.png",
       "7-fone-bluetooth-p47-com-opcoes-de-cores-3104000004296-cores-sortidas.png"
-    ],
-    "variations": [
-      {
-        "label": "Azul",
-        "slug": "azul",
-        "color": "#2d61ff",
-        "active": true,
-        "sku": "3104000004296",
-        "imageFile": "6-fone-bluetooth-p47-com-opcoes-de-cores-3104000004296-azul.png",
-        "images": [
-          "6-fone-bluetooth-p47-com-opcoes-de-cores-3104000004296-azul.png"
-        ]
-      },
-      {
-        "label": "Cores sortidas",
-        "slug": "cores-sortidas",
-        "color": "#5bd85b",
-        "active": true,
-        "sku": "3104000004296",
-        "imageFile": "7-fone-bluetooth-p47-com-opcoes-de-cores-3104000004296-cores-sortidas.png",
-        "images": [
-          "7-fone-bluetooth-p47-com-opcoes-de-cores-3104000004296-cores-sortidas.png"
-        ]
-      }
     ],
     "seoKeywords": [
       "fone bluetooth",

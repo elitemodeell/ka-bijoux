@@ -11,7 +11,7 @@ type Address = { id: string; street: string; number: string; city: string; state
 type Method = { method: string; label: string; installments: number[] };
 type Cart = {
   subtotal: number;
-  items: { id: string; quantity: number; unitPrice: string | number; product: { name: string }; variation: { name: string; value: string } | null }[];
+  items: { id: string; quantity: number; unitPrice: string | number; product: { name: string; sku?: string | null; stock?: number; images?: { url: string }[] }; variation: { name: string; value: string; sku?: string | null; imageUrl?: string | null; stock?: number } | null }[];
 };
 type Order = {
   id: string;
@@ -246,19 +246,27 @@ export default function WebCheckout() {
       ) : cart?.items.length && profile ? (
         <div className="space-y-5">
           <ul className="divide-y">
-            {cart.items.map((item) => <li key={item.id} className="flex justify-between gap-3 py-2">
-              <div>
+            {cart.items.map((item) => {
+              const image = item.variation?.imageUrl || item.product.images?.[0]?.url;
+              const sku = item.variation ? item.variation.sku : item.product.sku;
+              const stock = item.variation?.stock ?? item.product.stock;
+              return <li key={item.id} className="flex justify-between gap-3 py-2">
+              {image && <img src={image} alt="" className="size-12 shrink-0 rounded object-cover" />}
+              <div className="grow">
                 <p>{item.product.name}{item.variation && ` · ${item.variation.name}: ${item.variation.value}`}</p>
+                {sku && <p className="text-sm">SKU {sku}</p>}
+                {stock != null && stock < item.quantity && <p className="text-sm text-red-700">Estoque insuficiente para esta quantidade.</p>}
                 <div className="flex items-center gap-3">
                   <button disabled={busy} aria-label={`Diminuir quantidade de ${item.product.name}`}
                     onClick={() => changeQuantity(item.id, item.quantity - 1)}>−</button>
                   <span>{item.quantity}</span>
-                  <button disabled={busy || item.quantity >= 99} aria-label={`Aumentar quantidade de ${item.product.name}`}
+                  <button disabled={busy || item.quantity >= Math.min(99, stock ?? 99)} aria-label={`Aumentar quantidade de ${item.product.name}`}
                     onClick={() => changeQuantity(item.id, item.quantity + 1)}>+</button>
                 </div>
               </div>
               <span>{currency.format(Number(item.unitPrice) * item.quantity)}</span>
-            </li>)}
+              </li>;
+            })}
           </ul>
           {!profile.cpf && <form onSubmit={saveCpf} className="space-y-2">
             <label className="block">CPF para pagamento<input className={inputStyle} name="cpf" inputMode="numeric" required /></label>

@@ -7,6 +7,7 @@ import {
   Prisma,
   ShippingType,
 } from "@prisma/client";
+import { isQuarantinedCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { prisma } from "@/lib/prisma";
 import { calculateShipping, SHIPPING_OPTION_IDS } from "@/lib/shipping";
 import { generateOrderNumber } from "@/lib/utils";
@@ -127,7 +128,7 @@ const orderInclude = Prisma.validator<Prisma.OrderInclude>()({
     include: {
       product: {
         select: {
-          images: { take: 1, orderBy: { order: "asc" } },
+          images: { where: visibleCatalogPhotos, take: 1, orderBy: [{ order: "asc" }, { id: "asc" }] },
           active: true,
           distributionChannels: true,
           playStoreStatus: true,
@@ -216,7 +217,7 @@ async function getContext(
           include: {
             product: {
               include: {
-                images: { take: 1, orderBy: { order: "asc" } },
+                images: { where: visibleCatalogPhotos, take: 1, orderBy: [{ order: "asc" }, { id: "asc" }] },
                 category: true,
                 _count: { select: { variations: { where: { active: true } } } },
               },
@@ -1459,7 +1460,8 @@ export async function createOrResumeCheckout(
                   variationId: item.variationId,
                   usesProductStock: item.usesProductStock,
                   productName: item.productName,
-                  productImage: source.variation?.imageUrl ?? source.product.images[0]?.url,
+                  productImage: source.variation?.imageUrl && !isQuarantinedCatalogPhoto(source.variation.imageUrl, item.productId)
+                    ? source.variation.imageUrl : source.product.images[0]?.url,
                   variationName: item.variationName,
                   sku: item.variationId ? source.variation?.sku : source.product.sku,
                   quantity: item.quantity,

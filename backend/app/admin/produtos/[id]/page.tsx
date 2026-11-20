@@ -34,6 +34,7 @@ const emptyForm = {
   weight: "0.15", height: "5", width: "10", length: "15",
   categoryId: "", subcategoryId: "",
   featured: false, isNew: true, active: true,
+  assortedColors: false, fixedColor: "",
 };
 
 type FormState = typeof emptyForm;
@@ -105,6 +106,8 @@ export default function EditarProdutoPage() {
           featured: p.featured ?? false,
           isNew: p.isNew ?? false,
           active: p.active ?? true,
+          assortedColors: p.assortedColors ?? false,
+          fixedColor: p.fixedColor ?? "",
         });
         setImages((p.images ?? []).map((img: { url: string }) => img.url));
         setVariations(
@@ -246,6 +249,8 @@ export default function EditarProdutoPage() {
           featured: form.featured,
           isNew: form.isNew,
           active: form.active,
+          assortedColors: form.assortedColors,
+          fixedColor: form.assortedColors ? null : form.fixedColor.trim() || null,
           images: images.map((url, order) => ({ url, order, alt: form.name })),
           variations: variations.map((v, i) => ({
             ...(v.id ? { id: v.id } : {}),
@@ -424,9 +429,29 @@ export default function EditarProdutoPage() {
                 </button>
               </div>
 
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={form.assortedColors}
+                    onChange={(e) => setForm({ ...form, assortedColors: e.target.checked })} />
+                  Cores sortidas, enviadas conforme disponibilidade
+                </label>
+                {!form.assortedColors && (
+                  <label className="block text-sm">
+                    Cor ?nica confirmada
+                    <input className="ml-2 rounded border px-2 py-1" value={form.fixedColor} maxLength={100}
+                      onChange={(e) => setForm({ ...form, fixedColor: e.target.value })} />
+                  </label>
+                )}
+              </div>
               {variations.length === 0 && (
                 <p className="rounded-xl border-2 border-dashed border-gray-200 py-8 text-center text-sm text-gray-400">
                   Nenhuma variação cadastrada. Clique em "Adicionar cor" para começar.
+                </p>
+              )}
+
+              {variations.some((v) => v.active && (!v.sku.trim() || !v.imageUrl)) && (
+                <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+                  Há opções ativas sem SKU ou foto própria. Confira o cadastro e o estoque antes de divulgar essas opções.
                 </p>
               )}
 

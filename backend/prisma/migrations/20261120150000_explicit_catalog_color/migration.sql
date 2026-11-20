@@ -1,0 +1,2 @@
+ALTER TABLE "products" ADD COLUMN "assortedColors" BOOLEAN NOT NULL DEFAULT FALSE,
+ADD COLUMN "fixedColor" TEXT;

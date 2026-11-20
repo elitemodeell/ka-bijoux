@@ -79,6 +79,8 @@ type Variation = {
 };
 
 type Product = {
+  assortedColors?: boolean;
+  fixedColor?: string | null;
   id: string;
   slug?: string | null;
   name: string;
@@ -246,8 +248,7 @@ export default function ProdutoScreen() {
         const p: Product = res.data.data.product;
         setProduct(p);
         setRelated(res.data.data.related ?? []);
-        const def = p.variations.find((v) => v.isDefault) ?? null;
-        setSelectedVariation(def && def.stock > 0 ? def.id : null);
+        setSelectedVariation(null);
         setQuantity(1);
       })
       .catch((err) => { if (err.response?.status === 404) setNotFound(true); })
@@ -533,6 +534,11 @@ export default function ProdutoScreen() {
           </View>
 
           {/* Variações */}
+          {(product.assortedColors || product.fixedColor) && (
+            <Text style={styles.selectedVariationLabel}>
+              {product.assortedColors ? "Cor enviada conforme disponibilidade." : `Cor: ${product.fixedColor}`}
+            </Text>
+          )}
           {hasVariations && (
             <View style={styles.section}>
               <View style={styles.variationHeader}>

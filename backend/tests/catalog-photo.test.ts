@@ -1,3 +1,4 @@
+import { getBlingProductBySlug } from "@/lib/bling-catalog";
 import sharp from "sharp";
 import { expect, it } from "vitest";
 import { belongsToCatalogGallery, catalogPhotoPath, isQuarantinedCatalogPhoto, normalizeCatalogPhoto } from "@/lib/catalog-photo";
@@ -26,4 +27,16 @@ it("rejects cross-product, cross-variant and visually disproved gallery assignme
   expect(belongsToCatalogGallery(url, "first", "black")).toBe(false);
   expect(belongsToCatalogGallery(url, "second", "white")).toBe(false);
   expect(belongsToCatalogGallery("/uploads/products/inferido-mini-balanca-3104000004300-02.png", "first")).toBe(false);
+});
+
+it("keeps the verified P47 fallback and rejects the P9 and cat photos for its gallery", () => {
+  const productId = "cmr6i1pu5001drhf8cvq4gl22";
+  const correct = "7-fone-bluetooth-p47-com-opcoes-de-cores-3104000004296-cores-sortidas.png";
+  const p9 = "6-fone-bluetooth-p47-com-opcoes-de-cores-3104000004296-azul.png";
+  const cat = "inferido-fone-bluetooth-p47-3104000004296-03.png";
+  expect(getBlingProductBySlug("fone-bluetooth-p47")?.images[0]?.url).toBe(`/uploads/products/${correct}`);
+  expect(belongsToCatalogGallery(`/uploads/products/${correct}`, productId)).toBe(true);
+  for (const file of [p9, cat]) {
+    expect(belongsToCatalogGallery(`/uploads/products/${file}`, productId)).toBe(false);
+  }
 });

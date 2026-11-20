@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+import { isQuarantinedCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -12,7 +13,7 @@ const cartInclude = {
     include: {
       product: {
         include: {
-          images: { orderBy: { order: "asc" as const }, take: 1 },
+          images: { where: visibleCatalogPhotos, orderBy: [{ order: "asc" as const }, { id: "asc" as const }], take: 1 },
           category: true,
           subcategory: true,
         },
@@ -44,7 +45,16 @@ export async function GET(req: NextRequest) {
     const customer = await requireCustomer(req);
     const cart = await getOrCreateCart(customer.id);
     const totals = calculateCartTotals(cart);
-    return apiSuccess({ ...cart, ...totals, itemCount: cart.items.length });
+    const items = cart.items.map((item) => ({
+      ...item,
+      variation: item.variation ? {
+        ...item.variation,
+        imageUrl: item.variation.imageUrl && !isQuarantinedCatalogPhoto(item.variation.imageUrl, item.productId)
+          ? item.variation.imageUrl : null,
+        stock: item.product.sharedVariationStock ? item.product.stock : item.variation.stock,
+      } : null,
+    }));
+    return apiSuccess({ ...cart, items, ...totals, itemCount: items.length });
   } catch (e: unknown) {
     if (e instanceof Error && e.message === "Não autorizado") return apiError("Não autorizado.", 401);
     return apiError("Erro ao buscar carrinho.", 500);

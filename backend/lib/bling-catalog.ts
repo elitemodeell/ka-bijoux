@@ -493,14 +493,14 @@ function getProductContentOverride(product: {
 }) {
   const blingId = product.blingId ? String(product.blingId).trim() : "";
   const sku = product.sku ? String(product.sku).trim() : "";
-  const normalizedName = normalizeSearch(product.name ?? "");
-
-  return (
-    (blingId ? contentOverrides.find((item) => String(item.blingId ?? "").trim() === blingId) : null) ??
-    (sku ? contentOverrides.find((item) => String(item.sku ?? "").trim() === sku) : null) ??
-    (normalizedName ? contentOverrides.find((item) => normalizeSearch(item.name ?? "") === normalizedName) : null) ??
-    null
-  );
+  const matches = contentOverrides.filter((item) => {
+    const candidateId = String(item.blingId ?? "").trim();
+    const candidateSku = String(item.sku ?? "").trim();
+    if (blingId && candidateId && blingId !== candidateId) return false;
+    if (sku && candidateSku && sku !== candidateSku) return false;
+    return Boolean((blingId && blingId === candidateId) || (sku && sku === candidateSku));
+  });
+  return matches.length === 1 ? matches[0] : null;
 }
 
 function normalizeBlingRow(row: CsvRow) {
@@ -553,6 +553,20 @@ function buildImageIndex() {
   const byId = new Map<string, ImageIndexEntry>();
   const bySku = new Map<string, ImageIndexEntry>();
   const semantic: ImageIndexEntry[] = [];
+  const ambiguousIds = new Set<string>();
+  const ambiguousSkus = new Set<string>();
+
+  function indexUnique(index: Map<string, ImageIndexEntry>, ambiguous: Set<string>, key: string | null | undefined, entry: ImageIndexEntry) {
+    if (!key || ambiguous.has(key)) return;
+    const existing = index.get(key);
+    if (existing && (existing.id !== entry.id || existing.sku !== entry.sku ||
+      (existing.nome || existing.src) !== (entry.nome || entry.src))) {
+      index.delete(key);
+      ambiguous.add(key);
+      return;
+    }
+    index.set(key, entry);
+  }
 
   for (const item of mapping) {
     const entry: ImageIndexEntry = {
@@ -563,8 +577,8 @@ function buildImageIndex() {
       normalizedName: normalizeSearch(`${item.nome ?? ""} ${item.src ?? ""}`),
     };
 
-    if (entry.id) byId.set(entry.id, entry);
-    if (entry.sku) bySku.set(entry.sku, entry);
+    indexUnique(byId, ambiguousIds, entry.id, entry);
+    indexUnique(bySku, ambiguousSkus, entry.sku, entry);
     semantic.push(entry);
   }
 
@@ -592,12 +606,14 @@ function resolveImage(
     return { url: row.imageUrl, source: "BLING", reason: "bling_image_field" };
   }
 
-  if (imageIndex.byId.has(row.id)) {
-    return imageMatchToUrl(imageIndex.byId.get(row.id), "MARKETPLACE", "bling_id");
+  const byId = imageIndex.byId.get(row.id);
+  if (byId && (!byId.sku || !row.sku || byId.sku === row.sku)) {
+    return imageMatchToUrl(byId, "MARKETPLACE", "bling_id");
   }
 
-  if (row.sku && imageIndex.bySku.has(row.sku)) {
-    return imageMatchToUrl(imageIndex.bySku.get(row.sku), "MARKETPLACE", "sku");
+  const bySku = row.sku ? imageIndex.bySku.get(row.sku) : undefined;
+  if (bySku && (!bySku.id || bySku.id === row.id)) {
+    return imageMatchToUrl(bySku, "MARKETPLACE", "sku");
   }
 
   if (staticImageFile && uploadFileExists(staticImageFile)) {

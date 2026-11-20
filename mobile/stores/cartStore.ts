@@ -9,11 +9,12 @@ export interface CartItemData {
   unitPrice: number;
   product: {
     name: string;
+    sku?: string | null;
     images: Array<{ url: string }>;
     stock: number;
     active: boolean;
   };
-  variation?: { name: string; value: string; stock: number };
+  variation?: { name: string; value: string; stock: number; imageUrl?: string | null; sku?: string | null } | null;
 }
 
 interface CartState {
