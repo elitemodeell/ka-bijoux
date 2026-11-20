@@ -378,6 +378,20 @@ function buildImageIndex() {
   const byId = new Map();
   const bySku = new Map();
   const semantic = [];
+  const ambiguousIds = new Set();
+  const ambiguousSkus = new Set();
+
+  function addUnique(index, ambiguous, key, entry) {
+    if (!key || ambiguous.has(key)) return;
+    const previous = index.get(key);
+    if (previous && (previous.id !== entry.id || previous.sku !== entry.sku ||
+      previous.nome !== entry.nome || previous.src !== entry.src)) {
+      index.delete(key);
+      ambiguous.add(key);
+      return;
+    }
+    index.set(key, entry);
+  }
 
   for (const item of mapping) {
     const entry = {
@@ -386,8 +400,8 @@ function buildImageIndex() {
       sku: item.sku ? String(item.sku) : null,
       normalizedName: normalizeSearch(`${item.nome ?? ""} ${item.src ?? ""}`),
     };
-    if (entry.id) byId.set(entry.id, entry);
-    if (entry.sku) bySku.set(entry.sku, entry);
+    addUnique(byId, ambiguousIds, entry.id, entry);
+    addUnique(bySku, ambiguousSkus, entry.sku, entry);
     semantic.push(entry);
   }
 
@@ -411,12 +425,14 @@ function buildImageIndex() {
 }
 
 function findImageForProduct(product, imageIndex, includeNameCandidates = true) {
-  if (imageIndex.byId.has(product.id)) {
-    return { item: imageIndex.byId.get(product.id), reason: "bling_id" };
+  const byId = imageIndex.byId.get(product.id);
+  if (byId && (!byId.sku || !product.codigo || byId.sku === product.codigo)) {
+    return { item: byId, reason: "bling_id" };
   }
 
-  if (product.codigo && imageIndex.bySku.has(product.codigo)) {
-    return { item: imageIndex.bySku.get(product.codigo), reason: "sku" };
+  const bySku = product.codigo ? imageIndex.bySku.get(product.codigo) : null;
+  if (bySku && (!bySku.id || bySku.id === product.id)) {
+    return { item: bySku, reason: "sku" };
   }
 
   if (!includeNameCandidates) return null;
@@ -445,7 +461,12 @@ function materializeImage(match, product) {
   const destPath = path.join(UPLOAD_DIR, finalName);
 
   if (sourcePath) {
-    fs.copyFileSync(sourcePath, destPath);
+    try {
+      fs.copyFileSync(sourcePath, destPath, fs.constants.COPYFILE_EXCL);
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+      if (!fs.readFileSync(destPath).equals(fs.readFileSync(sourcePath))) return null;
+    }
     return `/uploads/products/${finalName}`;
   }
 
