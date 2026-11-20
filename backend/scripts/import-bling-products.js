@@ -421,16 +421,18 @@ function buildImageIndex() {
     }
   }
 
-  return { byId, bySku, semantic };
+  return { byId, bySku, semantic, ambiguousIds, ambiguousSkus };
 }
 
-function findImageForProduct(product, imageIndex, includeNameCandidates = true) {
+function findImageForProduct(product, imageIndex, includeNameCandidates = false) {
+  if (imageIndex.ambiguousIds.has(product.id) || imageIndex.ambiguousSkus.has(product.codigo)) return null;
   const byId = imageIndex.byId.get(product.id);
+  const bySku = product.codigo ? imageIndex.bySku.get(product.codigo) : null;
+  if (byId && bySku && byId !== bySku) return null;
   if (byId && (!byId.sku || !product.codigo || byId.sku === product.codigo)) {
     return { item: byId, reason: "bling_id" };
   }
 
-  const bySku = product.codigo ? imageIndex.bySku.get(product.codigo) : null;
   if (bySku && (!bySku.id || bySku.id === product.id)) {
     return { item: bySku, reason: "sku" };
   }
@@ -679,7 +681,7 @@ function buildReportOnly(products, duplicates, imageIndex) {
 
   for (const row of products) {
     const product = normalizeBlingRow(row);
-    const imageMatch = findImageForProduct(product, imageIndex);
+    const imageMatch = findImageForProduct(product, imageIndex, true);
     const category = inferCategory(product.nome, product.categoria);
     const hasImage = Boolean(product.imageUrl || imageMatch);
     const hasDescription = false;
