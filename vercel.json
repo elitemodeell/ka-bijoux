@@ -8,7 +8,8 @@
   },
   "git": {
     "deploymentEnabled": {
-      "codex/catalog-variations-homologation": false
+      "codex/catalog-variations-homologation": false,
+      "codex/catalog-integrity-p47": false
     }
   }
 }
