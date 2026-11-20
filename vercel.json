@@ -1,14 +1,15 @@
 {
-  "framework": "nextjs",
-  "installCommand": "npm install",
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
-  "env": {
-    "NEXT_TELEMETRY_DISABLED": "1"
-  },
-  "git": {
-    "deploymentEnabled": {
-      "codex/catalog-variations-homologation": false
-    }
-  }
+    "framework":  "nextjs",
+    "installCommand":  "npm install",
+    "buildCommand":  "npm run build",
+    "outputDirectory":  ".next",
+    "env":  {
+                "NEXT_TELEMETRY_DISABLED":  "1"
+            },
+    "git":  {
+                "deploymentEnabled":  {
+                                          "codex/catalog-variations-homologation":  false,
+                                          "codex/ios-signing-diagnostic":  false
+                                      }
+            }
 }

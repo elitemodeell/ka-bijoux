@@ -1,14 +1,15 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
-  "framework": "nextjs",
-  "regions": [
-    "gru1"
-  ],
-  "git": {
-    "deploymentEnabled": {
-      "codex/catalog-variations-homologation": false
-    }
-  }
+    "$schema":  "https://openapi.vercel.sh/vercel.json",
+    "buildCommand":  "npm run build",
+    "installCommand":  "npm install",
+    "framework":  "nextjs",
+    "regions":  [
+                    "gru1"
+                ],
+    "git":  {
+                "deploymentEnabled":  {
+                                          "codex/catalog-variations-homologation":  false,
+                                          "codex/ios-signing-diagnostic":  false
+                                      }
+            }
 }
