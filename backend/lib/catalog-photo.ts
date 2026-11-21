@@ -12,11 +12,24 @@ const quarantine = new Set(quarantinedPhotos);
 const byProduct: Readonly<Record<string, readonly string[]>> = quarantinedLinks;
 export const visibleCatalogPhotos: Prisma.ProductImageWhereInput = {
   NOT: [
+    { url: { contains: "://bling.com.br", mode: "insensitive" } },
+    { url: { contains: ".bling.com.br/", mode: "insensitive" } },
+    { url: { contains: "://orgbling.", mode: "insensitive" } },
+    { url: { contains: "orgbling.s3", mode: "insensitive" } },
     ...quarantinedPhotos.map((file) => ({ url: { endsWith: `/${file}` } })),
     ...Object.entries(byProduct).flatMap(([productId, files]) =>
       files.map((file) => ({ productId, url: { endsWith: `/${file}` } }))),
   ],
 };
+
+export function isBlingHostedPhoto(url: string) {
+  try {
+    const host = new URL(url, "https://catalog.invalid").hostname.toLowerCase();
+    return host === "bling.com.br" || host.endsWith(".bling.com.br") || host.includes("orgbling");
+  } catch {
+    return false;
+  }
+}
 
 export function isQuarantinedCatalogPhoto(url: string, productId?: string) {
   try {
@@ -29,7 +42,7 @@ export function isQuarantinedCatalogPhoto(url: string, productId?: string) {
 }
 
 export function officialDatabaseGallery(urls: readonly string[], productId: string) {
-  return urls.filter((url) => Boolean(url) && !isQuarantinedCatalogPhoto(url, productId));
+  return urls.filter((url) => Boolean(url) && !isBlingHostedPhoto(url) && !isQuarantinedCatalogPhoto(url, productId));
 }
 
 export class CatalogPhotoError extends Error {}
@@ -79,7 +92,7 @@ export function belongsToCatalogGallery(url: string, productId: string, variatio
   let pathname: string;
   try {
     const parsed = new URL(url, "https://catalog.invalid");
-    if (!["https:", "http:"].includes(parsed.protocol) || isQuarantinedCatalogPhoto(url, productId)) return false;
+    if (!["https:", "http:"].includes(parsed.protocol) || isBlingHostedPhoto(url) || isQuarantinedCatalogPhoto(url, productId)) return false;
     pathname = parsed.pathname;
   } catch {
     return false;

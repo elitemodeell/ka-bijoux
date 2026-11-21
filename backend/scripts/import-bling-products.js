@@ -1,16 +1,11 @@
 const fs = require("fs");
 const path = require("path");
 const { PrismaClient } = require("@prisma/client");
+const { approvedOwnPhotoUrls, buildBlingImportWrite } = require("./bling-commercial-sync.cjs");
 
 const BACKEND_ROOT = path.resolve(__dirname, "..");
 const PROJECT_ROOT = path.resolve(BACKEND_ROOT, "..");
 const CSV_PATH = path.join(PROJECT_ROOT, "produtos-bling.csv");
-const IMAGE_MAP_PATH = path.join(PROJECT_ROOT, "mapeamento-imagens-produtos.json");
-const BIJOUX_IMAGE_DIRS = [
-  path.join(BACKEND_ROOT, "public", "imagens", "Bijoux"),
-  path.join(BACKEND_ROOT, "public", "images", "Bijoux"),
-];
-const UPLOAD_DIR = path.join(BACKEND_ROOT, "public", "uploads", "products");
 const REPORT_DIR = path.join(PROJECT_ROOT, "tmp");
 
 loadEnv(path.join(BACKEND_ROOT, ".env"));
@@ -66,13 +61,12 @@ async function main() {
 
   fs.mkdirSync(REPORT_DIR, { recursive: true });
 
-  const imageIndex = buildImageIndex();
   const rows = parseBlingCsv(fs.readFileSync(CSV_PATH, "utf8"));
   const products = rows.filter((row) => row.id && row.nome);
   const duplicates = findDuplicates(products);
 
   if (!process.argv.includes("--apply") || process.argv.includes("--report-only")) {
-    writeReport(buildReportOnly(products, duplicates, imageIndex));
+    writeReport(buildReportOnly(products, duplicates));
     return;
   }
 
@@ -83,7 +77,6 @@ async function main() {
   if (duplicates.bySku.length || new Set(products.map((row) => row.id)).size !== products.length) {
     throw new Error("Resolva os IDs ou SKUs duplicados no relatorio antes de aplicar o lote.");
   }
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
   const categoryIndex = await ensureCategories();
   const importedIds = [];
   const attention = [];
@@ -95,10 +88,16 @@ async function main() {
 
   for (const row of products) {
     const normalizedRow = normalizeBlingRow(row);
-    const imageMatch = findImageForProduct(normalizedRow, imageIndex, false);
     const existing = await findExistingProduct(normalizedRow);
-    const imageUrl = existing?.images[0]?.url || normalizedRow.imageUrl ||
-      (imageMatch ? materializeImage(imageMatch, normalizedRow) : null);
+    const write = buildBlingImportWrite({
+      existing,
+      price: normalizedRow.preco,
+      stock: normalizedRow.estoque,
+      sku: normalizedRow.codigo || null,
+      blingActive: normalizedRow.situacao === "A",
+      description: TECH_PLACEHOLDER,
+    });
+    const imageUrl = write.approved[0] ?? null;
     const category = inferCategory(normalizedRow.nome, normalizedRow.categoria);
     const categoryId = categoryIndex.bySlug.get(category.categorySlug) ?? categoryIndex.fallbackId;
     const subcategoryId = category.subcategorySlug
@@ -108,7 +107,7 @@ async function main() {
     const slug = await uniqueSlug(slugify(normalizedRow.nome), normalizedRow.id);
     const existingHasDescription = hasTrustedDescription(existing?.description);
     const description = existingHasDescription ? existing.description : TECH_PLACEHOLDER;
-    const hasImage = Boolean(imageUrl || existing?.images?.[0]?.url);
+    const hasImage = write.approved.length > 0;
     const hasDescription = hasTrustedDescription(description);
     const publicationStatus = getPublicationStatus({
       blingActive: normalizedRow.situacao === "A",
@@ -146,20 +145,12 @@ async function main() {
     const product = existing
       ? await prisma.product.update({
           where: { id: existing.id },
-          data: {
-            price: data.price,
-            stock: data.stock,
-            importedAt: data.importedAt,
-            ...(normalizedRow.situacao !== "A" ? { active: false } : {}),
-          },
+          data: write.update,
         })
       : await prisma.product.create({
           data: {
             ...data,
-            active: false,
-            images: imageUrl
-              ? { create: { url: imageUrl, alt: normalizedRow.nome, order: 0 } }
-              : undefined,
+            ...write.create,
           },
         });
 
@@ -188,7 +179,7 @@ async function main() {
       semDescricao: !hasDescription,
       status: product.publicationStatus,
       ativo: product.active,
-      origemImagem: normalizedRow.imageUrl ? "bling_image" : imageMatch?.reason ?? null,
+      origemImagem: hasImage ? "ka_bijoux" : "pendente",
     });
   }
 
@@ -211,8 +202,7 @@ async function main() {
     generatedAt: new Date().toISOString(),
     source: {
       csv: CSV_PATH,
-      imageMapping: IMAGE_MAP_PATH,
-      imageDirs: BIJOUX_IMAGE_DIRS.filter((dir) => fs.existsSync(dir)),
+      photos: "ka-bijoux-approved-only",
     },
     totals,
     duplicates,
@@ -369,114 +359,6 @@ function extractBlingImageUrl(row) {
   }
 
   return "";
-}
-
-function buildImageIndex() {
-  const mapping = fs.existsSync(IMAGE_MAP_PATH)
-    ? JSON.parse(fs.readFileSync(IMAGE_MAP_PATH, "utf8"))
-    : [];
-  const byId = new Map();
-  const bySku = new Map();
-  const semantic = [];
-  const ambiguousIds = new Set();
-  const ambiguousSkus = new Set();
-
-  function addUnique(index, ambiguous, key, entry) {
-    if (!key || ambiguous.has(key)) return;
-    const previous = index.get(key);
-    if (previous && (previous.id !== entry.id || previous.sku !== entry.sku ||
-      previous.nome !== entry.nome || previous.src !== entry.src)) {
-      index.delete(key);
-      ambiguous.add(key);
-      return;
-    }
-    index.set(key, entry);
-  }
-
-  for (const item of mapping) {
-    const entry = {
-      ...item,
-      id: item.id ? String(item.id) : null,
-      sku: item.sku ? String(item.sku) : null,
-      normalizedName: normalizeSearch(`${item.nome ?? ""} ${item.src ?? ""}`),
-    };
-    addUnique(byId, ambiguousIds, entry.id, entry);
-    addUnique(bySku, ambiguousSkus, entry.sku, entry);
-    semantic.push(entry);
-  }
-
-  if (fs.existsSync(UPLOAD_DIR)) {
-    for (const fileName of fs.readdirSync(UPLOAD_DIR)) {
-      if (!/\.(png|jpe?g|webp)$/i.test(fileName)) continue;
-      const entry = {
-        src: null,
-        nome: fileName,
-        id: null,
-        sku: null,
-        normalizedName: normalizeSearch(fileName.replace(/\.[^.]+$/, "")),
-      };
-      if (!semantic.some((item) => item.nome === fileName)) {
-        semantic.push(entry);
-      }
-    }
-  }
-
-  return { byId, bySku, semantic, ambiguousIds, ambiguousSkus };
-}
-
-function findImageForProduct(product, imageIndex, includeNameCandidates = false) {
-  if (imageIndex.ambiguousIds.has(product.id) || imageIndex.ambiguousSkus.has(product.codigo)) return null;
-  const byId = imageIndex.byId.get(product.id);
-  const bySku = product.codigo ? imageIndex.bySku.get(product.codigo) : null;
-  if (byId && bySku && byId !== bySku) return null;
-  if (byId && (!byId.sku || !product.codigo || byId.sku === product.codigo)) {
-    return { item: byId, reason: "bling_id" };
-  }
-
-  if (bySku && (!bySku.id || bySku.id === product.id)) {
-    return { item: bySku, reason: "sku" };
-  }
-
-  if (!includeNameCandidates) return null;
-  const productTokens = tokenize(product.nome);
-  let best = null;
-  for (const item of imageIndex.semantic) {
-    const itemTokens = tokenize(item.nome || item.src || "");
-    const score = similarityScore(productTokens, itemTokens);
-    if (!best || score > best.score) best = { item, score };
-  }
-
-  if (best && best.score >= 0.55) {
-    return { item: best.item, reason: `nome_parecido_${best.score.toFixed(2)}` };
-  }
-
-  return null;
-}
-
-function materializeImage(match, product) {
-  const item = match.item;
-  const finalName = item.nome || `${slugify(product.nome)}.png`;
-  const sourcePath = BIJOUX_IMAGE_DIRS
-    .map((dir) => path.join(dir, item.src || ""))
-    .find((file) => item.src && fs.existsSync(file));
-  const existingUploadPath = path.join(UPLOAD_DIR, finalName);
-  const destPath = path.join(UPLOAD_DIR, finalName);
-
-  if (sourcePath) {
-    try {
-      fs.copyFileSync(sourcePath, destPath, fs.constants.COPYFILE_EXCL);
-    } catch (error) {
-      if (error.code !== "EEXIST") throw error;
-      if (!fs.readFileSync(destPath).equals(fs.readFileSync(sourcePath))) return null;
-    }
-    return `/uploads/products/${finalName}`;
-  }
-
-  if (fs.existsSync(existingUploadPath)) {
-    return `/uploads/products/${finalName}`;
-  }
-
-  return null;
 }
 
 async function findExistingProduct(product) {
@@ -674,16 +556,15 @@ function findDuplicates(products) {
   };
 }
 
-function buildReportOnly(products, duplicates, imageIndex) {
+function buildReportOnly(products, duplicates) {
   const productReport = [];
   const attention = [];
   const byImage = new Map();
 
   for (const row of products) {
     const product = normalizeBlingRow(row);
-    const imageMatch = findImageForProduct(product, imageIndex, true);
     const category = inferCategory(product.nome, product.categoria);
-    const hasImage = Boolean(product.imageUrl || imageMatch);
+    const hasImage = false;
     const hasDescription = false;
     const status = hasImage ? "MISSING_DESCRIPTION" : "MISSING_IMAGE";
     const issues = [];
@@ -705,12 +586,12 @@ function buildReportOnly(products, duplicates, imageIndex) {
       estoque: product.estoque,
       categoria: category.categorySlug,
       subcategoria: category.subcategorySlug,
-      imagem: product.imageUrl || (imageMatch?.item?.nome ? `/uploads/products/${imageMatch.item.nome}` : null),
+      imagem: null,
       semImagem: !hasImage,
       semDescricao: !hasDescription,
       status,
-      ativo: product.situacao === "A" && product.estoque > 0 && hasImage,
-      origemImagem: product.imageUrl ? "bling_image" : imageMatch?.reason ?? null,
+      ativo: false,
+      origemImagem: "pendente",
     };
     productReport.push(entry);
     if (entry.imagem) pushMap(byImage, entry.imagem, entry);
@@ -721,8 +602,7 @@ function buildReportOnly(products, duplicates, imageIndex) {
     mode: "report-only",
     source: {
       csv: CSV_PATH,
-      imageMapping: IMAGE_MAP_PATH,
-      imageDirs: BIJOUX_IMAGE_DIRS.filter((dir) => fs.existsSync(dir)),
+      photos: "ka-bijoux-approved-only",
     },
     totals: {
       totalNaBling: products.length,

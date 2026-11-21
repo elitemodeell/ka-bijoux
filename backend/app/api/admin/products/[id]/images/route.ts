@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { belongsToCatalogGallery } from "@/lib/catalog-photo";
+import { planKaPhotoPush } from "@/lib/bling-photo-push";
 import { z } from "zod";
 import { ProductPublicationStatus } from "@prisma/client";
 import { requireAdmin } from "@/lib/auth";
@@ -44,6 +45,21 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         },
       }),
     ]);
+
+    const plan = planKaPhotoPush({
+      productId: product.id,
+      blingId: product.blingId,
+      sku: product.sku,
+      images: [{ url: data.url, order: 0 }],
+    });
+    console.info(JSON.stringify({
+      event: "ka-photo-push-prepared",
+      productId: product.id,
+      sku: product.sku,
+      status: plan.status,
+      reason: plan.reason,
+      targets: plan.targets.length,
+    }));
 
     return apiSuccess({ url: data.url });
   } catch (error) {

@@ -8,6 +8,7 @@ import blingRows from "@/data/produtos-bling.json";
 import imageMapping from "@/data/mapeamento-imagens-produtos.json";
 import uploadImageFiles from "@/data/bling-image-files.json";
 import productContentOverrides from "@/data/product-content-overrides.json";
+import { isBlingHostedPhoto } from "@/lib/catalog-photo";
 import {
   getProductCatalogLine,
   isAdultCatalogProduct,
@@ -598,45 +599,15 @@ function buildImageIndex() {
 }
 
 function resolveImage(
-  row: ReturnType<typeof normalizeBlingRow>,
-  imageIndex: ReturnType<typeof buildImageIndex>,
+  _row: ReturnType<typeof normalizeBlingRow>,
+  _imageIndex: ReturnType<typeof buildImageIndex>,
   staticImageFile?: string
 ): ImageMatch {
-  if (row.imageUrl) {
-    return { url: row.imageUrl, source: "BLING", reason: "bling_image_field" };
+  if (staticImageFile && uploadFileExists(staticImageFile) && !isBlingHostedPhoto(staticImageFile)) {
+    return { url: `/uploads/products/${staticImageFile}`, source: "STATIC", reason: "ka_editorial_file" };
   }
 
-  const byId = imageIndex.byId.get(row.id);
-  if (byId && (!byId.sku || !row.sku || byId.sku === row.sku)) {
-    return imageMatchToUrl(byId, "MARKETPLACE", "bling_id");
-  }
-
-  const bySku = row.sku ? imageIndex.bySku.get(row.sku) : undefined;
-  if (bySku && (!bySku.id || bySku.id === row.id)) {
-    return imageMatchToUrl(bySku, "MARKETPLACE", "sku");
-  }
-
-  if (staticImageFile && uploadFileExists(staticImageFile)) {
-    return { url: `/uploads/products/${staticImageFile}`, source: "STATIC", reason: "static_catalog_sku" };
-  }
-
-  return { url: "", source: "NONE", reason: "sem_imagem" };
-}
-
-function imageMatchToUrl(
-  item: ImageIndexEntry | undefined,
-  source: "MARKETPLACE" | "STATIC",
-  reason: string
-): ImageMatch {
-  if (!item) return { url: "", source: "NONE", reason: "sem_imagem" };
-  const fileName = item.nome || item.src || "";
-  if (!fileName) return { url: "", source: "NONE", reason: "sem_imagem" };
-
-  if (uploadFileExists(fileName)) {
-    return { url: `/uploads/products/${fileName}`, source, reason };
-  }
-
-  return { url: "", source: "NONE", reason: "arquivo_nao_encontrado" };
+  return { url: "", source: "NONE", reason: "foto_propria_pendente" };
 }
 
 function findStaticProduct(row: ReturnType<typeof normalizeBlingRow>) {

@@ -1,6 +1,7 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { compare } = require("./reconcile-bling-catalog.cjs");
+const { commercialProductUpdate, commercialVariationWrite } = require("./bling-commercial-sync.cjs");
 
 const directory = path.resolve(__dirname, "../../tmp");
 const key = (value) => String(value ?? "").trim();
@@ -114,24 +115,29 @@ async function applyInHomologation(snapshot, url) {
       for (const row of actions) {
         if (row.action === "update-product") {
           const product = byId.get(row.localId);
-          await tx.product.update({ where: { id: product.id }, data: {
+          await tx.product.update({ where: { id: product.id }, data: commercialProductUpdate({
             price: row.price,
             stock: row.stock === null ? undefined : Math.min(product.stock, row.stock),
-          } });
+          }) });
           continue;
         }
         const parent = byId.get(row.parentId);
         const priceModifier = new Prisma.Decimal(row.price).minus(parent.promotionalPrice ?? parent.price);
         if (row.action === "stage-variation") {
           if (!row.activeInBling) continue;
-          await tx.productVariation.create({ data: { productId: row.parentId, sku: row.sku,
-            name: "Opção", value: row.label, priceModifier, stock: row.stock, active: false } });
+          await tx.productVariation.create({ data: {
+            productId: row.parentId,
+            ...commercialVariationWrite({ sku: row.sku, name: "Opção", value: row.label, priceModifier, stock: row.stock, active: false }),
+          } });
           continue;
         }
         const variation = parent.variations.find((record) => record.id === row.localId);
         await tx.productVariation.update({ where: { id: row.localId, productId: row.parentId },
-          data: { priceModifier, stock: Math.min(variation.stock, row.stock),
-            active: row.activeInBling ? undefined : false } });
+          data: commercialVariationWrite({
+            priceModifier,
+            stock: Math.min(variation.stock, row.stock),
+            active: row.activeInBling ? undefined : false,
+          }) });
       }
       return { actions: actions.length, categoryCorrections: categories.length, backup };
     }, { isolationLevel: "Serializable", timeout: 120_000 });

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { belongsToCatalogGallery, isQuarantinedCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
+import { planKaPhotoPush } from "@/lib/bling-photo-push";
 import { z } from "zod";
 import { ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -158,6 +159,15 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       importSource === ProductImportSource.BLING && !data.enrichmentStatus;
 
     const { images, variations, ...rest } = data;
+    if ((rest.publicationStatus === "PUBLISHED" || rest.active === true)) {
+      const currentImages = images
+        ? images.map((image) => image.url)
+        : (await prisma.productImage.findMany({ where: { productId: params.id }, select: { url: true } }))
+          .map((image) => image.url);
+      if (!officialDatabaseGallery(currentImages, params.id).length) {
+        return apiError("Publique somente com foto própria aprovada.", 422);
+      }
+    }
     if (images?.some(({ url }) => !belongsToCatalogGallery(url, params.id)) ||
         variations?.some(({ id, imageUrl }) => imageUrl && !belongsToCatalogGallery(imageUrl, params.id, id))) {
       return apiError("Uma foto está vinculada a outro produto ou variação.", 422);
@@ -236,6 +246,23 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
       return tx.product.findUnique({ where: { id: params.id }, include: productInclude });
     });
+    if (updated && (images || variations?.some((variation) => variation.imageUrl))) {
+      const plan = planKaPhotoPush({
+        productId: updated.id,
+        blingId: updated.blingId,
+        sku: updated.sku,
+        images: updated.images,
+        variations: updated.variations,
+      });
+      console.info(JSON.stringify({
+        event: "ka-photo-push-prepared",
+        productId: updated.id,
+        sku: updated.sku,
+        status: plan.status,
+        reason: plan.reason,
+        targets: plan.targets.length,
+      }));
+    }
     return apiSuccess(updated);
   } catch (e) {
     if (e instanceof z.ZodError) return apiError(e.issues[0].message, 422);
