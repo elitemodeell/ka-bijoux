@@ -104,7 +104,6 @@ type Variation = {
 
 type Product = {
   assortedColors?: boolean;
-  purchaseReviewRequired?: boolean;
   fixedColor?: string | null;
   id: string;
   slug?: string | null;
@@ -362,7 +361,7 @@ export default function ProdutoScreen() {
   }
 
   async function handleCartAction(action: "add" | "buy") {
-    if (!product || loading || product.purchaseReviewRequired) return;
+    if (!product || loading) return;
     if (cartActionLock.current) return;
     if (!customer) {
       router.push("/(auth)/entrada");
@@ -429,9 +428,9 @@ export default function ProdutoScreen() {
   const galleryImages = activeVariation
     ? [variationImageUri ?? productGallery[0]].filter((url): url is string => Boolean(url))
     : productGallery;
-  const isAvailable = !product.purchaseReviewRequired && (hasVariations && !product.sharedVariationStock
+  const isAvailable = hasVariations && !product.sharedVariationStock
     ? product.variations.some((v) => v.stock > 0)
-    : product.stock > 0);
+    : product.stock > 0;
   const activeStock = product.sharedVariationStock ? product.stock : activeVariation?.stock ?? product.stock;
   const priceModifier = Number(activeVariation?.priceModifier ?? 0);
   const basePrice = product.promotionalPrice && product.promotionalPrice < product.price ? product.promotionalPrice : product.price;
@@ -579,9 +578,6 @@ export default function ProdutoScreen() {
           </View>
 
           {/* Variações */}
-          {product.purchaseReviewRequired && (
-            <Text style={styles.selectedVariationLabel}>Compra temporariamente indisponível. Estamos verificando as opções deste produto.</Text>
-          )}
           {(product.assortedColors || product.fixedColor) && (
             <Text style={styles.selectedVariationLabel}>
               {product.assortedColors ? "Cor enviada conforme disponibilidade." : `Cor: ${product.fixedColor}`}

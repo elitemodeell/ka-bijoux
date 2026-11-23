@@ -53,14 +53,6 @@ function coupon(overrides: Partial<CouponSnapshot> = {}): CouponSnapshot {
 }
 
 describe("checkout catalog pricing", () => {
-  it("blocks a reported catalog item awaiting identification even in an existing cart", () => {
-    const item = cartItem();
-    item.product.sku = "3104000000421";
-    expectCheckoutCode(() => priceCart([item]), "CATALOG_REVIEW_REQUIRED");
-    item.product.sku = "ordinary-single-product";
-    expect(priceCart([item])[0]).toMatchObject({ variationId: null });
-  });
-
   it("checks combined quantities for options that share a product balance", () => {
     const items = ["white", "black"].map((id) => {
       const item = cartItem();

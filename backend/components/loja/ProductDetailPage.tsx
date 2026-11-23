@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { StaticProduct, StaticProductVariant } from "@/lib/static-sex-shop-catalog";
-import { catalogPurchaseReviewMessage, requiresCatalogPurchaseReview } from "@/lib/catalog-purchase-review";
 import { addCartItem } from "@/lib/client-cart";
 import { getDiscountPercentage, getValidPromotionalPrice } from "@/lib/store-rules";
 import ProductCard from "@/components/loja/ProductCard";
@@ -141,8 +140,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const categorySlug = product.categorySlug ?? "produtos";
   const productSubcategoryName = product.subcategoryName ?? subcategoryName;
   const stock = variations.length ? selectedVariant?.stock ?? 0 : product.stock;
-  const purchaseReview = requiresCatalogPurchaseReview(product.sku);
-  const available = !purchaseReview && stock > 0 && (!variations.length || Boolean(selectedVariant?.id));
+  const available = stock > 0 && (!variations.length || Boolean(selectedVariant?.id));
   const hasStock = variations.length
     ? variations.some((variant) => variant.id && (variant.stock ?? 0) > 0)
     : product.stock > 0;
@@ -379,8 +377,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                   <p className="mt-3 text-xs font-bold text-emerald-600">Link do produto copiado.</p>
                 )}
 
-                {purchaseReview && <p className="mt-4 text-sm text-gray-700">{catalogPurchaseReviewMessage}</p>}
-                {!purchaseReview && variations.length > 0 && (
+                {variations.length > 0 && (
                   <div className="mt-5">
                     <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-gray-500">{optionTitle}</p>
                     <div className="flex flex-wrap gap-2">

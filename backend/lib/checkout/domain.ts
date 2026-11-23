@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import { catalogPurchaseReviewMessage, requiresCatalogPurchaseReview } from "@/lib/catalog-purchase-review";
 
 export class CheckoutError extends Error {
   constructor(
@@ -20,7 +19,6 @@ export interface CatalogCartItem {
   product: {
     id: string;
     name: string;
-    sku?: string | null;
     active: boolean;
     price: unknown;
     promotionalPrice: unknown | null;
@@ -110,9 +108,6 @@ export function priceCart(items: CatalogCartItem[]): PricedCheckoutItem[] {
       );
     }
 
-    if (requiresCatalogPurchaseReview(item.product.sku)) {
-      throw new CheckoutError(catalogPurchaseReviewMessage, 409, "CATALOG_REVIEW_REQUIRED");
-    }
     let stock = item.product.stock;
     let modifierCents = 0;
     let variationName: string | null = null;

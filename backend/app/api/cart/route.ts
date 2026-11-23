@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic';
 import { belongsToCatalogGallery, visibleCatalogPhotos } from "@/lib/catalog-photo";
-import { catalogPurchaseReviewMessage, requiresCatalogPurchaseReview } from "@/lib/catalog-purchase-review";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -111,9 +110,6 @@ export async function POST(req: NextRequest) {
           product = candidates[0] ?? null;
         }
         if (!product) throw new CartMutationError("Produto não encontrado.", 404);
-        if (requiresCatalogPurchaseReview(product.sku)) {
-          throw new CartMutationError(catalogPurchaseReviewMessage, 409);
-        }
         const variation = product.variations.find((candidate) => candidate.id === variationId);
         if (variation && !variation.sku?.trim()) {
           throw new CartMutationError("Esta opção está temporariamente indisponível.", 409);

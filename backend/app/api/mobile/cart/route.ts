@@ -47,9 +47,6 @@ export async function POST(req: NextRequest) {
     });
     if (!product) return apiError("Produto não encontrado.", 404);
 
-    if (requiresCatalogPurchaseReview(product.sku)) {
-      return apiError(catalogPurchaseReviewMessage, 409);
-    }
     const variation = input.variationId
       ? product.variations.find((entry) => entry.id === input.variationId)
       : null;
@@ -158,4 +155,3 @@ export async function DELETE(req: NextRequest) {
     return apiError("Erro ao limpar carrinho.", 500);
   }
 }
-import { catalogPurchaseReviewMessage, requiresCatalogPurchaseReview } from "@/lib/catalog-purchase-review";
