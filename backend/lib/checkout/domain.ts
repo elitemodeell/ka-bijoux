@@ -16,6 +16,7 @@ export interface CatalogCartItem {
   id: string;
   productId: string;
   variationId: string | null;
+  selectedPhotoUrl?: string | null;
   quantity: number;
   product: {
     id: string;
@@ -45,6 +46,7 @@ export interface PricedCheckoutItem {
   cartItemId: string;
   productId: string;
   variationId: string | null;
+  selectedPhotoUrl?: string | null;
   usesProductStock: boolean;
   productName: string;
   variationName: string | null;
@@ -169,6 +171,7 @@ export function priceCart(items: CatalogCartItem[]): PricedCheckoutItem[] {
       cartItemId: item.id,
       productId: item.productId,
       variationId: item.variationId,
+      selectedPhotoUrl: item.selectedPhotoUrl,
       usesProductStock: Boolean(item.variationId && item.product.sharedVariationStock),
       productName: item.product.name,
       variationName,
@@ -224,7 +227,7 @@ export interface CheckoutHashInput {
   notes?: string | null;
   paymentMethod?: "PIX" | "CREDIT_CARD" | "BOLETO";
   installmentCount?: number;
-  items: Array<{ productId: string; variationId?: string | null; quantity: number }>;
+  items: Array<{ productId: string; variationId?: string | null; selectedPhotoUrl?: string | null; quantity: number }>;
 }
 
 export function createCheckoutRequestHash(input: CheckoutHashInput): string {
@@ -241,6 +244,7 @@ export function createCheckoutRequestHash(input: CheckoutHashInput): string {
       .map((item) => ({
         productId: item.productId,
         variationId: item.variationId ?? null,
+        ...(item.selectedPhotoUrl ? { selectedPhotoUrl: item.selectedPhotoUrl } : {}),
         quantity: item.quantity,
       }))
       .sort((left, right) =>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Dimensions, InteractionManager, LayoutAnimation, Platform, UIManager, Alert, Share,
@@ -252,7 +253,7 @@ export default function ProdutoScreen() {
   const [related, setRelated] = useState<RelatedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [selectedVariation, setSelectedVariation] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
@@ -273,17 +274,20 @@ export default function ProdutoScreen() {
     setSecondaryVisible(false);
     setLoading(true);
     setNotFound(false);
-    setSelectedImage(0);
+    setSelectedPhoto(null);
     setVariationError(false);
     productsApi.getById(id)
-      .then((res) => {
+      .then(async (res) => {
         if (!current) return;
         const p: Product = res.data.data.product;
         if (p.id !== id && p.slug !== id) {
           setNotFound(true);
           return;
         }
+        const savedPhoto = await AsyncStorage.getItem(`catalog-photo:${p.id}`).catch(() => null);
+        if (!current) return;
         setProduct(p);
+        setSelectedPhoto(savedPhoto);
         setRelated(res.data.data.related ?? []);
         setSelectedVariation(null);
         setQuantity(1);
@@ -363,7 +367,6 @@ export default function ProdutoScreen() {
     setVariationError(false);
     setSelectedVariation((prev) => (prev === v.id ? null : v.id));
     setQuantity(1);
-    setSelectedImage(0);
   }
 
   async function handleCartAction(action: "add" | "buy") {
@@ -386,12 +389,13 @@ export default function ProdutoScreen() {
     cartActionLock.current = true;
     setCartAction(action);
     try {
+      const photo = galleryPhotos[selectedImage]?.url;
       if (action === "buy") {
-        await buyNow(product.id, quantity, selectedOption?.id);
+        await buyNow(product.id, quantity, selectedOption?.id, photo);
         router.push("/checkout");
         return;
       }
-      await addItem(product.id, quantity, selectedOption?.id);
+      await addItem(product.id, quantity, selectedOption?.id, photo);
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
     } catch {
@@ -427,13 +431,20 @@ export default function ProdutoScreen() {
 
   const hasVariations = product.variations.length > 0;
   const activeVariation = hasVariations ? product.variations.find((v) => v.id === selectedVariation) ?? null : null;
-  const variationImageUri = resolveProductPhoto(product.id, activeVariation?.imageUrl, product.updatedAt, activeVariation?.id);
-  const productGallery = Array.from(new Set(
-    product.images.map((image) => resolveProductPhoto(product.id, image.url, product.updatedAt)).filter((url): url is string => Boolean(url)),
-  ));
-  const galleryImages = activeVariation
-    ? (variationImageUri ? [variationImageUri] : [])
-    : productGallery;
+  const photoUrls = activeVariation ? [activeVariation.imageUrl] : product.images.map(({ url }) => url);
+  const galleryPhotos = [...new Set(photoUrls)].flatMap((url) => {
+    if (!url) return [];
+    const uri = resolveProductPhoto(product.id, url, product.updatedAt, activeVariation?.id);
+    return uri ? [{ url, uri }] : [];
+  });
+  const galleryImages = galleryPhotos.map(({ uri }) => uri);
+  const selectedImage = Math.max(0, galleryPhotos.findIndex(({ url }) => url === selectedPhoto));
+  function selectGalleryPhoto(index: number) {
+    const photo = galleryPhotos[index]?.url;
+    if (activeVariation || !product || !photo) return;
+    setSelectedPhoto(photo);
+    void AsyncStorage.setItem(`catalog-photo:${product.id}`, photo).catch(() => undefined);
+  }
   const isAvailable = !product.purchaseReviewRequired && (hasVariations && !product.sharedVariationStock
     ? product.variations.some((v) => v.stock > 0)
     : product.stock > 0);
@@ -503,7 +514,7 @@ export default function ProdutoScreen() {
             images={galleryImages}
             productName={activeVariation ? `${product.name} — ${activeVariation.value}` : product.name}
             selectedIndex={Math.min(selectedImage, Math.max(0, galleryImages.length - 1))}
-            onSelectedIndexChange={setSelectedImage}
+            onSelectedIndexChange={selectGalleryPhoto}
           />
           {hasPromo && (
             <View style={styles.discountBadge}>
@@ -523,7 +534,7 @@ export default function ProdutoScreen() {
         {galleryImages.length > 1 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbnails}>
             {galleryImages.map((uri, idx) => (
-              <TouchableOpacity key={`${uri}-${idx}`} onPress={() => setSelectedImage(idx)}
+              <TouchableOpacity key={`${uri}-${idx}`} onPress={() => selectGalleryPhoto(idx)}
                 style={[styles.thumbnail, idx === selectedImage && styles.thumbnailActive]}>
                 <ResilientProductImage sources={[uri]} style={styles.thumbnailImage} contentFit="contain" compact />
               </TouchableOpacity>

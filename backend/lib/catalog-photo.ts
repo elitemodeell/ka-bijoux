@@ -53,6 +53,16 @@ export function officialDatabaseGallery(urls: readonly string[], productId: stri
   return urls.filter((url) => isOfficialCatalogPhoto(url, productId, sku));
 }
 
+export function catalogCartPhoto(
+  selection: string | null | undefined,
+  product: { id: string; sku?: string | null; images: readonly { url: string }[] },
+  variation?: { id: string; sku?: string | null; imageUrl?: string | null } | null,
+) {
+  const urls = variation ? [variation.imageUrl] : product.images.map(({ url }) => url);
+  return urls.find((url) => url && (!selection || url === selection) &&
+    isOfficialCatalogPhoto(url, product.id, variation ? variation.sku : product.sku, variation?.id)) ?? null;
+}
+
 export class CatalogPhotoError extends Error {}
 
 export async function normalizeCatalogPhoto(bytes: Buffer) {

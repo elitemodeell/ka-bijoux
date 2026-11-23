@@ -119,11 +119,18 @@ function paymentResult(orderId: string): CheckoutPaymentResult {
 }
 
 function configureCheckout(
-  options: { addressFound?: boolean; asaasCustomerId?: string | null; withVariation?: boolean } = {}
+  options: { addressFound?: boolean; asaasCustomerId?: string | null; withVariation?: boolean; selectedPhotoUrl?: string } = {}
 ) {
   let storedOrder: any = null;
   let successfulOrderCreates = 0;
   const cartValue = cart();
+  if (options.selectedPhotoUrl) {
+    Object.assign(cartValue.items[0], { selectedPhotoUrl: options.selectedPhotoUrl });
+    Object.assign(cartValue.items[0].product, {
+      sku: "3104000003348",
+      images: [1, 2, 3, 4, 5].map((index) => ({ url: `/fixtures/photo-${index}-3104000003348.png` })),
+    });
+  }
   if (options.withVariation) {
     Object.assign(cartValue.items[0], {
       variationId: "variation-1",
@@ -423,6 +430,30 @@ describe("server-authoritative checkout service", () => {
       sku: "fixture-white",
       productImage: "/fixtures/white.png",
     });
+  });
+
+  it.each([1, 2, 3, 4, 5])("records gallery photo %i without altering the commercial SKU or price", async (index) => {
+    const selectedPhotoUrl = `/fixtures/photo-${index}-3104000003348.png`;
+    const setup = configureCheckout({ selectedPhotoUrl });
+
+    await createOrResumeCheckout(customer.id, input(), setup.service);
+
+    expect(setup.tx.order.create.mock.calls[0][0].data.items.create[0]).toMatchObject({
+      productId: "product-1",
+      variationId: null,
+      sku: "3104000003348",
+      productImage: selectedPhotoUrl,
+      unitPrice: 25,
+    });
+  });
+
+  it("rejects an unavailable photo instead of substituting the cover at checkout", async () => {
+    const setup = configureCheckout({ selectedPhotoUrl: "/fixtures/another-item.png" });
+
+    await expect(createOrResumeCheckout(customer.id, input(), setup.service)).rejects.toMatchObject({
+      code: "CATALOG_PHOTO_CHANGED",
+    });
+    expect(setup.tx.order.create).not.toHaveBeenCalled();
   });
 });
 

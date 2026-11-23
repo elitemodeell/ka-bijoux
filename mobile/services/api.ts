@@ -186,8 +186,8 @@ export const categoriesApi = {
 export const cartApi = {
   get: () => api.get(`${MOBILE_API_PREFIX}/cart`),
 
-  addItem: (productId: string, quantity: number, variationId?: string, mode: "INCREMENT" | "SET" | "BUY_NOW" = "INCREMENT") =>
-    api.post(`${MOBILE_API_PREFIX}/cart`, { productId, quantity, variationId, mode }),
+  addItem: (productId: string, quantity: number, variationId?: string, mode: "INCREMENT" | "SET" | "BUY_NOW" = "INCREMENT", selectedPhotoUrl?: string) =>
+    api.post(`${MOBILE_API_PREFIX}/cart`, { productId, quantity, variationId, mode, selectedPhotoUrl }),
 
   updateItem: (itemId: string, quantity: number) =>
     api.patch(`${MOBILE_API_PREFIX}/cart/${itemId}`, { quantity }),

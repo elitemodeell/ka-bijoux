@@ -1,5 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
-import { belongsToCatalogGallery, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { catalogCartPhoto, isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { prisma } from "@/lib/prisma";
 import {
   googlePlayProductWhere,
@@ -14,7 +14,7 @@ export const googlePlayCartInclude = Prisma.validator<Prisma.CartInclude>()({
     include: {
       product: {
         include: {
-          images: { where: visibleCatalogPhotos, orderBy: [{ order: "asc" }, { id: "asc" }], take: 1 },
+          images: { where: visibleCatalogPhotos, orderBy: [{ order: "asc" }, { id: "asc" }] },
         },
       },
       variation: true,
@@ -82,6 +82,7 @@ export async function sanitizeGooglePlayCart(
     ...safeCart,
     items: safeCart.items.map((item) => ({
       ...item,
+      selectedPhotoUrl: catalogCartPhoto(item.selectedPhotoUrl, item.product, item.variation),
       unitPrice: Number(item.unitPrice),
       product: {
         ...item.product,
@@ -93,7 +94,7 @@ export async function sanitizeGooglePlayCart(
       variation: item.variation
         ? {
             ...item.variation,
-            imageUrl: item.variation.imageUrl && belongsToCatalogGallery(item.variation.imageUrl, item.product.id, item.variation.id)
+            imageUrl: item.variation.imageUrl && isOfficialCatalogPhoto(item.variation.imageUrl, item.product.id, item.variation.sku, item.variation.id)
               ? item.variation.imageUrl : null,
             stock: item.product.sharedVariationStock ? item.product.stock : item.variation.stock,
             priceModifier: Number(item.variation.priceModifier),

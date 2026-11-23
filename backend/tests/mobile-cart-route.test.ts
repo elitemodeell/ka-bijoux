@@ -78,6 +78,29 @@ describe("mobile cart mutations", () => {
     }));
   });
 
+  it.each([1, 2, 3, 4, 5])("persists gallery photo %i on the unique commercial line", async (index) => {
+    const images = [1, 2, 3, 4, 5].map((number) => ({ url: `/fixtures/photo-${number}.png` }));
+    const selectedPhotoUrl = images[index - 1].url;
+    mocks.productFindFirst.mockResolvedValue({ id: "product-1", price: 10, stock: 5, variations: [], images });
+    mocks.cartItemFindFirst.mockResolvedValue({ id: "item-1", quantity: 4 });
+
+    const response = await POST(request({ productId: "product-1", mode: "BUY_NOW", selectedPhotoUrl }));
+
+    expect(response.status).toBe(201);
+    expect(mocks.cartItemUpdate).toHaveBeenCalledWith({
+      where: { id: "item-1" },
+      data: { quantity: 1, unitPrice: 10, selectedPhotoUrl },
+    });
+  });
+
+  it("rejects a photograph from a different product before mutating the cart", async () => {
+    mocks.productFindFirst.mockResolvedValue({ id: "product-1", price: 10, stock: 5, variations: [], images: [] });
+    const response = await POST(request({ productId: "product-1", mode: "BUY_NOW", selectedPhotoUrl: "/other.png" }));
+    expect(response.status).toBe(422);
+    expect(mocks.cartItemDeleteMany).not.toHaveBeenCalled();
+    expect(mocks.cartItemUpdate).not.toHaveBeenCalled();
+  });
+
   it("rejects a quantity above server-side stock", async () => {
     mocks.cartItemFindFirst.mockResolvedValue({ id: "item-1", quantity: 5 });
     const response = await POST(request({ productId: "product-1", quantity: 1, mode: "INCREMENT" }));

@@ -5,6 +5,7 @@ export interface CartItemData {
   id: string;
   productId: string;
   variationId?: string;
+  selectedPhotoUrl?: string | null;
   quantity: number;
   unitPrice: number;
   product: {
@@ -26,8 +27,8 @@ interface CartState {
   isBuyingNow: boolean;
 
   fetchCart: () => Promise<void>;
-  addItem: (productId: string, quantity?: number, variationId?: string) => Promise<void>;
-  buyNow: (productId: string, quantity?: number, variationId?: string) => Promise<void>;
+  addItem: (productId: string, quantity?: number, variationId?: string, selectedPhotoUrl?: string) => Promise<void>;
+  buyNow: (productId: string, quantity?: number, variationId?: string, selectedPhotoUrl?: string) => Promise<void>;
   updateItem: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -65,11 +66,11 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  addItem: async (productId, quantity = 1, variationId) => {
+  addItem: async (productId, quantity = 1, variationId, selectedPhotoUrl) => {
     const previousCount = get().itemCount;
     set({ itemCount: previousCount + quantity });
     try {
-      const response = await cartApi.addItem(productId, quantity, variationId);
+      const response = await cartApi.addItem(productId, quantity, variationId, "INCREMENT", selectedPhotoUrl);
       set(cartSnapshot(response.data.data));
     } catch (error) {
       set({ itemCount: previousCount });
@@ -77,15 +78,15 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  buyNow: async (productId, quantity = 1, variationId) => {
-    const key = `${productId}:${variationId ?? "default"}`;
+  buyNow: async (productId, quantity = 1, variationId, selectedPhotoUrl) => {
+    const key = JSON.stringify([productId, variationId, selectedPhotoUrl]);
     const pending = pendingBuyNow.get(key);
     if (pending) return pending;
     const operation = (async () => {
       const previousCount = get().itemCount;
       set({ itemCount: quantity, isBuyingNow: true });
       try {
-        const response = await cartApi.addItem(productId, quantity, variationId, "BUY_NOW");
+        const response = await cartApi.addItem(productId, quantity, variationId, "BUY_NOW", selectedPhotoUrl);
         set(cartSnapshot(response.data.data));
       } catch (error) {
         set({ itemCount: previousCount });

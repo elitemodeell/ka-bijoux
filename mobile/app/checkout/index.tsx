@@ -185,7 +185,9 @@ export default function CheckoutEntregaScreen() {
         <View style={styles.card}>
           {Platform.OS === "ios" ? <View style={styles.sectionTitleRow}><Ionicons name="bag-handle-outline" size={22} color={Colors.primary} /><Text style={styles.cardTitle}>Resumo do Pedido</Text><Text style={styles.itemCount}>{items.length} {items.length === 1 ? "item" : "itens"}</Text></View> : <Text style={styles.cardTitle}>Resumo</Text>}
           {items.map((item) => {
-            const image = item.variation ? item.variation.imageUrl : item.product.images?.[0]?.url;
+            const image = item.selectedPhotoUrl === undefined
+              ? (item.variation ? item.variation.imageUrl : item.product.images?.[0]?.url)
+              : item.selectedPhotoUrl;
             return Platform.OS === "ios" ? (
               <View key={item.id} style={styles.iosItemRow}>
                 {image ? <Image source={image} style={styles.itemImage} contentFit="cover" /> : <View style={[styles.itemImage, styles.itemImageFallback]}><Ionicons name="image-outline" size={24} color={Colors.primary} /></View>}

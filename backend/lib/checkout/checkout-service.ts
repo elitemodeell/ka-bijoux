@@ -7,7 +7,7 @@ import {
   Prisma,
   ShippingType,
 } from "@prisma/client";
-import { isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { catalogCartPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { prisma } from "@/lib/prisma";
 import { calculateShipping, SHIPPING_OPTION_IDS } from "@/lib/shipping";
 import { generateOrderNumber } from "@/lib/utils";
@@ -217,7 +217,7 @@ async function getContext(
           include: {
             product: {
               include: {
-                images: { where: visibleCatalogPhotos, take: 1, orderBy: [{ order: "asc" }, { id: "asc" }] },
+                images: { where: visibleCatalogPhotos, orderBy: [{ order: "asc" }, { id: "asc" }] },
                 category: true,
                 _count: { select: { variations: { where: { active: true } } } },
               },
@@ -331,7 +331,7 @@ function shippingContextSignature(context: Awaited<ReturnType<typeof getContext>
 function requestHash(
   customerId: string,
   input: CheckoutInput,
-  items: Array<{ productId: string; variationId: string | null; quantity: number }>
+  items: Array<{ productId: string; variationId: string | null; selectedPhotoUrl?: string | null; quantity: number }>
 ) {
   return createCheckoutRequestHash({
     customerId,
@@ -1455,15 +1455,16 @@ export async function createOrResumeCheckout(
                 const source = current.cart.items.find(
                   (cartItem) => cartItem.id === item.cartItemId
                 )!;
+                const productImage = catalogCartPhoto(item.selectedPhotoUrl, source.product, source.variation);
+                if (item.selectedPhotoUrl && !productImage) {
+                  throw new CheckoutError("A foto escolhida mudou. Selecione novamente a opção do produto.", 409, "CATALOG_PHOTO_CHANGED");
+                }
                 return {
                   productId: item.productId,
                   variationId: item.variationId,
                   usesProductStock: item.usesProductStock,
                   productName: item.productName,
-                  productImage: (item.variationId ? [source.variation?.imageUrl] : source.product.images.map(({ url }) => url))
-                    .find((url): url is string => Boolean(url && isOfficialCatalogPhoto(
-                      url, item.productId, item.variationId ? source.variation?.sku : source.product.sku, item.variationId,
-                    ))) ?? null,
+                  productImage,
                   variationName: item.variationName,
                   sku: item.sku,
                   quantity: item.quantity,

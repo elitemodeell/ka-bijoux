@@ -308,6 +308,7 @@ model Cart {
 
 model CartItem {
   id        String   @id @default(cuid())
+  selectedPhotoUrl String?
   quantity  Int
   unitPrice Decimal  @db.Decimal(10, 2)
   createdAt DateTime @default(now())

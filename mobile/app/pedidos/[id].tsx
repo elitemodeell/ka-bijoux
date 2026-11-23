@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Image, Linking,
+  ActivityIndicator, Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { ordersApi } from "@/services/api";
+import { ResilientProductImage } from "@/components/product/ResilientProductImage";
 
 type OrderDetail = {
   id: string;
@@ -24,6 +25,7 @@ type OrderDetail = {
     id: string;
     productId: string;
     productName: string;
+    productImage?: string | null;
     variationName?: string;
     quantity: number;
     unitPrice: number;
@@ -249,8 +251,9 @@ export default function PedidoDetalheScreen() {
           <Text style={styles.cardTitle}>Itens do Pedido</Text>
           {order.items.map((item) => (
             <View key={item.id} style={styles.itemRow}>
-              <Image
-                source={{ uri: item.product?.images?.[0]?.url ?? "https://placehold.co/56x56/FFB6C1/FFF?text=KA" }}
+              <ResilientProductImage
+                sources={[item.productImage === undefined ? item.product?.images?.[0]?.url : item.productImage]}
+                accessibilityLabel={item.productName}
                 style={styles.itemImage}
               />
               <View style={{ flex: 1 }}>

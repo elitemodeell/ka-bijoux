@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireCustomer } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildProductIdentityFilters } from "@/lib/product-identity";
+import { catalogCartPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { googlePlayProductWhere, toGooglePlayPublicData } from "@/lib/google-play-distribution";
 import {
   googlePlayCartTotals,
@@ -16,6 +17,7 @@ const addSchema = z
   .object({
     productId: z.string().min(1).max(200),
     variationId: z.string().min(1).max(200).optional(),
+    selectedPhotoUrl: z.string().min(1).max(4096).optional(),
     quantity: z.number().int().min(1).max(99).default(1),
     mode: z.enum(["INCREMENT", "SET", "BUY_NOW"]).default("INCREMENT"),
   })
@@ -39,11 +41,12 @@ export async function POST(req: NextRequest) {
     const customer = await requireCustomer(req);
     const input = addSchema.parse(await req.json());
     const product = await prisma.product.findFirst({
-      where: googlePlayProductWhere({
-        OR: buildProductIdentityFilters(input.productId),
-      }),
+      where: googlePlayProductWhere(input.selectedPhotoUrl
+        ? { id: input.productId }
+        : { OR: buildProductIdentityFilters(input.productId) }),
       include: {
         variations: { where: { active: true } },
+        images: { where: visibleCatalogPhotos, select: { url: true } },
       },
     });
     if (!product) return apiError("Produto não encontrado.", 404);
@@ -62,6 +65,12 @@ export async function POST(req: NextRequest) {
     }
     if (!input.variationId && product.variations.length > 0) {
       return apiError("Selecione uma variação do produto.", 422);
+    }
+    const selectedPhotoUrl = input.selectedPhotoUrl
+      ? catalogCartPhoto(input.selectedPhotoUrl, product, variation)
+      : undefined;
+    if (input.selectedPhotoUrl && !selectedPhotoUrl) {
+      return apiError("A foto escolhida não pertence a esta opção. Atualize o produto e escolha novamente.", 422);
     }
 
     await prisma.$transaction(
@@ -112,7 +121,7 @@ export async function POST(req: NextRequest) {
         if (existing) {
           await tx.cartItem.update({
             where: { id: existing.id },
-            data: { quantity, unitPrice },
+            data: { quantity, unitPrice, selectedPhotoUrl },
           });
         } else {
           await tx.cartItem.create({
@@ -120,6 +129,7 @@ export async function POST(req: NextRequest) {
               cartId: cart.id,
               productId: product.id,
               variationId: variation?.id ?? null,
+              selectedPhotoUrl,
               quantity,
               unitPrice,
             },
