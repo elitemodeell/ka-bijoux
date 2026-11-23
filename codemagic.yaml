@@ -1,6 +1,6 @@
 workflows:
   ka-bijoux-ios-release:
-    name: KA Bijoux iOS 1.0.3 - TestFlight interno
+    name: KA Bijoux iOS 1.0.4 - TestFlight interno
     instance_type: mac_mini_m2
     max_build_duration: 120
     environment:
@@ -12,8 +12,8 @@ workflows:
         - ka_bijoux_apple
       vars:
         BUNDLE_ID: com.kabijoux.app
-        MARKETING_VERSION: "1.0.3"
-        BUILD_NUMBER: "20"
+        MARKETING_VERSION: "1.0.4"
+        BUILD_NUMBER: "21"
         APP_STORE_APPLE_ID: "6798015933"
         XCODE_WORKSPACE: KABijoux.xcworkspace
         XCODE_SCHEME: KABijoux
@@ -41,8 +41,8 @@ workflows:
           const config = require('./mobile/app.json').expo;
           if (config.name !== 'KA Bijoux') throw new Error('Unexpected application name');
           if (config.ios.bundleIdentifier !== 'com.kabijoux.app') throw new Error('Unexpected bundle identifier');
-          if (config.version !== '1.0.3') throw new Error(`Expected version 1.0.3, received ${config.version}`);
-          if (config.ios.buildNumber !== '20') throw new Error(`Expected build 20, received ${config.ios.buildNumber}`);
+          if (config.version !== process.env.MARKETING_VERSION) throw new Error(`Unexpected Expo version: ${config.version}`);
+          if (config.ios.buildNumber !== process.env.BUILD_NUMBER) throw new Error(`Unexpected Expo build: ${config.ios.buildNumber}`);
           if (config.ios.usesAppleSignIn !== true) throw new Error('usesAppleSignIn must be true');
           if (config.ios.supportsTablet !== true) throw new Error('iPad support must remain enabled');
           NODE

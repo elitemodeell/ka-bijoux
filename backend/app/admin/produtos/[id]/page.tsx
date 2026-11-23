@@ -437,7 +437,7 @@ export default function EditarProdutoPage() {
                 </label>
                 {!form.assortedColors && (
                   <label className="block text-sm">
-                    Cor ?nica confirmada
+                    Cor fixa confirmada
                     <input className="ml-2 rounded border px-2 py-1" value={form.fixedColor} maxLength={100}
                       onChange={(e) => setForm({ ...form, fixedColor: e.target.value })} />
                   </label>

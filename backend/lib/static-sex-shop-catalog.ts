@@ -6,6 +6,7 @@ export type StaticProductVariant = {
   stock?: number;
   priceModifier?: number;
   label: string;
+  optionName?: string;
   slug: string;
   color?: string;
   active?: boolean;

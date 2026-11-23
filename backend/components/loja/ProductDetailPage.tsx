@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { StaticProduct, StaticProductVariant } from "@/lib/static-sex-shop-catalog";
+import { catalogPurchaseReviewMessage, requiresCatalogPurchaseReview } from "@/lib/catalog-purchase-review";
 import { addCartItem } from "@/lib/client-cart";
 import { getDiscountPercentage, getValidPromotionalPrice } from "@/lib/store-rules";
 import ProductCard from "@/components/loja/ProductCard";
@@ -94,14 +95,22 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [cartAdded, setCartAdded] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedVariation, setSelectedVariation] = useState<number | null>(null);
+  const [selectedVariation, setSelectedVariation] = useState<{ product: string; id: string } | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [favorited, setFavorited] = useState(false);
   const [shared, setShared] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   const variations = product.variations ?? product.variants ?? [];
-  const selectedVariant = selectedVariation === null ? null : variations[selectedVariation] ?? null;
+  const optionNames = new Set(variations.map((variant) => variant.optionName?.trim().toLowerCase()));
+  const optionName = optionNames.size === 1 ? variations[0]?.optionName?.trim().toLowerCase() : undefined;
+  const optionTitle = ({
+    cor: "Escolha a cor", modelo: "Escolha o modelo", tamanho: "Escolha o tamanho",
+    estampa: "Escolha a estampa", artista: "Escolha o artista",
+  } as Record<string, string>)[optionName ?? ""] ?? "Escolha a opção";
+  const selectedVariant = selectedVariation?.product === product.slug
+    ? variations.find((variant) => variant.id === selectedVariation.id) ?? null
+    : null;
 
   const images = useMemo(() => {
     const variantGallery = selectedVariant?.images?.filter(Boolean) ?? [];
@@ -115,7 +124,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
     return Array.from(new Set(
       variantGallery.length ? variantGallery
         : variantFallback.length ? variantFallback
-          : gallery.length ? gallery
+          : gallery.length ? (selectedVariant ? gallery.slice(0, 1) : gallery)
             : fallback
     ));
   }, [product.galleryImages, product.imageFile, selectedVariant]);
@@ -132,7 +141,8 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const categorySlug = product.categorySlug ?? "produtos";
   const productSubcategoryName = product.subcategoryName ?? subcategoryName;
   const stock = variations.length ? selectedVariant?.stock ?? 0 : product.stock;
-  const available = stock > 0 && (!variations.length || Boolean(selectedVariant?.id));
+  const purchaseReview = requiresCatalogPurchaseReview(product.sku);
+  const available = !purchaseReview && stock > 0 && (!variations.length || Boolean(selectedVariant?.id));
   const hasStock = variations.length
     ? variations.some((variant) => variant.id && (variant.stock ?? 0) > 0)
     : product.stock > 0;
@@ -145,7 +155,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const material = publicText(product.composition);
   const care = publicText(product.careInstructions);
   const packageContents = publicText(product.packageContents);
-  const color = product.fixedColor ?? extractColor(product.name);
+  const color = product.fixedColor;
   const purpose = getProductPurpose(product.name, productSubcategoryName, isAdult);
   const optionLabels = variations.map((v) => publicText(v.label)).filter((v): v is string => Boolean(v));
 
@@ -369,22 +379,24 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                   <p className="mt-3 text-xs font-bold text-emerald-600">Link do produto copiado.</p>
                 )}
 
-                {variations.length > 0 && (
+                {purchaseReview && <p className="mt-4 text-sm text-gray-700">{catalogPurchaseReviewMessage}</p>}
+                {!purchaseReview && variations.length > 0 && (
                   <div className="mt-5">
-                    <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-gray-500">Escolha a opção</p>
+                    <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-gray-500">{optionTitle}</p>
                     <div className="flex flex-wrap gap-2">
                       {variations.map((v, i) => (
                         <button
                           key={`${v.slug}-${i}`}
                           type="button"
                           onClick={() => {
-                            setSelectedVariation(i);
+                            if (!v.id) return;
+                            setSelectedVariation({ product: product.slug, id: v.id });
                             setQuantity(1);
                           }}
-                          aria-pressed={selectedVariation === i}
-                          disabled={v.active === false}
+                          aria-pressed={selectedVariant === v}
+                          disabled={v.active === false || !v.id || !v.sku?.trim() || (v.stock ?? 0) <= 0}
                           className={`min-h-11 rounded-2xl border px-3.5 text-xs font-black transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-40 ${
-                            selectedVariation === i
+                            selectedVariant === v
                               ? "border-pink-500 bg-pink-50 text-pink-600 shadow-[0_0_0_4px_rgba(236,72,153,0.10)]"
                               : "border-gray-200 bg-white text-gray-700 hover:-translate-y-0.5 hover:border-pink-300 hover:shadow-sm"
                           }`}
@@ -393,6 +405,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                             <span className="mr-1.5 inline-block h-3 w-3 rounded-full border border-black/10 align-middle" style={{ backgroundColor: v.color }} />
                           )}
                           {v.label}
+                          {(!v.sku?.trim() || (v.stock ?? 0) <= 0) && <span className="ml-1 font-medium">Indisponível</span>}
                         </button>
                       ))}
                     </div>

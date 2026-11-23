@@ -53,6 +53,14 @@ function coupon(overrides: Partial<CouponSnapshot> = {}): CouponSnapshot {
 }
 
 describe("checkout catalog pricing", () => {
+  it("blocks a reported catalog item awaiting identification even in an existing cart", () => {
+    const item = cartItem();
+    item.product.sku = "3104000000421";
+    expectCheckoutCode(() => priceCart([item]), "CATALOG_REVIEW_REQUIRED");
+    item.product.sku = "ordinary-single-product";
+    expect(priceCart([item])[0]).toMatchObject({ variationId: null });
+  });
+
   it("checks combined quantities for options that share a product balance", () => {
     const items = ["white", "black"].map((id) => {
       const item = cartItem();
@@ -61,7 +69,7 @@ describe("checkout catalog pricing", () => {
       item.product.stock = 3;
       item.variationId = id;
       item.variation = {
-        id, productId: item.productId, name: "Cor", value: id, active: true, stock: 0, priceModifier: 0,
+        id, productId: item.productId, name: "Cor", value: id, sku: id, active: true, stock: 0, priceModifier: 0,
       };
       return item;
     });
@@ -75,6 +83,37 @@ describe("checkout catalog pricing", () => {
     item.product._count = { variations: 2 };
 
     expectCheckoutCode(() => priceCart([item]), "VARIATION_REQUIRED");
+  });
+
+  it("rejects a selected option without a commercial SKU", () => {
+    const item = cartItem();
+    item.variationId = "option";
+    item.variation = {
+      id: "option", productId: item.productId, name: "Artista", value: "Opção A",
+      sku: null, active: true, stock: 5, priceModifier: 0,
+    };
+    expectCheckoutCode(() => priceCart([item]), "VARIATION_SKU_REQUIRED");
+  });
+
+  it.each([
+    ["Cor", "Rosa"],
+    ["Modelo", "Universal B"],
+    ["Tamanho", "G"],
+    ["Estampa", "Floral"],
+    ["Artista", "Opção A"],
+    ["Cor e tamanho", "Rosa / G"],
+  ])("prices an existing %s option without substituting a different variant", (name, value) => {
+    const item = cartItem();
+    item.variationId = "option";
+    item.variation = {
+      id: "option", productId: item.productId, name, value,
+      sku: "sku-option", active: true, stock: 2, priceModifier: "1.00",
+    };
+    expect(priceCart([item])[0]).toMatchObject({
+      variationId: "option", variationName: `${name}: ${value}`, unitPriceCents: 2090,
+    });
+    item.variation.productId = "another-product";
+    expectCheckoutCode(() => priceCart([item]), "INACTIVE_VARIATION");
   });
 
   it("ignores an adulterated client price and uses the current catalog price", () => {
@@ -110,6 +149,7 @@ describe("checkout catalog pricing", () => {
       productId: item.productId,
       name: "Cor",
       value: "Rosa",
+      sku: "pink-disabled",
       active: false,
       stock: 5,
       priceModifier: 2,
@@ -126,6 +166,7 @@ describe("checkout catalog pricing", () => {
       productId: "another-product",
       name: "Cor",
       value: "Rosa",
+      sku: "pink-other",
       active: true,
       stock: 5,
       priceModifier: 2,
@@ -161,6 +202,7 @@ describe("checkout catalog pricing", () => {
       productId: item.productId,
       name: "Tamanho",
       value: "G",
+      sku: "size-g",
       active: true,
       stock: 2,
       priceModifier: "2.50",

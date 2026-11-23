@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { catalogPurchaseReviewMessage, requiresCatalogPurchaseReview } from "@/lib/catalog-purchase-review";
 
 export class CheckoutError extends Error {
   constructor(
@@ -19,6 +20,7 @@ export interface CatalogCartItem {
   product: {
     id: string;
     name: string;
+    sku?: string | null;
     active: boolean;
     price: unknown;
     promotionalPrice: unknown | null;
@@ -31,6 +33,7 @@ export interface CatalogCartItem {
     productId: string;
     name: string;
     value: string;
+    sku: string | null;
     active: boolean;
     stock: number;
     priceModifier: unknown;
@@ -107,6 +110,9 @@ export function priceCart(items: CatalogCartItem[]): PricedCheckoutItem[] {
       );
     }
 
+    if (requiresCatalogPurchaseReview(item.product.sku)) {
+      throw new CheckoutError(catalogPurchaseReviewMessage, 409, "CATALOG_REVIEW_REQUIRED");
+    }
     let stock = item.product.stock;
     let modifierCents = 0;
     let variationName: string | null = null;
@@ -131,6 +137,9 @@ export function priceCart(items: CatalogCartItem[]): PricedCheckoutItem[] {
         );
       }
       if (!item.product.sharedVariationStock) stock = item.variation.stock;
+      if (!item.variation.sku?.trim()) {
+        throw new CheckoutError("Esta opção está temporariamente indisponível.", 409, "VARIATION_SKU_REQUIRED");
+      }
       modifierCents = decimalToCents(item.variation.priceModifier);
       variationName = `${item.variation.name}: ${item.variation.value}`;
     }

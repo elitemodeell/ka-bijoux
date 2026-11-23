@@ -94,6 +94,7 @@ type Variation = {
   id: string;
   name: string;
   value: string;
+  sku?: string | null;
   imageUrl?: string | null;
   stock: number;
   priceModifier?: number;
@@ -103,6 +104,7 @@ type Variation = {
 
 type Product = {
   assortedColors?: boolean;
+  purchaseReviewRequired?: boolean;
   fixedColor?: string | null;
   id: string;
   slug?: string | null;
@@ -352,7 +354,7 @@ export default function ProdutoScreen() {
   }
 
   function handleSelectVariation(v: Variation) {
-    if (!product || (product.sharedVariationStock ? product.stock : v.stock) <= 0) return;
+    if (!product || v.sku === null || v.sku === "" || (product.sharedVariationStock ? product.stock : v.stock) <= 0) return;
     setVariationError(false);
     setSelectedVariation((prev) => (prev === v.id ? null : v.id));
     setQuantity(1);
@@ -360,7 +362,7 @@ export default function ProdutoScreen() {
   }
 
   async function handleCartAction(action: "add" | "buy") {
-    if (!product || loading) return;
+    if (!product || loading || product.purchaseReviewRequired) return;
     if (cartActionLock.current) return;
     if (!customer) {
       router.push("/(auth)/entrada");
@@ -421,13 +423,15 @@ export default function ProdutoScreen() {
   const hasVariations = product.variations.length > 0;
   const activeVariation = hasVariations ? product.variations.find((v) => v.id === selectedVariation) ?? null : null;
   const variationImageUri = resolveProductPhoto(product.id, activeVariation?.imageUrl, product.updatedAt, activeVariation?.id);
-  const galleryImages = Array.from(new Set([
-    ...(variationImageUri ? [variationImageUri] : []),
-    ...product.images.map((image) => resolveProductPhoto(product.id, image.url, product.updatedAt)).filter((url): url is string => Boolean(url)),
-  ]));
-  const isAvailable = hasVariations && !product.sharedVariationStock
+  const productGallery = Array.from(new Set(
+    product.images.map((image) => resolveProductPhoto(product.id, image.url, product.updatedAt)).filter((url): url is string => Boolean(url)),
+  ));
+  const galleryImages = activeVariation
+    ? [variationImageUri ?? productGallery[0]].filter((url): url is string => Boolean(url))
+    : productGallery;
+  const isAvailable = !product.purchaseReviewRequired && (hasVariations && !product.sharedVariationStock
     ? product.variations.some((v) => v.stock > 0)
-    : product.stock > 0;
+    : product.stock > 0);
   const activeStock = product.sharedVariationStock ? product.stock : activeVariation?.stock ?? product.stock;
   const priceModifier = Number(activeVariation?.priceModifier ?? 0);
   const basePrice = product.promotionalPrice && product.promotionalPrice < product.price ? product.promotionalPrice : product.price;
@@ -575,6 +579,9 @@ export default function ProdutoScreen() {
           </View>
 
           {/* Variações */}
+          {product.purchaseReviewRequired && (
+            <Text style={styles.selectedVariationLabel}>Compra temporariamente indisponível. Estamos verificando as opções deste produto.</Text>
+          )}
           {(product.assortedColors || product.fixedColor) && (
             <Text style={styles.selectedVariationLabel}>
               {product.assortedColors ? "Cor enviada conforme disponibilidade." : `Cor: ${product.fixedColor}`}
@@ -584,7 +591,13 @@ export default function ProdutoScreen() {
             <View style={styles.section}>
               <View style={styles.variationHeader}>
                 <Text style={styles.sectionTitle}>
-                  {variationGroupName === "Cor" ? "Escolha 1 cor" : `Escolha: ${variationGroupName}`}
+                  {({
+                    cor: "Escolha a cor",
+                    modelo: "Escolha o modelo",
+                    tamanho: "Escolha o tamanho",
+                    estampa: "Escolha a estampa",
+                    artista: "Escolha o artista",
+                  } as Record<string, string>)[variationGroupName.trim().toLowerCase()] ?? `Escolha: ${variationGroupName}`}
                 </Text>
                 {activeVariation && (
                   <Text style={styles.selectedVariationLabel}>{activeVariation.value}</Text>
@@ -596,7 +609,7 @@ export default function ProdutoScreen() {
               <View style={styles.variations}>
                 {product.variations.map((v) => {
                   const isSelected = selectedVariation === v.id;
-                  const unavailable = (product.sharedVariationStock ? product.stock : v.stock) <= 0;
+                  const unavailable = v.sku === null || v.sku === "" || (product.sharedVariationStock ? product.stock : v.stock) <= 0;
                   const photo = resolveProductPhoto(product.id, v.imageUrl, product.updatedAt, v.id);
                   return (
                     <TouchableOpacity

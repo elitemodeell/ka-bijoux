@@ -3,7 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { googlePlayProductWhere, toGooglePlayPublicData } from "@/lib/google-play-distribution";
 import { apiError, apiSuccess } from "@/lib/utils";
-import { isQuarantinedCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { belongsToCatalogGallery, isQuarantinedCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { requiresCatalogPurchaseReview } from "@/lib/catalog-purchase-review";
 
 const detailInclude = Prisma.validator<Prisma.ProductInclude>()({
   category: true,
@@ -15,19 +16,23 @@ const detailInclude = Prisma.validator<Prisma.ProductInclude>()({
 function serialize<T extends {
   price: unknown;
   id: string;
+  sku: string | null;
   promotionalPrice: unknown;
   stock: number;
   sharedVariationStock: boolean;
   images: { url: string }[];
-  variations: { priceModifier: unknown; stock: number; imageUrl: string | null }[];
+  variations: { id: string; priceModifier: unknown; stock: number; imageUrl: string | null }[];
 }>(product: T) {
   return {
     ...product,
+    purchaseReviewRequired: requiresCatalogPurchaseReview(product.sku),
     price: Number(product.price),
     images: product.images.filter(({ url }) => !isQuarantinedCatalogPhoto(url, product.id)),
     variations: product.variations.map((variation) => ({
       ...variation,
-      imageUrl: variation.imageUrl && isQuarantinedCatalogPhoto(variation.imageUrl, product.id) ? null : variation.imageUrl,
+      imageUrl: variation.imageUrl && belongsToCatalogGallery(variation.imageUrl, product.id, variation.id)
+        ? variation.imageUrl
+        : null,
       stock: product.sharedVariationStock ? product.stock : variation.stock,
       priceModifier: Number(variation.priceModifier),
     })),

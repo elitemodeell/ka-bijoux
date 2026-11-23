@@ -188,7 +188,10 @@ export default function CheckoutEntregaScreen() {
             Platform.OS === "ios" ? (
               <View key={item.id} style={styles.iosItemRow}>
                 {(item.variation?.imageUrl || item.product.images?.[0]?.url) ? <Image source={item.variation?.imageUrl || item.product.images[0].url} style={styles.itemImage} contentFit="cover" /> : <View style={[styles.itemImage, styles.itemImageFallback]}><Ionicons name="image-outline" size={24} color={Colors.primary} /></View>}
-                <View style={styles.iosItemCopy}><Text style={styles.iosItemName} numberOfLines={2}>{item.product.name}</Text>{item.variation ? <Text style={styles.itemVariation}>{item.variation.name}: {item.variation.value}{item.variation.sku ? ` · SKU ${item.variation.sku}` : ""}</Text> : item.product.sku ? <Text style={styles.itemVariation}>SKU {item.product.sku}</Text> : null}</View>
+                <View style={styles.iosItemCopy}>
+                  <Text style={styles.iosItemName} numberOfLines={2}>{item.product.name}</Text>
+                  {item.variation && <Text style={styles.itemVariation}>{item.variation.name}: {item.variation.value}</Text>}
+                </View>
                 <View style={styles.quantityControl}>
                   <TouchableOpacity accessibilityLabel="Diminuir quantidade" disabled={item.quantity <= 1} onPress={() => void updateItem(item.id, item.quantity - 1)} style={styles.quantityButton}><Ionicons name="remove" size={17} color={item.quantity <= 1 ? "#cdbec4" : "#c90049"} /></TouchableOpacity>
                   <Text style={styles.quantityText}>{item.quantity}</Text>

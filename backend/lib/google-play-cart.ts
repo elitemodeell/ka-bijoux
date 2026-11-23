@@ -1,5 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
-import { isQuarantinedCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { belongsToCatalogGallery, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { prisma } from "@/lib/prisma";
 import {
   googlePlayProductWhere,
@@ -93,7 +93,7 @@ export async function sanitizeGooglePlayCart(
       variation: item.variation
         ? {
             ...item.variation,
-            imageUrl: item.variation.imageUrl && !isQuarantinedCatalogPhoto(item.variation.imageUrl, item.product.id)
+            imageUrl: item.variation.imageUrl && belongsToCatalogGallery(item.variation.imageUrl, item.product.id, item.variation.id)
               ? item.variation.imageUrl : null,
             stock: item.product.sharedVariationStock ? item.product.stock : item.variation.stock,
             priceModifier: Number(item.variation.priceModifier),

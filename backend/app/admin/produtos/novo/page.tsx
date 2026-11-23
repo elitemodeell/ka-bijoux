@@ -36,8 +36,11 @@ const emptyForm = {
   featured: false,
   isNew: true,
   active: true,
+  assortedColors: false,
+  fixedColor: "",
   variationName: "",
   variationValue: "",
+  variationSku: "",
   variationStock: "0",
   variationPriceModifier: "0",
 };
@@ -108,6 +111,7 @@ export default function NovoProdutoPage() {
         ? [{
             name: form.variationName,
             value: form.variationValue,
+            sku: form.variationSku.trim() || null,
             stock: parseInt(form.variationStock || "0"),
             priceModifier: parseFloat(form.variationPriceModifier || "0"),
             active: true,
@@ -141,6 +145,8 @@ export default function NovoProdutoPage() {
           featured: form.featured,
           isNew: form.isNew,
           active: form.active,
+          assortedColors: form.assortedColors,
+          fixedColor: form.assortedColors ? null : form.fixedColor.trim() || null,
           images: images.map((url, index) => ({ url, order: index, alt: form.name })),
           variations,
         }),
@@ -301,9 +307,20 @@ export default function NovoProdutoPage() {
                 </div>
               </div>
 
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="assortedColors" checked={form.assortedColors} onChange={handleChange} />
+                Cor enviada conforme disponibilidade
+              </label>
+              {!form.assortedColors && (
+                <label className="block text-sm">
+                  Cor fixa do produto
+                  <input name="fixedColor" value={form.fixedColor} onChange={handleChange} maxLength={100} className="input-field mt-1" />
+                </label>
+              )}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <input name="variationName" value={form.variationName} onChange={handleChange} placeholder="Variacao: Cor" className="input-field" />
+                <input name="variationName" value={form.variationName} onChange={handleChange} placeholder="Variação: Cor" className="input-field" />
                 <input name="variationValue" value={form.variationValue} onChange={handleChange} placeholder="Valor: Rosa" className="input-field" />
+                <input name="variationSku" value={form.variationSku} onChange={handleChange} placeholder="SKU da variação" className="input-field" />
                 <input name="variationStock" type="number" min="0" value={form.variationStock} onChange={handleChange} placeholder="Estoque da variacao" className="input-field" />
                 <input name="variationPriceModifier" type="number" step="0.01" value={form.variationPriceModifier} onChange={handleChange} placeholder="Acrescimo R$" className="input-field" />
               </div>

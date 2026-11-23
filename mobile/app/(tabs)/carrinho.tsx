@@ -114,9 +114,8 @@ export default function CarrinhoScreen() {
             <View style={styles.itemInfo}>
               <Text style={styles.itemName} numberOfLines={2}>{item.product.name}</Text>
               {item.variation && (
-                <Text style={styles.itemVariation}>{item.variation.name}: {item.variation.value}{item.variation.sku ? ` · SKU ${item.variation.sku}` : ""}</Text>
+                <Text style={styles.itemVariation}>{item.variation.name}: {item.variation.value}</Text>
               )}
-              {!item.variation && item.product.sku ? <Text style={styles.itemVariation}>SKU {item.product.sku}</Text> : null}
               <Text style={styles.itemPrice}>{formatCurrency(item.unitPrice)}</Text>
 
               <View style={styles.qtyRow}>

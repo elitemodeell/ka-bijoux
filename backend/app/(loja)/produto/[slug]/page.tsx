@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { officialDatabaseGallery } from "@/lib/catalog-photo";
+import { belongsToCatalogGallery, officialDatabaseGallery } from "@/lib/catalog-photo";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { Prisma } from "@prisma/client";
@@ -376,8 +376,11 @@ export default async function ProdutoPage(props: PageProps) {
       sku: variation.sku ?? undefined,
       stock: dbProduct.sharedVariationStock ? dbProduct.stock : variation.stock,
       priceModifier: Number(variation.priceModifier),
-      images: officialDatabaseGallery(variation.imageUrl ? [variation.imageUrl] : [], dbProduct.id),
+      images: variation.imageUrl && belongsToCatalogGallery(variation.imageUrl, dbProduct.id, variation.id)
+        ? [variation.imageUrl]
+        : [],
       label: `${variation.name}: ${variation.value}`,
+      optionName: variation.name,
       slug: `${variation.name}-${variation.value}`
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")

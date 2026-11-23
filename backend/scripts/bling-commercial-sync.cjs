@@ -53,7 +53,7 @@ function buildBlingImportWrite({ existing, price, stock, sku, blingActive, descr
   const update = commercialProductUpdate({
     price,
     stock,
-    sku,
+    sku: sku || undefined,
     importedAt: new Date(),
     ...(blingActive ? {} : { active: false }),
     ...(approved.length ? {} : { publicationStatus: "MISSING_IMAGE", active: false }),

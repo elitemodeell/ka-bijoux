@@ -89,6 +89,13 @@ async function main() {
   for (const row of products) {
     const normalizedRow = normalizeBlingRow(row);
     const existing = await findExistingProduct(normalizedRow);
+    if (existing?.sku && normalizedRow.codigo && existing.sku.trim() !== normalizedRow.codigo.trim()) {
+      attention.push({
+        id: normalizedRow.id, nome: normalizedRow.nome, sku: normalizedRow.codigo,
+        issues: ["sku_local_divergente"],
+      });
+      continue;
+    }
     const write = buildBlingImportWrite({
       existing,
       price: normalizedRow.preco,

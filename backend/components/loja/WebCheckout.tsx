@@ -248,13 +248,11 @@ export default function WebCheckout() {
           <ul className="divide-y">
             {cart.items.map((item) => {
               const image = item.variation?.imageUrl || item.product.images?.[0]?.url;
-              const sku = item.variation ? item.variation.sku : item.product.sku;
               const stock = item.variation?.stock ?? item.product.stock;
               return <li key={item.id} className="flex justify-between gap-3 py-2">
               {image && <img src={image} alt="" className="size-12 shrink-0 rounded object-cover" />}
               <div className="grow">
                 <p>{item.product.name}{item.variation && ` · ${item.variation.name}: ${item.variation.value}`}</p>
-                {sku && <p className="text-sm">SKU {sku}</p>}
                 {stock != null && stock < item.quantity && <p className="text-sm text-red-700">Estoque insuficiente para esta quantidade.</p>}
                 <div className="flex items-center gap-3">
                   <button disabled={busy} aria-label={`Diminuir quantidade de ${item.product.name}`}

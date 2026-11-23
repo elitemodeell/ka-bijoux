@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { googlePlayProductWhere } from "@/lib/google-play-distribution";
 import { apiError, apiSuccess } from "@/lib/utils";
-import { visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { belongsToCatalogGallery, visibleCatalogPhotos } from "@/lib/catalog-photo";
 
 const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
   id: true,
@@ -13,6 +13,9 @@ const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
   price: true,
   promotionalPrice: true,
   stock: true,
+  sharedVariationStock: true,
+  assortedColors: true,
+  fixedColor: true,
   featured: true,
   isNew: true,
   category: { select: { name: true, slug: true } },
@@ -41,6 +44,13 @@ const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
 function serializeProduct(product: Prisma.ProductGetPayload<{ select: typeof cardSelect }>) {
   return {
     ...product,
+    variations: product.variations.map((variation) => ({
+      ...variation,
+      stock: product.sharedVariationStock ? product.stock : variation.stock,
+      imageUrl: variation.imageUrl && belongsToCatalogGallery(variation.imageUrl, product.id, variation.id)
+        ? variation.imageUrl
+        : null,
+    })),
     price: Number(product.price),
     promotionalPrice: product.promotionalPrice
       ? Number(product.promotionalPrice)

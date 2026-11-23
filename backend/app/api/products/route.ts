@@ -305,6 +305,8 @@ const createSchema = z.object({
   enrichmentStatus: z.nativeEnum(ProductEnrichmentStatus).optional(),
   publicationStatus: z.nativeEnum(ProductPublicationStatus).optional(),
   searchTags: z.array(z.string().trim()).optional(),
+  assortedColors: z.boolean().default(false),
+  fixedColor: z.string().trim().min(1).max(100).optional().nullable(),
   featured: z.boolean().default(false),
   isNew: z.boolean().default(true),
   active: z.boolean().default(true),
@@ -357,6 +359,8 @@ export async function POST(req: NextRequest) {
           data.publicationStatus ??
           (data.active ? ProductPublicationStatus.PUBLISHED : ProductPublicationStatus.IMPORTED),
         searchTags: data.searchTags ?? [],
+        assortedColors: data.assortedColors,
+        fixedColor: data.assortedColors ? null : data.fixedColor,
         importedAt: importSource === ProductImportSource.BLING ? new Date() : null,
         featured: data.featured,
         isNew: data.isNew,

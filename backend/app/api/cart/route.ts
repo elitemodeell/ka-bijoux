@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
-import { isQuarantinedCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { belongsToCatalogGallery, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { catalogPurchaseReviewMessage, requiresCatalogPurchaseReview } from "@/lib/catalog-purchase-review";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -49,7 +50,7 @@ export async function GET(req: NextRequest) {
       ...item,
       variation: item.variation ? {
         ...item.variation,
-        imageUrl: item.variation.imageUrl && !isQuarantinedCatalogPhoto(item.variation.imageUrl, item.productId)
+        imageUrl: item.variation.imageUrl && belongsToCatalogGallery(item.variation.imageUrl, item.productId, item.variation.id)
           ? item.variation.imageUrl : null,
         stock: item.product.sharedVariationStock ? item.product.stock : item.variation.stock,
       } : null,
@@ -110,7 +111,13 @@ export async function POST(req: NextRequest) {
           product = candidates[0] ?? null;
         }
         if (!product) throw new CartMutationError("Produto não encontrado.", 404);
+        if (requiresCatalogPurchaseReview(product.sku)) {
+          throw new CartMutationError(catalogPurchaseReviewMessage, 409);
+        }
         const variation = product.variations.find((candidate) => candidate.id === variationId);
+        if (variation && !variation.sku?.trim()) {
+          throw new CartMutationError("Esta opção está temporariamente indisponível.", 409);
+        }
         if (variationId && !variation) {
           throw new CartMutationError("Variação não encontrada ou indisponível.", 409);
         }
