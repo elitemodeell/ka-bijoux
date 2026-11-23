@@ -27,6 +27,7 @@ describe("catalog purchase classification", () => {
   it("blocks activation without real identity and preserves incomplete drafts", () => {
     const options = [{ ...option, sku: null, imageUrl: null }];
     expect(validateCatalogOptions("OPTIONS", false, options)).toMatch(/SKU/);
+    expect(validateCatalogOptions(null, false, options)).toMatch(/SKU/);
     expect(validateCatalogOptions("REVIEW", false, options)).toBeNull();
   });
 

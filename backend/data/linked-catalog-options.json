@@ -166,5 +166,65 @@
         "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/produtos-novos/img-007-silicone-ip11pro-azul-escuro-3104000005587.png"
       }
     ]
+  },
+  {
+    "blingParentId": 16668030377,
+    "name": "VIBRADOR PREMIUM",
+    "options": [
+      {
+        "id": "cmrc5e18v0001n3i4zifwmqhr",
+        "sku": "3104000004915",
+        "label": "1 - ROSA",
+        "photo": "/uploads/products/vibrador-premium-1-rosa-3104000004915.jpg"
+      },
+      {
+        "id": "cmrc5e1l30004n3i482th2tdc",
+        "sku": "3104000004924",
+        "label": "2- ROSA",
+        "photo": "/uploads/products/vibrador-premium-2-rosa-3104000004924.jpg"
+      },
+      {
+        "id": "cmrc5e1rm0007n3i4syuftwge",
+        "sku": "3104000004925",
+        "label": "3- ROSA",
+        "photo": "/uploads/products/vibrador-premium-3-rosa-3104000004925.jpg"
+      },
+      {
+        "id": "cmrcj4dej0001vrccfvbagw2q",
+        "sku": "3104000004926",
+        "label": "4- ROSA",
+        "photo": "/uploads/products/vibrador-premium-4-rosa-3104000004926.png"
+      },
+      {
+        "id": "cmrcj4dlf0004vrcc83ff52ba",
+        "sku": "3104000004929",
+        "label": "7 - ROXO",
+        "photo": "/uploads/products/vibrador-premium-7-roxo-3104000004929.png"
+      },
+      {
+        "id": "cmrcj4dy5000avrcclqwej53d",
+        "sku": "3104000004916",
+        "label": "10- ROSA",
+        "photo": "/uploads/products/vibrador-premium-10-rosa-3104000004916.png"
+      },
+      {
+        "id": "cmrcj4e4e000dvrccxdiezx7o",
+        "sku": "3104000004918",
+        "label": "12 - ROSA",
+        "photo": "/uploads/products/vibrador-premium-12-rosa-3104000004918.png"
+      },
+      {
+        "id": "cmrcj4eag000gvrccitv82313",
+        "sku": "3104000004919",
+        "label": "13 - ROXO",
+        "photo": "/uploads/products/vibrador-premium-13-roxo-3104000004919.png"
+      },
+      {
+        "id": "cmrc5e2ou000mn3i4p8bau1d6",
+        "sku": "3104000004920",
+        "label": "14 - ROXO",
+        "photo": "/uploads/products/vibrador-premium-14-roxo-3104000004920.jpg"
+      }
+    ]
   }
 ]

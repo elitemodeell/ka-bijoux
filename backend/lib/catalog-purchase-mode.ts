@@ -20,7 +20,7 @@ export function validateCatalogOptions(
   if (catalogPurchaseBlocked(mode, active.length) && mode !== "REVIEW") {
     return "O modo de compra precisa corresponder às opções ativas.";
   }
-  if (mode !== "OPTIONS") return null;
+  if (mode === "REVIEW" || active.length === 0) return null;
   const names = new Set<string>();
   const skus = new Set<string>();
   for (const option of active) {
