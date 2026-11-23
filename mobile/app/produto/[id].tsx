@@ -23,6 +23,29 @@ function resolveUrl(url?: string | null, version?: string | null): string | null
   return `${resolved}${resolved.includes("?") ? "&" : "?"}v=${encodeURIComponent(version)}`;
 }
 
+function resolveProductPhoto(productId: string, url?: string | null, version?: string | null, variationId?: string) {
+  if (!url || Platform.OS !== "ios") return resolveUrl(url, version);
+  try {
+    const photo = new URL(url, API_BASE_URL);
+    const host = photo.hostname.toLowerCase();
+    if (photo.protocol !== "https:" || host === "bling.com.br" || host.endsWith(".bling.com.br") || host.includes("orgbling")) {
+      return null;
+    }
+
+    const prefix = "/storage/v1/object/public/products/catalog/products/";
+    if (photo.pathname.startsWith(prefix)) {
+      const scope = photo.pathname.slice(prefix.length);
+      const gallery = scope.startsWith(`${productId}/gallery/`);
+      const variation = variationId && scope.startsWith(`${productId}/variations/${variationId}/`);
+      if (!gallery && !variation) return null;
+    }
+    if (version) photo.searchParams.set("v", version);
+    return photo.toString();
+  } catch {
+    return null;
+  }
+}
+
 const BENEFIT_CARDS = [
   { icon: "car-outline" as const, title: "Opções de entrega", subtitle: "Exibidas no checkout" },
   { icon: "shield-checkmark-outline" as const, title: "Compra segura", subtitle: "Dados protegidos" },
@@ -88,6 +111,7 @@ type Product = {
   price: number;
   promotionalPrice?: number | null;
   stock: number;
+  sharedVariationStock?: boolean;
   updatedAt?: string | null;
   images: Array<{ url: string; alt?: string }>;
   category: { name: string; slug?: string };
@@ -217,7 +241,7 @@ export default function ProdutoScreen() {
       price: Number(previewPrice),
       promotionalPrice: Number.isFinite(promotionalPrice) ? promotionalPrice : null,
       stock: Number(previewStock ?? 0),
-      images: previewImage ? [{ url: previewImage }] : [],
+      images: previewImage && Platform.OS !== "ios" ? [{ url: previewImage }] : [],
       category: { name: "" },
       variations: [],
     };
@@ -242,17 +266,24 @@ export default function ProdutoScreen() {
 
   useEffect(() => {
     if (!id) return;
+    let current = true;
     setSecondaryVisible(false);
+    setLoading(true);
+    setNotFound(false);
+    setSelectedImage(0);
+    setVariationError(false);
     productsApi.getById(id)
       .then((res) => {
+        if (!current) return;
         const p: Product = res.data.data.product;
         setProduct(p);
         setRelated(res.data.data.related ?? []);
         setSelectedVariation(null);
         setQuantity(1);
       })
-      .catch((err) => { if (err.response?.status === 404) setNotFound(true); })
-      .finally(() => setLoading(false));
+      .catch(() => { if (current) setNotFound(true); })
+      .finally(() => { if (current) setLoading(false); });
+    return () => { current = false; };
   }, [id]);
 
   useEffect(() => {
@@ -321,7 +352,7 @@ export default function ProdutoScreen() {
   }
 
   function handleSelectVariation(v: Variation) {
-    if (v.stock <= 0) return;
+    if (!product || (product.sharedVariationStock ? product.stock : v.stock) <= 0) return;
     setVariationError(false);
     setSelectedVariation((prev) => (prev === v.id ? null : v.id));
     setQuantity(1);
@@ -340,7 +371,8 @@ export default function ProdutoScreen() {
       setVariationError(true);
       return;
     }
-    if (quantity > (selectedOption?.stock ?? product.stock)) {
+    const availableStock = product.sharedVariationStock ? product.stock : selectedOption?.stock ?? product.stock;
+    if (quantity > availableStock) {
       Alert.alert("Estoque insuficiente", "Reduza a quantidade ou escolha outra opção.");
       return;
     }
@@ -352,7 +384,7 @@ export default function ProdutoScreen() {
         router.push("/checkout");
         return;
       }
-      await addItem(product.id, quantity, selectedVariation ?? undefined);
+      await addItem(product.id, quantity, selectedOption?.id);
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
     } catch {
@@ -368,7 +400,7 @@ export default function ProdutoScreen() {
     setOpenFaq((prev) => (prev === index ? null : index));
   }
 
-  if (loading && !product) {
+  if (loading && (!product || product.id !== id)) {
     return <View style={styles.center}><ActivityIndicator color={Colors.primary} size="large" /></View>;
   }
 
@@ -388,13 +420,15 @@ export default function ProdutoScreen() {
 
   const hasVariations = product.variations.length > 0;
   const activeVariation = hasVariations ? product.variations.find((v) => v.id === selectedVariation) ?? null : null;
-  const variationImageUri = resolveUrl(activeVariation?.imageUrl, product.updatedAt);
+  const variationImageUri = resolveProductPhoto(product.id, activeVariation?.imageUrl, product.updatedAt, activeVariation?.id);
   const galleryImages = Array.from(new Set([
     ...(variationImageUri ? [variationImageUri] : []),
-    ...product.images.map((image) => resolveUrl(image.url, product.updatedAt)).filter((url): url is string => Boolean(url)),
+    ...product.images.map((image) => resolveProductPhoto(product.id, image.url, product.updatedAt)).filter((url): url is string => Boolean(url)),
   ]));
-  const isAvailable = hasVariations ? product.variations.some((v) => v.stock > 0) : product.stock > 0;
-  const activeStock = activeVariation ? activeVariation.stock : product.stock;
+  const isAvailable = hasVariations && !product.sharedVariationStock
+    ? product.variations.some((v) => v.stock > 0)
+    : product.stock > 0;
+  const activeStock = product.sharedVariationStock ? product.stock : activeVariation?.stock ?? product.stock;
   const priceModifier = Number(activeVariation?.priceModifier ?? 0);
   const basePrice = product.promotionalPrice && product.promotionalPrice < product.price ? product.promotionalPrice : product.price;
   const hasPromo = !!product.promotionalPrice && product.promotionalPrice < product.price;
@@ -562,7 +596,8 @@ export default function ProdutoScreen() {
               <View style={styles.variations}>
                 {product.variations.map((v) => {
                   const isSelected = selectedVariation === v.id;
-                  const unavailable = v.stock <= 0;
+                  const unavailable = (product.sharedVariationStock ? product.stock : v.stock) <= 0;
+                  const photo = resolveProductPhoto(product.id, v.imageUrl, product.updatedAt, v.id);
                   return (
                     <TouchableOpacity
                       key={v.id}
@@ -573,9 +608,9 @@ export default function ProdutoScreen() {
                       accessibilityState={{ selected: isSelected, disabled: unavailable }}
                       accessibilityLabel={`${v.name}: ${v.value}`}
                     >
-                      {v.imageUrl ? (
+                      {photo ? (
                         <View style={styles.variationWithImage}>
-                          <ResilientProductImage sources={[resolveUrl(v.imageUrl)]} style={styles.variationThumb} contentFit="cover" compact />
+                          <ResilientProductImage sources={[photo]} style={styles.variationThumb} contentFit="cover" compact />
                           <Text style={[styles.variationText, isSelected && styles.variationTextActive, unavailable && styles.variationTextUnavailable]}>{variationNames.size === 1 ? v.value : `${v.name}: ${v.value}`}</Text>
                         </View>
                       ) : (

@@ -1,6 +1,6 @@
 workflows:
   ka-bijoux-ios-release:
-    name: KA Bijoux iOS 1.0.3 (20) - App Store
+    name: KA Bijoux iOS 1.0.3 - TestFlight interno
     instance_type: mac_mini_m2
     max_build_duration: 120
     environment:
@@ -106,15 +106,17 @@ workflows:
           npx tsc --noEmit -p tsconfig.build.json
           npm test -- --run
 
-      - name: Check production catalog color contract
+      - name: Check production catalog compatibility
         script: |
           set -euo pipefail
           curl -fsS --max-time 15 "$EXPO_PUBLIC_API_URL/api/mobile/products/cmr6i1pu5001drhf8cvq4gl22" | node -e '
             const { data } = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
             const product = data?.product;
-            if (product?.sku !== "3104000004296" || typeof product.assortedColors !== "boolean" ||
-                !(product.fixedColor === null || typeof product.fixedColor === "string")) {
-              throw new Error("Production catalog API does not expose the explicit color contract for build 20.");
+            if (product?.sku !== "3104000004296" || !Array.isArray(product.images) ||
+                !Array.isArray(product.variations) || !Number.isFinite(product.stock) ||
+                (product.assortedColors !== undefined && typeof product.assortedColors !== "boolean") ||
+                (product.fixedColor != null && typeof product.fixedColor !== "string")) {
+              throw new Error("Production catalog API is incompatible with the iOS product detail.");
             }
           '
 
@@ -131,10 +133,24 @@ workflows:
           grep -q 'router.replace("/(tabs)")' 'mobile/app/(auth)/cadastro.tsx'
           status="$(curl -sS -o /tmp/apple-endpoint.json -w '%{http_code}' -X POST https://kabijoux.com.br/api/auth/apple/complete -H 'Content-Type: application/json' -d '{}')"
           if [ "$status" != "401" ]; then
-            echo "Production Apple endpoint is not active (expected 401 without token, got $status). Deploy ka-bijoux-backend first." >&2
+            echo "Production Apple endpoint is not active (expected 401 without token, got $status)." >&2
             cat /tmp/apple-endpoint.json || true
             exit 1
           fi
+
+      - name: Resolve the iOS build number in App Store Connect
+        script: |
+          set -euo pipefail
+          latest="$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" --platform IOS --all-versions)"
+          if [[ ! "$latest" =~ ^[0-9]+$ ]]; then
+            echo "Could not verify the latest iOS build number." >&2
+            exit 1
+          fi
+          if (( 10#$latest >= 10#$BUILD_NUMBER )); then
+            BUILD_NUMBER="$((10#$latest + 1))"
+          fi
+          printf 'BUILD_NUMBER=%s\n' "$BUILD_NUMBER" >> "$CM_ENV"
+          echo "Selected iOS build $MARKETING_VERSION ($BUILD_NUMBER)"
 
       - name: Generate native iOS project
         script: |
@@ -195,7 +211,7 @@ workflows:
         script: |
           set -euo pipefail
           cd "$CM_BUILD_DIR/mobile"
-          xcode-project use-profiles
+          xcode-project use-profiles --custom-export-options='{"testFlightInternalTestingOnly": true}'
           profile_ok=0
           for profile in \
             "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"*.mobileprovision \
@@ -240,8 +256,8 @@ workflows:
           codesign -d --entitlements :- "$app" > /tmp/ka-bijoux-entitlements.plist
           /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.applesignin' /tmp/ka-bijoux-entitlements.plist | grep -q 'Default'
           test -d "$app/Assets.car" -o -f "$app/Assets.car"
-          cp /tmp/ka-bijoux-entitlements.plist build/ios/ipa/KA-Bijoux-build-20-entitlements.plist
-          cp "$app/embedded.mobileprovision" build/ios/ipa/KA-Bijoux-build-20.mobileprovision
+          cp /tmp/ka-bijoux-entitlements.plist "build/ios/ipa/KA-Bijoux-build-$BUILD_NUMBER-entitlements.plist"
+          cp "$app/embedded.mobileprovision" "build/ios/ipa/KA-Bijoux-build-$BUILD_NUMBER.mobileprovision"
 
     artifacts:
       - mobile/build/ios/ipa/*.ipa
