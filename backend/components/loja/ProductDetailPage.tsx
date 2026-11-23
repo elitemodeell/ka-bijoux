@@ -175,12 +175,12 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
 
   function cartPayload() {
     return {
-      id: (selectedVariant?.id && product.id) || product.sku || product.slug,
+      id: product.id ?? product.sku ?? product.slug,
       name: product.name,
       variationId: selectedVariant?.id,
       variationName: selectedVariant?.label,
       price: finalPrice,
-      image: imageUrl,
+      image: images[0] ?? "",
       sku: selectedVariant?.sku ?? product.sku,
       stock,
       description: product.shortDescription,

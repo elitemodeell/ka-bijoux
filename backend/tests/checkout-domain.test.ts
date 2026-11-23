@@ -8,6 +8,7 @@ import {
   type CouponSnapshot,
 } from "@/lib/checkout/domain";
 import { isValidCpf, normalizeCpf } from "@/lib/checkout/cpf";
+import linkedCatalog from "@/data/linked-catalog-options.json";
 
 function cartItem(): CatalogCartItem {
   return {
@@ -53,6 +54,22 @@ function coupon(overrides: Partial<CouponSnapshot> = {}): CouponSnapshot {
 }
 
 describe("checkout catalog pricing", () => {
+  it("keeps linked products with the same price as two commercial identities", () => {
+    const covers = linkedCatalog.find(({ blingParentId }) => blingParentId === 16670012434)!;
+    const items = covers.options.slice(0, 2).map(({ id, label, sku }, index) => ({
+      ...cartItem(),
+      id: `line-${index}`,
+      productId: id,
+      quantity: 1,
+      product: { ...cartItem().product, id, name: label, sku, price: "12.00", stock: index + 1 },
+    }));
+
+    expect(priceCart(items).map(({ productId, sku, unitPriceCents }) => ({ productId, sku, unitPriceCents })))
+      .toEqual(items.map(({ productId, product }) => ({ productId, sku: product.sku, unitPriceCents: 1200 })));
+    items[0].quantity = 2;
+    expectCheckoutCode(() => priceCart(items), "INSUFFICIENT_STOCK");
+  });
+
   it("checks combined quantities for options that share a product balance", () => {
     const items = ["white", "black"].map((id) => {
       const item = cartItem();

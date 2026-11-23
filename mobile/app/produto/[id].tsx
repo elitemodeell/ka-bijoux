@@ -359,7 +359,7 @@ export default function ProdutoScreen() {
   }
 
   function handleSelectVariation(v: Variation) {
-    if (!product || v.sku === null || v.sku === "" || (product.sharedVariationStock ? product.stock : v.stock) <= 0) return;
+    if (!product || !v.sku?.trim() || (product.sharedVariationStock ? product.stock : v.stock) <= 0) return;
     setVariationError(false);
     setSelectedVariation((prev) => (prev === v.id ? null : v.id));
     setQuantity(1);
@@ -633,7 +633,7 @@ export default function ProdutoScreen() {
               <View style={styles.variations}>
                 {product.variations.map((v) => {
                   const isSelected = selectedVariation === v.id;
-                  const unavailable = v.sku === null || v.sku === "" || (product.sharedVariationStock ? product.stock : v.stock) <= 0;
+                  const unavailable = !v.sku?.trim() || (product.sharedVariationStock ? product.stock : v.stock) <= 0;
                   const photo = resolveProductPhoto(product.id, v.imageUrl, product.updatedAt, v.id);
                   return (
                     <TouchableOpacity

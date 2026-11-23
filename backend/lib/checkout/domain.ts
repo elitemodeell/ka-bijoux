@@ -20,6 +20,7 @@ export interface CatalogCartItem {
   product: {
     id: string;
     name: string;
+    sku?: string | null;
     active: boolean;
     price: unknown;
     promotionalPrice: unknown | null;
@@ -47,6 +48,7 @@ export interface PricedCheckoutItem {
   usesProductStock: boolean;
   productName: string;
   variationName: string | null;
+  sku: string | null;
   quantity: number;
   unitPriceCents: number;
   totalPriceCents: number;
@@ -170,6 +172,7 @@ export function priceCart(items: CatalogCartItem[]): PricedCheckoutItem[] {
       usesProductStock: Boolean(item.variationId && item.product.sharedVariationStock),
       productName: item.product.name,
       variationName,
+      sku: (item.variationId ? item.variation?.sku : item.product.sku) ?? null,
       quantity: item.quantity,
       unitPriceCents,
       totalPriceCents: unitPriceCents * item.quantity,

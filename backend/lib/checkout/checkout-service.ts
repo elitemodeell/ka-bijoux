@@ -1465,7 +1465,7 @@ export async function createOrResumeCheckout(
                       url, item.productId, item.variationId ? source.variation?.sku : source.product.sku, item.variationId,
                     ))) ?? null,
                   variationName: item.variationName,
-                  sku: item.variationId ? source.variation?.sku : source.product.sku,
+                  sku: item.sku,
                   quantity: item.quantity,
                   unitPrice: centsToDecimal(item.unitPriceCents),
                   totalPrice: centsToDecimal(item.totalPriceCents),
