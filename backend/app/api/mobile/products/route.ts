@@ -4,10 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { catalogSearchAlternatives } from "@/lib/catalog-search";
 import { googlePlayProductWhere } from "@/lib/google-play-distribution";
 import { apiError, apiSuccess } from "@/lib/utils";
-import { belongsToCatalogGallery, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 
 const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
   id: true,
+  sku: true,
   name: true,
   slug: true,
   description: true,
@@ -32,6 +33,7 @@ const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
     orderBy: { order: "asc" },
     select: {
       id: true,
+      sku: true,
       name: true,
       value: true,
       imageUrl: true,
@@ -43,12 +45,14 @@ const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
 });
 
 function serializeProduct(product: Prisma.ProductGetPayload<{ select: typeof cardSelect }>) {
+  const images = product.images.filter(({ url }) => isOfficialCatalogPhoto(url, product.id, product.sku));
   return {
     ...product,
+    images,
     variations: product.variations.map((variation) => ({
       ...variation,
       stock: product.sharedVariationStock ? product.stock : variation.stock,
-      imageUrl: variation.imageUrl && belongsToCatalogGallery(variation.imageUrl, product.id, variation.id)
+      imageUrl: variation.imageUrl && isOfficialCatalogPhoto(variation.imageUrl, product.id, variation.sku, variation.id)
         ? variation.imageUrl
         : null,
     })),
@@ -56,7 +60,7 @@ function serializeProduct(product: Prisma.ProductGetPayload<{ select: typeof car
     promotionalPrice: product.promotionalPrice
       ? Number(product.promotionalPrice)
       : null,
-    image: product.images[0]?.url ?? null,
+    image: images[0]?.url ?? null,
     promo: product.promotionalPrice ? Number(product.promotionalPrice) : null,
     badge: product.isNew ? "Novo" : product.featured ? "Destaque" : null,
   };

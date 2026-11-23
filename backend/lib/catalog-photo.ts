@@ -41,8 +41,16 @@ export function isQuarantinedCatalogPhoto(url: string, productId?: string) {
   }
 }
 
-export function officialDatabaseGallery(urls: readonly string[], productId: string) {
-  return urls.filter((url) => Boolean(url) && !isBlingHostedPhoto(url) && !isQuarantinedCatalogPhoto(url, productId));
+export function isOfficialCatalogPhoto(url: string, productId: string, sku?: string | null, variationId?: string | null) {
+  if (!url || !belongsToCatalogGallery(url, productId, variationId)) return false;
+  if (!sku || !/^310400\d{7}$/.test(sku)) return true;
+  const filename = new URL(url, "https://catalog.invalid").pathname.split("/").at(-1) ?? "";
+  const declaredSku = filename.match(/(?:^|[^\d])(310400\d{7})(?!\d)/)?.[1];
+  return !declaredSku || declaredSku === sku;
+}
+
+export function officialDatabaseGallery(urls: readonly string[], productId: string, sku?: string | null) {
+  return urls.filter((url) => isOfficialCatalogPhoto(url, productId, sku));
 }
 
 export class CatalogPhotoError extends Error {}

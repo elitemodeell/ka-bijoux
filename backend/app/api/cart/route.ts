@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic';
-import { belongsToCatalogGallery, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { catalogPurchaseBlocked, catalogReviewMessage } from "@/lib/catalog-purchase-mode";
 import { NextRequest } from "next/server";
 import { z } from "zod";
@@ -48,9 +48,13 @@ export async function GET(req: NextRequest) {
     const totals = calculateCartTotals(cart);
     const items = cart.items.map((item) => ({
       ...item,
+      product: {
+        ...item.product,
+        images: item.product.images.filter(({ url }) => isOfficialCatalogPhoto(url, item.productId, item.product.sku)),
+      },
       variation: item.variation ? {
         ...item.variation,
-        imageUrl: item.variation.imageUrl && belongsToCatalogGallery(item.variation.imageUrl, item.productId, item.variation.id)
+        imageUrl: item.variation.imageUrl && isOfficialCatalogPhoto(item.variation.imageUrl, item.productId, item.variation.sku, item.variation.id)
           ? item.variation.imageUrl : null,
         stock: item.product.sharedVariationStock ? item.product.stock : item.variation.stock,
       } : null,

@@ -279,6 +279,10 @@ export default function ProdutoScreen() {
       .then((res) => {
         if (!current) return;
         const p: Product = res.data.data.product;
+        if (p.id !== id && p.slug !== id) {
+          setNotFound(true);
+          return;
+        }
         setProduct(p);
         setRelated(res.data.data.related ?? []);
         setSelectedVariation(null);
@@ -495,6 +499,7 @@ export default function ProdutoScreen() {
         {/* Imagem principal */}
         <View style={styles.imagesContainer}>
           <ProductImageGallery
+            key={`${product.id}:${activeVariation?.id ?? ""}`}
             images={galleryImages}
             productName={activeVariation ? `${product.name} — ${activeVariation.value}` : product.name}
             selectedIndex={Math.min(selectedImage, Math.max(0, galleryImages.length - 1))}

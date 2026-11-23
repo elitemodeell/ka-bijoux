@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { belongsToCatalogGallery, officialDatabaseGallery } from "@/lib/catalog-photo";
+import { isOfficialCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
 import { catalogGalleryForPurchase, catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
 import { linkedCatalogOptions } from "@/lib/linked-catalog-options";
 import { notFound, redirect } from "next/navigation";
@@ -337,7 +337,7 @@ export default async function ProdutoPage(props: PageProps) {
       ? getSubcategoryPathSlug(dbProduct.subcategory.slug)
       : "";
     const isAdultProduct = dbProduct.category?.slug === "sex-shop";
-    const rawDbImages = officialDatabaseGallery(dbProduct.images.map((image) => image.url), dbProduct.id);
+    const rawDbImages = officialDatabaseGallery(dbProduct.images.map((image) => image.url), dbProduct.id, dbProduct.sku);
     const visibleImages = isAdultProduct ? rawDbImages : rawDbImages.filter((url) => !isAdultImageUrl(url));
     const purchaseReviewRequired = catalogPurchaseBlocked(dbProduct.purchaseMode, dbProduct.variations.length);
     const galleryImages = catalogGalleryForPurchase(visibleImages, purchaseReviewRequired);
@@ -382,7 +382,7 @@ export default async function ProdutoPage(props: PageProps) {
       sku: variation.sku ?? undefined,
       stock: dbProduct.sharedVariationStock ? dbProduct.stock : variation.stock,
       priceModifier: Number(variation.priceModifier),
-      images: variation.imageUrl && belongsToCatalogGallery(variation.imageUrl, dbProduct.id, variation.id)
+      images: variation.imageUrl && isOfficialCatalogPhoto(variation.imageUrl, dbProduct.id, variation.sku, variation.id)
         ? [variation.imageUrl]
         : [],
       label: `${variation.name}: ${variation.value}`,
@@ -525,7 +525,7 @@ function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | nu
     name: product.name,
   });
 
-  const rawDbImage = officialDatabaseGallery(product.images.map((image) => image.url), product.id)[0] ?? null;
+  const rawDbImage = officialDatabaseGallery(product.images.map((image) => image.url), product.id, product.sku)[0] ?? null;
   const isAdultRelated = product.category?.slug === "sex-shop";
   const dbImage = rawDbImage && !isAdultRelated && isAdultImageUrl(rawDbImage) ? null : rawDbImage;
   const image = dbImage ?? null;

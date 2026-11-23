@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { belongsToCatalogGallery, officialDatabaseGallery } from "@/lib/catalog-photo";
+import { belongsToCatalogGallery, isOfficialCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
 import { catalogGalleryForPurchase, catalogPurchaseBlocked, catalogPurchaseModes, validateCatalogOptions } from "@/lib/catalog-purchase-mode";
 import { planKaPhotoPush } from "@/lib/bling-photo-push";
 import { z } from "zod";
@@ -63,7 +63,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     });
 
     const isAdultProduct = product.category?.slug === "sex-shop";
-    const officialImages = product.images.filter((img) => officialDatabaseGallery([img.url], product.id).length > 0);
+    const officialImages = product.images.filter((img) => isOfficialCatalogPhoto(img.url, product.id, product.sku));
     const publicImages = isAdultProduct ? officialImages : officialImages.filter((img) => !isAdultImageUrl(img.url));
     const purchaseReviewRequired = catalogPurchaseBlocked(product.purchaseMode, product.variations.filter((option) => option.active).length);
     const filteredProduct = {
@@ -73,14 +73,14 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
       images: isAdmin ? product.images : catalogGalleryForPurchase(publicImages, purchaseReviewRequired),
       variations: (!isAdmin && purchaseReviewRequired ? [] : product.variations).map((variation) => ({
         ...variation,
-        imageUrl: isAdmin || (variation.imageUrl && belongsToCatalogGallery(variation.imageUrl, product.id, variation.id))
+        imageUrl: isAdmin || (variation.imageUrl && isOfficialCatalogPhoto(variation.imageUrl, product.id, variation.sku, variation.id))
           ? variation.imageUrl
           : null,
       })),
     };
     const filteredRelated = related.map((r) => {
       const isAdultRelated = r.category?.slug === "sex-shop";
-      const images = r.images.filter((img) => officialDatabaseGallery([img.url], r.id).length > 0);
+      const images = r.images.filter((img) => isOfficialCatalogPhoto(img.url, r.id, r.sku));
       return {
         ...r,
         images: isAdultRelated ? images : images.filter((img) => !isAdultImageUrl(img.url)),

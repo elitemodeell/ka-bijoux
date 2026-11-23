@@ -21,7 +21,7 @@ export async function linkedCatalogOptions(productId: string, mobileScope?: Pris
     const product = byId.get(id);
     if (!product || product.sku !== sku || product._count.variations ||
         catalogPurchaseBlocked(product.purchaseMode, product._count.variations)) return [];
-    const gallery = officialDatabaseGallery(product.images.map(({ url }) => url), id);
+    const gallery = officialDatabaseGallery(product.images.map(({ url }) => url), id, sku);
     if (!gallery.includes(photo)) return [];
     return [{
       id, label, slug: product.slug, available: product.stock > 0,

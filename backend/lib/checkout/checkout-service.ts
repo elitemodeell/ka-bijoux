@@ -7,7 +7,7 @@ import {
   Prisma,
   ShippingType,
 } from "@prisma/client";
-import { belongsToCatalogGallery, officialDatabaseGallery, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { prisma } from "@/lib/prisma";
 import { calculateShipping, SHIPPING_OPTION_IDS } from "@/lib/shipping";
 import { generateOrderNumber } from "@/lib/utils";
@@ -1460,12 +1460,10 @@ export async function createOrResumeCheckout(
                   variationId: item.variationId,
                   usesProductStock: item.usesProductStock,
                   productName: item.productName,
-                  productImage: officialDatabaseGallery(
-                    [item.variationId ? source.variation?.imageUrl : source.product.images[0]?.url].filter(
-                      (url): url is string => Boolean(url && belongsToCatalogGallery(url, item.productId, item.variationId)),
-                    ),
-                    item.productId,
-                  )[0] ?? null,
+                  productImage: (item.variationId ? [source.variation?.imageUrl] : source.product.images.map(({ url }) => url))
+                    .find((url): url is string => Boolean(url && isOfficialCatalogPhoto(
+                      url, item.productId, item.variationId ? source.variation?.sku : source.product.sku, item.variationId,
+                    ))) ?? null,
                   variationName: item.variationName,
                   sku: item.variationId ? source.variation?.sku : source.product.sku,
                   quantity: item.quantity,

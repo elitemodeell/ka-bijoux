@@ -5,6 +5,14 @@ import sharp from "sharp";
 import { expect, it } from "vitest";
 import { belongsToCatalogGallery, catalogPhotoPath, isQuarantinedCatalogPhoto, normalizeCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
 
+it("excludes a legacy photo that explicitly names a different commercial SKU", () => {
+  const wrong = "/uploads/products/modelo-3104000004949.jpg";
+  const correct = "/uploads/products/modelo-3104000004955.jpg";
+  const unmarked = "/uploads/products/foto-oficial.jpg";
+  expect(officialDatabaseGallery([wrong, correct, unmarked], "product", "3104000004955"))
+    .toEqual([correct, unmarked]);
+});
+
 it("standardizes actual pixels deterministically without cropping the product", async () => {
   const image = (background: string) => sharp({ create: { width: 400, height: 200, channels: 3, background } }).png().toBuffer();
   const original = await image("#00ff00");
