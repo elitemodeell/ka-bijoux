@@ -1,0 +1,170 @@
+[
+  {
+    "blingParentId": 16519110697,
+    "name": "ANEL DE CABELO",
+    "options": [
+      {
+        "id": "cmr6i1rf1002mrhf8sfz3cj0m",
+        "sku": "3104000001048",
+        "label": "P dourado",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/anel-de-cabelo-dourado-3104000001048.png"
+      },
+      {
+        "id": "cmr6i1riq002prhf8zfvtrn72",
+        "sku": "3104000005561",
+        "label": "P prata",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/anel-de-cabelo-prateado-3104000005561.png"
+      },
+      {
+        "id": "cmr6i1raw002jrhf8pungde9r",
+        "sku": "3104000005562",
+        "label": "P colorido",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/anel-de-cabelo-colorido-3104000005562.png"
+      },
+      {
+        "id": "cmr7z1ltr001fz6w5lo7r3pr7",
+        "sku": "3104000005563",
+        "label": "G dourado",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/revisado-anel-de-cabelo-g-dourado-3104000005563-01.png"
+      }
+    ]
+  },
+  {
+    "blingParentId": 16669419831,
+    "name": "BRACELETE AÇO INOX",
+    "options": [
+      {
+        "id": "cmr6i1smy003jrhf8uznhtnv4",
+        "sku": "3104000005304",
+        "label": "Roma",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/bracelete-aco-inox-roma-3104000005304.png"
+      },
+      {
+        "id": "cmr6i1sbz003arhf8ugwwuv0p",
+        "sku": "3104000005305",
+        "label": "Cartier c/ strass",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/bracelete-aco-inox-cartier-com-strass-3104000005305.png"
+      },
+      {
+        "id": "cmr6i1sfk003drhf8jjdkm15b",
+        "sku": "3104000005307",
+        "label": "Liso",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/bracelete-aco-inox-liso-3104000005307.png"
+      }
+    ]
+  },
+  {
+    "blingParentId": 16525501297,
+    "name": "LUMINARIA LED P/ESCREVER",
+    "options": [
+      {
+        "id": "cmr6i1xwn007prhf8upbot4bt",
+        "sku": "3104000005817",
+        "label": "Coração",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/luminaria-led-coracao-3d-3104000005817.png"
+      },
+      {
+        "id": "cmr7z1m9n001jz6w5mcnbejvd",
+        "sku": "3104000005818",
+        "label": "Quadrado",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/revisado-luminaria-led-pescrever-quadrado-3104000005818-01.png"
+      }
+    ]
+  },
+  {
+    "blingParentId": 16440935720,
+    "name": "PAPA BOLINHA A PILHA",
+    "options": [
+      {
+        "id": "cmr6i1z64008prhf86g3brczw",
+        "sku": "3104000005814",
+        "label": "Azul",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/papa-bolinha-a-pilha-azul-3104000005814.png"
+      },
+      {
+        "id": "cmr6i1zfz008srhf8z47v6g4h",
+        "sku": "3104000005815",
+        "label": "Rosa",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/papa-bolinha-a-pilha-rosa-3104000005815.png"
+      }
+    ]
+  },
+  {
+    "blingParentId": 16669650916,
+    "name": "PULSEIRA PEDRA TURQUESA",
+    "options": [
+      {
+        "id": "cmr7z1l8b001bz6w5t58qbxq5",
+        "sku": "3104000005385",
+        "label": "Prata redonda",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/revisado-pulseira-pedra-turquesa-prata-redonda-3104000005385-01.png"
+      },
+      {
+        "id": "cmr7z1m1q001hz6w56ofgylai",
+        "sku": "3104000005382",
+        "label": "Dourada redonda",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/revisado-pulseira-pedra-turquesa-dourada-redonda-3104000005382-01.png"
+      },
+      {
+        "id": "cmr7z1l080019z6w5lrx3xjna",
+        "sku": "3104000005383",
+        "label": "Prata oval",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/revisado-pulseira-pedra-turquesa-prata-oval-3104000005383-01.png"
+      }
+    ]
+  },
+  {
+    "blingParentId": 16658916447,
+    "name": "RELICARIO",
+    "options": [
+      {
+        "id": "cmr7z1jwb0011z6w5b513iiss",
+        "sku": "3104000005229",
+        "label": "Coração fechado dourado",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/revisado-relicario-coracao-fechado-dourado-3104000005229-01.png"
+      },
+      {
+        "id": "cmr7z1llo001dz6w5802hwagv",
+        "sku": "3104000005232",
+        "label": "Coração triangulo prata",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/revisado-relicario-coracao-triangulo-prata-3104000005232-01.png"
+      },
+      {
+        "id": "cmr6i21qs00amrhf8ditq3313",
+        "sku": "3104000005233",
+        "label": "Coração flor prata",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/relicario-coracao-flor-prata-3104000005233.png"
+      },
+      {
+        "id": "cmr6i21um00aprhf8wt0ofueo",
+        "sku": "3104000005052",
+        "label": "Redondo flor dourado",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/relicario-redondo-flor-dourado-3104000005052.png"
+      }
+    ]
+  },
+  {
+    "blingParentId": 16670012434,
+    "name": "SILICONE | IP 11 PRO |",
+    "options": [
+      {
+        "id": "cmrw6y08y000txg380h3hm6zx",
+        "sku": "3104000005582",
+        "label": "Vermelho aberta",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/produtos-novos/img-014-silicone-ip11pro-vermelho-aberta-3104000005582.png"
+      },
+      {
+        "id": "cmrw6xzpi000mxg38q8ptv0r8",
+        "sku": "3104000005583",
+        "label": "Vermelho",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/produtos-novos/img-013-silicone-ip11pro-vermelho-3104000005583.png"
+      },
+      {
+        "id": "cmrwb2570000955o9g7nq7kzo",
+        "sku": "3104000005587",
+        "label": "Azul escuro",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/produtos-novos/img-007-silicone-ip11pro-azul-escuro-3104000005587.png"
+      }
+    ]
+  }
+]
