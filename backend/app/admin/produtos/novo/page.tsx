@@ -37,6 +37,7 @@ const emptyForm = {
   isNew: true,
   active: true,
   assortedColors: false,
+  purchaseMode: "REVIEW",
   fixedColor: "",
   variationName: "",
   variationValue: "",
@@ -146,6 +147,7 @@ export default function NovoProdutoPage() {
           isNew: form.isNew,
           active: form.active,
           assortedColors: form.assortedColors,
+          purchaseMode: form.purchaseMode,
           fixedColor: form.assortedColors ? null : form.fixedColor.trim() || null,
           images: images.map((url, index) => ({ url, order: index, alt: form.name })),
           variations,
@@ -307,6 +309,13 @@ export default function NovoProdutoPage() {
                 </div>
               </div>
 
+              <label className="block text-sm">
+                Como este produto é vendido
+                <select name="purchaseMode" value={form.purchaseMode} onChange={handleChange} className="input-field mt-1">
+                  <option value="REVIEW">Revisar fotos e opções antes de vender</option>
+                  <option value="SINGLE">Item único, fotos mostram o mesmo item</option>
+                </select>
+              </label>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" name="assortedColors" checked={form.assortedColors} onChange={handleChange} />
                 Cor enviada conforme disponibilidade

@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { catalogPurchaseBlocked, catalogReviewMessage } from "@/lib/catalog-purchase-mode";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { requireCustomer } from "@/lib/auth";
@@ -47,6 +48,9 @@ export async function POST(req: NextRequest) {
     });
     if (!product) return apiError("Produto não encontrado.", 404);
 
+    if (catalogPurchaseBlocked(product.purchaseMode, product.variations.length)) {
+      return apiError(catalogReviewMessage, 409);
+    }
     const variation = input.variationId
       ? product.variations.find((entry) => entry.id === input.variationId)
       : null;

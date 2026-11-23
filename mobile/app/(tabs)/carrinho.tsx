@@ -105,7 +105,7 @@ export default function CarrinhoScreen() {
         renderItem={({ item }) => (
           <View style={styles.item}>
             <ResilientProductImage
-              sources={[item.variation?.imageUrl || item.product.images[0]?.url]}
+              sources={[item.variation ? item.variation.imageUrl : item.product.images[0]?.url]}
               style={styles.itemImage}
               contentFit="cover"
               compact

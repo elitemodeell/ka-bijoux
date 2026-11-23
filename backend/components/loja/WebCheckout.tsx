@@ -247,7 +247,7 @@ export default function WebCheckout() {
         <div className="space-y-5">
           <ul className="divide-y">
             {cart.items.map((item) => {
-              const image = item.variation?.imageUrl || item.product.images?.[0]?.url;
+              const image = item.variation ? item.variation.imageUrl : item.product.images?.[0]?.url;
               const stock = item.variation?.stock ?? item.product.stock;
               return <li key={item.id} className="flex justify-between gap-3 py-2">
               {image && <img src={image} alt="" className="size-12 shrink-0 rounded object-cover" />}

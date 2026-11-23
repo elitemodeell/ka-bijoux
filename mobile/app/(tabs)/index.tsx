@@ -87,10 +87,14 @@ function isSafeStoreHref(value: string | null | undefined, allowedCategorySlugs:
 
 function toMobileRoute(href: string) {
   if (href.startsWith("/categoria/")) {
-    const slug = href.split("/")[2]?.split("?")[0];
-    return slug ? `/produtos?category=${encodeURIComponent(slug)}` : "/produtos";
+    const [path, search] = href.split("?", 2);
+    const [, , category, subcategory] = path.split("/");
+    const params = new URLSearchParams(search);
+    if (category) params.set("category", category);
+    if (subcategory) params.set("subcategory", subcategory);
+    return `/produtos?${params.toString()}`;
   }
-  return href.replace("?sort=", "?ordem=");
+  return href;
 }
 
 function isHomePayload(value: unknown): value is MobileHomePayload {

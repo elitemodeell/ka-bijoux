@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { StaticProduct, StaticProductVariant } from "@/lib/static-sex-shop-catalog";
+import { catalogReviewMessage } from "@/lib/catalog-purchase-mode";
 import { addCartItem } from "@/lib/client-cart";
 import { getDiscountPercentage, getValidPromotionalPrice } from "@/lib/store-rules";
 import ProductCard from "@/components/loja/ProductCard";
@@ -27,6 +28,8 @@ type RelatedProduct = {
 };
 
 type ProductDetailProduct = StaticProduct & {
+  purchaseReviewRequired?: boolean;
+  linkedOptions?: { id: string; label: string; slug: string | null; available: boolean }[];
   id?: string;
   brand?: string | null;
   ean?: string | null;
@@ -121,10 +124,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
       ? [product.imageFile.startsWith("/") ? product.imageFile : `/uploads/products/${product.imageFile}`]
       : [];
     return Array.from(new Set(
-      variantGallery.length ? variantGallery
-        : variantFallback.length ? variantFallback
-          : gallery.length ? (selectedVariant ? gallery.slice(0, 1) : gallery)
-            : fallback
+      selectedVariant ? [...variantGallery, ...variantFallback] : gallery.length ? gallery : fallback
     ));
   }, [product.galleryImages, product.imageFile, selectedVariant]);
 
@@ -140,7 +140,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const categorySlug = product.categorySlug ?? "produtos";
   const productSubcategoryName = product.subcategoryName ?? subcategoryName;
   const stock = variations.length ? selectedVariant?.stock ?? 0 : product.stock;
-  const available = stock > 0 && (!variations.length || Boolean(selectedVariant?.id));
+  const available = !product.purchaseReviewRequired && stock > 0 && (!variations.length || Boolean(selectedVariant?.id));
   const hasStock = variations.length
     ? variations.some((variant) => variant.id && (variant.stock ?? 0) > 0)
     : product.stock > 0;
@@ -377,7 +377,22 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                   <p className="mt-3 text-xs font-bold text-emerald-600">Link do produto copiado.</p>
                 )}
 
-                {variations.length > 0 && (
+                {product.purchaseReviewRequired && <p className="mt-4 text-sm text-gray-700">{catalogReviewMessage}</p>}
+                {!!product.linkedOptions?.length && (
+                  <div className="mt-5">
+                    <p className="mb-2 text-sm font-semibold">Escolha a opção</p>
+                    <div className="flex flex-wrap gap-2">
+                      {product.linkedOptions.map((option) => (
+                        <Link key={option.id} href={`/produto/${option.slug ?? option.id}`}
+                          aria-current={option.id === product.id ? "page" : undefined}
+                          className={`inline-flex min-h-11 items-center rounded-xl border px-3 text-sm ${option.id === product.id ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-200"}`}>
+                          {option.label}{option.available ? "" : " · Indisponível"}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {!product.purchaseReviewRequired && variations.length > 0 && (
                   <div className="mt-5">
                     <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-gray-500">{optionTitle}</p>
                     <div className="flex flex-wrap gap-2">

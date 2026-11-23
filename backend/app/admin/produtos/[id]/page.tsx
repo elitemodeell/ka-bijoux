@@ -35,6 +35,7 @@ const emptyForm = {
   categoryId: "", subcategoryId: "",
   featured: false, isNew: true, active: true,
   assortedColors: false, fixedColor: "",
+  purchaseMode: "", sharedVariationStock: false,
 };
 
 type FormState = typeof emptyForm;
@@ -108,6 +109,8 @@ export default function EditarProdutoPage() {
           active: p.active ?? true,
           assortedColors: p.assortedColors ?? false,
           fixedColor: p.fixedColor ?? "",
+          purchaseMode: p.purchaseMode ?? "",
+          sharedVariationStock: p.sharedVariationStock ?? false,
         });
         setImages((p.images ?? []).map((img: { url: string }) => img.url));
         setVariations(
@@ -251,6 +254,8 @@ export default function EditarProdutoPage() {
           active: form.active,
           assortedColors: form.assortedColors,
           fixedColor: form.assortedColors ? null : form.fixedColor.trim() || null,
+          purchaseMode: form.purchaseMode || null,
+          sharedVariationStock: form.sharedVariationStock,
           images: images.map((url, order) => ({ url, order, alt: form.name })),
           variations: variations.map((v, i) => ({
             ...(v.id ? { id: v.id } : {}),
@@ -430,6 +435,21 @@ export default function EditarProdutoPage() {
               </div>
 
               <div className="space-y-2">
+                <label className="block text-sm">
+                  Como este produto é vendido
+                  <select className="input-field mt-1" value={form.purchaseMode}
+                    onChange={(e) => setForm({ ...form, purchaseMode: e.target.value })}>
+                    <option value="">Cadastro anterior, ainda sem classificação</option>
+                    <option value="SINGLE">Item único, fotos mostram o mesmo item</option>
+                    <option value="OPTIONS">Cliente escolhe uma opção cadastrada</option>
+                    <option value="REVIEW">Compra suspensa para revisão comercial</option>
+                  </select>
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={form.sharedVariationStock}
+                    onChange={(e) => setForm({ ...form, sharedVariationStock: e.target.checked })} />
+                  Opções usam o mesmo saldo do produto
+                </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={form.assortedColors}
                     onChange={(e) => setForm({ ...form, assortedColors: e.target.checked })} />

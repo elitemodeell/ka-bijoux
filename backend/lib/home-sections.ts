@@ -74,7 +74,7 @@ async function fetchPool(filters: FetchPoolOptions): Promise<ProductCardProduct[
   const extra: Prisma.ProductWhereInput = { images: { some: {} } };
   if (filters.featured) extra.featured = true;
   if (filters.isNew) extra.isNew = true;
-  if (filters.promo) extra.promotionalPrice = { not: null };
+  if (filters.promo) extra.promotionalPrice = { gt: 0, lt: prisma.product.fields.price };
 
   const where = filters.googlePlay
     ? googlePlayProductWhere(extra)
@@ -195,9 +195,9 @@ export async function getHomeSections(
   }
 
   return {
-    ofertasRelampago: takeSection([...promo, ...featured, ...main], 8),
+    ofertasRelampago: promo.slice(0, 8),
     achadinhos: takeSection(main, 8),
-    novidades: takeSection([...newProducts, ...main], 8),
+    novidades: newProducts.slice(0, 8),
     maisVendidos: takeSection([...featured, ...main], 10),
     paraPresentes: takeSection(main, 8),
     belezaAutocuidado: takeSection(main, 8),

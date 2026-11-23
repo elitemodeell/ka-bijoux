@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl,
@@ -27,13 +27,17 @@ const PAGE_SIZE = 20;
 export default function ProdutosScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { category, subcategory, title, promo, new: newParam, q } = useLocalSearchParams<{
+  const { category, subcategory, title, promo, new: newParam, q, sort: routeSort, ordem, minPrice, maxPrice } = useLocalSearchParams<{
     category?: string;
     subcategory?: string;
     title?: string;
     promo?: string;
     new?: string;
     q?: string;
+    sort?: string;
+    ordem?: string;
+    minPrice?: string;
+    maxPrice?: string;
   }>();
   const isPromo = promo === "true";
   const isNew = newParam === "true";
@@ -43,12 +47,20 @@ export default function ProdutosScreen() {
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [sort, setSort]             = useState("createdAt");
+  const requestedSort = routeSort ?? ordem;
+  const initialSort = SORT_OPTIONS.find((option) => option.value === requestedSort)?.value
+    ?? ({ "mais-vendidos": "best_sellers", "menor-preco": "price_asc", "maior-preco": "price_desc" } as Record<string, string>)[requestedSort ?? ""]
+    ?? "createdAt";
+  const [sort, setSort]             = useState(initialSort);
   const [page, setPage]             = useState(1);
   const [hasMore, setHasMore]       = useState(true);
   const [error, setError]           = useState("");
+  const requestId = useRef(0);
+
+  useEffect(() => { setSort(initialSort); }, [initialSort]);
 
   async function fetchProducts(p: number, currentSort: string, replace: boolean) {
+    const currentRequest = ++requestId.current;
     if (replace) setError("");
     try {
       const params: Record<string, string | number | boolean> = {
@@ -59,24 +71,29 @@ export default function ProdutosScreen() {
       if (isPromo) params.promo = true;
       if (isNew) params.new = true;
       if (query) params.q = query;
+      if (minPrice) params.minPrice = minPrice;
+      if (maxPrice) params.maxPrice = maxPrice;
 
       const res = await productsApi.list(params);
+      if (currentRequest !== requestId.current) return;
       const data = res.data.data;
       const items: Product[] = data?.products ?? [];
       const total: number   = data?.total ?? 0;
 
-      setProducts((prev) => replace ? items : [...prev, ...items]);
+      setProducts((prev) => replace ? items : [...new Map([...prev, ...items].map((item) => [item.id, item])).values()]);
       setHasMore(p * PAGE_SIZE < total);
       setPage(p);
     } catch {
-      if (replace) {
+      if (replace && currentRequest === requestId.current) {
         setProducts([]);
         setError("Não foi possível carregar os produtos. Tente novamente.");
       }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
-      setLoadingMore(false);
+      if (currentRequest === requestId.current) {
+        setLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
+      }
     }
   }
 
@@ -86,21 +103,22 @@ export default function ProdutosScreen() {
     setPage(1);
     setHasMore(true);
     fetchProducts(1, sort, true);
+    return () => { requestId.current += 1; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, subcategory, sort, isPromo, isNew, query]);
+  }, [category, subcategory, sort, isPromo, isNew, query, minPrice, maxPrice]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchProducts(1, sort, true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sort, category, subcategory, isPromo, isNew, query]);
+  }, [sort, category, subcategory, isPromo, isNew, query, minPrice, maxPrice]);
 
   const loadMore = useCallback(() => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     fetchProducts(page + 1, sort, false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadingMore, hasMore, page, sort, category, subcategory, isPromo, isNew, query]);
+  }, [loadingMore, hasMore, page, sort, category, subcategory, isPromo, isNew, query, minPrice, maxPrice]);
 
   const screenTitle = title
     ?? (query

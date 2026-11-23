@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import ListingScrollRestorer from "@/components/loja/ListingScrollRestorer";
 import ProductCard from "@/components/loja/ProductCard";
 import { prisma } from "@/lib/prisma";
+import { catalogSearchAlternatives } from "@/lib/catalog-search";
 import {
   CATALOG_CATEGORIES,
   MOCK_PRODUCTS,
@@ -919,15 +920,12 @@ function buildProductWhere(params: LiveProductParams): Prisma.ProductWhereInput 
   }
   if (subcategorySlug) where.subcategory = { slug: subcategorySlug };
   if (selectedPrice) where.price = { equals: Number(selectedPrice) };
-  if (promo) where.promotionalPrice = { not: null };
+  if (promo) where.promotionalPrice = { gt: 0, lt: prisma.product.fields.price };
   if (onlyNew) where.isNew = true;
   if (query) {
     const searchMatches = getSearchMatches(query);
     where.OR = [
-      { name: { contains: query, mode: "insensitive" } },
-      { description: { contains: query, mode: "insensitive" } },
-      { sku: { contains: query, mode: "insensitive" } },
-      { searchTags: { hasSome: buildSearchTerms(query) } },
+      ...catalogSearchAlternatives(query),
       ...searchMatches.categorySlugs.map((slug) => ({ category: { slug } })),
       ...searchMatches.subcategorySlugs.map((slug) => ({ subcategory: { slug } })),
     ];
@@ -1000,13 +998,6 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof p
     catalogLine,
     isAdult: catalogLine === "adult",
   } satisfies ProductCardProduct;
-}
-
-function buildSearchTerms(value: string) {
-  const original = value.trim();
-  const normalized = normalizeSearch(original);
-  const tokens = normalized.includes(" ") ? [] : normalized.split(/\s+/).filter((token) => token.length >= 2);
-  return Array.from(new Set([original, normalized, ...tokens].filter(Boolean)));
 }
 
 function toProductLineSource(product: ProductCardProduct) {

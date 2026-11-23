@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { catalogSearchAlternatives } from "@/lib/catalog-search";
 import { googlePlayProductWhere } from "@/lib/google-play-distribution";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { belongsToCatalogGallery, visibleCatalogPhotos } from "@/lib/catalog-photo";
@@ -73,23 +74,41 @@ export async function GET(req: NextRequest) {
     const isNew = params.get("new") === "true";
     const promo = params.get("promo") === "true";
     const sort = params.get("sort") ?? params.get("ordem") ?? "createdAt";
+    const minPrice = params.get("minPrice");
+    const maxPrice = params.get("maxPrice");
 
     const filters: Prisma.ProductWhereInput = {};
     if (category) filters.category = { slug: category };
     if (subcategory) filters.subcategory = { slug: subcategory };
     if (featured) filters.featured = true;
     if (isNew) filters.isNew = true;
-    if (promo) filters.promotionalPrice = { not: null };
-    if (params.get("withImage") === "true") filters.images = { some: {} };
-    if (search) {
-      filters.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-        { sku: { contains: search, mode: "insensitive" } },
-        { slug: { contains: search, mode: "insensitive" } },
-        { searchTags: { hasSome: buildSearchTerms(search) } },
-      ];
+    if (promo) filters.promotionalPrice = { gt: 0, lt: prisma.product.fields.price };
+    if (minPrice !== null || maxPrice !== null) {
+      const min = minPrice === null ? undefined : Number(minPrice);
+      const max = maxPrice === null ? undefined : Number(maxPrice);
+      if ((min !== undefined && (!minPrice?.trim() || !Number.isFinite(min) || min < 0)) ||
+          (max !== undefined && (!maxPrice?.trim() || !Number.isFinite(max) || max < 0)) ||
+          (min !== undefined && max !== undefined && min > max)) {
+        return apiError("Faixa de preço inválida.", 422);
+      }
+      const priceRange = { gte: min, lte: max };
+      filters.AND = [{
+        OR: [
+          { promotionalPrice: { ...priceRange, gt: 0, lt: prisma.product.fields.price } },
+          {
+            price: priceRange,
+            OR: [
+              { promotionalPrice: null },
+              { promotionalPrice: { lte: 0 } },
+              { promotionalPrice: { gte: prisma.product.fields.price } },
+            ],
+          },
+        ],
+      }];
     }
+    if (params.get("withImage") === "true") filters.images = { some: visibleCatalogPhotos };
+    const searchAlternatives = search ? catalogSearchAlternatives(search) : [];
+    if (searchAlternatives.length) filters.OR = searchAlternatives;
 
     const where = googlePlayProductWhere(filters);
     const orderBy: Prisma.ProductOrderByWithRelationInput =
@@ -124,15 +143,4 @@ export async function GET(req: NextRequest) {
   } catch {
     return apiError("Erro ao buscar produtos.", 500);
   }
-}
-
-function buildSearchTerms(value: string) {
-  const original = value.trim();
-  const normalized = original
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-  return Array.from(new Set([original, normalized].filter(Boolean)));
 }

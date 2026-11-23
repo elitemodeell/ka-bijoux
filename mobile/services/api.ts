@@ -165,8 +165,8 @@ export { persistSession };
 // ─── Products ─────────────────────────────────────────────────────────────────
 
 export const productsApi = {
-  list: (params?: Record<string, string | number | boolean>) =>
-    api.get(`${MOBILE_API_PREFIX}/products`, { params: { withImage: true, ...params } }),
+  list: (params?: Record<string, string | number | boolean>, signal?: AbortSignal) =>
+    api.get(`${MOBILE_API_PREFIX}/products`, { params: { withImage: true, ...params }, signal }),
 
   getById: (id: string) =>
     api.get(`${MOBILE_API_PREFIX}/products/${id}`),

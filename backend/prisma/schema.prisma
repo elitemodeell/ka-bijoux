@@ -140,6 +140,7 @@ model Product {
   promotionalPrice      Decimal?                 @db.Decimal(10, 2)
   stock                 Int                      @default(0)
   sharedVariationStock  Boolean                  @default(false)
+  purchaseMode          String?
   assortedColors        Boolean                  @default(false)
   fixedColor            String?
   minStock              Int                      @default(5)

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
+import { connection } from "next/server";
 import AnnouncementBar from "@/components/loja/AnnouncementBar";
 import ProductCard from "@/components/loja/ProductCard";
 import AnimatedSection from "@/components/loja/AnimatedSection";
@@ -9,7 +11,9 @@ import type { ProductCardProduct } from "@/lib/bling-catalog";
 import { HOME_SECTION_DEFINITIONS, pickHomeBadge } from "@/lib/home-content";
 import { getHomeSections } from "@/lib/home-sections";
 
-export const revalidate = 60;
+const getCachedHomeSections = unstable_cache(() => getHomeSections(), ["ka-home-sections"], {
+  revalidate: 60,
+});
 
 export const metadata: Metadata = {
   title: "KA Bijoux — Bijuterias, Óculos e Acessórios Femininos",
@@ -21,6 +25,7 @@ const [offersConfig, findsConfig, newConfig, bestConfig, giftsConfig, beautyConf
   HOME_SECTION_DEFINITIONS;
 
 export default async function HomePage() {
+  await connection();
   const {
     ofertasRelampago,
     achadinhos,
@@ -28,7 +33,7 @@ export default async function HomePage() {
     maisVendidos,
     paraPresentes,
     belezaAutocuidado,
-  } = await getHomeSections();
+  } = await getCachedHomeSections();
 
   return (
     <main className="overflow-x-hidden">

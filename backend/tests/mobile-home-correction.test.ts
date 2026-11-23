@@ -132,7 +132,8 @@ describe("correção completa da Home mobile", () => {
 
   it("carrega somente uma quantidade controlada por vitrine", () => {
     const helper = source("backend/lib/home-sections.ts");
-    expect(helper).toContain("ofertasRelampago: takeSection");
+    expect(helper).toContain("ofertasRelampago: promo.slice(0, 8)");
+    expect(helper).toContain("novidades: newProducts.slice(0, 8)");
     expect(helper).toContain("maisVendidos: takeSection");
     expect(helper).toContain("limit: 70");
   });

@@ -104,6 +104,8 @@ type Variation = {
 
 type Product = {
   assortedColors?: boolean;
+  purchaseReviewRequired?: boolean;
+  linkedOptions?: { id: string; label: string; available: boolean; imageUrl: string | null }[];
   fixedColor?: string | null;
   id: string;
   slug?: string | null;
@@ -361,7 +363,7 @@ export default function ProdutoScreen() {
   }
 
   async function handleCartAction(action: "add" | "buy") {
-    if (!product || loading) return;
+    if (!product || loading || product.purchaseReviewRequired || (product.id !== id && product.slug !== id)) return;
     if (cartActionLock.current) return;
     if (!customer) {
       router.push("/(auth)/entrada");
@@ -401,7 +403,7 @@ export default function ProdutoScreen() {
     setOpenFaq((prev) => (prev === index ? null : index));
   }
 
-  if (loading && (!product || product.id !== id)) {
+  if (!notFound && ((loading && !product) || (product && product.id !== id && product.slug !== id))) {
     return <View style={styles.center}><ActivityIndicator color={Colors.primary} size="large" /></View>;
   }
 
@@ -426,11 +428,11 @@ export default function ProdutoScreen() {
     product.images.map((image) => resolveProductPhoto(product.id, image.url, product.updatedAt)).filter((url): url is string => Boolean(url)),
   ));
   const galleryImages = activeVariation
-    ? [variationImageUri ?? productGallery[0]].filter((url): url is string => Boolean(url))
+    ? (variationImageUri ? [variationImageUri] : [])
     : productGallery;
-  const isAvailable = hasVariations && !product.sharedVariationStock
+  const isAvailable = !product.purchaseReviewRequired && (hasVariations && !product.sharedVariationStock
     ? product.variations.some((v) => v.stock > 0)
-    : product.stock > 0;
+    : product.stock > 0);
   const activeStock = product.sharedVariationStock ? product.stock : activeVariation?.stock ?? product.stock;
   const priceModifier = Number(activeVariation?.priceModifier ?? 0);
   const basePrice = product.promotionalPrice && product.promotionalPrice < product.price ? product.promotionalPrice : product.price;
@@ -578,12 +580,33 @@ export default function ProdutoScreen() {
           </View>
 
           {/* Variações */}
+          {product.purchaseReviewRequired && (
+            <Text style={styles.selectedVariationLabel}>Este produto está em revisão e ainda não pode ser comprado.</Text>
+          )}
           {(product.assortedColors || product.fixedColor) && (
             <Text style={styles.selectedVariationLabel}>
               {product.assortedColors ? "Cor enviada conforme disponibilidade." : `Cor: ${product.fixedColor}`}
             </Text>
           )}
-          {hasVariations && (
+          {!!product.linkedOptions?.length && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Escolha a opção</Text>
+              <View style={styles.variations}>
+                {product.linkedOptions.map((option) => (
+                  <TouchableOpacity key={option.id} accessibilityRole="button"
+                    accessibilityState={{ selected: option.id === product.id }}
+                    style={[styles.variationChip, option.id === product.id && styles.variationChipActive]}
+                    onPress={() => { if (option.id !== product.id) router.replace({ pathname: "/produto/[id]", params: { id: option.id } }); }}>
+                    <View style={styles.variationWithImage}>
+                      {option.imageUrl && <ResilientProductImage sources={[option.imageUrl]} style={styles.variationThumb} contentFit="cover" compact />}
+                      <Text style={styles.variationText}>{option.label}{option.available ? "" : " · Indisponível"}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+          {!product.purchaseReviewRequired && hasVariations && (
             <View style={styles.section}>
               <View style={styles.variationHeader}>
                 <Text style={styles.sectionTitle}>

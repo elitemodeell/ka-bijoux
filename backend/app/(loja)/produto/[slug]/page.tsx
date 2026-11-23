@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { belongsToCatalogGallery, officialDatabaseGallery } from "@/lib/catalog-photo";
+import { catalogGalleryForPurchase, catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
+import { linkedCatalogOptions } from "@/lib/linked-catalog-options";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { Prisma } from "@prisma/client";
@@ -64,6 +66,7 @@ type DbProduct = {
   promotionalPrice: number | string | null;
   stock: number;
   sharedVariationStock: boolean;
+  purchaseMode: string | null;
   assortedColors: boolean;
   fixedColor: string | null;
   weight: number | string;
@@ -172,6 +175,7 @@ async function fetchDbProduct(lookup: ProductLookup): Promise<DbProduct | null> 
       promotionalPrice: product.promotionalPrice ? Number(product.promotionalPrice) : null,
       stock: product.stock,
       sharedVariationStock: product.sharedVariationStock,
+      purchaseMode: product.purchaseMode,
       weight: Number(product.weight),
       height: Number(product.height),
       width: Number(product.width),
@@ -334,7 +338,9 @@ export default async function ProdutoPage(props: PageProps) {
       : "";
     const isAdultProduct = dbProduct.category?.slug === "sex-shop";
     const rawDbImages = officialDatabaseGallery(dbProduct.images.map((image) => image.url), dbProduct.id);
-    const galleryImages = isAdultProduct ? rawDbImages : rawDbImages.filter((url) => !isAdultImageUrl(url));
+    const visibleImages = isAdultProduct ? rawDbImages : rawDbImages.filter((url) => !isAdultImageUrl(url));
+    const purchaseReviewRequired = catalogPurchaseBlocked(dbProduct.purchaseMode, dbProduct.variations.length);
+    const galleryImages = catalogGalleryForPurchase(visibleImages, purchaseReviewRequired);
     const contentOverride = getProductContentOverride({
       blingId: dbProduct.blingId,
       sku: dbProduct.sku,
@@ -390,6 +396,7 @@ export default async function ProdutoPage(props: PageProps) {
       active: (dbProduct.sharedVariationStock ? dbProduct.stock : variation.stock) > 0,
     }));
 
+    const linkedOptions = await linkedCatalogOptions(dbProduct.id);
     const adaptedProduct = {
       id: dbProduct.id,
       slug: canonicalSlug,
@@ -405,6 +412,8 @@ export default async function ProdutoPage(props: PageProps) {
       subcategorySlug: dbProduct.subcategory?.slug ?? "",
       imageFile: galleryImages[0] ?? "",
       galleryImages,
+      purchaseReviewRequired,
+      linkedOptions,
       shortDescription:
         dbProduct.description?.split("\n")[0] ??
         contentOverride?.shortDescription ??

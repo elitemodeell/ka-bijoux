@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import { belongsToCatalogGallery, isQuarantinedCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
+import { belongsToCatalogGallery, officialDatabaseGallery } from "@/lib/catalog-photo";
+import { catalogGalleryForPurchase, catalogPurchaseBlocked, catalogPurchaseModes, validateCatalogOptions } from "@/lib/catalog-purchase-mode";
 import { planKaPhotoPush } from "@/lib/bling-photo-push";
 import { z } from "zod";
 import { ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
@@ -22,11 +23,14 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     try { await requireAdmin(req); isAdmin = true; } catch { /* public request */ }
 
     const activeFilter = isAdmin ? {} : { active: true };
+    const detailInclude = isAdmin
+      ? { ...productInclude, variations: { orderBy: { order: "asc" as const } } }
+      : productInclude;
 
     // First: direct lookup by UUID or slug
     let product = await prisma.product.findFirst({
       where: { OR: [{ id: params.id }, { slug: params.id }], ...activeFilter },
-      include: productInclude,
+      include: detailInclude,
     });
 
     // Second: if not found, check Bling catalog for this slug to get blingId/sku,
@@ -44,7 +48,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
         if (orFilters.length) {
           product = await prisma.product.findFirst({
             where: { OR: orFilters, ...activeFilter },
-            include: productInclude,
+            include: detailInclude,
           });
         }
       }
@@ -60,14 +64,16 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     const isAdultProduct = product.category?.slug === "sex-shop";
     const officialImages = product.images.filter((img) => officialDatabaseGallery([img.url], product.id).length > 0);
+    const publicImages = isAdultProduct ? officialImages : officialImages.filter((img) => !isAdultImageUrl(img.url));
+    const purchaseReviewRequired = catalogPurchaseBlocked(product.purchaseMode, product.variations.filter((option) => option.active).length);
     const filteredProduct = {
       ...product,
-      images: isAdultProduct
-        ? officialImages
-        : officialImages.filter((img) => !isAdultImageUrl(img.url)),
-      variations: product.variations.map((variation) => ({
+      purchaseReviewRequired,
+      stock: !isAdmin && purchaseReviewRequired ? 0 : product.stock,
+      images: isAdmin ? product.images : catalogGalleryForPurchase(publicImages, purchaseReviewRequired),
+      variations: (!isAdmin && purchaseReviewRequired ? [] : product.variations).map((variation) => ({
         ...variation,
-        imageUrl: variation.imageUrl && !isQuarantinedCatalogPhoto(variation.imageUrl, product.id)
+        imageUrl: isAdmin || (variation.imageUrl && belongsToCatalogGallery(variation.imageUrl, product.id, variation.id))
           ? variation.imageUrl
           : null,
       })),
@@ -142,6 +148,8 @@ const updateSchema = z.object({
   publicationStatus: z.nativeEnum(ProductPublicationStatus).optional(),
   searchTags: z.array(z.string().trim()).optional(),
   assortedColors: z.boolean().optional(),
+  purchaseMode: z.enum(catalogPurchaseModes).nullable().optional(),
+  sharedVariationStock: z.boolean().optional(),
   fixedColor: z.string().trim().min(1).max(100).nullable().optional(),
   featured: z.boolean().optional(),
   isNew: z.boolean().optional(),
@@ -159,7 +167,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       importSource === ProductImportSource.BLING && !data.enrichmentStatus;
 
     const { images, variations, ...rest } = data;
-    if ((rest.publicationStatus === "PUBLISHED" || rest.active === true)) {
+    if (rest.purchaseMode !== "REVIEW" && (rest.publicationStatus === "PUBLISHED" || rest.active === true)) {
       const currentImages = images
         ? images.map((image) => image.url)
         : (await prisma.productImage.findMany({ where: { productId: params.id }, select: { url: true } }))
@@ -168,12 +176,31 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         return apiError("Publique somente com foto própria aprovada.", 422);
       }
     }
-    if (images?.some(({ url }) => !belongsToCatalogGallery(url, params.id)) ||
-        variations?.some(({ id, imageUrl }) => imageUrl && !belongsToCatalogGallery(imageUrl, params.id, id))) {
-      return apiError("Uma foto está vinculada a outro produto ou variação.", 422);
-    }
-
     const updated = await prisma.$transaction(async (tx) => {
+      const current = await tx.product.findUnique({
+        where: { id: params.id },
+        select: { purchaseMode: true, sharedVariationStock: true, variations: true, images: { select: { url: true } } },
+      });
+      const mode = rest.purchaseMode === undefined ? current?.purchaseMode : rest.purchaseMode;
+      const priorGallery = new Set(current?.images.map(({ url }) => url));
+      const priorOptions = new Map(current?.variations.map(({ id, imageUrl }) => [id, imageUrl]));
+      if (images?.some(({ url }) => !priorGallery.has(url) && !belongsToCatalogGallery(url, params.id)) ||
+          variations?.some(({ id, imageUrl }) => imageUrl && priorOptions.get(id ?? "") !== imageUrl &&
+            !belongsToCatalogGallery(imageUrl, params.id, id))) {
+        return { catalogValidation: "Uma foto está vinculada a outro produto ou variação." } as const;
+      }
+      const options = (variations ?? current?.variations ?? []).map((option) => ({
+        ...option,
+        imageUrl: option.imageUrl && belongsToCatalogGallery(option.imageUrl, params.id, option.id)
+          ? option.imageUrl
+          : null,
+      }));
+      const validation = validateCatalogOptions(
+        mode,
+        rest.sharedVariationStock ?? current?.sharedVariationStock ?? false,
+        options,
+      );
+      if (validation) return { catalogValidation: validation } as const;
       const product = await tx.product.update({
         where: { id: params.id },
         data: {
@@ -246,6 +273,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
       return tx.product.findUnique({ where: { id: params.id }, include: productInclude });
     });
+    if (updated && "catalogValidation" in updated) return apiError(updated.catalogValidation, 422);
     if (updated && (images || variations?.some((variation) => variation.imageUrl))) {
       const plan = planKaPhotoPush({
         productId: updated.id,

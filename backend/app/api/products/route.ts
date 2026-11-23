@@ -3,6 +3,8 @@ import { visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { Prisma, ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { catalogSearchAlternatives } from "@/lib/catalog-search";
+import { catalogPurchaseModes, validateCatalogOptions } from "@/lib/catalog-purchase-mode";
 import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError, slugify } from "@/lib/utils";
 import { getPublicCategoryName } from "@/lib/catalog";
@@ -83,22 +85,15 @@ export async function GET(req: NextRequest) {
     if (subcategory) where.subcategory = { slug: subcategory };
     if (featured) where.featured = true;
     if (isNew) where.isNew = true;
-    if (promo) where.promotionalPrice = { not: null };
+    if (promo) where.promotionalPrice = { gt: 0, lt: prisma.product.fields.price };
     if (!category && catalogLine !== "all") {
       where.category = catalogLine === "adult"
         ? { slug: "sex-shop" }
         : { slug: { not: "sex-shop" } };
     }
-    if (withImage) where.images = { some: {} };
-    if (search) {
-      const searchTerms = buildSearchTerms(search);
-      where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-        { sku: { contains: search, mode: "insensitive" } },
-        { searchTags: { hasSome: searchTerms } },
-      ];
-    }
+    if (withImage) where.images = { some: visibleCatalogPhotos };
+    const searchAlternatives = search ? catalogSearchAlternatives(search) : [];
+    if (searchAlternatives.length) where.OR = searchAlternatives;
     if (exactPrice && exactPrice !== "all") {
       where.price = { equals: Number(exactPrice) };
     } else if (minPrice || maxPrice) {
@@ -245,22 +240,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number) {
   ]);
 }
 
-function buildSearchTerms(value: string) {
-  const original = value.trim();
-  const normalized = normalizeSearchQuery(original);
-  const tokens = normalized.includes(" ") ? [] : normalized.split(/\s+/).filter((token) => token.length >= 2);
-  return Array.from(new Set([original, normalized, ...tokens].filter(Boolean)));
-}
-
-function normalizeSearchQuery(value: string | null | undefined) {
-  return String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
 const imageSchema = z.object({
   url: z.string().min(1),
   alt: z.string().optional().nullable(),
@@ -306,6 +285,7 @@ const createSchema = z.object({
   publicationStatus: z.nativeEnum(ProductPublicationStatus).optional(),
   searchTags: z.array(z.string().trim()).optional(),
   assortedColors: z.boolean().default(false),
+  purchaseMode: z.enum(catalogPurchaseModes).nullable().optional(),
   fixedColor: z.string().trim().min(1).max(100).optional().nullable(),
   featured: z.boolean().default(false),
   isNew: z.boolean().default(true),
@@ -319,6 +299,8 @@ export async function POST(req: NextRequest) {
     await requireAdmin(req);
     const body = await req.json();
     const data = createSchema.parse(body);
+    const validation = validateCatalogOptions(data.purchaseMode, false, data.variations);
+    if (validation) return apiError(validation, 422);
 
     const slug = slugify(data.name);
     const existing = await prisma.product.findUnique({ where: { slug } });
@@ -360,6 +342,7 @@ export async function POST(req: NextRequest) {
           (data.active ? ProductPublicationStatus.PUBLISHED : ProductPublicationStatus.IMPORTED),
         searchTags: data.searchTags ?? [],
         assortedColors: data.assortedColors,
+        purchaseMode: data.purchaseMode,
         fixedColor: data.assortedColors ? null : data.fixedColor,
         importedAt: importSource === ProductImportSource.BLING ? new Date() : null,
         featured: data.featured,

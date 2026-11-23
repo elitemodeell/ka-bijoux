@@ -184,10 +184,11 @@ export default function CheckoutEntregaScreen() {
         {/* Resumo do carrinho */}
         <View style={styles.card}>
           {Platform.OS === "ios" ? <View style={styles.sectionTitleRow}><Ionicons name="bag-handle-outline" size={22} color={Colors.primary} /><Text style={styles.cardTitle}>Resumo do Pedido</Text><Text style={styles.itemCount}>{items.length} {items.length === 1 ? "item" : "itens"}</Text></View> : <Text style={styles.cardTitle}>Resumo</Text>}
-          {items.map((item) => (
-            Platform.OS === "ios" ? (
+          {items.map((item) => {
+            const image = item.variation ? item.variation.imageUrl : item.product.images?.[0]?.url;
+            return Platform.OS === "ios" ? (
               <View key={item.id} style={styles.iosItemRow}>
-                {(item.variation?.imageUrl || item.product.images?.[0]?.url) ? <Image source={item.variation?.imageUrl || item.product.images[0].url} style={styles.itemImage} contentFit="cover" /> : <View style={[styles.itemImage, styles.itemImageFallback]}><Ionicons name="image-outline" size={24} color={Colors.primary} /></View>}
+                {image ? <Image source={image} style={styles.itemImage} contentFit="cover" /> : <View style={[styles.itemImage, styles.itemImageFallback]}><Ionicons name="image-outline" size={24} color={Colors.primary} /></View>}
                 <View style={styles.iosItemCopy}>
                   <Text style={styles.iosItemName} numberOfLines={2}>{item.product.name}</Text>
                   {item.variation && <Text style={styles.itemVariation}>{item.variation.name}: {item.variation.value}</Text>}
@@ -201,9 +202,9 @@ export default function CheckoutEntregaScreen() {
                 <TouchableOpacity accessibilityLabel="Remover item" onPress={() => void removeItem(item.id)} style={styles.removeButton}><Ionicons name="trash-outline" size={18} color="#e00054" /></TouchableOpacity>
               </View>
             ) : (
-              <View key={item.id} style={styles.itemRow}><Text style={styles.itemName} numberOfLines={1}>{item.quantity}× {item.product.name}</Text><Text style={styles.itemPrice}>{fmt(item.unitPrice * item.quantity)}</Text></View>
-            )
-          ))}
+              <View key={item.id} style={styles.itemRow}><Text style={styles.itemName} numberOfLines={2}>{item.quantity}× {item.product.name}{item.variation ? ` · ${item.variation.value}` : ""}</Text><Text style={styles.itemPrice}>{fmt(item.unitPrice * item.quantity)}</Text></View>
+            );
+          })}
           <View style={styles.divider} />
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal</Text>

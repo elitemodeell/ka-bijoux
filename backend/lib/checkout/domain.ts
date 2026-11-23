@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { catalogPurchaseBlocked, catalogReviewMessage } from "@/lib/catalog-purchase-mode";
 
 export class CheckoutError extends Error {
   constructor(
@@ -24,6 +25,7 @@ export interface CatalogCartItem {
     promotionalPrice: unknown | null;
     stock: number;
     sharedVariationStock?: boolean;
+    purchaseMode?: string | null;
     _count?: { variations: number };
   };
   variation: {
@@ -108,6 +110,9 @@ export function priceCart(items: CatalogCartItem[]): PricedCheckoutItem[] {
       );
     }
 
+    if (catalogPurchaseBlocked(item.product.purchaseMode, item.product._count?.variations ?? 0)) {
+      throw new CheckoutError(catalogReviewMessage, 409, "CATALOG_REVIEW_REQUIRED");
+    }
     let stock = item.product.stock;
     let modifierCents = 0;
     let variationName: string | null = null;

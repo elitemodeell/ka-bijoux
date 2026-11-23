@@ -22,8 +22,11 @@ const enrichmentLabels: Record<string, { label: string; className: string }> = {
   MANUAL_REVIEWED: { label: "Revisado", className: "bg-pink-100 text-pink-700" },
 };
 
-export default async function ProdutosPage() {
-  const products = await getProducts();
+export default async function ProdutosPage({ searchParams }: { searchParams: Promise<{ revisao?: string }> }) {
+  const params = await searchParams;
+  const allProducts = await getProducts();
+  const pending = allProducts.filter((product) => product.active && (!product.purchaseMode || product.purchaseMode === "REVIEW"));
+  const products = params.revisao === "true" ? pending : allProducts;
 
   return (
     <div>
@@ -36,6 +39,11 @@ export default async function ProdutosPage() {
           </Link>
         }
       />
+
+      <div className="mb-4 flex flex-wrap gap-3">
+        <Link href="/admin/produtos" className="btn-ghost">Todos os produtos</Link>
+        <Link href="/admin/produtos?revisao=true" className="btn-ghost">Revisão comercial ({pending.length})</Link>
+      </div>
 
       <div className="card overflow-hidden p-0">
         <div className="overflow-x-auto">
@@ -107,6 +115,11 @@ export default async function ProdutosPage() {
                     </span>
                     {product.importSource === "BLING" && (
                       <p className="mt-1 text-[11px] font-semibold text-pink-500">Bling</p>
+                    )}
+                    {(!product.purchaseMode || product.purchaseMode === "REVIEW") && (
+                      <p className="mt-1 text-xs text-amber-900">
+                        {product.purchaseMode === "REVIEW" ? "Compra suspensa" : "Galeria por confirmar"}
+                      </p>
                     )}
                   </td>
                   <td data-label="Ações" className="py-3 px-4">

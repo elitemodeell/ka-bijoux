@@ -1461,7 +1461,7 @@ export async function createOrResumeCheckout(
                   usesProductStock: item.usesProductStock,
                   productName: item.productName,
                   productImage: officialDatabaseGallery(
-                    [source.variation?.imageUrl, source.product.images[0]?.url].filter(
+                    [item.variationId ? source.variation?.imageUrl : source.product.images[0]?.url].filter(
                       (url): url is string => Boolean(url && belongsToCatalogGallery(url, item.productId, item.variationId)),
                     ),
                     item.productId,

@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { googlePlayProductWhere, toGooglePlayPublicData } from "@/lib/google-play-distribution";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { belongsToCatalogGallery, isQuarantinedCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { catalogGalleryForPurchase, catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
+import { linkedCatalogOptions } from "@/lib/linked-catalog-options";
 
 const detailInclude = Prisma.validator<Prisma.ProductInclude>()({
   category: true,
@@ -18,14 +20,19 @@ function serialize<T extends {
   promotionalPrice: unknown;
   stock: number;
   sharedVariationStock: boolean;
+  purchaseMode: string | null;
   images: { url: string }[];
   variations: { id: string; priceModifier: unknown; stock: number; imageUrl: string | null }[];
 }>(product: T) {
+  const images = product.images.filter(({ url }) => !isQuarantinedCatalogPhoto(url, product.id));
+  const purchaseReviewRequired = catalogPurchaseBlocked(product.purchaseMode, product.variations.length);
   return {
     ...product,
     price: Number(product.price),
-    images: product.images.filter(({ url }) => !isQuarantinedCatalogPhoto(url, product.id)),
-    variations: product.variations.map((variation) => ({
+    purchaseReviewRequired,
+    stock: purchaseReviewRequired ? 0 : product.stock,
+    images: catalogGalleryForPurchase(images, purchaseReviewRequired),
+    variations: (purchaseReviewRequired ? [] : product.variations).map((variation) => ({
       ...variation,
       imageUrl: variation.imageUrl && belongsToCatalogGallery(variation.imageUrl, product.id, variation.id)
         ? variation.imageUrl
@@ -65,8 +72,9 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
       take: 6,
     });
 
+    const linkedOptions = await linkedCatalogOptions(product.id, googlePlayProductWhere({}));
     return apiSuccess(toGooglePlayPublicData({
-      product: serialize(product),
+      product: { ...serialize(product), linkedOptions },
       related: related.map(serialize),
     }));
   } catch {
