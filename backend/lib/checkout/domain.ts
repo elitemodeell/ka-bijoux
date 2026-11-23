@@ -219,6 +219,7 @@ export function calculateCouponDiscountCents(
 }
 
 export interface CheckoutHashInput {
+  directSelection?: { productId: string; variationId?: string; selectedPhotoUrl?: string; quantity: number };
   customerId: string;
   addressId?: string | null;
   shippingType: string;
@@ -232,6 +233,10 @@ export interface CheckoutHashInput {
 
 export function createCheckoutRequestHash(input: CheckoutHashInput): string {
   const canonical = {
+    ...(input.directSelection ? { directSelection: [
+      input.directSelection.productId, input.directSelection.variationId ?? null,
+      input.directSelection.selectedPhotoUrl ?? null, input.directSelection.quantity,
+    ] } : {}),
     customerId: input.customerId,
     addressId: input.addressId ?? null,
     shippingType: input.shippingType,

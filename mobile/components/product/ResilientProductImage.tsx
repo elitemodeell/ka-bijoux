@@ -4,6 +4,8 @@ import { Image } from "expo-image";
 
 import { Colors } from "@/constants/theme";
 
+const imageOrigin = process.env.EXPO_PUBLIC_API_URL || (__DEV__ ? "http://127.0.0.1:3000" : "https://kabijoux.com.br");
+
 type Props = {
   sources: Array<string | null | undefined>;
   style?: StyleProp<ImageStyle>;
@@ -22,7 +24,8 @@ export function ResilientProductImage({
   accessibilityLabel,
 }: Props) {
   const candidates = useMemo(
-    () => [...new Set(sources.filter((source): source is string => Boolean(source?.trim())))],
+    () => [...new Set(sources.filter((source): source is string => Boolean(source?.trim()))
+      .map((source) => source.startsWith("/") ? `${imageOrigin.replace(/\/$/, "")}${source}` : source))],
     [sources.join("|")],
   );
   const [candidateIndex, setCandidateIndex] = useState(0);

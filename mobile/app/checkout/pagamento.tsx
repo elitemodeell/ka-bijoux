@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { useCartStore } from "@/stores/cartStore";
@@ -32,7 +32,10 @@ export default function PagamentoScreen() {
   const insets = useSafeAreaInsets();
   const submitLock = useRef(false);
   const { customer, setCustomer } = useAuthStore();
-  const { subtotal, fetchCart } = useCartStore();
+  const { direct } = useLocalSearchParams<{ direct?: string }>();
+  const { subtotal: cartSubtotal, fetchCart, directCheckout } = useCartStore();
+  const purchase = direct && directCheckout?.key === direct ? directCheckout : null;
+  const subtotal = direct ? (purchase ? purchase.item.unitPrice * purchase.item.quantity : 0) : cartSubtotal;
   const {
     selectedShipping,
     addressId,
@@ -103,6 +106,10 @@ export default function PagamentoScreen() {
 
   async function finalizarPedido() {
     if (submitLock.current) return;
+    if (direct && !purchase) {
+      setError("Selecione novamente o produto antes de pagar.");
+      return;
+    }
     if (!customer) {
       router.push("/(auth)/entrada");
       return;
@@ -126,6 +133,7 @@ export default function PagamentoScreen() {
     setCanRetry(false);
     try {
       const response = await ordersApi.create({
+        directSelection: purchase?.selection,
         ...(addressId ? { addressId } : {}),
         shippingType: selectedShipping.type,
         shippingOptionId: selectedShipping.id,
@@ -136,7 +144,7 @@ export default function PagamentoScreen() {
       const order = response.data.data;
 
       reset();
-      await fetchCart();
+      if (!purchase) await fetchCart();
       if (
         paymentMethod === "CREDIT_CARD" &&
         typeof order.payment?.checkoutUrl === "string"

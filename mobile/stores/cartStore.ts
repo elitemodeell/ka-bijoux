@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { cartApi } from "@/services/api";
+import { cartApi, type DirectSelection } from "@/services/api";
 
 export interface CartItemData {
   id: string;
@@ -24,18 +24,18 @@ interface CartState {
   total: number;
   itemCount: number;
   isLoading: boolean;
-  isBuyingNow: boolean;
+  directCheckout: { key: string; selection: DirectSelection; item: CartItemData } | null;
 
   fetchCart: () => Promise<void>;
   addItem: (productId: string, quantity?: number, variationId?: string, selectedPhotoUrl?: string) => Promise<void>;
-  buyNow: (productId: string, quantity?: number, variationId?: string, selectedPhotoUrl?: string) => Promise<void>;
+  buyNow: (productId: string, quantity?: number, variationId?: string, selectedPhotoUrl?: string) => Promise<string>;
   updateItem: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
   resetLocal: () => void;
 }
 
-const pendingBuyNow = new Map<string, Promise<void>>();
+let nextDirectCheckout = 0;
 
 function cartSnapshot(data: Partial<CartState>) {
   return {
@@ -53,7 +53,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   total: 0,
   itemCount: 0,
   isLoading: false,
-  isBuyingNow: false,
+  directCheckout: null,
 
   fetchCart: async () => {
     try {
@@ -79,28 +79,12 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   buyNow: async (productId, quantity = 1, variationId, selectedPhotoUrl) => {
-    const key = JSON.stringify([productId, variationId, selectedPhotoUrl]);
-    const pending = pendingBuyNow.get(key);
-    if (pending) return pending;
-    const operation = (async () => {
-      const previousCount = get().itemCount;
-      set({ itemCount: quantity, isBuyingNow: true });
-      try {
-        const response = await cartApi.addItem(productId, quantity, variationId, "BUY_NOW", selectedPhotoUrl);
-        set(cartSnapshot(response.data.data));
-      } catch (error) {
-        set({ itemCount: previousCount });
-        throw error;
-      } finally {
-        set({ isBuyingNow: false });
-      }
-    })();
-    pendingBuyNow.set(key, operation);
-    try {
-      await operation;
-    } finally {
-      if (pendingBuyNow.get(key) === operation) pendingBuyNow.delete(key);
-    }
+    const selection = { productId, quantity, variationId, selectedPhotoUrl };
+    const key = String(++nextDirectCheckout);
+    const response = await cartApi.previewDirect(selection);
+    if (key !== String(nextDirectCheckout)) throw new Error("DIRECT_CHECKOUT_CHANGED");
+    set({ directCheckout: { key, selection, item: response.data.data } });
+    return key;
   },
 
   updateItem: async (itemId, quantity) => {
@@ -117,5 +101,8 @@ export const useCartStore = create<CartState>((set, get) => ({
     await cartApi.clear();
     set({ items: [], subtotal: 0, total: 0, itemCount: 0 });
   },
-  resetLocal: () => set({ items: [], subtotal: 0, total: 0, itemCount: 0, isLoading: false, isBuyingNow: false }),
+  resetLocal: () => {
+    nextDirectCheckout += 1;
+    set({ items: [], subtotal: 0, total: 0, itemCount: 0, isLoading: false, directCheckout: null });
+  },
 }));

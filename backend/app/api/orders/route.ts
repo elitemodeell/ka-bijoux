@@ -23,8 +23,11 @@ import { prisma } from "@/lib/prisma";
 import { rateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 import { apiError, apiSuccess } from "@/lib/utils";
 
+import { directSelectionSchema } from "@/lib/checkout/direct-selection";
+
 const checkoutSchema = z
   .object({
+    directSelection: directSelectionSchema.optional(),
     addressId: z.string().min(1).max(100).optional(),
     shippingType: z.nativeEnum(ShippingType),
     shippingOptionId: z.string().trim().min(1).max(100).optional(),

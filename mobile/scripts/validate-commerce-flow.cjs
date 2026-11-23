@@ -34,11 +34,11 @@ assert.ok(product.includes("cartActionLock.current"), "Produto não bloqueia toq
 assert.ok(product.includes("Math.min(activeStock, quantity + 1)"), "Quantidade do produto ignora estoque");
 assert.ok(product.includes("Math.max(insets.bottom"), "Produto não respeita safe area inferior");
 assert.ok(productCard.includes('handleCartAction(action: "add" | "buy")'), "Card não separa adicionar e comprar agora");
-assert.ok(cartStore.includes('"BUY_NOW"'), "Comprar agora não substitui atomicamente o contexto de compra");
-assert.ok(api.includes('"BUY_NOW"'), "Contrato do carrinho não diferencia compra imediata");
+assert.ok(cartStore.includes("cartApi.previewDirect(selection)"), "Comprar agora precisa usar prévia sem mutação de carrinho");
+assert.ok(api.includes('mode: "DIRECT"'), "Contrato do carrinho não diferencia compra imediata");
 assert.ok(cart.includes("mutatingItemId"), "Carrinho não bloqueia mutações concorrentes");
 assert.ok(cart.includes("item.variation?.stock ?? item.product.stock"), "Carrinho não respeita estoque da variação");
-assert.ok(cartStore.includes("pendingBuyNow"), "Comprar agora não bloqueia concorrência global");
+assert.ok(cartStore.includes("DIRECT_CHECKOUT_CHANGED"), "Comprar agora não desconsidera respostas obsoletas");
 assert.ok(payment.includes("useSafeAreaInsets"), "Pagamento não respeita safe area inferior");
 assert.ok(payment.includes("submitLock.current"), "Pagamento não bloqueia duplo toque");
 assert.ok(payment.includes("Tentar novamente"), "Pagamento não oferece nova tentativa idempotente");

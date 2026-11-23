@@ -10,6 +10,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { productsApi, reviewsApi, favoritesApi } from "@/services/api";
 import { useCartStore } from "@/stores/cartStore";
+import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/Button";
 import { ProductCard } from "@/components/product/ProductCard";
@@ -391,8 +392,9 @@ export default function ProdutoScreen() {
     try {
       const photo = galleryPhotos[selectedImage]?.url;
       if (action === "buy") {
-        await buyNow(product.id, quantity, selectedOption?.id, photo);
-        router.push("/checkout");
+        const direct = await buyNow(product.id, quantity, selectedOption?.id, photo);
+        useCheckoutStore.getState().reset({ preserveAddress: true });
+        router.push({ pathname: "/checkout", params: { direct } });
         return;
       }
       await addItem(product.id, quantity, selectedOption?.id, photo);

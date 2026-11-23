@@ -27,8 +27,10 @@ import {
   priceCart,
 } from "./domain";
 import { isGooglePlayEligibleRecord } from "@/lib/google-play-distribution";
+import { readDirectSelection, type DirectSelection } from "./direct-selection";
 
 export interface CheckoutInput {
+  directSelection?: DirectSelection;
   addressId?: string;
   shippingType: ShippingType;
   shippingOptionId?: string;
@@ -166,7 +168,7 @@ const orderInclude = Prisma.validator<Prisma.OrderInclude>()({
 export type CheckoutOrder = Prisma.OrderGetPayload<{ include: typeof orderInclude }>;
 type CheckoutDb = Pick<
   Prisma.TransactionClient,
-  "address" | "cart" | "coupon" | "customer" | "storeSettings"
+  "address" | "cart" | "coupon" | "customer" | "product" | "storeSettings"
 >;
 
 function normalizedOptionId(input: CheckoutInput): string | null {
@@ -210,7 +212,9 @@ async function getContext(
         asaasAccountId: true,
       },
     }),
-    db.cart.findUnique({
+    input.directSelection
+      ? readDirectSelection(db, input.directSelection).then((item) => ({ id: null, items: [item] }))
+      : db.cart.findUnique({
       where: { customerId },
       include: {
         items: {
@@ -334,6 +338,7 @@ function requestHash(
   items: Array<{ productId: string; variationId: string | null; selectedPhotoUrl?: string | null; quantity: number }>
 ) {
   return createCheckoutRequestHash({
+    directSelection: input.directSelection,
     customerId,
     addressId: input.addressId,
     shippingType: input.shippingType,
@@ -352,10 +357,13 @@ function assertIdempotentMatch(
   input: CheckoutInput
 ) {
   const retryHash = requestHash(customerId, input, order.items);
+  const previousPhotoHash = input.directSelection ? retryHash : requestHash(
+    customerId, input, order.items.map((item) => ({ ...item, selectedPhotoUrl: item.productImage })),
+  );
   if (
     order.customerId !== customerId ||
     !order.checkoutRequestHash ||
-    order.checkoutRequestHash !== retryHash
+    (order.checkoutRequestHash !== retryHash && order.checkoutRequestHash !== previousPhotoHash)
   ) {
     // A mesma resposta evita revelar se a chave pertence a outro cliente.
     throw new CheckoutError(
@@ -1394,7 +1402,7 @@ export async function createOrResumeCheckout(
             "NON_POSITIVE_ORDER_TOTAL"
           );
         }
-        const hash = requestHash(customerId, input, currentItems);
+        const hash = requestHash(customerId, input, currentItems.map(({ selectedPhotoUrl: _photo, ...item }) => item));
 
         const raced = await tx.order.findUnique({
           where: { checkoutIdempotencyKey: input.idempotencyKey },
@@ -1499,7 +1507,7 @@ export async function createOrResumeCheckout(
           include: orderInclude,
         });
 
-        await tx.cartItem.deleteMany({
+        if (current.cart.id) await tx.cartItem.deleteMany({
           where: {
             cartId: current.cart.id,
             id: { in: currentItems.map((item) => item.cartItemId) },

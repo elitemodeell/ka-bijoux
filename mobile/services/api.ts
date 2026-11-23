@@ -186,8 +186,11 @@ export const categoriesApi = {
 export const cartApi = {
   get: () => api.get(`${MOBILE_API_PREFIX}/cart`),
 
-  addItem: (productId: string, quantity: number, variationId?: string, mode: "INCREMENT" | "SET" | "BUY_NOW" = "INCREMENT", selectedPhotoUrl?: string) =>
+  addItem: (productId: string, quantity: number, variationId?: string, mode: "INCREMENT" | "SET" = "INCREMENT", selectedPhotoUrl?: string) =>
     api.post(`${MOBILE_API_PREFIX}/cart`, { productId, quantity, variationId, mode, selectedPhotoUrl }),
+
+  previewDirect: (selection: DirectSelection) =>
+    api.post(`${MOBILE_API_PREFIX}/cart`, { ...selection, mode: "DIRECT" }),
 
   updateItem: (itemId: string, quantity: number) =>
     api.patch(`${MOBILE_API_PREFIX}/cart/${itemId}`, { quantity }),
@@ -201,13 +204,20 @@ export const cartApi = {
 // ─── Shipping ─────────────────────────────────────────────────────────────────
 
 export const shippingApi = {
-  calculate: (zipCode: string, addressId?: string) =>
-    api.post(`${MOBILE_API_PREFIX}/shipping/calculate`, { zipCode, addressId }),
+  calculate: (zipCode: string, addressId?: string, directSelection?: DirectSelection) =>
+    api.post(`${MOBILE_API_PREFIX}/shipping/calculate`, { zipCode, addressId, directSelection }),
 };
 
+export interface DirectSelection {
+  productId: string;
+  variationId?: string;
+  selectedPhotoUrl?: string;
+  quantity: number;
+}
 // ─── Orders ───────────────────────────────────────────────────────────────────
 
 export interface CreateOrderInput {
+  directSelection?: DirectSelection;
   addressId?: string;
   shippingType: "CORREIOS" | "MOTOTAXI" | "RETIRADA";
   shippingOptionId?: string;

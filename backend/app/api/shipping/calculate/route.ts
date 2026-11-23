@@ -6,6 +6,8 @@ import { calculateShipping } from "@/lib/shipping";
 import { apiSuccess, apiError } from "@/lib/utils";
 import { isGooglePlayMobileRequest } from "@/lib/google-play-distribution";
 import { sanitizeGooglePlayCart } from "@/lib/google-play-cart";
+import { directSelectionSchema, readDirectSelection } from "@/lib/checkout/direct-selection";
+import { CheckoutError } from "@/lib/checkout/domain";
 
 const schema = z
   .object({
@@ -16,6 +18,7 @@ const schema = z
       .transform((value) => value.replace(/\D/g, ""))
       .refine((value) => value.length === 0 || value.length === 8, "CEP inválido."),
     addressId: z.string().min(1).optional(),
+    directSelection: directSelectionSchema.optional(),
   })
   .strict();
 
@@ -28,7 +31,9 @@ export async function POST(req: NextRequest) {
     const googlePlay = isGooglePlayMobileRequest(req);
     const [config, cart, address] = await Promise.all([
       prisma.storeSettings.findFirst(),
-      googlePlay
+      data.directSelection
+        ? readDirectSelection(prisma, data.directSelection).then((item) => ({ items: [item] }))
+        : googlePlay
         ? sanitizeGooglePlayCart(customer.id)
         : prisma.cart.findUnique({
             where: { customerId: customer.id },
@@ -77,6 +82,7 @@ export async function POST(req: NextRequest) {
 
     return apiSuccess(options);
   } catch (error) {
+    if (error instanceof CheckoutError) return apiError(error.message, error.status);
     if (error instanceof z.ZodError) return apiError(error.issues[0].message, 422);
     if (error instanceof Error && error.message === "Não autorizado") {
       return apiError("Não autorizado.", 401);

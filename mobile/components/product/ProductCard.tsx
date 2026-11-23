@@ -4,6 +4,7 @@ import { thumbnail } from "@/components/home/brand";
 import { useRouter } from "expo-router";
 import { Colors, BorderRadius, FontSizes, Shadows } from "@/constants/theme";
 import { useCartStore } from "@/stores/cartStore";
+import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useAuthStore } from "@/stores/authStore";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ResilientProductImage } from "@/components/product/ResilientProductImage";
@@ -112,14 +113,13 @@ function ProductCardComponent({ product, badgeSeal = false }: ProductCardProps) 
     setCartAction(action);
     try {
       if (action === "buy") {
-        const operation = buyNow(product.id, 1);
-        router.push("/checkout");
-        await operation;
+        const direct = await buyNow(product.id, 1);
+        useCheckoutStore.getState().reset({ preserveAddress: true });
+        router.push({ pathname: "/checkout", params: { direct } });
       } else {
         await addItem(product.id, 1);
       }
     } catch {
-      if (action === "buy") router.back();
       Alert.alert("Não foi possível concluir agora", "Tente novamente.");
     } finally {
       actionLock.current = false;

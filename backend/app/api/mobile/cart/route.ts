@@ -6,6 +6,8 @@ import { requireCustomer } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildProductIdentityFilters } from "@/lib/product-identity";
 import { catalogCartPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { readDirectSelection } from "@/lib/checkout/direct-selection";
+import { CheckoutError } from "@/lib/checkout/domain";
 import { googlePlayProductWhere, toGooglePlayPublicData } from "@/lib/google-play-distribution";
 import {
   googlePlayCartTotals,
@@ -19,7 +21,7 @@ const addSchema = z
     variationId: z.string().min(1).max(200).optional(),
     selectedPhotoUrl: z.string().min(1).max(4096).optional(),
     quantity: z.number().int().min(1).max(99).default(1),
-    mode: z.enum(["INCREMENT", "SET", "BUY_NOW"]).default("INCREMENT"),
+    mode: z.enum(["INCREMENT", "SET", "BUY_NOW", "DIRECT"]).default("INCREMENT"),
   })
   .strict();
 
@@ -40,6 +42,17 @@ export async function POST(req: NextRequest) {
   try {
     const customer = await requireCustomer(req);
     const input = addSchema.parse(await req.json());
+    if (input.mode === "BUY_NOW" || input.mode === "DIRECT") {
+      const { mode, ...selection } = input;
+      if (mode === "BUY_NOW") return apiError("Atualize o aplicativo para usar Comprar agora com o carrinho preservado.", 409);
+      const item = await readDirectSelection(prisma, selection);
+      return apiSuccess(toGooglePlayPublicData({
+        id: item.id, productId: item.productId, variationId: item.variationId,
+        selectedPhotoUrl: item.selectedPhotoUrl, quantity: item.quantity, unitPrice: item.unitPrice,
+        product: { name: item.product.name, sku: item.product.sku, stock: item.product.stock, active: item.product.active, images: [] },
+        variation: item.variation && { name: item.variation.name, value: item.variation.value, sku: item.variation.sku, stock: item.product.sharedVariationStock ? item.product.stock : item.variation.stock },
+      }));
+    }
     const product = await prisma.product.findFirst({
       where: googlePlayProductWhere(input.selectedPhotoUrl
         ? { id: input.productId }
@@ -83,17 +96,6 @@ export async function POST(req: NextRequest) {
           create: { customerId: customer.id },
           select: { id: true },
         });
-        if (input.mode === "BUY_NOW") {
-          await tx.cartItem.deleteMany({
-            where: {
-              cartId: cart.id,
-              NOT: {
-                productId: product.id,
-                variationId: variation?.id ?? null,
-              },
-            },
-          });
-        }
         const existing = await tx.cartItem.findFirst({
           where: {
             cartId: cart.id,
@@ -102,7 +104,7 @@ export async function POST(req: NextRequest) {
             selectedPhotoUrl: selectedPhotoUrl ?? null,
           },
         });
-        const quantity = input.mode === "SET" || input.mode === "BUY_NOW"
+        const quantity = input.mode === "SET"
           ? input.quantity
           : (existing?.quantity ?? 0) + input.quantity;
         const availableStock = product.sharedVariationStock ? product.stock : variation?.stock ?? product.stock;
@@ -145,6 +147,7 @@ export async function POST(req: NextRequest) {
     const cart = await sanitizeGooglePlayCart(customer.id);
     return apiSuccess(toGooglePlayPublicData({ ...cart, ...googlePlayCartTotals(cart) }), 201);
   } catch (error) {
+    if (error instanceof CheckoutError) return apiError(error.message, error.status);
     if (error instanceof z.ZodError) return apiError(error.issues[0].message, 422);
     if (error instanceof Error && error.message === "Não autorizado") {
       return apiError("Não autorizado.", 401);

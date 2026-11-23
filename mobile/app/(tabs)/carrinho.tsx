@@ -8,6 +8,7 @@ import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { useCartStore } from "@/stores/cartStore";
+import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/Button";
 import { ResilientProductImage } from "@/components/product/ResilientProductImage";
@@ -166,7 +167,10 @@ export default function CarrinhoScreen() {
       <View style={[styles.checkoutContainer, { paddingBottom: Math.max(insets.bottom, 10) + 8 }]}>
         <Button
           label={`Finalizar Compra • ${formatCurrency(total)}`}
-          onPress={() => router.push("/checkout")}
+          onPress={() => {
+            useCheckoutStore.getState().reset({ preserveAddress: true });
+            router.push("/checkout");
+          }}
           fullWidth
           size="lg"
         />

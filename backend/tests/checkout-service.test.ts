@@ -6,6 +6,7 @@ const prismaMock = vi.hoisted((): any => ({
   payment: { updateMany: vi.fn(), findUnique: vi.fn() },
   customer: { findUnique: vi.fn(), updateMany: vi.fn() },
   cart: { findUnique: vi.fn() },
+  product: { findFirst: vi.fn() },
   storeSettings: { findFirst: vi.fn() },
   address: { findFirst: vi.fn() },
   coupon: { findFirst: vi.fn() },
@@ -209,6 +210,9 @@ function configureCheckout(
       }),
     },
     cart: { findUnique: vi.fn(async () => cartValue) },
+    product: { findFirst: vi.fn(async () => ({
+      ...cartValue.items[0].product, variations: [],
+    })) },
     storeSettings: { findFirst: vi.fn(async () => settings) },
     address: {
       findFirst: vi.fn(async () => (options.addressFound === false ? null : address)),
@@ -320,6 +324,7 @@ function configureCheckout(
   prismaMock.customer.findUnique.mockImplementation(tx.customer.findUnique);
   prismaMock.customer.updateMany.mockImplementation(tx.customer.updateMany);
   prismaMock.cart.findUnique.mockImplementation(tx.cart.findUnique);
+  prismaMock.product.findFirst.mockImplementation(tx.product.findFirst);
   prismaMock.storeSettings.findFirst.mockImplementation(tx.storeSettings.findFirst);
   prismaMock.address.findFirst.mockImplementation(tx.address.findFirst);
   prismaMock.coupon.findFirst.mockImplementation(tx.coupon.findFirst);
@@ -468,6 +473,27 @@ describe("server-authoritative checkout service", () => {
     expect(setup.tx.order.create.mock.calls[0][0].data.items.create).toMatchObject(
       photos.map((productImage) => ({ sku: "3104000003348", quantity: 1, productImage })),
     );
+  });
+
+  it("orders only the direct selection without reading or deleting the normal cart", async () => {
+    const photo = "/fixtures/photo-5-3104000003348.png";
+    const setup = configureCheckout({ selectedPhotoUrl: "/fixtures/photo-2-3104000003348.png", secondPhotoUrl: photo });
+    const request = input({
+      directSelection: { productId: "product-1", quantity: 1, selectedPhotoUrl: photo },
+    });
+    const order = await createOrResumeCheckout(customer.id, request, setup.service);
+    const retry = await createOrResumeCheckout(customer.id, request, setup.service);
+    expect(retry.id).toBe(order.id);
+    await expect(createOrResumeCheckout(customer.id, {
+      ...request,
+      directSelection: { productId: "product-1", quantity: 1, selectedPhotoUrl: "/fixtures/photo-2-3104000003348.png" },
+    }, setup.service)).rejects.toMatchObject({ code: "IDEMPOTENCY_CONFLICT" });
+    expect(setup.tx.order.create).toHaveBeenCalledTimes(1);
+    expect(setup.tx.order.create.mock.calls[0][0].data.items.create).toMatchObject([
+      { productId: "product-1", sku: "3104000003348", quantity: 1, productImage: photo },
+    ]);
+    expect(prismaMock.cart.findUnique).not.toHaveBeenCalled();
+    expect(setup.tx.cartItem.deleteMany).not.toHaveBeenCalled();
   });
 });
 

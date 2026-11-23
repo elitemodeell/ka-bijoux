@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Platform,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { useCartStore } from "@/stores/cartStore";
@@ -13,6 +13,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { shippingApi, addressesApi } from "@/services/api";
 import { Button } from "@/components/ui/Button";
 import { Image } from "expo-image";
+import { ResilientProductImage } from "@/components/product/ResilientProductImage";
 import { LuxuryBackground } from "@/components/ios/LuxuryBackground";
 
 
@@ -33,7 +34,11 @@ export default function CheckoutEntregaScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { customer } = useAuthStore();
-  const { items, subtotal, updateItem, removeItem, isBuyingNow } = useCartStore();
+  const { direct } = useLocalSearchParams<{ direct?: string }>();
+  const { items: cartItems, subtotal: cartSubtotal, updateItem, removeItem, directCheckout } = useCartStore();
+  const purchase = direct && directCheckout?.key === direct ? directCheckout : null;
+  const items = direct ? (purchase ? [purchase.item] : []) : cartItems;
+  const subtotal = direct ? (purchase ? purchase.item.unitPrice * purchase.item.quantity : 0) : cartSubtotal;
   const {
     zipCode, setZipCode, setAddress,
     shippingOptions, setShippingOptions,
@@ -46,6 +51,7 @@ export default function CheckoutEntregaScreen() {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [loadingAddr, setLoadingAddr]       = useState(false);
   const [shippingError, setShippingError]   = useState("");
+  const shippingRequest = useRef(0);
 
   const loadAddresses = useCallback(async () => {
     if (!customer) return;
@@ -79,7 +85,10 @@ export default function CheckoutEntregaScreen() {
     }
   }, [customer, setAddress, setZipCode]);
 
-  useFocusEffect(useCallback(() => { void loadAddresses(); }, [loadAddresses]));
+  useFocusEffect(useCallback(() => {
+    void loadAddresses();
+    return () => { shippingRequest.current += 1; };
+  }, [loadAddresses]));
 
   function selectAddress(addr: Address) {
     setSelectedAddressId(addr.id);
@@ -101,20 +110,23 @@ export default function CheckoutEntregaScreen() {
       setShippingError("Informe um CEP válido com 8 dígitos.");
       return;
     }
+    const request = ++shippingRequest.current;
     setCalculatingShipping(true);
     setShippingError("");
     try {
-      const res = await shippingApi.calculate(requestedZip, requestedAddressId ?? undefined);
+      const res = await shippingApi.calculate(requestedZip, requestedAddressId ?? undefined, purchase?.selection);
+      if (request !== shippingRequest.current || (direct && useCartStore.getState().directCheckout?.key !== direct)) return;
       const options: ShippingOption[] = res.data.data ?? [];
       setShippingOptions(options);
       setZipCode(requestedZip);
     } catch {
+      if (request !== shippingRequest.current) return;
       setShippingOptions([]);
       setShippingError("Não foi possível calcular o frete agora. Tente novamente.");
     } finally {
-      setCalculatingShipping(false);
+      if (request === shippingRequest.current) setCalculatingShipping(false);
     }
-  }, [customer, router, selectedAddressId, setCalculatingShipping, setShippingOptions, setZipCode, zip]);
+  }, [customer, direct, purchase, router, selectedAddressId, setCalculatingShipping, setShippingOptions, setZipCode, zip]);
 
   const cartSignature = useMemo(
     () => items.map((item) => `${item.id}:${item.quantity}`).sort().join("|"),
@@ -126,12 +138,12 @@ export default function CheckoutEntregaScreen() {
   );
 
   useEffect(() => {
-    if (!customer || loadingAddr || isBuyingNow || items.length === 0) return;
+    if (!customer || loadingAddr || items.length === 0) return;
     void calcularFrete(selectedAddress?.zipCode ?? "", selectedAddress?.id ?? null);
-  }, [cartSignature, selectedAddress?.id, selectedAddress?.zipCode, selectedAddress?.city, selectedAddress?.state, customer, loadingAddr, isBuyingNow]);
+  }, [direct, cartSignature, selectedAddress?.id, selectedAddress?.zipCode, selectedAddress?.city, selectedAddress?.state, customer, loadingAddr]);
 
   const needsAddress = selectedShipping?.type !== "RETIRADA";
-  const canProceed   = items.length > 0 && !!selectedShipping?.available && (!needsAddress || !!selectedAddressId);
+  const canProceed   = items.length > 0 && !isCalculatingShipping && !!selectedShipping?.available && (!needsAddress || !!selectedAddressId);
   const blockedReason = items.length === 0
     ? "Seu carrinho está vazio."
     : !selectedShipping
@@ -141,14 +153,13 @@ export default function CheckoutEntregaScreen() {
         : "";
   const total        = subtotal + (selectedShipping?.price ?? 0);
 
-  if (isBuyingNow) {
+  if (direct && !purchase) {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
         {Platform.OS === "ios" ? <LuxuryBackground /> : null}
         <View style={styles.buyNowLoading}>
-          <ActivityIndicator color={Colors.primary} size="large" />
-          <Text style={styles.buyNowLoadingTitle}>Preparando sua compra...</Text>
-          <Text style={styles.buyNowLoadingText}>Confirmando o produto e o estoque.</Text>
+          <Text style={styles.buyNowLoadingTitle}>Selecione o produto novamente</Text>
+          <Button label="Voltar" onPress={() => router.back()} />
         </View>
       </SafeAreaView>
     );
@@ -190,21 +201,21 @@ export default function CheckoutEntregaScreen() {
               : item.selectedPhotoUrl;
             return Platform.OS === "ios" ? (
               <View key={item.id} style={styles.iosItemRow}>
-                {image ? <Image source={image} style={styles.itemImage} contentFit="cover" /> : <View style={[styles.itemImage, styles.itemImageFallback]}><Ionicons name="image-outline" size={24} color={Colors.primary} /></View>}
+                <ResilientProductImage sources={[image]} style={styles.itemImage} contentFit="cover" compact />
                 <View style={styles.iosItemCopy}>
                   <Text style={styles.iosItemName} numberOfLines={2}>{item.product.name}</Text>
                   {item.variation && <Text style={styles.itemVariation}>{item.variation.name}: {item.variation.value}</Text>}
                 </View>
-                <View style={styles.quantityControl}>
+                {!purchase ? <View style={styles.quantityControl}>
                   <TouchableOpacity accessibilityLabel="Diminuir quantidade" disabled={item.quantity <= 1} onPress={() => void updateItem(item.id, item.quantity - 1)} style={styles.quantityButton}><Ionicons name="remove" size={17} color={item.quantity <= 1 ? "#cdbec4" : "#c90049"} /></TouchableOpacity>
                   <Text style={styles.quantityText}>{item.quantity}</Text>
                   <TouchableOpacity accessibilityLabel="Aumentar quantidade" disabled={item.quantity >= (item.variation?.stock ?? item.product.stock)} onPress={() => void updateItem(item.id, item.quantity + 1)} style={styles.quantityButton}><Ionicons name="add" size={17} color="#c90049" /></TouchableOpacity>
-                </View>
+                </View> : <Text style={styles.quantityText}>{item.quantity}×</Text>}
                 <Text style={styles.iosItemPrice}>{fmt(item.unitPrice * item.quantity)}</Text>
-                <TouchableOpacity accessibilityLabel="Remover item" onPress={() => void removeItem(item.id)} style={styles.removeButton}><Ionicons name="trash-outline" size={18} color="#e00054" /></TouchableOpacity>
+                {!purchase && <TouchableOpacity accessibilityLabel="Remover item" onPress={() => void removeItem(item.id)} style={styles.removeButton}><Ionicons name="trash-outline" size={18} color="#e00054" /></TouchableOpacity>}
               </View>
             ) : (
-              <View key={item.id} style={styles.itemRow}><Text style={styles.itemName} numberOfLines={2}>{item.quantity}× {item.product.name}{item.variation ? ` · ${item.variation.value}` : ""}</Text><Text style={styles.itemPrice}>{fmt(item.unitPrice * item.quantity)}</Text></View>
+              <View key={item.id} style={styles.itemRow}><ResilientProductImage sources={[image]} style={styles.itemImage} compact /><Text style={styles.itemName} numberOfLines={2}>{item.quantity}× {item.product.name}{item.variation ? ` · ${item.variation.value}` : ""}</Text><Text style={styles.itemPrice}>{fmt(item.unitPrice * item.quantity)}</Text></View>
             );
           })}
           <View style={styles.divider} />
@@ -369,7 +380,7 @@ export default function CheckoutEntregaScreen() {
           </Text>
         </View>
         <View style={styles.footerAction}>
-          <Button label="Ir para Pagamento" onPress={() => router.push("/checkout/pagamento")} disabled={!canProceed} size="lg" fullWidth />
+          <Button label="Ir para Pagamento" onPress={() => router.push({ pathname: "/checkout/pagamento", params: direct ? { direct } : {} })} disabled={!canProceed} size="lg" fullWidth />
           {!!blockedReason && <Text style={styles.blockedReason}>{blockedReason}</Text>}
         </View>
         {Platform.OS === "ios" ? <View style={styles.trustStrip}>
@@ -414,7 +425,6 @@ const styles = StyleSheet.create({
   iosHeroSubtitle: { color: "#70717a", fontFamily: "Inter", fontSize: 12, lineHeight: 17, textAlign: "center", marginTop: 7 },
   iosItemRow: { minHeight: 84, flexDirection: "row", alignItems: "center", gap: 7, paddingBottom: 12 },
   itemImage: { width: 58, height: 58, borderRadius: 15, backgroundColor: "#ffe9f0" },
-  itemImageFallback: { alignItems: "center", justifyContent: "center" },
   iosItemCopy: { flex: 1, minWidth: 65 },
   iosItemName: { color: "#451021", fontFamily: "Inter", fontSize: 11, fontWeight: "800" },
   itemVariation: { color: "#8b7d83", fontFamily: "Inter", fontSize: 10, marginTop: 3 },
