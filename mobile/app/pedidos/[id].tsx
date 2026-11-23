@@ -27,6 +27,7 @@ type OrderDetail = {
     productName: string;
     productImage?: string | null;
     variationName?: string;
+    sku?: string | null;
     quantity: number;
     unitPrice: number;
     totalPrice: number;
@@ -261,6 +262,7 @@ export default function PedidoDetalheScreen() {
                 {item.variationName && (
                   <Text style={styles.itemVariation}>{item.variationName}</Text>
                 )}
+                {!!item.sku && <Text style={styles.itemQty}>SKU {item.sku}</Text>}
                 <Text style={styles.itemQty}>{item.quantity}× {fmt(item.unitPrice)}</Text>
               </View>
               <Text style={styles.itemTotal}>{fmt(item.totalPrice)}</Text>

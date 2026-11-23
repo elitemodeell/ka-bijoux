@@ -26,7 +26,7 @@ type Order = {
   status: string;
   total: number;
   shippingType: string;
-  items?: Array<{ id: string; productName: string; productImage?: string | null; variationName?: string | null; quantity: number; totalPrice: number }>;
+  items?: Array<{ id: string; productName: string; productImage?: string | null; variationName?: string | null; sku?: string | null; quantity: number; totalPrice: number }>;
   payment?: {
     method: string;
     status: string;
@@ -214,6 +214,7 @@ export default function ConfirmacaoScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowValue}>{item.productName}</Text>
                   {!!item.variationName && <Text style={styles.rowLabel}>{item.variationName}</Text>}
+                  {!!item.sku && <Text style={styles.rowLabel}>SKU {item.sku}</Text>}
                   <Text style={styles.rowLabel}>{item.quantity}× · {formatCurrency(Number(item.totalPrice))}</Text>
                 </View>
               </View>

@@ -540,14 +540,21 @@ export default function ProdutoScreen() {
 
         {/* Thumbnails */}
         {galleryImages.length > 1 && (
+          <View>
+          <View style={styles.galleryCaption}>
+            <Text style={styles.sectionTitle}>Fotos do produto</Text>
+            <Text style={styles.variationHint}>Toque para ampliar a visualização. A opção de compra é definida no seletor, quando disponível.</Text>
+          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbnails}>
             {galleryImages.map((uri, idx) => (
               <TouchableOpacity key={`${uri}-${idx}`} onPress={() => selectGalleryPhoto(idx)}
+                accessibilityRole="button" accessibilityLabel={`Ver foto ${idx + 1}`} accessibilityState={{ selected: idx === selectedImage }}
                 style={[styles.thumbnail, idx === selectedImage && styles.thumbnailActive]}>
                 <ResilientProductImage sources={[uri]} style={styles.thumbnailImage} contentFit="contain" compact />
               </TouchableOpacity>
             ))}
           </ScrollView>
+          </View>
         )}
 
         {/* Purchase panel */}
@@ -936,6 +943,7 @@ const styles = StyleSheet.create({
   imageDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.5)" },
   imageDotActive: { width: 20, backgroundColor: "#fff" },
   thumbnails: { paddingHorizontal: Spacing.base, paddingRight: Spacing.xl, gap: 8, paddingVertical: 12 },
+  galleryCaption: { paddingHorizontal: Spacing.base, paddingTop: 12 },
   thumbnail: { width: 66, height: 66, borderRadius: BorderRadius.lg, overflow: "hidden", borderWidth: 2, borderColor: Colors.borderLight },
   thumbnailActive: { borderColor: Colors.primary },
   thumbnailImage: { width: "100%", height: "100%" },

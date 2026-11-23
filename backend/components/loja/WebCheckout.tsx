@@ -18,7 +18,7 @@ type Order = {
   orderNumber: string;
   status: string;
   total: number;
-  items?: { id: string; productName: string; productImage?: string | null; variationName?: string | null; quantity: number; totalPrice: number }[];
+  items?: { id: string; productName: string; productImage?: string | null; variationName?: string | null; sku?: string | null; quantity: number; totalPrice: number }[];
   payment: { status: string; pixCode?: string; boletoDigitableLine?: string; boletoUrl?: string; checkoutUrl?: string } | null;
 };
 type Attempt = {
@@ -229,6 +229,7 @@ export default function WebCheckout() {
                 <div className="grow">
                   <p>{item.productName}</p>
                   {item.variationName && <p className="text-sm text-gray-600">{item.variationName}</p>}
+                  {item.sku && <p className="text-xs text-gray-600">SKU {item.sku}</p>}
                 </div>
                 <span>{item.quantity} × · {currency.format(Number(item.totalPrice))}</span>
               </li>

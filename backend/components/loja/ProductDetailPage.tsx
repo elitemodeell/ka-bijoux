@@ -314,6 +314,9 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
             </div>
 
             {images.length > 1 && (
+              <div>
+              <h2 className="mt-4 text-sm font-semibold text-gray-900">Fotos do produto</h2>
+              <p className="mt-1 text-xs text-gray-600">Use a galeria para visualizar as fotos. Escolha o modelo no seletor de compra, quando disponível.</p>
               <div className="mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {images.map((img, i) => (
                   <button
@@ -322,6 +325,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                     onClick={() => setSelectedImage(i)}
                     className={`h-[78px] w-[78px] shrink-0 snap-start overflow-hidden rounded-[18px] border-2 bg-white transition-all duration-300 ${selectedImage === i ? "border-pink-500 shadow-[0_0_0_4px_rgba(236,72,153,0.14)]" : "border-pink-100 opacity-80 hover:border-pink-300 hover:opacity-100"}`}
                     aria-label={`Ver foto ${i + 1}`}
+                    aria-pressed={selectedImage === i}
                   >
                     <ProductVariantImage
                       src={img}
@@ -334,6 +338,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                     />
                   </button>
                 ))}
+              </div>
               </div>
             )}
 
