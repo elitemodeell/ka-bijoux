@@ -119,6 +119,7 @@ export default function CarrinhoScreen() {
               {item.variation && (
                 <Text style={styles.itemVariation}>{item.variation.name}: {item.variation.value}</Text>
               )}
+              {!item.variation && item.selectionLabel && <Text style={styles.itemVariation}>{item.selectionLabel}</Text>}
               <Text style={styles.itemPrice}>{formatCurrency(item.unitPrice)}</Text>
 
               <View style={styles.qtyRow}>

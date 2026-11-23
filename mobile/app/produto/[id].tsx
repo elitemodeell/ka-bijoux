@@ -107,7 +107,7 @@ type Variation = {
 type Product = {
   assortedColors?: boolean;
   purchaseReviewRequired?: boolean;
-  linkedOptions?: { id: string; label: string; available: boolean; imageUrl: string | null }[];
+  linkedOptions?: { id: string; label: string; available: boolean; imageUrl: string | null; price?: number }[];
   fixedColor?: string | null;
   id: string;
   slug?: string | null;
@@ -366,7 +366,7 @@ export default function ProdutoScreen() {
   function handleSelectVariation(v: Variation) {
     if (!product || !v.sku?.trim() || (product.sharedVariationStock ? product.stock : v.stock) <= 0) return;
     setVariationError(false);
-    setSelectedVariation((prev) => (prev === v.id ? null : v.id));
+    setSelectedVariation(v.id);
     setQuantity(1);
   }
 
@@ -377,7 +377,7 @@ export default function ProdutoScreen() {
       router.push("/(auth)/entrada");
       return;
     }
-    const selectedOption = product.variations.find((variation) => variation.id === selectedVariation);
+    const selectedOption = activeVariation;
     if (product.variations.length > 0 && !selectedOption) {
       setVariationError(true);
       return;
@@ -432,7 +432,13 @@ export default function ProdutoScreen() {
   // ── Computed values ────────────────────────────────────────────────────────
 
   const hasVariations = product.variations.length > 0;
-  const activeVariation = hasVariations ? product.variations.find((v) => v.id === selectedVariation) ?? null : null;
+  const activeVariation = product.variations.find((v) => v.id === selectedVariation) ??
+    (product.variations.length === 1 && product.variations[0].sku?.trim() ? product.variations[0] : null);
+  const selectedLinked = product.linkedOptions?.find((option) => option.id === product.id);
+  const selectionLabel = activeVariation?.value ?? selectedLinked?.label;
+  const selectionTitle = activeVariation
+    ? ({ cor: "Cor selecionada", modelo: "Modelo selecionado", tamanho: "Tamanho selecionado", estampa: "Estampa selecionada", artista: "Artista selecionado" } as Record<string, string>)[activeVariation.name.trim().toLowerCase()] ?? activeVariation.name
+    : "Opção selecionada";
   const photoUrls = activeVariation ? [activeVariation.imageUrl] : product.images.map(({ url }) => url);
   const galleryPhotos = [...new Set(photoUrls)].flatMap((url) => {
     if (!url) return [];
@@ -448,7 +454,7 @@ export default function ProdutoScreen() {
     void AsyncStorage.setItem(`catalog-photo:${product.id}`, photo).catch(() => undefined);
   }
   const isAvailable = !product.purchaseReviewRequired && (hasVariations && !product.sharedVariationStock
-    ? product.variations.some((v) => v.stock > 0)
+    ? product.variations.some((v) => v.sku?.trim() && v.stock > 0)
     : product.stock > 0);
   const activeStock = product.sharedVariationStock ? product.stock : activeVariation?.stock ?? product.stock;
   const priceModifier = Number(activeVariation?.priceModifier ?? 0);
@@ -606,25 +612,28 @@ export default function ProdutoScreen() {
               {product.assortedColors ? "Cor enviada conforme disponibilidade." : `Cor: ${product.fixedColor}`}
             </Text>
           )}
-          {!!product.linkedOptions?.length && (
+          {(product.linkedOptions?.length ?? 0) > 1 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Escolha a opção</Text>
               <View style={styles.variations}>
-                {product.linkedOptions.map((option) => (
+                {product.linkedOptions?.map((option) => (
                   <TouchableOpacity key={option.id} accessibilityRole="button"
                     accessibilityState={{ selected: option.id === product.id }}
                     style={[styles.variationChip, option.id === product.id && styles.variationChipActive]}
                     onPress={() => { if (option.id !== product.id) router.replace({ pathname: "/produto/[id]", params: { id: option.id } }); }}>
                     <View style={styles.variationWithImage}>
                       {option.imageUrl && <ResilientProductImage sources={[option.imageUrl]} style={styles.variationThumb} contentFit="cover" compact />}
-                      <Text style={styles.variationText}>{option.label}{option.available ? "" : " · Indisponível"}</Text>
+                      <View>
+                        <Text style={[styles.variationText, option.id === product.id && styles.variationTextActive]}>{option.label}</Text>
+                        <Text style={styles.variationHint}>{!option.available ? "Indisponível" : option.price !== undefined ? formatCurrency(option.price) : ""}</Text>
+                      </View>
                     </View>
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
           )}
-          {!product.purchaseReviewRequired && hasVariations && (
+          {!product.purchaseReviewRequired && product.variations.length > 1 && (
             <View style={styles.section}>
               <View style={styles.variationHeader}>
                 <Text style={styles.sectionTitle}>
@@ -636,9 +645,6 @@ export default function ProdutoScreen() {
                     artista: "Escolha o artista",
                   } as Record<string, string>)[variationGroupName.trim().toLowerCase()] ?? `Escolha: ${variationGroupName}`}
                 </Text>
-                {activeVariation && (
-                  <Text style={styles.selectedVariationLabel}>{activeVariation.value}</Text>
-                )}
               </View>
               {variationError && (
                 <Text style={styles.variationErrorText}>Selecione uma opção antes de adicionar ao carrinho.</Text>
@@ -672,6 +678,13 @@ export default function ProdutoScreen() {
                 })}
               </View>
               <Text style={styles.variationHint}>Vendido por unidade — escolha 1 {variationGroupName.toLowerCase()}</Text>
+            </View>
+          )}
+
+          {selectionLabel && !product.purchaseReviewRequired && (
+            <View style={styles.section} accessibilityLiveRegion="polite">
+              <Text style={styles.selectedVariationLabel}>{selectionTitle}: {selectionLabel}</Text>
+              <Text style={styles.variationHint}>{formatCurrency(price)} por unidade · {activeStock > 0 ? "Em estoque" : "Indisponível"}</Text>
             </View>
           )}
 

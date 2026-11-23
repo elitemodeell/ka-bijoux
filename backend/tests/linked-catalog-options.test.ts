@@ -3,11 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 const { findMany } = vi.hoisted(() => ({ findMany: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({ prisma: { product: { findMany } } }));
 
-import { linkedCatalogOptions } from "@/lib/linked-catalog-options";
+import { linkedCatalogOptionLabel, linkedCatalogOptions } from "@/lib/linked-catalog-options";
 import groups from "@/data/linked-catalog-options.json";
 
 const [light, dark] = groups[0].options.map(({ id, sku, label, photo }, index) => ({
   id, sku, label, slug: sku, stock: index ? 0 : 2, purchaseMode: null,
+  price: 12, promotionalPrice: index ? null : 10,
   _count: { variations: 0 }, images: [{ url: photo }],
 }));
 
@@ -16,9 +17,14 @@ describe("linked catalog options", () => {
     findMany.mockResolvedValue([light, dark]);
     const options = await linkedCatalogOptions(light.id);
     expect(options).toEqual([
-      { id: light.id, label: light.label, slug: light.slug, available: true, imageUrl: light.images[0].url },
-      { id: dark.id, label: dark.label, slug: dark.slug, available: false, imageUrl: dark.images[0].url },
+      { id: light.id, label: light.label, slug: light.slug, available: true, imageUrl: light.images[0].url, price: 10 },
+      { id: dark.id, label: dark.label, slug: dark.slug, available: false, imageUrl: dark.images[0].url, price: 12 },
     ]);
+  });
+
+  it("keeps the order label tied to the exact product and SKU", () => {
+    expect(linkedCatalogOptionLabel(light.id, light.sku)).toBe(light.label);
+    expect(linkedCatalogOptionLabel(light.id, dark.sku)).toBeNull();
   });
 
   it("does not expose a sibling with a changed SKU or outside the channel", async () => {

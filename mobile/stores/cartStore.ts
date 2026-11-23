@@ -6,6 +6,7 @@ export interface CartItemData {
   productId: string;
   variationId?: string;
   selectedPhotoUrl?: string | null;
+  selectionLabel?: string | null;
   quantity: number;
   unitPrice: number;
   product: {

@@ -8,6 +8,7 @@ import { buildProductIdentityFilters } from "@/lib/product-identity";
 import { catalogCartPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { readDirectSelection } from "@/lib/checkout/direct-selection";
 import { CheckoutError } from "@/lib/checkout/domain";
+import { linkedCatalogOptionLabel } from "@/lib/linked-catalog-options";
 import { googlePlayProductWhere, toGooglePlayPublicData } from "@/lib/google-play-distribution";
 import {
   googlePlayCartTotals,
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
       return apiSuccess(toGooglePlayPublicData({
         id: item.id, productId: item.productId, variationId: item.variationId,
         selectedPhotoUrl: item.selectedPhotoUrl, quantity: item.quantity, unitPrice: item.unitPrice,
+        selectionLabel: item.variation ? null : linkedCatalogOptionLabel(item.productId, item.product.sku),
         product: { name: item.product.name, sku: item.product.sku, stock: item.product.stock, active: item.product.active, images: [] },
         variation: item.variation && { name: item.variation.name, value: item.variation.value, sku: item.variation.sku, stock: item.product.sharedVariationStock ? item.product.stock : item.variation.stock },
       }));

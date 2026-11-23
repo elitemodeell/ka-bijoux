@@ -29,7 +29,7 @@ type RelatedProduct = {
 
 type ProductDetailProduct = StaticProduct & {
   purchaseReviewRequired?: boolean;
-  linkedOptions?: { id: string; label: string; slug: string | null; available: boolean }[];
+  linkedOptions?: { id: string; label: string; slug: string | null; available: boolean; imageUrl?: string | null; price?: number }[];
   id?: string;
   brand?: string | null;
   ean?: string | null;
@@ -112,7 +112,13 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   } as Record<string, string>)[optionName ?? ""] ?? "Escolha a opção";
   const selectedVariant = selectedVariation?.product === product.slug
     ? variations.find((variant) => variant.id === selectedVariation.id) ?? null
-    : null;
+    : variations.length === 1 && variations[0].id && variations[0].sku?.trim() && variations[0].active !== false
+      ? variations[0] : null;
+  const selectedLinked = product.linkedOptions?.find((option) => option.id === product.id);
+  const selectionTitle = selectedVariant
+    ? ({ cor: "Cor selecionada", modelo: "Modelo selecionado", tamanho: "Tamanho selecionado", estampa: "Estampa selecionada", artista: "Artista selecionado" } as Record<string, string>)[selectedVariant.optionName?.trim().toLowerCase() ?? ""] ?? selectedVariant.optionName ?? "Opção selecionada"
+    : "Opção selecionada";
+  const selectionLabel = selectedVariant?.label ?? selectedLinked?.label;
 
   const images = useMemo(() => {
     const variantGallery = selectedVariant?.images?.filter(Boolean) ?? [];
@@ -178,7 +184,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
       id: product.id ?? product.sku ?? product.slug,
       name: product.name,
       variationId: selectedVariant?.id,
-      variationName: selectedVariant?.label,
+      variationName: selectedVariant ? `${selectedVariant.optionName ?? "Opção"}: ${selectedVariant.label}` : selectedLinked?.label,
       price: finalPrice,
       image: images[0] ?? "",
       sku: selectedVariant?.sku ?? product.sku,
@@ -378,21 +384,22 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                 )}
 
                 {product.purchaseReviewRequired && <p className="mt-4 text-sm text-gray-700">{catalogReviewMessage}</p>}
-                {!!product.linkedOptions?.length && (
+                {(product.linkedOptions?.length ?? 0) > 1 && (
                   <div className="mt-5">
                     <p className="mb-2 text-sm font-semibold">Escolha a opção</p>
                     <div className="flex flex-wrap gap-2">
-                      {product.linkedOptions.map((option) => (
+                      {product.linkedOptions?.map((option) => (
                         <Link key={option.id} href={`/produto/${option.slug ?? option.id}`}
                           aria-current={option.id === product.id ? "page" : undefined}
-                          className={`inline-flex min-h-11 items-center rounded-xl border px-3 text-sm ${option.id === product.id ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-200"}`}>
-                          {option.label}{option.available ? "" : " · Indisponível"}
+                          className={`inline-flex min-h-11 items-center gap-2 rounded-xl border p-2 text-sm ${option.id === product.id ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-200"}`}>
+                          {option.imageUrl && <img src={option.imageUrl} alt="" loading="lazy" className="h-11 w-11 rounded-lg object-contain" />}
+                          <span><span className="block font-semibold">{option.label}</span>{!option.available ? "Indisponível" : option.price !== undefined ? fmt(option.price) : null}</span>
                         </Link>
                       ))}
                     </div>
                   </div>
                 )}
-                {!product.purchaseReviewRequired && variations.length > 0 && (
+                {!product.purchaseReviewRequired && variations.length > 1 && (
                   <div className="mt-5">
                     <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-gray-500">{optionTitle}</p>
                     <div className="flex flex-wrap gap-2">
@@ -413,7 +420,8 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                               : "border-gray-200 bg-white text-gray-700 hover:-translate-y-0.5 hover:border-pink-300 hover:shadow-sm"
                           }`}
                         >
-                          {v.color && (
+                          {(v.images?.[0] || v.imageFile) && <img src={v.images?.[0] ?? (v.imageFile?.startsWith("/") ? v.imageFile : `/uploads/products/${v.imageFile}`)} alt="" loading="lazy" className="inline-block h-10 w-10 object-contain align-middle mr-2" />}
+                          {!(v.images?.[0] || v.imageFile) && v.color && (
                             <span className="mr-1.5 inline-block h-3 w-3 rounded-full border border-black/10 align-middle" style={{ backgroundColor: v.color }} />
                           )}
                           {v.label}
@@ -421,6 +429,13 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                         </button>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {selectionLabel && !product.purchaseReviewRequired && (
+                  <div aria-live="polite" className="mt-4 rounded-xl bg-pink-50 px-3 py-2 text-sm text-gray-800">
+                    <strong>{selectionTitle}: {selectionLabel}</strong>
+                    <p>{fmt(finalPrice)} por unidade · {available ? "Em estoque" : "Indisponível"}</p>
                   </div>
                 )}
 

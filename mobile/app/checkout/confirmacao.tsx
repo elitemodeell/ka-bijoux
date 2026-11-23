@@ -18,6 +18,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { ordersApi } from "@/services/api";
 import { Button } from "@/components/ui/Button";
+import { ResilientProductImage } from "@/components/product/ResilientProductImage";
 
 type Order = {
   id: string;
@@ -25,6 +26,7 @@ type Order = {
   status: string;
   total: number;
   shippingType: string;
+  items?: Array<{ id: string; productName: string; productImage?: string | null; variationName?: string | null; quantity: number; totalPrice: number }>;
   payment?: {
     method: string;
     status: string;
@@ -206,6 +208,16 @@ export default function ConfirmacaoScreen() {
         {order ? (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Detalhes do pedido</Text>
+            {order.items?.map((item) => (
+              <View key={item.id} style={styles.orderItem}>
+                <ResilientProductImage sources={[item.productImage]} style={styles.orderImage} contentFit="cover" compact />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowValue}>{item.productName}</Text>
+                  {!!item.variationName && <Text style={styles.rowLabel}>{item.variationName}</Text>}
+                  <Text style={styles.rowLabel}>{item.quantity}× · {formatCurrency(Number(item.totalPrice))}</Text>
+                </View>
+              </View>
+            ))}
             <View style={styles.row}>
               <Text style={styles.rowLabel}>Número</Text>
               <Text style={styles.orderNumber}>{order.orderNumber}</Text>
@@ -383,6 +395,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", justifyContent: "space-between", gap: 12, marginBottom: 10 },
   rowLabel: { flex: 1, fontSize: FontSizes.sm, color: Colors.textMuted },
   rowValue: { fontSize: FontSizes.sm, fontWeight: "600", color: Colors.textPrimary },
+  orderItem: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
+  orderImage: { width: 48, height: 48, borderRadius: 8 },
   orderNumber: { fontSize: FontSizes.sm, fontWeight: "800", color: Colors.primary, fontFamily: "monospace" },
   total: { fontSize: FontSizes.base, fontWeight: "900", color: Colors.primary },
   pixContainer: { marginTop: 16, backgroundColor: Colors.pinkPale, borderRadius: BorderRadius.xl, padding: 14, gap: 9, alignItems: "center" },

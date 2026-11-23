@@ -28,6 +28,7 @@ import {
 } from "./domain";
 import { isGooglePlayEligibleRecord } from "@/lib/google-play-distribution";
 import { readDirectSelection, type DirectSelection } from "./direct-selection";
+import { linkedCatalogOptionLabel } from "@/lib/linked-catalog-options";
 
 export interface CheckoutInput {
   directSelection?: DirectSelection;
@@ -1473,7 +1474,7 @@ export async function createOrResumeCheckout(
                   usesProductStock: item.usesProductStock,
                   productName: item.productName,
                   productImage,
-                  variationName: item.variationName,
+                  variationName: item.variationName ?? linkedCatalogOptionLabel(item.productId, item.sku),
                   sku: item.sku,
                   quantity: item.quantity,
                   unitPrice: centsToDecimal(item.unitPriceCents),

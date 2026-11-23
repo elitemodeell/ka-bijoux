@@ -8,6 +8,7 @@ import { requireCustomer } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
 import { getValidPromotionalPrice } from "@/lib/store-rules";
 import { buildProductIdentityFilters } from "@/lib/product-identity";
+import { linkedCatalogOptionLabel } from "@/lib/linked-catalog-options";
 
 const cartInclude = {
   items: {
@@ -48,6 +49,7 @@ export async function GET(req: NextRequest) {
     const totals = calculateCartTotals(cart);
     const items = cart.items.map((item) => ({
       ...item,
+      selectionLabel: item.variation ? null : linkedCatalogOptionLabel(item.productId, item.product.sku),
       product: {
         ...item.product,
         images: item.product.images.filter(({ url }) => isOfficialCatalogPhoto(url, item.productId, item.product.sku)),

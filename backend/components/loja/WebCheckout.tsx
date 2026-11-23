@@ -11,13 +11,14 @@ type Address = { id: string; street: string; number: string; city: string; state
 type Method = { method: string; label: string; installments: number[] };
 type Cart = {
   subtotal: number;
-  items: { id: string; quantity: number; unitPrice: string | number; product: { name: string; sku?: string | null; stock?: number; images?: { url: string }[] }; variation: { name: string; value: string; sku?: string | null; imageUrl?: string | null; stock?: number } | null }[];
+  items: { id: string; quantity: number; unitPrice: string | number; selectionLabel?: string | null; selectedPhotoUrl?: string | null; product: { name: string; sku?: string | null; stock?: number; images?: { url: string }[] }; variation: { name: string; value: string; sku?: string | null; imageUrl?: string | null; stock?: number } | null }[];
 };
 type Order = {
   id: string;
   orderNumber: string;
   status: string;
   total: number;
+  items?: { id: string; productName: string; productImage?: string | null; variationName?: string | null; quantity: number; totalPrice: number }[];
   payment: { status: string; pixCode?: string; boletoDigitableLine?: string; boletoUrl?: string; checkoutUrl?: string } | null;
 };
 type Attempt = {
@@ -221,6 +222,18 @@ export default function WebCheckout() {
       {!needsLogin && (order ? (
         <div className="space-y-3">
           <p>Total {currency.format(order.total)}</p>
+          <ul className="divide-y">
+            {order.items?.map((item) => (
+              <li key={item.id} className="flex items-center gap-3 py-2">
+                {item.productImage && <img src={item.productImage} alt="" className="size-12 shrink-0 rounded object-contain" />}
+                <div className="grow">
+                  <p>{item.productName}</p>
+                  {item.variationName && <p className="text-sm text-gray-600">{item.variationName}</p>}
+                </div>
+                <span>{item.quantity} × · {currency.format(Number(item.totalPrice))}</span>
+              </li>
+            ))}
+          </ul>
           <p>Pagamento {order.payment?.status === "PAGO" ? "confirmado" : "aguardando confirmação"}</p>
           {order.payment?.status !== "PAGO" && (
             <>
@@ -247,12 +260,14 @@ export default function WebCheckout() {
         <div className="space-y-5">
           <ul className="divide-y">
             {cart.items.map((item) => {
-              const image = item.variation ? item.variation.imageUrl : item.product.images?.[0]?.url;
+              const image = item.selectedPhotoUrl ?? (item.variation ? item.variation.imageUrl : item.product.images?.[0]?.url);
               const stock = item.variation?.stock ?? item.product.stock;
               return <li key={item.id} className="flex justify-between gap-3 py-2">
               {image && <img src={image} alt="" className="size-12 shrink-0 rounded object-cover" />}
               <div className="grow">
-                <p>{item.product.name}{item.variation && ` · ${item.variation.name}: ${item.variation.value}`}</p>
+                <p>{item.product.name}</p>
+                {item.variation ? <p className="text-sm text-gray-600">{item.variation.name}: {item.variation.value}</p>
+                  : item.selectionLabel && <p className="text-sm text-gray-600">{item.selectionLabel}</p>}
                 {stock != null && stock < item.quantity && <p className="text-sm text-red-700">Estoque insuficiente para esta quantidade.</p>}
                 <div className="flex items-center gap-3">
                   <button disabled={busy} aria-label={`Diminuir quantidade de ${item.product.name}`}

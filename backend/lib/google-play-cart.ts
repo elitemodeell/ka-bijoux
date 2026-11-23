@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { catalogCartPhoto, isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { prisma } from "@/lib/prisma";
+import { linkedCatalogOptionLabel } from "@/lib/linked-catalog-options";
 import {
   googlePlayProductWhere,
   isGooglePlayEligibleRecord,
@@ -82,6 +83,7 @@ export async function sanitizeGooglePlayCart(
     ...safeCart,
     items: safeCart.items.map((item) => ({
       ...item,
+      selectionLabel: item.variation ? null : linkedCatalogOptionLabel(item.productId, item.product.sku),
       selectedPhotoUrl: catalogCartPhoto(item.selectedPhotoUrl, item.product, item.variation),
       unitPrice: Number(item.unitPrice),
       product: {
