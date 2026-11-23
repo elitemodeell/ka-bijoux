@@ -4,12 +4,12 @@ import { officialDatabaseGallery } from "@/lib/catalog-photo";
 import { catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
 import { prisma } from "@/lib/prisma";
 
-export async function linkedCatalogOptions(productId: string, scope?: Prisma.ProductWhereInput) {
-  const group = groups.find(({ options }) => options.some((option) => option.id === productId))?.options;
-  if (!group) return [];
+export async function linkedCatalogOptions(productId: string, mobileScope?: Prisma.ProductWhereInput) {
+  const group = groups.find(({ options }) => options.some((option) => option.id === productId));
+  if (!group || (mobileScope && group.webOnly)) return [];
 
   const products = await prisma.product.findMany({
-    where: { AND: [{ id: { in: group.map(({ id }) => id) }, active: true }, scope ?? {}] },
+    where: { AND: [{ id: { in: group.options.map(({ id }) => id) }, active: true }, mobileScope ?? {}] },
     select: {
       id: true, sku: true, slug: true, stock: true, purchaseMode: true,
       _count: { select: { variations: { where: { active: true } } } },
@@ -17,7 +17,7 @@ export async function linkedCatalogOptions(productId: string, scope?: Prisma.Pro
     },
   });
   const byId = new Map(products.map((product) => [product.id, product]));
-  const options = group.flatMap(({ id, sku, label, photo }) => {
+  const options = group.options.flatMap(({ id, sku, label, photo }) => {
     const product = byId.get(id);
     if (!product || product.sku !== sku || product._count.variations ||
         catalogPurchaseBlocked(product.purchaseMode, product._count.variations)) return [];

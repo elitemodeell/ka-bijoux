@@ -31,4 +31,14 @@ describe("linked catalog options", () => {
     findMany.mockResolvedValue([light, { ...dark, images: light.images }]);
     expect(await linkedCatalogOptions(light.id)).toEqual([]);
   });
+
+  it("keeps web-only families out of the mobile selector before querying products", async () => {
+    findMany.mockClear();
+    const options = groups.filter((group) => group.webOnly).flatMap((group) => group.options);
+    expect(options).toHaveLength(12);
+    for (const { id } of options) {
+      expect(await linkedCatalogOptions(id, {})).toEqual([]);
+    }
+    expect(findMany).not.toHaveBeenCalled();
+  });
 });

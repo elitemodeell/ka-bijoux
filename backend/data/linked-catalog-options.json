@@ -170,6 +170,7 @@
   {
     "blingParentId": 16668030377,
     "name": "VIBRADOR PREMIUM",
+    "webOnly": true,
     "options": [
       {
         "id": "cmrc5e18v0001n3i4zifwmqhr",
@@ -230,6 +231,7 @@
   {
     "blingParentId": 16666996549,
     "name": "POP BALL",
+    "webOnly": true,
     "options": [
       {
         "id": "cmr6kdmhd004l76sic83id6x6",
