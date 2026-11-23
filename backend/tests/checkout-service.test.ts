@@ -119,7 +119,7 @@ function paymentResult(orderId: string): CheckoutPaymentResult {
 }
 
 function configureCheckout(
-  options: { addressFound?: boolean; asaasCustomerId?: string | null; withVariation?: boolean; selectedPhotoUrl?: string } = {}
+  options: { addressFound?: boolean; asaasCustomerId?: string | null; withVariation?: boolean; selectedPhotoUrl?: string; secondPhotoUrl?: string } = {}
 ) {
   let storedOrder: any = null;
   let successfulOrderCreates = 0;
@@ -130,6 +130,11 @@ function configureCheckout(
       sku: "3104000003348",
       images: [1, 2, 3, 4, 5].map((index) => ({ url: `/fixtures/photo-${index}-3104000003348.png` })),
     });
+  }
+  if (options.secondPhotoUrl) {
+    cartValue.items.push(Object.assign({ ...cartValue.items[0], id: "cart-item-2" }, {
+      selectedPhotoUrl: options.secondPhotoUrl,
+    }));
   }
   if (options.withVariation) {
     Object.assign(cartValue.items[0], {
@@ -348,7 +353,7 @@ function configureCheckout(
     })),
     createPixPayment: vi.fn(async (request) => {
       uniqueCharges.add(request.orderId);
-      return paymentResult(request.orderId);
+      return { ...paymentResult(request.orderId), amount: request.amount };
     }),
   };
 
@@ -454,6 +459,15 @@ describe("server-authoritative checkout service", () => {
       code: "CATALOG_PHOTO_CHANGED",
     });
     expect(setup.tx.order.create).not.toHaveBeenCalled();
+  });
+
+  it("records photos two and five separately in the same order with the same SKU", async () => {
+    const photos = [2, 5].map((index) => `/fixtures/photo-${index}-3104000003348.png`);
+    const setup = configureCheckout({ selectedPhotoUrl: photos[0], secondPhotoUrl: photos[1] });
+    await createOrResumeCheckout(customer.id, input(), setup.service);
+    expect(setup.tx.order.create.mock.calls[0][0].data.items.create).toMatchObject(
+      photos.map((productImage) => ({ sku: "3104000003348", quantity: 1, productImage })),
+    );
   });
 });
 

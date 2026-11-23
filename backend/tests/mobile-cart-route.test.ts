@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   cartItemFindFirst: vi.fn(),
   cartItemUpdate: vi.fn(),
   cartItemCreate: vi.fn(),
+  cartItemAggregate: vi.fn(),
   cartItemDeleteMany: vi.fn(),
   cartUpsert: vi.fn(),
 }));
@@ -29,7 +30,7 @@ vi.mock("@/lib/prisma", () => ({
     cartItem: { findFirst: mocks.cartItemFindFirst, update: mocks.cartItemUpdate, create: mocks.cartItemCreate },
     $transaction: async (callback: (tx: unknown) => unknown) => callback({
       cart: { upsert: mocks.cartUpsert },
-      cartItem: { findFirst: mocks.cartItemFindFirst, update: mocks.cartItemUpdate, create: mocks.cartItemCreate, deleteMany: mocks.cartItemDeleteMany },
+      cartItem: { findFirst: mocks.cartItemFindFirst, update: mocks.cartItemUpdate, create: mocks.cartItemCreate, deleteMany: mocks.cartItemDeleteMany, aggregate: mocks.cartItemAggregate },
     }),
   },
 }));
@@ -47,6 +48,7 @@ beforeEach(() => {
   mocks.requireCustomer.mockResolvedValue({ id: "customer-1" });
   mocks.productFindFirst.mockResolvedValue({ id: "product-1", price: 10, promotionalPrice: null, stock: 5, variations: [] });
   mocks.cartUpsert.mockResolvedValue({ id: "cart-1" });
+  mocks.cartItemAggregate.mockResolvedValue({ _sum: { quantity: 0 } });
   mocks.sanitizeCart.mockResolvedValue({ id: "cart-1", items: [] });
 });
 
@@ -89,8 +91,34 @@ describe("mobile cart mutations", () => {
     expect(response.status).toBe(201);
     expect(mocks.cartItemUpdate).toHaveBeenCalledWith({
       where: { id: "item-1" },
-      data: { quantity: 1, unitPrice: 10, selectedPhotoUrl },
+      data: { quantity: 1, unitPrice: 10 },
     });
+    expect(mocks.cartItemFindFirst).toHaveBeenCalledWith({
+      where: { cartId: "cart-1", productId: "product-1", variationId: null, selectedPhotoUrl },
+    });
+  });
+
+  it("adds a second photo as a distinct line and counts the first line against the same stock", async () => {
+    const photos = ["/fixtures/photo-2.png", "/fixtures/photo-5.png"];
+    mocks.productFindFirst.mockResolvedValue({
+      id: "product-1", price: 10, stock: 2, variations: [],
+      images: photos.map((url) => ({ url })),
+    });
+    mocks.cartItemFindFirst.mockResolvedValue(null);
+    mocks.cartItemAggregate.mockResolvedValueOnce({ _sum: { quantity: 0 } })
+      .mockResolvedValueOnce({ _sum: { quantity: 1 } });
+
+    for (const selectedPhotoUrl of photos) {
+      expect((await POST(request({ productId: "product-1", mode: "BUY_NOW", selectedPhotoUrl }))).status).toBe(201);
+    }
+
+    expect(mocks.cartItemCreate.mock.calls.map(([{ data }]) => [data.selectedPhotoUrl, data.quantity]))
+      .toEqual(photos.map((photo) => [photo, 1]));
+    expect(mocks.cartItemDeleteMany).toHaveBeenLastCalledWith({
+      where: { cartId: "cart-1", NOT: { productId: "product-1", variationId: null } },
+    });
+    mocks.cartItemAggregate.mockResolvedValue({ _sum: { quantity: 2 } });
+    expect((await POST(request({ productId: "product-1", selectedPhotoUrl: photos[1] }))).status).toBe(409);
   });
 
   it("rejects a photograph from a different product before mutating the cart", async () => {

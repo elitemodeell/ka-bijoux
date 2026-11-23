@@ -321,7 +321,7 @@ model CartItem {
   variation   ProductVariation? @relation(fields: [variationId], references: [id])
   variationId String?
 
-  @@unique([cartId, productId, variationId])
+  @@index([cartId, productId, variationId])
   @@map("cart_items")
 }
 

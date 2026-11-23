@@ -99,18 +99,21 @@ export async function POST(req: NextRequest) {
             cartId: cart.id,
             productId: product.id,
             variationId: variation?.id ?? null,
+            selectedPhotoUrl: selectedPhotoUrl ?? null,
           },
         });
         const quantity = input.mode === "SET" || input.mode === "BUY_NOW"
           ? input.quantity
           : (existing?.quantity ?? 0) + input.quantity;
         const availableStock = product.sharedVariationStock ? product.stock : variation?.stock ?? product.stock;
-        const otherOptions = product.sharedVariationStock
-          ? await tx.cartItem.aggregate({
-              where: { cartId: cart.id, productId: product.id, id: existing ? { not: existing.id } : undefined },
-              _sum: { quantity: true },
-            })
-          : null;
+        const otherOptions = await tx.cartItem.aggregate({
+          where: {
+            cartId: cart.id, productId: product.id,
+            variationId: product.sharedVariationStock ? undefined : variation?.id ?? null,
+            id: existing ? { not: existing.id } : undefined,
+          },
+          _sum: { quantity: true },
+        });
         if (quantity + (otherOptions?._sum.quantity ?? 0) > availableStock) {
           throw new Error("CART_STOCK_EXCEEDED");
         }
@@ -121,7 +124,7 @@ export async function POST(req: NextRequest) {
         if (existing) {
           await tx.cartItem.update({
             where: { id: existing.id },
-            data: { quantity, unitPrice, selectedPhotoUrl },
+            data: { quantity, unitPrice },
           });
         } else {
           await tx.cartItem.create({

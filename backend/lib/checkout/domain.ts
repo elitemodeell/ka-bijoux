@@ -250,7 +250,7 @@ export function createCheckoutRequestHash(input: CheckoutHashInput): string {
       .sort((left, right) =>
         `${left.productId}:${left.variationId ?? ""}`.localeCompare(
           `${right.productId}:${right.variationId ?? ""}`
-        )
+        ) || (left.selectedPhotoUrl ?? "").localeCompare(right.selectedPhotoUrl ?? "")
       ),
   };
 

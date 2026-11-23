@@ -17,12 +17,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ itemId:
     });
     if (!item) return apiError("Item não encontrado.", 404);
 
-    const pool = item.product.sharedVariationStock
-      ? await prisma.cartItem.aggregate({
-          where: { cartId: item.cartId, productId: item.productId, id: { not: item.id } },
-          _sum: { quantity: true },
-        })
-      : null;
+    const pool = await prisma.cartItem.aggregate({
+      where: {
+        cartId: item.cartId, productId: item.productId,
+        variationId: item.product.sharedVariationStock ? undefined : item.variationId, id: { not: item.id },
+      },
+      _sum: { quantity: true },
+    });
     const stock = item.product.sharedVariationStock ? item.product.stock : item.variation?.stock ?? item.product.stock;
     if (stock < quantity + (pool?._sum.quantity ?? 0)) return apiError("Estoque insuficiente.", 400);
 

@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { requireCustomer } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -16,34 +17,38 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ itemId:
   try {
     const customer = await requireCustomer(req);
     const input = updateSchema.parse(await req.json());
-    const item = await prisma.cartItem.findFirst({
-      where: {
-        id: params.itemId,
-        cart: { customerId: customer.id },
-        product: { is: googlePlayProductWhere() },
-      },
-      select: { id: true, cartId: true, productId: true,
-        product: { select: { sharedVariationStock: true, stock: true } } },
-    });
-    if (!item) {
-      await prisma.cartItem.deleteMany({
-        where: { id: params.itemId, cart: { customerId: customer.id } },
+    const result = await prisma.$transaction(async (tx) => {
+      const item = await tx.cartItem.findFirst({
+        where: {
+          id: params.itemId,
+          cart: { customerId: customer.id },
+          product: { is: googlePlayProductWhere() },
+        },
+        select: { id: true, cartId: true, productId: true, variationId: true,
+          product: { select: { sharedVariationStock: true, stock: true } },
+          variation: { select: { stock: true } } },
       });
-      return apiError("Item não encontrado.", 404);
-    }
-    if (item.product.sharedVariationStock) {
-      const pool = await prisma.cartItem.aggregate({
-        where: { cartId: item.cartId, productId: item.productId, id: { not: item.id } },
+      if (!item) {
+        await tx.cartItem.deleteMany({
+          where: { id: params.itemId, cart: { customerId: customer.id } },
+        });
+        return 404;
+      }
+      const pool = await tx.cartItem.aggregate({
+        where: { cartId: item.cartId, productId: item.productId,
+          variationId: item.product.sharedVariationStock ? undefined : item.variationId, id: { not: item.id } },
         _sum: { quantity: true },
       });
-      if (input.quantity + (pool._sum.quantity ?? 0) > item.product.stock) {
-        return apiError("Estoque insuficiente.", 409);
-      }
-    }
-    await prisma.cartItem.update({
-      where: { id: item.id },
-      data: { quantity: input.quantity },
-    });
+      const stock = item.product.sharedVariationStock ? item.product.stock : item.variation?.stock ?? item.product.stock;
+      if (input.quantity + (pool._sum.quantity ?? 0) > stock) return 409;
+      await tx.cartItem.update({
+        where: { id: item.id },
+        data: { quantity: input.quantity },
+      });
+      return 200;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    if (result === 404) return apiError("Item não encontrado.", 404);
+    if (result === 409) return apiError("Estoque insuficiente.", 409);
     const cart = await sanitizeGooglePlayCart(customer.id);
     return apiSuccess(toGooglePlayPublicData({ ...cart, ...googlePlayCartTotals(cart) }));
   } catch (error) {
