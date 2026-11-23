@@ -226,5 +226,29 @@
         "photo": "/uploads/products/vibrador-premium-14-roxo-3104000004920.jpg"
       }
     ]
+  },
+  {
+    "blingParentId": 16666996549,
+    "name": "POP BALL",
+    "options": [
+      {
+        "id": "cmr6kdmhd004l76sic83id6x6",
+        "sku": "3104000004792",
+        "label": "Uva",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/pop-ball-uva.png"
+      },
+      {
+        "id": "cmr6kdmcz004i76sil55g7wq3",
+        "sku": "3104000004793",
+        "label": "Sensação",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/pop-ball-sensacao.png"
+      },
+      {
+        "id": "cmr6kdm42004c76sisrcb4zan",
+        "sku": "3104000004794",
+        "label": "Morango com champanhe",
+        "photo": "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/pop-ball-morango-champanhe.png"
+      }
+    ]
   }
 ]
