@@ -420,7 +420,8 @@ export default function EditarProdutoPage() {
             <div className="card space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="font-semibold text-gray-900">Variações de cor / modelo</h3>
+                  <h3 className="font-semibold text-gray-900">Opções de compra</h3>
+                  <p className="mt-1 text-xs text-gray-600">Cadastre uma linha por combinação real com seu SKU, estoque e foto oficial. Para atributos combinados, use Tipo “Cor + Tamanho” e Valor “Preto / G”. Use os mesmos tipos e a mesma ordem em todas as linhas do produto.</p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     Cada variação é vendida por unidade. O cliente escolhe 1 cor antes de comprar.
                   </p>
@@ -558,7 +559,7 @@ export default function EditarProdutoPage() {
                           <input
                             value={v.sku}
                             onChange={(e) => updateVariation(v._key, "sku", e.target.value)}
-                            placeholder="Opcional"
+                            placeholder="SKU comercial da opção"
                             className="input-field py-1.5 text-sm"
                           />
                         </div>

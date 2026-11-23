@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { catalogPurchaseBlocked, catalogReviewMessage } from "@/lib/catalog-purchase-mode";
+import { catalogOptionLabel } from "@shared/catalog-options";
 
 export class CheckoutError extends Error {
   constructor(
@@ -145,7 +146,7 @@ export function priceCart(items: CatalogCartItem[]): PricedCheckoutItem[] {
         throw new CheckoutError("Esta opção está temporariamente indisponível.", 409, "VARIATION_SKU_REQUIRED");
       }
       modifierCents = decimalToCents(item.variation.priceModifier);
-      variationName = `${item.variation.name}: ${item.variation.value}`;
+      variationName = catalogOptionLabel(item.variation.name, item.variation.value);
     }
 
     const stockKey = stockUnit(item);

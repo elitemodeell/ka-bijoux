@@ -14,6 +14,7 @@ import { shippingApi, addressesApi } from "@/services/api";
 import { Button } from "@/components/ui/Button";
 import { Image } from "expo-image";
 import { ResilientProductImage } from "@/components/product/ResilientProductImage";
+import { catalogOptionLabel } from "@shared/catalog-options";
 import { LuxuryBackground } from "@/components/ios/LuxuryBackground";
 
 
@@ -204,7 +205,7 @@ export default function CheckoutEntregaScreen() {
                 <ResilientProductImage sources={[image]} style={styles.itemImage} contentFit="cover" compact />
                 <View style={styles.iosItemCopy}>
                   <Text style={styles.iosItemName} numberOfLines={2}>{item.product.name}</Text>
-                  {item.variation ? <Text style={styles.itemVariation}>{item.variation.name}: {item.variation.value}</Text>
+                  {item.variation ? <Text style={styles.itemVariation}>{catalogOptionLabel(item.variation.name, item.variation.value)}</Text>
                     : item.selectionLabel && <Text style={styles.itemVariation}>{item.selectionLabel}</Text>}
                 </View>
                 {!purchase ? <View style={styles.quantityControl}>
@@ -216,7 +217,7 @@ export default function CheckoutEntregaScreen() {
                 {!purchase && <TouchableOpacity accessibilityLabel="Remover item" onPress={() => void removeItem(item.id)} style={styles.removeButton}><Ionicons name="trash-outline" size={18} color="#e00054" /></TouchableOpacity>}
               </View>
             ) : (
-              <View key={item.id} style={styles.itemRow}><ResilientProductImage sources={[image]} style={styles.itemImage} compact /><Text style={styles.itemName} numberOfLines={2}>{item.quantity}× {item.product.name}{item.variation ? ` · ${item.variation.name}: ${item.variation.value}` : item.selectionLabel ? ` · ${item.selectionLabel}` : ""}</Text><Text style={styles.itemPrice}>{fmt(item.unitPrice * item.quantity)}</Text></View>
+              <View key={item.id} style={styles.itemRow}><ResilientProductImage sources={[image]} style={styles.itemImage} compact /><Text style={styles.itemName} numberOfLines={2}>{item.quantity}× {item.product.name}{item.variation ? ` · ${catalogOptionLabel(item.variation.name, item.variation.value)}` : item.selectionLabel ? ` · ${item.selectionLabel}` : ""}</Text><Text style={styles.itemPrice}>{fmt(item.unitPrice * item.quantity)}</Text></View>
             );
           })}
           <View style={styles.divider} />

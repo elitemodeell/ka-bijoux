@@ -9,6 +9,7 @@ import { addCartItem } from "@/lib/client-cart";
 import { getDiscountPercentage, getValidPromotionalPrice } from "@/lib/store-rules";
 import ProductCard from "@/components/loja/ProductCard";
 import ProductVariantImage from "@/components/loja/ProductVariantImage";
+import { catalogAttributeChoices, catalogOptionLabel, catalogOptionMatrix, chooseCatalogAttribute, resolveCatalogCombination } from "@shared/catalog-options";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -98,19 +99,22 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const [cartAdded, setCartAdded] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariation, setSelectedVariation] = useState<{ product: string; id: string } | null>(null);
+  const [selectedAttributes, setSelectedAttributes] = useState<{ product: string; values: (string | null)[] } | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [favorited, setFavorited] = useState(false);
   const [shared, setShared] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   const variations = product.variations ?? product.variants ?? [];
+  const matrix = variations.length > 1 ? catalogOptionMatrix(variations, (option) => ({ name: option.optionName, value: option.label })) : null;
+  const attributes = selectedAttributes?.product === product.slug ? selectedAttributes.values : [];
   const optionNames = new Set(variations.map((variant) => variant.optionName?.trim().toLowerCase()));
   const optionName = optionNames.size === 1 ? variations[0]?.optionName?.trim().toLowerCase() : undefined;
   const optionTitle = ({
     cor: "Escolha a cor", modelo: "Escolha o modelo", tamanho: "Escolha o tamanho",
     estampa: "Escolha a estampa", artista: "Escolha o artista",
   } as Record<string, string>)[optionName ?? ""] ?? "Escolha a opção";
-  const selectedVariant = selectedVariation?.product === product.slug
+  const selectedVariant = matrix ? resolveCatalogCombination(matrix, attributes) : selectedVariation?.product === product.slug
     ? variations.find((variant) => variant.id === selectedVariation.id) ?? null
     : variations.length === 1 && variations[0].id && variations[0].sku?.trim() && variations[0].active !== false
       ? variations[0] : null;
@@ -184,7 +188,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
       id: product.id ?? product.sku ?? product.slug,
       name: product.name,
       variationId: selectedVariant?.id,
-      variationName: selectedVariant ? `${selectedVariant.optionName ?? "Opção"}: ${selectedVariant.label}` : selectedLinked?.label,
+      variationName: selectedVariant ? catalogOptionLabel(selectedVariant.optionName ?? "Opção", selectedVariant.label) : selectedLinked?.label,
       price: finalPrice,
       image: images[0] ?? "",
       sku: selectedVariant?.sku ?? product.sku,
@@ -404,7 +408,32 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                     </div>
                   </div>
                 )}
-                {!product.purchaseReviewRequired && variations.length > 1 && (
+                {!product.purchaseReviewRequired && matrix && (
+                  <div className="mt-5 space-y-4">
+                    {matrix.names.map((name, axis) => (
+                      <fieldset key={name}>
+                        <legend className="mb-2 text-sm font-semibold">{name}: {attributes[axis] ?? "Escolha"}</legend>
+                        <div className="flex flex-wrap gap-2">
+                          {catalogAttributeChoices(matrix, axis, (option) => Boolean(option.active !== false && option.sku?.trim() && (option.stock ?? 0) > 0), (option) => option.images?.[0]).map((choice) => (
+                            <button key={choice.value} type="button" aria-pressed={attributes[axis] === choice.value}
+                              disabled={!choice.available}
+                              className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-sm disabled:opacity-40 ${attributes[axis] === choice.value ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-200 bg-white"}`}
+                              onClick={() => {
+                                setSelectedAttributes({ product: product.slug, values: chooseCatalogAttribute(matrix, attributes, axis, choice.value) });
+                                setSelectedImage(0);
+                                setQuantity(1);
+                              }}>
+                              {choice.photo && <img src={choice.photo} alt="" className="h-10 w-10 rounded object-contain" />}
+                              {choice.value}{!choice.available && " · Indisponível"}
+                            </button>
+                          ))}
+                        </div>
+                      </fieldset>
+                    ))}
+                    {!selectedVariant && <p className="text-sm text-gray-600">Escolha todos os atributos para comprar.</p>}
+                  </div>
+                )}
+                {!product.purchaseReviewRequired && !matrix && variations.length > 1 && (
                   <div className="mt-5">
                     <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-gray-500">{optionTitle}</p>
                     <div className="flex flex-wrap gap-2">
@@ -439,7 +468,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
 
                 {selectionLabel && !product.purchaseReviewRequired && (
                   <div aria-live="polite" className="mt-4 rounded-xl bg-pink-50 px-3 py-2 text-sm text-gray-800">
-                    <strong>{selectionTitle}: {selectionLabel}</strong>
+                    <strong>{matrix && selectedVariant ? catalogOptionLabel(selectedVariant.optionName ?? "Opção", selectedVariant.label) : `${selectionTitle}: ${selectionLabel}`}</strong>
                     <p>{fmt(finalPrice)} por unidade · {available ? "Em estoque" : "Indisponível"}</p>
                   </div>
                 )}

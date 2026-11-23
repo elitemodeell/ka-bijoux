@@ -12,6 +12,7 @@ import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/Button";
 import { ResilientProductImage } from "@/components/product/ResilientProductImage";
+import { catalogOptionLabel } from "@shared/catalog-options";
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -117,7 +118,7 @@ export default function CarrinhoScreen() {
             <View style={styles.itemInfo}>
               <Text style={styles.itemName} numberOfLines={2}>{item.product.name}</Text>
               {item.variation && (
-                <Text style={styles.itemVariation}>{item.variation.name}: {item.variation.value}</Text>
+                <Text style={styles.itemVariation}>{catalogOptionLabel(item.variation.name, item.variation.value)}</Text>
               )}
               {!item.variation && item.selectionLabel && <Text style={styles.itemVariation}>{item.selectionLabel}</Text>}
               <Text style={styles.itemPrice}>{formatCurrency(item.unitPrice)}</Text>

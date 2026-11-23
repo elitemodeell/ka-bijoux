@@ -1,3 +1,5 @@
+import { catalogOptionMatrix } from "@shared/catalog-options";
+
 export const catalogPurchaseModes = ["SINGLE", "OPTIONS", "REVIEW"] as const;
 
 export const catalogReviewMessage = "Este produto está em revisão e ainda não pode ser comprado.";
@@ -21,6 +23,9 @@ export function validateCatalogOptions(
     return "O modo de compra precisa corresponder às opções ativas.";
   }
   if (mode === "REVIEW" || active.length === 0) return null;
+  if (active.some(({ name }) => /\s+\+\s+/.test(name)) && !catalogOptionMatrix(active, (option) => option)) {
+    return "Use os mesmos atributos na mesma ordem em todas as opções e cadastre uma única linha por combinação.";
+  }
   const names = new Set<string>();
   const skus = new Set<string>();
   for (const option of active) {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getCartItemKey, getCartItems, saveCartItems } from "@/lib/client-cart";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 import type { ShippingOption } from "@/lib/shipping";
+import { catalogOptionLabel } from "@shared/catalog-options";
 
 type Profile = { id: string; cpf: string | null };
 type Address = { id: string; street: string; number: string; city: string; state: string; zipCode: string };
@@ -267,7 +268,7 @@ export default function WebCheckout() {
               {image && <img src={image} alt="" className="size-12 shrink-0 rounded object-cover" />}
               <div className="grow">
                 <p>{item.product.name}</p>
-                {item.variation ? <p className="text-sm text-gray-600">{item.variation.name}: {item.variation.value}</p>
+                {item.variation ? <p className="text-sm text-gray-600">{catalogOptionLabel(item.variation.name, item.variation.value)}</p>
                   : item.selectionLabel && <p className="text-sm text-gray-600">{item.selectionLabel}</p>}
                 {stock != null && stock < item.quantity && <p className="text-sm text-red-700">Estoque insuficiente para esta quantidade.</p>}
                 <div className="flex items-center gap-3">

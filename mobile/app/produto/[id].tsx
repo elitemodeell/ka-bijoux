@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { catalogAttributeChoices, catalogOptionLabel, catalogOptionMatrix, chooseCatalogAttribute, resolveCatalogCombination } from "@shared/catalog-options";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Dimensions, InteractionManager, LayoutAnimation, Platform, UIManager, Alert, Share,
@@ -256,6 +257,7 @@ export default function ProdutoScreen() {
   const [notFound, setNotFound] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [selectedVariation, setSelectedVariation] = useState<string | null>(null);
+  const [selectedAttributes, setSelectedAttributes] = useState<(string | null)[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [favoriteId, setFavoriteId] = useState<string | null>(null);
@@ -291,6 +293,7 @@ export default function ProdutoScreen() {
         setSelectedPhoto(savedPhoto);
         setRelated(res.data.data.related ?? []);
         setSelectedVariation(null);
+        setSelectedAttributes([]);
         setQuantity(1);
       })
       .catch(() => { if (current) setNotFound(true); })
@@ -432,7 +435,8 @@ export default function ProdutoScreen() {
   // ── Computed values ────────────────────────────────────────────────────────
 
   const hasVariations = product.variations.length > 0;
-  const activeVariation = product.variations.find((v) => v.id === selectedVariation) ??
+  const matrix = product.variations.length > 1 ? catalogOptionMatrix(product.variations, (option) => option) : null;
+  const activeVariation = matrix ? resolveCatalogCombination(matrix, selectedAttributes) : product.variations.find((v) => v.id === selectedVariation) ??
     (product.variations.length === 1 && product.variations[0].sku?.trim() ? product.variations[0] : null);
   const selectedLinked = product.linkedOptions?.find((option) => option.id === product.id);
   const selectionLabel = activeVariation?.value ?? selectedLinked?.label;
@@ -457,6 +461,7 @@ export default function ProdutoScreen() {
     ? product.variations.some((v) => v.sku?.trim() && v.stock > 0)
     : product.stock > 0);
   const activeStock = product.sharedVariationStock ? product.stock : activeVariation?.stock ?? product.stock;
+  const matrixPurchaseBlocked = Boolean(matrix && (!activeVariation || !activeVariation.sku?.trim() || activeStock <= 0));
   const priceModifier = Number(activeVariation?.priceModifier ?? 0);
   const basePrice = product.promotionalPrice && product.promotionalPrice < product.price ? product.promotionalPrice : product.price;
   const hasPromo = !!product.promotionalPrice && product.promotionalPrice < product.price;
@@ -640,7 +645,42 @@ export default function ProdutoScreen() {
               </View>
             </View>
           )}
-          {!product.purchaseReviewRequired && product.variations.length > 1 && (
+          {!product.purchaseReviewRequired && matrix && (
+            <View style={styles.section}>
+              {matrix.names.map((name, axis) => (
+                <View key={name} style={{ marginBottom: 12 }}>
+                  <Text style={styles.sectionTitle}>{name}: {selectedAttributes[axis] ?? "Escolha"}</Text>
+                  <View style={styles.variations}>
+                    {catalogAttributeChoices(matrix, axis,
+                      (option) => Boolean(option.sku?.trim() && (product.sharedVariationStock ? product.stock : option.stock) > 0),
+                      (option) => resolveProductPhoto(product.id, option.imageUrl, product.updatedAt, option.id),
+                    ).map((choice) => {
+                      const selected = selectedAttributes[axis] === choice.value;
+                      return (
+                        <TouchableOpacity key={choice.value} accessibilityRole="button"
+                          accessibilityLabel={`${name}: ${choice.value}`}
+                          accessibilityState={{ selected, disabled: !choice.available }}
+                          disabled={!choice.available}
+                          style={[styles.variationChip, selected && styles.variationChipActive, !choice.available && styles.variationChipUnavailable]}
+                          onPress={() => {
+                            setSelectedAttributes(chooseCatalogAttribute(matrix, selectedAttributes, axis, choice.value));
+                            setQuantity(1);
+                            setVariationError(false);
+                          }}>
+                          <View style={styles.variationWithImage}>
+                            {choice.photo && <ResilientProductImage sources={[choice.photo]} style={styles.variationThumb} contentFit="cover" compact />}
+                            <Text style={[styles.variationText, selected && styles.variationTextActive]}>{choice.value}{!choice.available && " · Indisponível"}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+              {!activeVariation && <Text style={styles.variationHint}>Escolha todos os atributos para comprar.</Text>}
+            </View>
+          )}
+          {!product.purchaseReviewRequired && !matrix && product.variations.length > 1 && (
             <View style={styles.section}>
               <View style={styles.variationHeader}>
                 <Text style={styles.sectionTitle}>
@@ -690,7 +730,7 @@ export default function ProdutoScreen() {
 
           {selectionLabel && !product.purchaseReviewRequired && (
             <View style={styles.section} accessibilityLiveRegion="polite">
-              <Text style={styles.selectedVariationLabel}>{selectionTitle}: {selectionLabel}</Text>
+              <Text style={styles.selectedVariationLabel}>{matrix && activeVariation ? catalogOptionLabel(activeVariation.name, activeVariation.value) : `${selectionTitle}: ${selectionLabel}`}</Text>
               <Text style={styles.variationHint}>{formatCurrency(price)} por unidade · {activeStock > 0 ? "Em estoque" : "Indisponível"}</Text>
             </View>
           )}
@@ -902,8 +942,8 @@ export default function ProdutoScreen() {
           <Text style={styles.footerPriceValue}>{formatCurrency(price * quantity)}</Text>
         </View>
         <View style={styles.footerActions}>
-          <Button label={added ? "✓ Adicionado!" : "Adicionar ao carrinho"} onPress={() => handleCartAction("add")} loading={cartAction === "add"} disabled={loading || !isAvailable || added || cartAction !== null} style={{ flex: 1 }} size="lg" variant="outline" />
-          <Button label="Comprar agora" onPress={() => handleCartAction("buy")} loading={cartAction === "buy"} disabled={loading || !isAvailable || cartAction !== null} style={{ flex: 1 }} size="lg" />
+          <Button label={added ? "✓ Adicionado!" : "Adicionar ao carrinho"} onPress={() => handleCartAction("add")} loading={cartAction === "add"} disabled={loading || !isAvailable || matrixPurchaseBlocked || added || cartAction !== null} style={{ flex: 1 }} size="lg" variant="outline" />
+          <Button label="Comprar agora" onPress={() => handleCartAction("buy")} loading={cartAction === "buy"} disabled={loading || !isAvailable || matrixPurchaseBlocked || cartAction !== null} style={{ flex: 1 }} size="lg" />
         </View>
       </View>
     </SafeAreaView>
