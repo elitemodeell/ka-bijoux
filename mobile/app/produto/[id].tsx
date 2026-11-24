@@ -637,7 +637,7 @@ export default function ProdutoScreen() {
                     style={[styles.variationChip, option.id === product.id && styles.variationChipActive]}
                     onPress={() => { if (option.id !== product.id) router.replace({ pathname: "/produto/[id]", params: { id: option.id } }); }}>
                     <View style={styles.variationWithImage}>
-                      {option.imageUrl && <ResilientProductImage sources={[option.imageUrl]} style={styles.variationThumb} contentFit="cover" compact />}
+                      {option.imageUrl && <ResilientProductImage sources={[option.imageUrl]} style={styles.variationThumb} contentFit="contain" compact />}
                       <View>
                         <Text style={[styles.variationText, option.id === product.id && styles.variationTextActive]}>{option.label}</Text>
                         <Text style={styles.variationHint}>{!option.available ? "Indisponível" : option.price !== undefined ? formatCurrency(option.price) : ""}</Text>
@@ -673,7 +673,7 @@ export default function ProdutoScreen() {
                             setVariationError(false);
                           }}>
                           <View style={styles.variationWithImage}>
-                            {choice.photo && <ResilientProductImage sources={[choice.photo]} style={styles.variationThumb} contentFit="cover" compact />}
+                            {choice.photo && <ResilientProductImage sources={[choice.photo]} style={styles.variationThumb} contentFit="contain" compact />}
                             <Text style={[styles.variationText, selected && styles.variationTextActive]}>{choice.value}{!choice.available && " · Indisponível"}</Text>
                           </View>
                         </TouchableOpacity>
@@ -718,7 +718,7 @@ export default function ProdutoScreen() {
                     >
                       {photo ? (
                         <View style={styles.variationWithImage}>
-                          <ResilientProductImage sources={[photo]} style={styles.variationThumb} contentFit="cover" compact />
+                          <ResilientProductImage sources={[photo]} style={styles.variationThumb} contentFit="contain" compact />
                           <Text style={[styles.variationText, isSelected && styles.variationTextActive, unavailable && styles.variationTextUnavailable]}>{variationNames.size === 1 ? v.value : `${v.name}: ${v.value}`}</Text>
                         </View>
                       ) : (
@@ -1032,9 +1032,9 @@ const styles = StyleSheet.create({
   variationChipActive: { borderColor: Colors.primary, backgroundColor: Colors.pinkSoft },
   variationChipUnavailable: { opacity: 0.4 },
   variationChipError: { borderColor: "#e53e3e" },
-  variationWithImage: { flexDirection: "row", alignItems: "center", gap: 6, paddingLeft: 4, paddingRight: 14, paddingVertical: 6 },
-  variationThumb: { width: 28, height: 28, borderRadius: 14 },
-  variationText: { fontSize: FontSizes.sm, color: Colors.textSecondary, fontWeight: "500", paddingHorizontal: 14, paddingVertical: 8 },
+  variationWithImage: { width: 96, alignItems: "center", padding: 6 },
+  variationThumb: { width: 80, height: 80, borderRadius: 8, backgroundColor: "#fff" },
+  variationText: { fontSize: FontSizes.sm, color: Colors.textSecondary, fontWeight: "500", textAlign: "center", paddingHorizontal: 6, paddingVertical: 8 },
   variationTextActive: { color: Colors.primary, fontWeight: "700" },
   variationTextUnavailable: { color: Colors.textLight },
   strikeThrough: { position: "absolute", left: 0, right: 0, top: "50%", height: 1.5, backgroundColor: Colors.textMuted },

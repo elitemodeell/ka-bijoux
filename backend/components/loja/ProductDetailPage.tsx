@@ -401,8 +401,8 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                       {product.linkedOptions?.map((option) => (
                         <Link key={option.id} href={`/produto/${option.slug ?? option.id}`}
                           aria-current={option.id === product.id ? "page" : undefined}
-                          className={`inline-flex min-h-11 items-center gap-2 rounded-xl border p-2 text-sm ${option.id === product.id ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-200"}`}>
-                          {option.imageUrl && <img src={option.imageUrl} alt="" loading="lazy" className="h-11 w-11 rounded-lg object-contain" />}
+                          className={`inline-flex w-24 flex-col items-center gap-1 rounded-xl border p-2 text-center text-xs ${option.id === product.id ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-200"}`}>
+                          {option.imageUrl && <img src={option.imageUrl} alt="" loading="lazy" className="size-20 rounded-lg object-contain" />}
                           <span><span className="block font-semibold">{option.label}</span>{!option.available ? "Indisponível" : option.price !== undefined ? fmt(option.price) : null}</span>
                         </Link>
                       ))}
@@ -418,7 +418,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                           {catalogAttributeChoices(matrix, axis, (option) => Boolean(option.active !== false && option.sku?.trim() && (option.stock ?? 0) > 0), (option) => option.images?.[0]).map((choice) => (
                             <button key={choice.value} type="button" aria-pressed={attributes[axis] === choice.value}
                               disabled={!choice.available}
-                              className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-sm disabled:opacity-40 ${attributes[axis] === choice.value ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-200 bg-white"}`}
+                              className={`inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-center text-xs disabled:opacity-40 ${choice.photo ? "w-24" : ""} ${attributes[axis] === choice.value ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-200 bg-white"}`}
                               onClick={() => {
                                 setSelectedAttributes({ product: product.slug, values: chooseCatalogAttribute(matrix, attributes, axis, choice.value,
                                   (option) => Boolean(option.active !== false && option.sku?.trim() && (option.stock ?? 0) > 0),
@@ -426,7 +426,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                                 setSelectedImage(0);
                                 setQuantity(1);
                               }}>
-                              {choice.photo && <img src={choice.photo} alt="" className="h-10 w-10 rounded object-contain" />}
+                              {choice.photo && <img src={choice.photo} alt="" className="size-20 rounded-lg object-contain" />}
                               {choice.value}{!choice.available && " · Indisponível"}
                             </button>
                           ))}
@@ -457,7 +457,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                               : "border-gray-200 bg-white text-gray-700 hover:-translate-y-0.5 hover:border-pink-300 hover:shadow-sm"
                           }`}
                         >
-                          {(v.images?.[0] || v.imageFile) && <img src={v.images?.[0] ?? (v.imageFile?.startsWith("/") ? v.imageFile : `/uploads/products/${v.imageFile}`)} alt="" loading="lazy" className="inline-block h-10 w-10 object-contain align-middle mr-2" />}
+                          {(v.images?.[0] || v.imageFile) && <img src={v.images?.[0] ?? (v.imageFile?.startsWith("/") ? v.imageFile : `/uploads/products/${v.imageFile}`)} alt="" loading="lazy" className="mx-auto mt-2 block size-20 rounded-lg object-contain" />}
                           {!(v.images?.[0] || v.imageFile) && v.color && (
                             <span className="mr-1.5 inline-block h-3 w-3 rounded-full border border-black/10 align-middle" style={{ backgroundColor: v.color }} />
                           )}
