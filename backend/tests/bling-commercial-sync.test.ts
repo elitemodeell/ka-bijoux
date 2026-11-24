@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { expect, it } from "vitest";
-import { isBlingHostedPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
+import { isBlingHostedPhoto, isKaCatalogAsset, officialDatabaseGallery } from "@/lib/catalog-photo";
 
 const { approvedOwnPhotoUrls, buildBlingImportWrite, commercialProductUpdate, commercialVariationWrite } =
   createRequire(import.meta.url)("../scripts/bling-commercial-sync.cjs");
@@ -65,4 +65,13 @@ it("does not treat a Bling photo or a visually rejected photo as an approved KA 
     blingActive: true,
     description: "pendente",
   }).update).toMatchObject({ publicationStatus: "MISSING_IMAGE", active: false });
+});
+
+it("admits store assets and rejects third-party hosts even when their path looks like Supabase", () => {
+  expect(isKaCatalogAsset(ownPhoto)).toBe(true);
+  expect(isKaCatalogAsset("/imagens/produto-01.jpg")).toBe(true);
+  expect(isKaCatalogAsset("//orgbling.s3.amazonaws.com/uploads/products/foto.png")).toBe(false);
+  const foreign = "https://other.test/storage/v1/object/public/products/catalog/foto.png";
+  expect(isKaCatalogAsset(foreign)).toBe(false);
+  expect(approvedOwnPhotoUrls([{ url: foreign }], p47)).toEqual([]);
 });

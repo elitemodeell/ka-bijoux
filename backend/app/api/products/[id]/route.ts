@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { belongsToCatalogGallery, isOfficialCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
+import { belongsToCatalogGallery, isKaCatalogAsset, isOfficialCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
 import { catalogGalleryForPurchase, catalogPurchaseBlocked, catalogPurchaseModes, validateCatalogOptions } from "@/lib/catalog-purchase-mode";
 import { planKaPhotoPush } from "@/lib/bling-photo-push";
 import { z } from "zod";
@@ -179,15 +179,16 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const updated = await prisma.$transaction(async (tx) => {
       const current = await tx.product.findUnique({
         where: { id: params.id },
-        select: { purchaseMode: true, sharedVariationStock: true, variations: true, images: { select: { url: true } } },
+        select: { sku: true, purchaseMode: true, sharedVariationStock: true, variations: true, images: { select: { url: true } } },
       });
       const mode = rest.purchaseMode === undefined ? current?.purchaseMode : rest.purchaseMode;
       const priorGallery = new Set(current?.images.map(({ url }) => url));
       const priorOptions = new Map(current?.variations.map(({ id, imageUrl }) => [id, imageUrl]));
-      if (images?.some(({ url }) => !priorGallery.has(url) && !belongsToCatalogGallery(url, params.id)) ||
-          variations?.some(({ id, imageUrl }) => imageUrl && priorOptions.get(id ?? "") !== imageUrl &&
-            !belongsToCatalogGallery(imageUrl, params.id, id))) {
-        return { catalogValidation: "Uma foto está vinculada a outro produto ou variação." } as const;
+      if (images?.some(({ url }) => !priorGallery.has(url) && (!isKaCatalogAsset(url) ||
+          !isOfficialCatalogPhoto(url, params.id, rest.sku ?? current?.sku))) ||
+          variations?.some(({ id, imageUrl, sku }) => imageUrl && priorOptions.get(id ?? "") !== imageUrl &&
+            (!isKaCatalogAsset(imageUrl) || !isOfficialCatalogPhoto(imageUrl, params.id, sku, id)))) {
+        return { catalogValidation: "Use uma foto oficial da KA Bijoux que corresponda ao produto ou à opção." } as const;
       }
       const options = (variations ?? current?.variations ?? []).map((option) => ({
         ...option,

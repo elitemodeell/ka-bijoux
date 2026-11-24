@@ -38,7 +38,7 @@ async function collect(read) {
   }
 
   for (const product of products.values()) {
-    if (product.formato !== "V" && (product.imagemURL || product.midia)) continue;
+    if (product.formato !== "V") continue;
     const detail = await read(`/produtos/${product.id}`);
     if (detail.id !== product.id) throw new Error("Detalhe do Bling retornou outro produto.");
     products.set(product.id, { ...product, ...detail });
@@ -59,7 +59,12 @@ async function collect(read) {
     stock.push(...result);
   }
 
-  return { capturedAt: new Date().toISOString(), products: [...products.values()], stock };
+  function withoutMedia({ imagemURL, midia, variacoes, ...commercial }) {
+    return Array.isArray(variacoes)
+      ? { ...commercial, variacoes: variacoes.map(withoutMedia) }
+      : commercial;
+  }
+  return { capturedAt: new Date().toISOString(), products: [...products.values()].map(withoutMedia), stock };
 }
 
 async function writeSnapshot(token) {

@@ -30,7 +30,7 @@ function buildReviewQueue(baseline, current) {
     let photoEvidence = "aguardando-snapshot";
     if (current && !after) photoEvidence = "ausente-no-snapshot";
     if (after) {
-      photoEvidence = after.blingPhotoCount || after.localPhotoCount
+      photoEvidence = after.localPhotoCount
         ? "referencia-localizada-requer-conferencia"
         : "referencia-nao-localizada";
     }

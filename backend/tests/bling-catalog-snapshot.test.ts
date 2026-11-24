@@ -6,12 +6,11 @@ const { compare } = createRequire(import.meta.url)("../scripts/reconcile-bling-c
 const { buildReviewQueue } = createRequire(import.meta.url)("../scripts/bling-catalog-review.cjs");
 const { prepareSync, applyInHomologation } = createRequire(import.meta.url)("../scripts/plan-bling-sync.cjs");
 
-it("keeps parent and child identities, consults missing images and queries stock by individual ID", async () => {
+it("keeps parent and child identities and queries stock by individual ID without saving ERP media", async () => {
   const read = vi.fn(async (endpoint: string, _params?: URLSearchParams) => {
     switch (endpoint) {
-      case "/produtos": return [{ id: 10, formato: "V" }, { id: 30, formato: "S" }];
+      case "/produtos": return [{ id: 10, formato: "V" }, { id: 30, formato: "S", midia: { imagens: {} } }];
       case "/produtos/10": return { id: 10, variacoes: [{ id: 20, codigo: "CHILD", imagemURL: "https://example.test/child.jpg" }] };
-      case "/produtos/30": return { id: 30, midia: { imagens: { internas: [] } } };
       case "/estoques/saldos": return [{ produto: { id: 20 }, saldoFisicoTotal: 2 }];
       default: throw new Error("Unexpected endpoint");
     }
@@ -20,8 +19,10 @@ it("keeps parent and child identities, consults missing images and queries stock
   const result = await collect(read);
   expect(result.products).toEqual(expect.arrayContaining([
     expect.objectContaining({ id: 20, idProdutoPai: 10, codigo: "CHILD" }),
-    expect.objectContaining({ id: 30, midia: { imagens: { internas: [] } } }),
+    { id: 30, formato: "S" },
   ]));
+  expect(JSON.stringify(result.products)).not.toMatch(/imagemURL|midia|child\.jpg/);
+  expect(read).not.toHaveBeenCalledWith("/produtos/30");
   expect(result.stock).toEqual([{ produto: { id: 20 }, saldoFisicoTotal: 2 }]);
   const params = read.mock.calls.at(-1)?.[1];
   expect(params?.getAll("idsProdutos[]").sort()).toEqual(["10", "20", "30"]);
@@ -34,8 +35,8 @@ it("keeps authentication on the fixed HTTPS origin", async () => {
     expect.objectContaining({ redirect: "error", headers: { Authorization: "Bearer test-token", Accept: "application/json" } }));
 });
 
-it("requires the correct parent before linking a variant by SKU and flags repeated images", () => {
-  const image = "https://example.test/item.jpg";
+it("requires the correct parent and uses only matched store photos as visual evidence", () => {
+  const image = "/uploads/products/item.jpg";
   const report = compare({
     products: [
       { id: 1, nome: "Produto", codigo: "P", imagemURL: image },
@@ -49,8 +50,8 @@ it("requires the correct parent before linking a variant by SKU and flags repeat
   ]);
   expect(report.candidates.map((row: { localId: string | null }) => row.localId)).toEqual(["parent", "child", null]);
   expect(report.duplicateNames).toEqual([[1, 2]]);
-  expect(report.sharedImages).toEqual([[1, 2]]);
-  expect(report.noPhotoEvidence).toEqual([3]);
+  expect(report.sharedImages).toEqual([]);
+  expect(report.noPhotoEvidence).toEqual([1, 3]);
 });
 
 it("consolidates the existing audit by Bling ID without treating a photo reference as verified", () => {
@@ -62,7 +63,7 @@ it("consolidates the existing audit by Bling ID without treating a photo referen
   expect(buildReviewQueue(baseline)[0].photoEvidence).toBe("aguardando-snapshot");
   expect(buildReviewQueue(baseline, { candidates: [{ blingId: 1, blingPhotoCount: 1 }] })).toMatchObject([
     { blingId: "1", reasons: ["nome-repetido", "referencia-de-imagem-compartilhada", "imagem-ausente-no-export"],
-      photoEvidence: "referencia-localizada-requer-conferencia" },
+      photoEvidence: "referencia-nao-localizada" },
     { blingId: "2", photoEvidence: "ausente-no-snapshot" },
   ]);
 });

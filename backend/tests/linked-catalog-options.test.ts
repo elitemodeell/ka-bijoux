@@ -33,9 +33,18 @@ describe("linked catalog options", () => {
     expect(await linkedCatalogOptions(light.id, { active: true })).toEqual([]);
   });
 
-  it("does not show an option if its confirmed photo is no longer attached", async () => {
+  it("keeps the confirmed option available by text when its photo is no longer attached", async () => {
     findMany.mockResolvedValue([light, { ...dark, images: light.images }]);
-    expect(await linkedCatalogOptions(light.id)).toEqual([]);
+    expect(await linkedCatalogOptions(light.id)).toMatchObject([
+      { id: light.id, imageUrl: light.images[0].url },
+      { id: dark.id, imageUrl: null, available: false },
+    ]);
+  });
+
+  it("uses an approved replacement cover stored under the exact product", async () => {
+    const url = `https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/catalog/products/${light.id}/gallery/approved.webp`;
+    findMany.mockResolvedValue([{ ...light, images: [{ url }, ...light.images] }, dark]);
+    expect(await linkedCatalogOptions(light.id)).toMatchObject([{ id: light.id, imageUrl: url }, { id: dark.id }]);
   });
 
   it("keeps web-only families out of the mobile selector before querying products", async () => {

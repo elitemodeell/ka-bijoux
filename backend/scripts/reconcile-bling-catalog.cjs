@@ -1,6 +1,7 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { PrismaClient } = require("@prisma/client");
+const { approvedOwnPhotoUrls } = require("./bling-commercial-sync.cjs");
 
 const files = path.resolve(__dirname, "../../tmp");
 
@@ -17,18 +18,12 @@ function key(value) {
   return value == null ? "" : String(value).trim();
 }
 
-function photos(product) {
-  const images = product.midia?.imagens;
-  return [...new Set([product.imagemURL, ...(images?.internas ?? []).map((image) => image.link),
-    ...(images?.externas ?? []).map((image) => image.link)].filter(Boolean))];
-}
-
 function compare(snapshot, local) {
   const byId = indexBy(local.filter((entry) => !entry.parentId), (row) => key(row.blingId));
   const bySku = indexBy(local, (row) => key(row.sku));
   const erpSkus = indexBy(snapshot.products, (row) => key(row.codigo));
   const inventory = indexBy(snapshot.stock, (entry) => key(entry.produto?.id));
-  const photosByProduct = new Map(snapshot.products.map((entry) => [entry.id, photos(entry)]));
+  const photosByProduct = new Map(local.map((entry) => [entry.id, approvedOwnPhotoUrls(entry.images, entry.parentId ?? entry.id)]));
   const candidates = snapshot.products.map((entry) => {
     const idMatches = byId.get(key(entry.id)) ?? [];
     const sku = key(entry.codigo);
@@ -45,19 +40,18 @@ function compare(snapshot, local) {
       localId: match?.id ?? null,
       skuMismatch: Boolean(match && key(match.sku) !== sku),
       disposition: match ? "identidade-confirmada" : "revisar-identidade",
-      blingPhotoCount: photosByProduct.get(entry.id).length,
-      localPhotoCount: match ? match.images.length : null,
+      localPhotoCount: match ? photosByProduct.get(match.id).length : null,
       stockRecords: inventory.get(key(entry.id))?.length ?? 0,
     };
   });
   const normalizedNames = indexBy(candidates, (row) => key(row.name).normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase());
-  const sharedPhotos = indexBy(candidates.flatMap((row) => photosByProduct.get(row.blingId).map((image) => ({ image, id: row.blingId }))), (item) => item.image);
+  const sharedPhotos = indexBy(candidates.flatMap((row) => (photosByProduct.get(row.localId) ?? []).map((image) => ({ image, id: row.blingId }))), (item) => item.image);
   return {
     capturedAt: snapshot.capturedAt,
     candidates,
     duplicateNames: [...normalizedNames.values()].filter((rows) => rows.length > 1).map((rows) => rows.map((row) => row.blingId)),
     sharedImages: [...sharedPhotos.values()].filter((rows) => rows.length > 1).map((rows) => rows.map((row) => row.id)),
-    noPhotoEvidence: candidates.filter((row) => !row.blingPhotoCount && !row.localPhotoCount).map((row) => row.blingId),
+    noPhotoEvidence: candidates.filter((row) => !row.localPhotoCount).map((row) => row.blingId),
   };
 }
 

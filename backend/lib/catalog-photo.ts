@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import quarantinedPhotos from "@/data/catalog-photo-quarantine.json";
 import quarantinedLinks from "@/data/catalog-photo-link-quarantine.json";
 import type { Prisma } from "@prisma/client";
+export { isKaCatalogAsset } from "./catalog-photo-origin.cjs";
 
 const allowedFormats = new Set(["jpeg", "png", "webp"]);
 const targetSize = 1200;

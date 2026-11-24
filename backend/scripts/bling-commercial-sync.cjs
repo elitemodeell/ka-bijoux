@@ -1,20 +1,12 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const { isKaCatalogAsset } = require("../lib/catalog-photo-origin.cjs");
 
 const dataDir = path.join(__dirname, "../data");
 const quarantinedPhotos = new Set(JSON.parse(fs.readFileSync(path.join(dataDir, "catalog-photo-quarantine.json"), "utf8")));
 const quarantinedLinks = JSON.parse(fs.readFileSync(path.join(dataDir, "catalog-photo-link-quarantine.json"), "utf8"));
 const productFields = ["price", "stock", "sku", "blingId", "description", "importedAt", "active", "publicationStatus", "enrichmentStatus"];
 const variationFields = ["name", "value", "sku", "stock", "priceModifier", "active"];
-
-function isBlingHostedPhoto(url) {
-  try {
-    const host = new URL(url, "https://catalog.invalid").hostname.toLowerCase();
-    return host === "bling.com.br" || host.endsWith(".bling.com.br") || host.includes("orgbling");
-  } catch {
-    return false;
-  }
-}
 
 function isQuarantinedOwnPhoto(url, productId) {
   try {
@@ -28,7 +20,7 @@ function isQuarantinedOwnPhoto(url, productId) {
 function approvedOwnPhotoUrls(images, productId) {
   return (images ?? [])
     .map((image) => (typeof image === "string" ? image : image?.url))
-    .filter((url) => Boolean(url) && !isBlingHostedPhoto(url) && !isQuarantinedOwnPhoto(url, productId));
+    .filter((url) => Boolean(url) && isKaCatalogAsset(url) && !isQuarantinedOwnPhoto(url, productId));
 }
 
 function pick(fields, source) {
@@ -77,5 +69,4 @@ module.exports = {
   buildBlingImportWrite,
   commercialProductUpdate,
   commercialVariationWrite,
-  isBlingHostedPhoto,
 };

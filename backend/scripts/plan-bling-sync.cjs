@@ -39,7 +39,7 @@ function prepareSync(snapshot, catalog) {
       blingId: row.blingId, parentBlingId: row.parentBlingId, sku: row.sku, name: row.name,
       localId: row.localId, parentId: parentId ?? null, stock,
       price: validPrice(live.preco) ? live.preco : null,
-      photoReferences: row.blingPhotoCount, categoryId: live.categoria?.id ?? null,
+      localPhotoCount: row.localPhotoCount, categoryId: live.categoria?.id ?? null,
     };
 
     if (row.skuMismatch || !validPrice(live.preco)) return { ...evidence, action: "review-identity-or-price" };

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { isKaCatalogAsset, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { Prisma, ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -299,6 +299,10 @@ export async function POST(req: NextRequest) {
     await requireAdmin(req);
     const body = await req.json();
     const data = createSchema.parse(body);
+    if (data.images.some(({ url }) => !isKaCatalogAsset(url)) ||
+        data.variations.some(({ imageUrl }) => imageUrl && !isKaCatalogAsset(imageUrl))) {
+      return apiError("Use apenas fotos oficiais da KA Bijoux.", 422);
+    }
     const validation = validateCatalogOptions(data.purchaseMode, false, data.variations);
     if (validation) return apiError(validation, 422);
 

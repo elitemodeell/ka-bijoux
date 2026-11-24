@@ -470,9 +470,14 @@ export default function EditarProdutoPage() {
                 </p>
               )}
 
-              {variations.some((v) => v.active && (!v.sku.trim() || !v.imageUrl)) && (
+              {variations.some((v) => v.active && !v.sku.trim()) && (
                 <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
-                  Há opções ativas sem SKU ou foto própria. Confira o cadastro e o estoque antes de divulgar essas opções.
+                  Há opções ativas sem SKU. Confira o cadastro e o estoque antes de divulgar essas opções.
+                </p>
+              )}
+              {variations.some((v) => v.active && !v.imageUrl) && (
+                <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+                  Fotos pendentes: {variations.filter((v) => v.active && !v.imageUrl).map((v) => v.value.trim() || v.sku.trim() || "Opção sem nome").join(", ")}. Opções confirmadas podem aparecer por texto até receberem uma foto própria.
                 </p>
               )}
 
@@ -492,7 +497,7 @@ export default function EditarProdutoPage() {
                             <img src={v.imageUrl} alt={v.value} className="h-full w-full object-cover" />
                           ) : (
                             <div className="flex h-full items-center justify-center text-xs text-gray-300 text-center leading-tight p-1">
-                              Sem foto
+                              Foto pendente
                             </div>
                           )}
                         </div>

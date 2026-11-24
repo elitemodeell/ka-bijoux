@@ -334,38 +334,7 @@ function normalizeBlingRow(row) {
     situacao: String(row.situacao ?? "").trim() || "I",
     estoque: Math.max(0, Number.parseInt(String(row.estoque ?? "0"), 10) || 0),
     categoria: String(row.categoria ?? "").trim(),
-    imageUrl: extractBlingImageUrl(row),
   };
-}
-
-function extractBlingImageUrl(row) {
-  const keys = [
-    "imagem",
-    "imagens",
-    "image",
-    "images",
-    "imageUrl",
-    "urlImagem",
-    "url_imagem",
-    "foto",
-    "fotos",
-    "midia",
-    "media",
-    "mediaUrl",
-    "anexo",
-    "anexos",
-  ];
-
-  for (const key of keys) {
-    const value = String(row[key] ?? row[key.toLowerCase()] ?? "").trim();
-    if (!value) continue;
-    const first = value.split(/[|,]/).map((item) => item.trim()).find(Boolean);
-    if (!first) continue;
-    if (/^https?:\/\//i.test(first) || first.startsWith("/")) return first;
-    if (/\.(png|jpe?g|webp)$/i.test(first)) return `/uploads/products/${first}`;
-  }
-
-  return "";
 }
 
 async function findExistingProduct(product) {

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { belongsToCatalogGallery } from "@/lib/catalog-photo";
+import { isKaCatalogAsset, isOfficialCatalogPhoto } from "@/lib/catalog-photo";
 import { planKaPhotoPush } from "@/lib/bling-photo-push";
 import { z } from "zod";
 import { ProductPublicationStatus } from "@prisma/client";
@@ -18,12 +18,11 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     await requireAdmin(req);
     const body = await req.json();
     const data = replaceImageSchema.parse(body);
-    if (!belongsToCatalogGallery(data.url, params.id)) {
-      return apiError("A foto está vinculada a outro produto ou variação.", 422);
-    }
-
     const product = await prisma.product.findUnique({ where: { id: params.id } });
     if (!product) return apiError("Produto nao encontrado.", 404);
+    if (!isKaCatalogAsset(data.url) || !isOfficialCatalogPhoto(data.url, product.id, product.sku)) {
+      return apiError("Use uma foto oficial da KA Bijoux que corresponda ao produto.", 422);
+    }
 
     await prisma.$transaction([
       prisma.productImage.deleteMany({ where: { productId: product.id, OR: [{ order: 0 }, { url: data.url }] } }),

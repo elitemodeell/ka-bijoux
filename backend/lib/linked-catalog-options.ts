@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import groups from "@/data/linked-catalog-options.json";
-import { officialDatabaseGallery } from "@/lib/catalog-photo";
+import { isKaCatalogAsset, officialDatabaseGallery } from "@/lib/catalog-photo";
 import { catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
 import { prisma } from "@/lib/prisma";
 import { getValidPromotionalPrice } from "@/lib/store-rules";
@@ -29,10 +29,12 @@ export async function linkedCatalogOptions(productId: string, mobileScope?: Pris
     if (!product || product.sku !== sku || product._count.variations ||
         catalogPurchaseBlocked(product.purchaseMode, product._count.variations)) return [];
     const gallery = officialDatabaseGallery(product.images.map(({ url }) => url), id, sku);
-    if (!gallery.includes(photo)) return [];
+    const cover = gallery[0];
+    const managedCover = cover && isKaCatalogAsset(cover) && new URL(cover, "https://catalog.invalid").pathname
+      .startsWith(`/storage/v1/object/public/products/catalog/products/${id}/gallery/`);
     return [{
       id, label, slug: product.slug, available: product.stock > 0,
-      imageUrl: photo,
+      imageUrl: managedCover ? cover : gallery.includes(photo) ? photo : null,
       price: getValidPromotionalPrice(Number(product.price), product.promotionalPrice?.toString()) ?? Number(product.price),
     }];
   });
