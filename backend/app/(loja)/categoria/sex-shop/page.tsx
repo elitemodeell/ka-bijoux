@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getPublicCategoryName } from "@/lib/catalog";
 import { findBlingProductForSource, type ProductCardProduct } from "@/lib/bling-catalog";
+import { blingPublicProductWhere } from "@/lib/bling-catalog-visibility";
 import { getProductCatalogLine, matchesCatalogLine } from "@/lib/product-line";
 import { getDiscountPercentage, getInstallmentInfo, getValidPromotionalPrice } from "@/lib/store-rules";
 import ProductVariantImage from "@/components/loja/ProductVariantImage";
@@ -338,6 +339,7 @@ async function getAdultProducts(params: AdultProductParams) {
 async function fetchAdultProducts({ promo, onlyNew, sort, query, page: requestedPage }: AdultProductParams) {
   const where: Prisma.ProductWhereInput = {
     active: true,
+    ...blingPublicProductWhere(),
     category: { slug: "sex-shop" },
     images: { some: {} },
   };

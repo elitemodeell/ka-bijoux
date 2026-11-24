@@ -6,12 +6,13 @@ import { apiError, apiSuccess } from "@/lib/utils";
 import { isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { catalogGalleryForPurchase, catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
 import { linkedCatalogOptions } from "@/lib/linked-catalog-options";
+import { blingPublicProductWhere, blingPublicVariationWhere } from "@/lib/bling-catalog-visibility";
 
 const detailInclude = Prisma.validator<Prisma.ProductInclude>()({
   category: true,
   subcategory: true,
   images: { where: visibleCatalogPhotos, orderBy: { order: "asc" } },
-  variations: { where: { active: true }, orderBy: { order: "asc" } },
+  variations: { where: blingPublicVariationWhere(), orderBy: { order: "asc" } },
 });
 
 function serialize<T extends {
@@ -52,6 +53,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
   try {
     const product = await prisma.product.findFirst({
       where: googlePlayProductWhere({
+        ...blingPublicProductWhere(),
         OR: [{ id: params.id }, { slug: params.id }],
       }),
       include: detailInclude,
@@ -61,6 +63,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
 
     const related = await prisma.product.findMany({
       where: googlePlayProductWhere({
+        ...blingPublicProductWhere(),
         categoryId: product.categoryId,
         id: { not: product.id },
       }),
@@ -68,7 +71,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
         category: true,
         subcategory: true,
         images: { where: visibleCatalogPhotos, orderBy: { order: "asc" }, take: 1 },
-        variations: { where: { active: true }, orderBy: { order: "asc" } },
+        variations: { where: blingPublicVariationWhere(), orderBy: { order: "asc" } },
       },
       take: 6,
     });

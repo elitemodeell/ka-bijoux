@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import groups from "@/data/linked-catalog-options.json";
 import { isKaCatalogAsset, officialDatabaseGallery } from "@/lib/catalog-photo";
 import { catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
+import { blingPublicProductWhere } from "@/lib/bling-catalog-visibility";
 import { prisma } from "@/lib/prisma";
 import { getValidPromotionalPrice } from "@/lib/store-rules";
 
@@ -16,7 +17,7 @@ export async function linkedCatalogOptions(productId: string, mobileScope?: Pris
   if (!group || (mobileScope && group.webOnly)) return [];
 
   const products = await prisma.product.findMany({
-    where: { AND: [{ id: { in: group.options.map(({ id }) => id) }, active: true }, mobileScope ?? {}] },
+    where: { AND: [{ id: { in: group.options.map(({ id }) => id) }, active: true }, blingPublicProductWhere(), mobileScope ?? {}] },
     select: {
       id: true, sku: true, slug: true, stock: true, price: true, promotionalPrice: true, purchaseMode: true,
       _count: { select: { variations: { where: { active: true } } } },

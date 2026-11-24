@@ -4,6 +4,25 @@ export const catalogPurchaseModes = ["SINGLE", "OPTIONS", "REVIEW"] as const;
 
 export const catalogReviewMessage = "Este produto está em revisão e ainda não pode ser comprado.";
 
+type CommercialRecord = { sku?: string | null; blingId?: string | null; blingVerifiedSku?: string | null };
+
+export function blingCommercialEnforced() {
+  return process.env.KA_BLING_COMMERCIAL_ENFORCED === "true";
+}
+
+export function hasBlingCommercialIdentity(record: CommercialRecord) {
+  const sku = record.sku?.trim();
+  return Boolean(sku && record.blingId && /^[1-9]\d*$/.test(record.blingId) && record.blingVerifiedSku === sku);
+}
+
+export function blingCommercialBlocked(
+  product: CommercialRecord & { sharedVariationStock?: boolean },
+  variation?: CommercialRecord | null,
+) {
+  return blingCommercialEnforced() && (!hasBlingCommercialIdentity(product) ||
+    Boolean(variation && (!hasBlingCommercialIdentity(variation) || product.sharedVariationStock)));
+}
+
 export function catalogPurchaseBlocked(mode: string | null | undefined, optionCount: number) {
   return mode === "REVIEW" || (mode === "OPTIONS" && optionCount === 0) ||
     (mode === "SINGLE" && optionCount > 0);

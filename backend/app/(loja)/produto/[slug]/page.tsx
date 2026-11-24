@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { isOfficialCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
 import { catalogGalleryForPurchase, catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
 import { linkedCatalogOptions } from "@/lib/linked-catalog-options";
+import { blingPublicProductWhere, blingPublicVariationWhere } from "@/lib/bling-catalog-visibility";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { Prisma } from "@prisma/client";
@@ -41,7 +42,7 @@ const detailProductInclude = {
   category: true,
   subcategory: true,
   images: { orderBy: { order: "asc" as const } },
-  variations: { where: { active: true } },
+  variations: { where: blingPublicVariationWhere() },
 };
 
 type DetailDbRecord = Prisma.ProductGetPayload<{ include: typeof detailProductInclude }>;
@@ -141,6 +142,7 @@ async function fetchDbProduct(lookup: ProductLookup): Promise<DbProduct | null> 
       prisma.product.findMany({
         where: {
           active: true,
+          ...blingPublicProductWhere(),
           OR: identityFilters,
         },
         include: detailProductInclude,
@@ -315,6 +317,7 @@ export default async function ProdutoPage(props: PageProps) {
     const relatedDbProducts = await prisma.product.findMany({
       where: {
         active: true,
+        ...blingPublicProductWhere(),
         id: { not: dbProduct.id },
         OR: dbProduct.subcategoryId
           ? [{ subcategoryId: dbProduct.subcategoryId }, { categoryId: dbProduct.categoryId }]

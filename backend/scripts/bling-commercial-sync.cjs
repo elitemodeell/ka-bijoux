@@ -5,8 +5,8 @@ const { isKaCatalogAsset } = require("../lib/catalog-photo-origin.cjs");
 const dataDir = path.join(__dirname, "../data");
 const quarantinedPhotos = new Set(JSON.parse(fs.readFileSync(path.join(dataDir, "catalog-photo-quarantine.json"), "utf8")));
 const quarantinedLinks = JSON.parse(fs.readFileSync(path.join(dataDir, "catalog-photo-link-quarantine.json"), "utf8"));
-const productFields = ["price", "stock", "sku", "blingId", "description", "importedAt", "active", "publicationStatus", "enrichmentStatus", "purchaseMode"];
-const variationFields = ["name", "value", "sku", "stock", "priceModifier", "active"];
+const productFields = ["price", "promotionalPrice", "stock", "sku", "blingId", "blingVerifiedSku", "description", "importedAt", "active", "publicationStatus", "enrichmentStatus", "purchaseMode"];
+const variationFields = ["name", "value", "sku", "blingId", "blingVerifiedSku", "stock", "priceModifier", "active"];
 
 function isQuarantinedOwnPhoto(url, productId) {
   try {

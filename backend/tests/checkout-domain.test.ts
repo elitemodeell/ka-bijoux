@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   CheckoutError,
   calculateCouponDiscountCents,
@@ -37,6 +37,26 @@ function expectCheckoutCode(action: () => unknown, code: string) {
     expect(error).toMatchObject({ code });
   }
 }
+
+it("requires a verified Bling SKU and independent stock for an option at checkout", () => {
+  vi.stubEnv("KA_BLING_COMMERCIAL_ENFORCED", "true");
+  try {
+    const item = cartItem();
+    expectCheckoutCode(() => priceCart([item]), "CATALOG_REVIEW_REQUIRED");
+    Object.assign(item.product, { sku: "ERP-1", blingId: "100", blingVerifiedSku: "ERP-1" });
+    expect(priceCart([item])[0].sku).toBe("ERP-1");
+    item.variationId = "local-option";
+    item.variation = { id: "local-option", productId: item.productId, sku: "ERP-2", active: true,
+      stock: 2, name: "Cor", value: "Azul", priceModifier: 1 };
+    expectCheckoutCode(() => priceCart([item]), "CATALOG_REVIEW_REQUIRED");
+    Object.assign(item.variation, { blingId: "101", blingVerifiedSku: "ERP-2" });
+    expect(priceCart([item])[0]).toMatchObject({ sku: "ERP-2", unitPriceCents: 2090 });
+    item.product.sharedVariationStock = true;
+    expectCheckoutCode(() => priceCart([item]), "CATALOG_REVIEW_REQUIRED");
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});
 
 function coupon(overrides: Partial<CouponSnapshot> = {}): CouponSnapshot {
   return {

@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
+import { blingPublicProductWhere, blingPublicVariationWhere } from "@/lib/bling-catalog-visibility";
 import { prisma } from "@/lib/prisma";
 import { getPublicCategoryName } from "@/lib/catalog";
 import {
@@ -42,7 +43,7 @@ const homeProductSelect = Prisma.validator<Prisma.ProductSelect>()({
     select: { url: true, alt: true },
   },
   variations: {
-    where: { active: true },
+    where: blingPublicVariationWhere(),
     orderBy: { order: "asc" },
     select: {
       id: true,
@@ -80,6 +81,7 @@ async function fetchPool(filters: FetchPoolOptions): Promise<ProductCardProduct[
   if (filters.isNew) extra.isNew = true;
   if (filters.promo) extra.promotionalPrice = { gt: 0, lt: prisma.product.fields.price };
 
+  Object.assign(extra, blingPublicProductWhere());
   const where = filters.googlePlay
     ? googlePlayProductWhere(extra)
     : {

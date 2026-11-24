@@ -6,6 +6,7 @@ import { googlePlayProductWhere } from "@/lib/google-play-distribution";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
+import { blingPublicProductWhere, blingPublicVariationWhere } from "@/lib/bling-catalog-visibility";
 
 const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
   id: true,
@@ -31,7 +32,7 @@ const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
     select: { url: true, alt: true },
   },
   variations: {
-    where: { active: true },
+    where: blingPublicVariationWhere(),
     orderBy: { order: "asc" },
     select: {
       id: true,
@@ -120,7 +121,7 @@ export async function GET(req: NextRequest) {
     const searchAlternatives = search ? catalogSearchAlternatives(search) : [];
     if (searchAlternatives.length) filters.OR = searchAlternatives;
 
-    const where = googlePlayProductWhere(filters);
+    const where = googlePlayProductWhere({ AND: [filters, blingPublicProductWhere()] });
     const orderBy: Prisma.ProductOrderByWithRelationInput =
       sort === "price_asc" || sort === "menor-preco"
         ? { price: "asc" }

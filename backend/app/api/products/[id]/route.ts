@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
 import { belongsToCatalogGallery, isKaCatalogAsset, isOfficialCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
 import { catalogGalleryForPurchase, catalogPurchaseBlocked, catalogPurchaseModes, validateCatalogOptions } from "@/lib/catalog-purchase-mode";
+import { blingPublicProductWhere, blingPublicVariationWhere } from "@/lib/bling-catalog-visibility";
+import { blingCommercialEnforced, hasBlingCommercialIdentity } from "@/lib/catalog-purchase-mode";
 import { planKaPhotoPush } from "@/lib/bling-photo-push";
 import { z } from "zod";
 import { ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
@@ -22,10 +24,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     let isAdmin = false;
     try { await requireAdmin(req); isAdmin = true; } catch { /* public request */ }
 
-    const activeFilter = isAdmin ? {} : { active: true };
+    const activeFilter = isAdmin ? {} : { active: true, ...blingPublicProductWhere() };
     const detailInclude = isAdmin
       ? { ...productInclude, variations: { orderBy: { order: "asc" as const } } }
-      : productInclude;
+      : { ...productInclude, variations: { ...productInclude.variations, where: blingPublicVariationWhere() } };
 
     // First: direct lookup by UUID or slug
     let product = await prisma.product.findFirst({
@@ -179,8 +181,25 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const updated = await prisma.$transaction(async (tx) => {
       const current = await tx.product.findUnique({
         where: { id: params.id },
-        select: { sku: true, purchaseMode: true, sharedVariationStock: true, variations: true, images: { select: { url: true } } },
+        select: { sku: true, blingId: true, price: true, promotionalPrice: true, stock: true, purchaseMode: true,
+          sharedVariationStock: true, variations: true, images: { select: { url: true } } },
       });
+      if (blingCommercialEnforced() && current) {
+        const same = (input: unknown, saved: unknown) => input === undefined || String(input ?? "") === String(saved ?? "");
+        const productCommercialChanged = !same(rest.sku, current.sku) || !same(rest.blingId, current.blingId) ||
+          !same(rest.price, current.price) || !same(rest.promotionalPrice, current.promotionalPrice) ||
+          !same(rest.stock, current.stock) || !same(rest.sharedVariationStock, current.sharedVariationStock) ||
+          !same(rest.purchaseMode, current.purchaseMode);
+        const invalidOption = variations?.some((option) => {
+          const stored = current.variations.find(({ id }) => id === option.id);
+          return !stored || (option.active && !hasBlingCommercialIdentity(stored)) ||
+            !same(option.sku, stored.sku) || !same(option.name, stored.name) || !same(option.value, stored.value) ||
+            !same(option.stock, stored.stock) || !same(option.priceModifier, stored.priceModifier);
+        });
+        if (productCommercialChanged || invalidOption) {
+          return { catalogValidation: "Os dados comerciais devem ser atualizados pelo Bling." } as const;
+        }
+      }
       const mode = rest.purchaseMode === undefined ? current?.purchaseMode : rest.purchaseMode;
       const priorGallery = new Set(current?.images.map(({ url }) => url));
       const priorOptions = new Map(current?.variations.map(({ id, imageUrl }) => [id, imageUrl]));

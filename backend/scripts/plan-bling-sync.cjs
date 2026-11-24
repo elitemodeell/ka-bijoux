@@ -138,30 +138,36 @@ async function applyInHomologation(snapshot, url) {
       for (const row of actions) {
         if (row.action === "protect-parent-stock") {
           await tx.product.update({ where: { id: row.localId },
-            data: commercialProductUpdate({ purchaseMode: row.purchaseMode }) });
+            data: commercialProductUpdate({ purchaseMode: row.purchaseMode, blingId: String(row.blingId),
+              blingVerifiedSku: row.sku, promotionalPrice: null }) });
           continue;
         }
         if (row.action === "update-product") {
           const product = byId.get(row.localId);
           await tx.product.update({ where: { id: product.id }, data: commercialProductUpdate({
             blingId: String(row.blingId),
+            blingVerifiedSku: row.sku,
             price: row.price,
+            promotionalPrice: null,
             stock: row.stock,
           }) });
           continue;
         }
         const parent = byId.get(row.parentId);
-        const priceModifier = new Prisma.Decimal(row.price).minus(parent.promotionalPrice ?? parent.price);
+        const priceModifier = new Prisma.Decimal(row.price).minus(parent.price);
         if (row.action === "stage-variation") {
           if (!row.activeInBling) continue;
           await tx.productVariation.create({ data: {
             productId: row.parentId,
-            ...commercialVariationWrite({ sku: row.sku, name: "Opção", value: row.label, priceModifier, stock: row.stock, active: false }),
+            ...commercialVariationWrite({ sku: row.sku, blingId: String(row.blingId), blingVerifiedSku: row.sku,
+              name: "Opção", value: row.label, priceModifier, stock: row.stock, active: false }),
           } });
           continue;
         }
         await tx.productVariation.update({ where: { id: row.localId, productId: row.parentId },
           data: commercialVariationWrite({
+            blingId: String(row.blingId),
+            blingVerifiedSku: row.activeInBling ? row.sku : null,
             priceModifier,
             stock: parent.sharedVariationStock ? undefined : row.stock,
             active: row.activeInBling ? undefined : false,
@@ -169,9 +175,9 @@ async function applyInHomologation(snapshot, url) {
       }
       for (const row of plan.restrictions) {
         if (row.parentId) {
-          await tx.productVariation.update({ where: { id: row.id, productId: row.parentId }, data: { active: false } });
+          await tx.productVariation.update({ where: { id: row.id, productId: row.parentId }, data: { active: false, blingVerifiedSku: null } });
         } else {
-          await tx.product.update({ where: { id: row.id }, data: { active: false, purchaseMode: "REVIEW" } });
+          await tx.product.update({ where: { id: row.id }, data: { active: false, purchaseMode: "REVIEW", blingVerifiedSku: null } });
         }
       }
       return { actions: actions.length, categoryCorrections: categories.length, backup };

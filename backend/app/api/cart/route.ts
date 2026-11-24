@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { catalogCartPhoto, isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
-import { catalogPurchaseBlocked, catalogReviewMessage } from "@/lib/catalog-purchase-mode";
+import { blingCommercialBlocked, catalogPurchaseBlocked, catalogReviewMessage } from "@/lib/catalog-purchase-mode";
 import { NextRequest } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
@@ -126,6 +126,7 @@ export async function POST(req: NextRequest) {
           throw new CartMutationError(catalogReviewMessage, 409);
         }
         const variation = product.variations.find((candidate) => candidate.id === variationId);
+        if (blingCommercialBlocked(product, variation)) throw new CartMutationError(catalogReviewMessage, 409);
         if (variation && !variation.sku?.trim()) {
           throw new CartMutationError("Esta opção está temporariamente indisponível.", 409);
         }

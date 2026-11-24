@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { catalogPurchaseBlocked, catalogReviewMessage } from "@/lib/catalog-purchase-mode";
+import { blingCommercialBlocked, catalogPurchaseBlocked, catalogReviewMessage } from "@/lib/catalog-purchase-mode";
 import { catalogOptionLabel } from "@shared/catalog-options";
 
 export class CheckoutError extends Error {
@@ -23,6 +23,8 @@ export interface CatalogCartItem {
     id: string;
     name: string;
     sku?: string | null;
+    blingId?: string | null;
+    blingVerifiedSku?: string | null;
     active: boolean;
     price: unknown;
     promotionalPrice: unknown | null;
@@ -37,6 +39,8 @@ export interface CatalogCartItem {
     name: string;
     value: string;
     sku: string | null;
+    blingId?: string | null;
+    blingVerifiedSku?: string | null;
     active: boolean;
     stock: number;
     priceModifier: unknown;
@@ -115,7 +119,8 @@ export function priceCart(items: CatalogCartItem[]): PricedCheckoutItem[] {
       );
     }
 
-    if (catalogPurchaseBlocked(item.product.purchaseMode, item.product._count?.variations ?? 0)) {
+    if (blingCommercialBlocked(item.product, item.variation) ||
+        catalogPurchaseBlocked(item.product.purchaseMode, item.product._count?.variations ?? 0)) {
       throw new CheckoutError(catalogReviewMessage, 409, "CATALOG_REVIEW_REQUIRED");
     }
     let stock = item.product.stock;

@@ -4,7 +4,8 @@ import { Prisma, ProductEnrichmentStatus, ProductImportSource, ProductPublicatio
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { catalogSearchAlternatives } from "@/lib/catalog-search";
-import { catalogPurchaseBlocked, catalogPurchaseModes, validateCatalogOptions } from "@/lib/catalog-purchase-mode";
+import { blingCommercialEnforced, catalogPurchaseBlocked, catalogPurchaseModes, validateCatalogOptions } from "@/lib/catalog-purchase-mode";
+import { blingPublicProductWhere, blingPublicVariationWhere } from "@/lib/bling-catalog-visibility";
 import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError, slugify } from "@/lib/utils";
 import { getPublicCategoryName } from "@/lib/catalog";
@@ -49,7 +50,7 @@ const productListSelect = {
     select: { url: true, alt: true },
   },
   variations: {
-    where: { active: true },
+    where: blingPublicVariationWhere(),
     orderBy: { order: "asc" as const },
     select: {
       id: true,
@@ -83,7 +84,7 @@ export async function GET(req: NextRequest) {
     const maxPrice = searchParams.get("maxPrice");
     const withImage = searchParams.get("withImage") === "true";
     const catalogLine = getRequestedCatalogLine(searchParams, category, subcategory);
-    const where: Prisma.ProductWhereInput = { active: true };
+    const where: Prisma.ProductWhereInput = { active: true, ...blingPublicProductWhere() };
     if (category) where.category = { slug: category };
     if (subcategory) where.subcategory = { slug: subcategory };
     if (featured) where.featured = true;
@@ -306,6 +307,9 @@ export async function POST(req: NextRequest) {
     await requireAdmin(req);
     const body = await req.json();
     const data = createSchema.parse(body);
+    if (blingCommercialEnforced() && (data.active || data.variations.length)) {
+      return apiError("Importe o cadastro comercial do Bling antes de publicar o produto ou cadastrar opções.", 422);
+    }
     if (data.images.some(({ url }) => !isKaCatalogAsset(url)) ||
         data.variations.some(({ imageUrl }) => imageUrl && !isKaCatalogAsset(imageUrl))) {
       return apiError("Use apenas fotos oficiais da KA Bijoux.", 422);
