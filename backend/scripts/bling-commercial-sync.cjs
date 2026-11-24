@@ -5,7 +5,7 @@ const { isKaCatalogAsset } = require("../lib/catalog-photo-origin.cjs");
 const dataDir = path.join(__dirname, "../data");
 const quarantinedPhotos = new Set(JSON.parse(fs.readFileSync(path.join(dataDir, "catalog-photo-quarantine.json"), "utf8")));
 const quarantinedLinks = JSON.parse(fs.readFileSync(path.join(dataDir, "catalog-photo-link-quarantine.json"), "utf8"));
-const productFields = ["price", "stock", "sku", "blingId", "description", "importedAt", "active", "publicationStatus", "enrichmentStatus"];
+const productFields = ["price", "stock", "sku", "blingId", "description", "importedAt", "active", "publicationStatus", "enrichmentStatus", "purchaseMode"];
 const variationFields = ["name", "value", "sku", "stock", "priceModifier", "active"];
 
 function isQuarantinedOwnPhoto(url, productId) {
@@ -39,12 +39,28 @@ function commercialVariationWrite(source) {
   return pick(variationFields, source ?? {});
 }
 
-function buildBlingImportWrite({ existing, price, stock, sku, blingActive, description }) {
+function blingStockPolicy({ format, hasChildren, activeOptions, purchaseMode }) {
+  const parent = format === "V" || hasChildren;
+  if (!parent) return { useParentBalance: true };
+  return {
+    useParentBalance: false,
+    purchaseMode: purchaseMode === "REVIEW" || !activeOptions ? "REVIEW" : "OPTIONS",
+  };
+}
+
+function buildBlingImportWrite({ existing, price, stock, sku, blingActive, description, format }) {
+  const policy = blingStockPolicy({
+    format,
+    hasChildren: Boolean(existing?.variations?.length),
+    activeOptions: existing?.variations?.some((option) => option.active),
+    purchaseMode: existing?.purchaseMode,
+  });
   const images = existing?.images ?? [];
   const approved = approvedOwnPhotoUrls(images, existing?.id);
   const update = commercialProductUpdate({
     price,
-    stock,
+    stock: policy.useParentBalance ? stock : undefined,
+    purchaseMode: policy.purchaseMode,
     sku: sku || undefined,
     importedAt: new Date(),
     ...(blingActive ? {} : { active: false }),
@@ -55,7 +71,8 @@ function buildBlingImportWrite({ existing, price, stock, sku, blingActive, descr
   }
   const create = commercialProductUpdate({
     price,
-    stock,
+    stock: policy.useParentBalance ? stock : 0,
+    purchaseMode: policy.purchaseMode,
     sku,
     description,
     active: false,
@@ -65,6 +82,7 @@ function buildBlingImportWrite({ existing, price, stock, sku, blingActive, descr
 }
 
 module.exports = {
+  blingStockPolicy,
   approvedOwnPhotoUrls,
   buildBlingImportWrite,
   commercialProductUpdate,

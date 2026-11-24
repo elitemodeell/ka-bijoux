@@ -100,6 +100,7 @@ async function main() {
       existing,
       price: normalizedRow.preco,
       stock: normalizedRow.estoque,
+      format: normalizedRow.formato,
       sku: normalizedRow.codigo || null,
       blingActive: normalizedRow.situacao === "A",
       description: TECH_PLACEHOLDER,
@@ -332,6 +333,7 @@ function normalizeBlingRow(row) {
     codigo: String(row.codigo ?? "").trim(),
     preco: Number(String(row.preco ?? "0").replace(",", ".")) || 0,
     situacao: String(row.situacao ?? "").trim() || "I",
+    formato: String(row.formato ?? "").trim(),
     estoque: Math.max(0, Number.parseInt(String(row.estoque ?? "0"), 10) || 0),
     categoria: String(row.categoria ?? "").trim(),
   };
@@ -340,7 +342,7 @@ function normalizeBlingRow(row) {
 async function findExistingProduct(product) {
   return prisma.product.findUnique({
     where: { blingId: product.id },
-    include: { images: { orderBy: { order: "asc" } } },
+    include: { images: { orderBy: { order: "asc" } }, variations: { select: { active: true } } },
   });
 }
 

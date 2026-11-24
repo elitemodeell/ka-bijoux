@@ -1,7 +1,7 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { compare } = require("./reconcile-bling-catalog.cjs");
-const { commercialProductUpdate, commercialVariationWrite } = require("./bling-commercial-sync.cjs");
+const { blingStockPolicy, commercialProductUpdate, commercialVariationWrite } = require("./bling-commercial-sync.cjs");
 
 const directory = path.resolve(__dirname, "../../tmp");
 const key = (value) => String(value ?? "").trim();
@@ -18,6 +18,7 @@ function prepareSync(snapshot, catalog) {
   const balances = new Map(snapshot.stock.map((row) => [key(row.produto?.id), row.saldoVirtualTotal]));
   const localById = new Map(catalog.map((row) => [row.id, row]));
   const children = new Set(catalog.map((row) => row.parentId).filter(Boolean));
+  const activeChildren = new Set(catalog.filter((row) => row.parentId && row.active).map((row) => row.parentId));
   const skuCount = new Map();
   for (const row of snapshot.products) {
     const sku = key(row.codigo);
@@ -45,8 +46,14 @@ function prepareSync(snapshot, catalog) {
     if (row.skuMismatch || !validPrice(live.preco)) return { ...evidence, action: "review-identity-or-price" };
     if (!row.parentBlingId) {
       if (!row.localId) return { ...evidence, action: "review-unlinked-product" };
-      if (live.formato === "S" && !children.has(row.localId)) {
+      const local = localById.get(row.localId);
+      const policy = blingStockPolicy({ format: live.formato, hasChildren: children.has(row.localId),
+        activeOptions: activeChildren.has(row.localId), purchaseMode: local.purchaseMode });
+      if (live.formato === "S" && policy.useParentBalance) {
         return { ...evidence, action: "update-product" };
+      }
+      if (live.formato === "V") {
+        return { ...evidence, purchaseMode: policy.purchaseMode, action: "protect-parent-stock" };
       }
       return { ...evidence, action: "review-parent-or-shared-stock" };
     }
@@ -95,7 +102,7 @@ async function applyInHomologation(snapshot, url) {
       const plan = prepareSync(snapshot, catalog);
       const byId = new Map(products.map((product) => [product.id, product]));
       const actions = plan.records.filter((record) =>
-        ["update-product", "update-variation", "stage-variation"].includes(record.action));
+        ["update-product", "update-variation", "stage-variation", "protect-parent-stock"].includes(record.action));
       const productIds = new Set(actions.map((row) => row.parentId ?? row.localId));
       const categories = [];
       for (const correction of plan.editorialCorrections) {
@@ -113,6 +120,11 @@ async function applyInHomologation(snapshot, url) {
           data: { categoryId: category.categoryId, subcategoryId: null } });
       }
       for (const row of actions) {
+        if (row.action === "protect-parent-stock") {
+          await tx.product.update({ where: { id: row.localId },
+            data: commercialProductUpdate({ purchaseMode: row.purchaseMode }) });
+          continue;
+        }
         if (row.action === "update-product") {
           const product = byId.get(row.localId);
           await tx.product.update({ where: { id: product.id }, data: commercialProductUpdate({
@@ -135,7 +147,7 @@ async function applyInHomologation(snapshot, url) {
         await tx.productVariation.update({ where: { id: row.localId, productId: row.parentId },
           data: commercialVariationWrite({
             priceModifier,
-            stock: Math.min(variation.stock, row.stock),
+            stock: parent.sharedVariationStock ? undefined : Math.min(variation.stock, row.stock),
             active: row.activeInBling ? undefined : false,
           }) });
       }

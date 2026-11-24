@@ -10,6 +10,17 @@ const ownPhoto = "https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/pub
 const blingPhoto = "https://orgbling.s3.amazonaws.com/p47.jpg";
 const auditedPhoto = "/uploads/products/6-fone-bluetooth-p47-com-opcoes-de-cores-3104000004296-azul.png";
 
+it("never imports a Bling parent balance as generic sellable stock", () => {
+  const parent = { format: "V", price: 12, stock: 182, sku: "parent", blingActive: true, description: "" };
+  const pending = buildBlingImportWrite({ ...parent, existing: { images: [{ url: ownPhoto }] } });
+  expect(pending.update).toMatchObject({ purchaseMode: "REVIEW" });
+  expect(pending.update).not.toHaveProperty("stock");
+  expect(pending.create).toMatchObject({ stock: 0, purchaseMode: "REVIEW" });
+  const configured = buildBlingImportWrite({ ...parent, existing: { images: [{ url: ownPhoto }], variations: [{ active: true }] } });
+  expect(configured.update).toMatchObject({ purchaseMode: "OPTIONS" });
+  expect(configured.update).not.toHaveProperty("stock");
+});
+
 it("keeps stock and description sync from changing any gallery photo", () => {
   const gallery = [{ id: "kept", url: ownPhoto, order: 0 }];
   const write = buildBlingImportWrite({

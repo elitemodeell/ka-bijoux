@@ -401,7 +401,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                       {product.linkedOptions?.map((option) => (
                         <Link key={option.id} href={`/produto/${option.slug ?? option.id}`}
                           aria-current={option.id === product.id ? "page" : undefined}
-                          className={`inline-flex w-24 flex-col items-center gap-1 rounded-xl border p-2 text-center text-xs ${option.id === product.id ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-200"}`}>
+                          className={`inline-flex w-[100px] flex-col items-center gap-1 rounded-xl border p-2 text-center text-xs ${option.id === product.id ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-200"}`}>
                           {option.imageUrl && <img src={option.imageUrl} alt="" loading="lazy" className="size-20 rounded-lg object-contain" />}
                           <span><span className="block font-semibold">{option.label}</span>{!option.available ? "Indisponível" : option.price !== undefined ? fmt(option.price) : null}</span>
                         </Link>
@@ -418,7 +418,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                           {catalogAttributeChoices(matrix, axis, (option) => Boolean(option.active !== false && option.sku?.trim() && (option.stock ?? 0) > 0), (option) => option.images?.[0]).map((choice) => (
                             <button key={choice.value} type="button" aria-pressed={attributes[axis] === choice.value}
                               disabled={!choice.available}
-                              className={`inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-center text-xs disabled:opacity-40 ${choice.photo ? "w-24" : ""} ${attributes[axis] === choice.value ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-200 bg-white"}`}
+                              className={`inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-center text-xs disabled:opacity-40 ${choice.photo ? "w-[100px]" : ""} ${attributes[axis] === choice.value ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-200 bg-white"}`}
                               onClick={() => {
                                 setSelectedAttributes({ product: product.slug, values: chooseCatalogAttribute(matrix, attributes, axis, choice.value,
                                   (option) => Boolean(option.active !== false && option.sku?.trim() && (option.stock ?? 0) > 0),
