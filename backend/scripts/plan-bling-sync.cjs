@@ -7,15 +7,23 @@ const directory = path.resolve(__dirname, "../../tmp");
 const key = (value) => String(value ?? "").trim();
 const validPrice = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0;
 
-function individualBalance(entry, balances) {
-  const balance = balances.get(key(entry.id)) ?? entry.estoque?.saldoVirtualTotal;
+function individualBalance(entry, balanceRow, warehouseIds) {
+  if (warehouseIds.length) {
+    const selected = warehouseIds.map((id) =>
+      balanceRow?.depositos?.find((warehouse) => key(warehouse.id) === id)?.saldoVirtual);
+    if (!selected.every(Number.isSafeInteger)) return null;
+    return Math.max(0, selected.reduce((sum, balance) => sum + balance, 0));
+  }
+  const balance = balanceRow?.saldoVirtualTotal ?? entry.estoque?.saldoVirtualTotal;
   return Number.isSafeInteger(balance) && balance >= 0 ? balance : null;
 }
 
 function prepareSync(snapshot, catalog) {
+  const warehouseIds = [...new Set((snapshot.sellableWarehouseIds ?? []).map(key))];
+  if (warehouseIds.some((id) => !/^[1-9]\d*$/.test(id))) throw new Error("Depósito comercial inválido.");
   const identity = compare(snapshot, catalog);
   const productById = new Map(snapshot.products.map((row) => [key(row.id), row]));
-  const balances = new Map(snapshot.stock.map((row) => [key(row.produto?.id), row.saldoVirtualTotal]));
+  const balances = new Map(snapshot.stock.map((row) => [key(row.produto?.id), row]));
   const localById = new Map(catalog.map((row) => [row.id, row]));
   const children = new Set(catalog.map((row) => row.parentId).filter(Boolean));
   const activeChildren = new Set(catalog.filter((row) => row.parentId && row.active).map((row) => row.parentId));
@@ -35,7 +43,7 @@ function prepareSync(snapshot, catalog) {
     const parentId = confirmedParents.get(key(row.parentBlingId));
     const details = parent?.variacoes?.find((variant) => key(variant.id) === key(row.blingId));
     const label = key(details?.variacao?.nome);
-    const stock = individualBalance(live, balances);
+    const stock = individualBalance(live, balances.get(key(live.id)), warehouseIds);
     const explicitSku = Boolean(row.sku && skuCount.get(row.sku) === 1);
     const evidence = {
       blingId: row.blingId, parentBlingId: row.parentBlingId, sku: row.sku, name: row.name,
@@ -59,13 +67,17 @@ function prepareSync(snapshot, catalog) {
       if (live.formato === "V") {
         return { ...evidence, purchaseMode: policy.purchaseMode, action: "protect-parent-stock" };
       }
+      if (live.formato === "S" && policy.useParentBalance && stock === null) {
+        return { ...evidence, action: "retain-until-stock-confirmed" };
+      }
       return { ...evidence, action: "review-parent-or-shared-stock" };
     }
     if (row.localId && !localById.get(row.localId)?.parentId) {
       if (live.situacao !== "A" || parent?.formato !== "V" || parent.situacao !== "A" ||
-          !details || !label || stock === null || children.has(row.localId)) {
+          children.has(row.localId)) {
         return { ...evidence, action: "review-standalone-child" };
       }
+      if (stock === null) return { ...evidence, action: "retain-until-stock-confirmed" };
       return { ...evidence, parentId: null, action: "update-product" };
     }
     if (!parentId || !explicitSku || parent?.formato !== "V" || !details || !label) {
@@ -89,7 +101,8 @@ function prepareSync(snapshot, catalog) {
     /\bip\s*11\s*pro\s*max\b/i.test(row.name));
   const editorialCorrections = max ? [{ localId: max.localId, blingId: max.blingId,
     fromCategory: "bijuterias", toCategory: "capinhas-acessorios-celular" }] : [];
-  const confirmed = new Set(records.filter((row) => ["update-product", "protect-parent-stock", "update-variation"].includes(row.action) &&
+  const confirmed = new Set(records.filter((row) => ["update-product", "protect-parent-stock", "update-variation",
+    "retain-until-stock-confirmed", "review-shared-stock"].includes(row.action) &&
     row.activeInBling !== false).map((row) => row.localId));
   const restrictions = snapshot.completeCatalog === true ? catalog.filter((row) => row.active && !confirmed.has(row.id))
     .map((row) => ({ id: row.id, parentId: row.parentId ?? null })) : [];
@@ -189,6 +202,9 @@ async function applyInHomologation(snapshot, url) {
 
 async function main() {
   const snapshot = JSON.parse(await fs.readFile(path.join(directory, "bling-catalog-snapshot.local.json"), "utf8"));
+  if (process.env.KA_BLING_SELLABLE_WAREHOUSE_IDS) {
+    snapshot.sellableWarehouseIds = process.env.KA_BLING_SELLABLE_WAREHOUSE_IDS.split(",").map(key);
+  }
   if (process.argv.includes("--apply-homologation")) {
     const url = process.env.CATALOG_HOMOLOGATION_DATABASE_URL;
     if (!url) throw new Error("Conexão de homologação local ausente.");

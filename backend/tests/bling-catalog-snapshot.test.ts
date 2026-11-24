@@ -86,5 +86,12 @@ it("never transfers a parent's quantity to child SKUs or associates children to 
   expect(prepareSync({ products, stock: [], completeCatalog: true }, [...catalog, localOnly]).restrictions)
     .toEqual([{ id: "local-only", parentId: "max" }]);
   expect(prepareSync({ products, stock: [] }, [...catalog, localOnly]).restrictions).toEqual([]);
+  const standalone = { id: "standalone", sku: "MAX-BLACK", active: true, images: [] };
+  const deposits = [{ produto: { id: 3 }, saldoVirtualTotal: 9, depositos: [{ id: 42, saldoVirtual: 2 }, { id: 43, saldoVirtual: 7 }] }];
+  expect(prepareSync({ products, stock: deposits, sellableWarehouseIds: [42] }, [...catalog, standalone]).records[2])
+    .toMatchObject({ localId: "standalone", action: "update-product", stock: 2, parentId: null });
+  const missingDeposit = prepareSync({ products, stock: deposits, sellableWarehouseIds: [99], completeCatalog: true }, [...catalog, standalone]);
+  expect(missingDeposit.records[2]).toMatchObject({ action: "retain-until-stock-confirmed", stock: null });
+  expect(missingDeposit.restrictions).toEqual([]);
   await expect(applyInHomologation({}, "postgresql://example.test/ka_bijoux_test")).rejects.toThrow("homologação");
 });

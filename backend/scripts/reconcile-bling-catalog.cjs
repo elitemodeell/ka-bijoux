@@ -22,6 +22,7 @@ function compare(snapshot, local) {
   const byId = indexBy(local.filter((entry) => !entry.parentId), (row) => key(row.blingId));
   const bySku = indexBy(local, (row) => key(row.sku));
   const erpSkus = indexBy(snapshot.products, (row) => key(row.codigo));
+  const erpIds = indexBy(snapshot.products, (row) => key(row.id));
   const inventory = indexBy(snapshot.stock, (entry) => key(entry.produto?.id));
   const photosByProduct = new Map(local.map((entry) => [entry.id, approvedOwnPhotoUrls(entry.images, entry.parentId ?? entry.id)]));
   const candidates = snapshot.products.map((entry) => {
@@ -29,9 +30,12 @@ function compare(snapshot, local) {
     const sku = key(entry.codigo);
     const skuMatches = bySku.get(sku) ?? [];
     const parent = (byId.get(key(entry.idProdutoPai)) ?? [])[0];
+    const remoteParents = erpIds.get(key(entry.idProdutoPai)) ?? [];
     const uniqueSku = sku && erpSkus.get(sku)?.length === 1 && skuMatches.length === 1 ? skuMatches[0] : undefined;
     const byExactSku = uniqueSku && (entry.idProdutoPai
-      ? parent && parent.id === uniqueSku.parentId
+      ? (uniqueSku.parentId ? parent?.id === uniqueSku.parentId :
+        (!uniqueSku.blingId || key(uniqueSku.blingId) === key(entry.id)) &&
+        remoteParents.length === 1 && remoteParents[0].situacao === "A" && remoteParents[0].formato === "V")
       : !uniqueSku.parentId && (!uniqueSku.blingId || key(uniqueSku.blingId) === key(entry.id)));
     const idConflict = idMatches.length > 1 || (idMatches[0] && sku && skuMatches.some((match) => match.id !== idMatches[0].id));
     const match = idConflict ? undefined : (idMatches[0] ?? (byExactSku ? uniqueSku : undefined));
