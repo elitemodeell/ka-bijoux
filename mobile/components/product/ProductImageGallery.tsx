@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -39,7 +39,7 @@ export function ProductImageGallery({
 }: Props) {
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<string>>(null);
-  const modalListRef = useRef<FlatList<string>>(null);
+  const lastModalIndex = useRef(selectedIndex);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalIndex, setModalIndex] = useState(selectedIndex);
   const [pagingEnabled, setPagingEnabled] = useState(true);
@@ -51,10 +51,11 @@ export function ProductImageGallery({
   }, [images, selectedIndex]);
 
   function indexFromScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
-    return Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+    return Math.max(0, Math.min(images.length - 1, Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH)));
   }
 
   function openAt(index: number) {
+    lastModalIndex.current = index;
     setModalIndex(index);
     setPagingEnabled(true);
     setModalVisible(true);
@@ -63,7 +64,7 @@ export function ProductImageGallery({
   function close() {
     setModalVisible(false);
     setPagingEnabled(true);
-    onSelectedIndexChange(modalIndex);
+    onSelectedIndexChange(lastModalIndex.current);
   }
 
   if (!images.length) {
@@ -111,10 +112,9 @@ export function ProductImageGallery({
         </View>
       </View>
 
-      <Modal visible={modalVisible} animationType="fade" transparent={false} onRequestClose={close}>
-        <View style={styles.modal}>
+      {modalVisible && <Modal visible animationType="fade" transparent={false} onRequestClose={close}>
+        <GestureHandlerRootView style={styles.modal} accessibilityViewIsModal>
           <FlatList
-            ref={modalListRef}
             data={images}
             horizontal
             pagingEnabled
@@ -127,7 +127,13 @@ export function ProductImageGallery({
             maxToRenderPerBatch={2}
             windowSize={3}
             getItemLayout={(_, index) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * index, index })}
-            onMomentumScrollEnd={(event) => setModalIndex(indexFromScroll(event))}
+            onScroll={(event) => { lastModalIndex.current = indexFromScroll(event); }}
+            scrollEventThrottle={16}
+            onMomentumScrollEnd={(event) => {
+              const index = indexFromScroll(event);
+              lastModalIndex.current = index;
+              setModalIndex(index);
+            }}
             renderItem={({ item, index }) => (
               <ZoomableImage
                 uri={item}
@@ -137,21 +143,26 @@ export function ProductImageGallery({
             )}
           />
 
-          <Pressable
-            onPress={close}
-            style={[styles.closeButton, { top: insets.top + 10 }]}
-            accessibilityRole="button"
-            accessibilityLabel="Fechar imagem ampliada"
-          >
-            <Ionicons name="close" size={26} color="#fff" />
-          </Pressable>
+          <View pointerEvents="box-none" style={[styles.modalControls, {
+            top: insets.top + 10,
+            left: insets.left + 16,
+            right: insets.right + 16,
+          }]}>
+            <Pressable onPress={close} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Voltar à página do produto">
+              <Ionicons name="arrow-back" size={20} color="#141414" />
+              <Text style={styles.controlText}>Voltar</Text>
+            </Pressable>
+            <Pressable onPress={close} style={styles.closeButton} accessibilityRole="button" accessibilityLabel="Fechar imagem ampliada">
+              <Ionicons name="close" size={26} color="#141414" />
+            </Pressable>
+          </View>
 
           <View style={[styles.modalHint, { bottom: insets.bottom + 18 }]} pointerEvents="none">
-            <Text style={styles.modalPosition}>{modalIndex + 1} / {images.length}</Text>
+            <Text style={styles.modalPosition} accessibilityLiveRegion="polite" accessibilityLabel={`Foto ${modalIndex + 1} de ${images.length}`}>{modalIndex + 1} / {images.length}</Text>
             <Text style={styles.modalHintText}>Deslize para os lados · use dois dedos para ampliar</Text>
           </View>
-        </View>
-      </Modal>
+        </GestureHandlerRootView>
+      </Modal>}
     </>
   );
 }
@@ -271,18 +282,36 @@ const styles = StyleSheet.create({
   zoomPage: { width: SCREEN_WIDTH, height: SCREEN_HEIGHT, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   zoomImage: { width: SCREEN_WIDTH, height: SCREEN_HEIGHT },
   zoomImageContent: { width: "100%", height: "100%" },
-  closeButton: {
+  modalControls: {
     position: "absolute",
-    right: 16,
     zIndex: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backButton: {
+    minHeight: 46,
+    borderRadius: 23,
+    backgroundColor: "#fff",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
+  controlText: { color: "#141414", fontWeight: "700", fontSize: 14 },
+  closeButton: {
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ddd",
     alignItems: "center",
     justifyContent: "center",
   },
-  modalHint: { position: "absolute", left: 20, right: 20, alignItems: "center" },
-  modalPosition: { color: "#fff", fontSize: 14, fontWeight: "900", marginBottom: 4 },
-  modalHintText: { color: "rgba(255,255,255,0.72)", fontSize: 12, textAlign: "center" },
+  modalHint: { position: "absolute", left: 20, right: 20, alignItems: "center", gap: 6 },
+  modalPosition: { color: "#141414", backgroundColor: "#fff", borderRadius: 16, overflow: "hidden", paddingHorizontal: 12, paddingVertical: 6, fontSize: 14, fontWeight: "900" },
+  modalHintText: { color: "#fff", backgroundColor: "#242024", borderRadius: 12, overflow: "hidden", paddingHorizontal: 10, paddingVertical: 5, fontSize: 12, textAlign: "center" },
 });

@@ -10,6 +10,7 @@ const tabs = read("app/(tabs)/_layout.tsx");
 const addresses = read("app/endereco/index.tsx");
 const product = read("app/produto/[id].tsx");
 const productCard = read("components/product/ProductCard.tsx");
+const gallery = read("components/product/ProductImageGallery.tsx");
 const cart = read("app/(tabs)/carrinho.tsx");
 const checkoutStore = read("stores/checkoutStore.ts");
 const cartStore = read("stores/cartStore.ts");
@@ -44,5 +45,9 @@ assert.ok(payment.includes("submitLock.current"), "Pagamento não bloqueia duplo
 assert.ok(payment.includes("Tentar novamente"), "Pagamento não oferece nova tentativa idempotente");
 assert.ok(payment.includes("response?.data?.code"), "Pagamento não diferencia falhas do checkout");
 assert.ok(tabs.includes("60 + insets.bottom"), "Barra de abas não inclui a safe area do sistema");
+assert.match(gallery, /name="close" size=\{26\} color="#141414"/, "Botão de fechar precisa ter ícone escuro");
+assert.match(gallery, /closeButton: \{[^}]*backgroundColor: "#fff"/, "Botão de fechar precisa de fundo branco opaco");
+assert.ok(gallery.includes("onSelectedIndexChange(lastModalIndex.current)") && !gallery.includes("cartApi"),
+  "Fechar a galeria deve restaurar a foto sem chamar o carrinho");
 
-console.log("Commerce mobile: 29/29 verificações aprovadas.");
+console.log("Commerce mobile: 32/32 verificações aprovadas.");

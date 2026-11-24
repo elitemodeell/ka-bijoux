@@ -3,10 +3,16 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import Header from "@/components/admin/Header";
 import Image from "next/image";
+import { visibleCatalogPhotos } from "@/lib/catalog-photo";
 
 async function getProducts() {
   return prisma.product.findMany({
-    include: { category: true, subcategory: true, images: { orderBy: { order: "asc" }, take: 1 } },
+    include: {
+      category: true,
+      subcategory: true,
+      images: { where: visibleCatalogPhotos, orderBy: { order: "asc" }, take: 1 },
+      _count: { select: { variations: { where: { active: true, imageUrl: null } } } },
+    },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -22,11 +28,12 @@ const enrichmentLabels: Record<string, { label: string; className: string }> = {
   MANUAL_REVIEWED: { label: "Revisado", className: "bg-pink-100 text-pink-700" },
 };
 
-export default async function ProdutosPage({ searchParams }: { searchParams: Promise<{ revisao?: string }> }) {
+export default async function ProdutosPage({ searchParams }: { searchParams: Promise<{ revisao?: string; fotos?: string }> }) {
   const params = await searchParams;
   const allProducts = await getProducts();
   const pending = allProducts.filter((product) => product.active && (!product.purchaseMode || product.purchaseMode === "REVIEW"));
-  const products = params.revisao === "true" ? pending : allProducts;
+  const pendingPhotos = allProducts.filter((product) => product.active && (!product.images.length || product._count.variations > 0));
+  const products = params.fotos === "pendentes" ? pendingPhotos : params.revisao === "true" ? pending : allProducts;
 
   return (
     <div>
@@ -43,6 +50,7 @@ export default async function ProdutosPage({ searchParams }: { searchParams: Pro
       <div className="mb-4 flex flex-wrap gap-3">
         <Link href="/admin/produtos" className="btn-ghost">Todos os produtos</Link>
         <Link href="/admin/produtos?revisao=true" className="btn-ghost">Revisão comercial ({pending.length})</Link>
+        <Link href="/admin/produtos?fotos=pendentes" className="btn-ghost">Fotos oficiais pendentes ({pendingPhotos.length})</Link>
       </div>
 
       <div className="card overflow-hidden p-0">
@@ -79,6 +87,8 @@ export default async function ProdutosPage({ searchParams }: { searchParams: Pro
                       <div>
                         <p className="font-medium text-gray-900">{product.name}</p>
                         <p className="text-xs text-gray-400">{product.sku || product.slug}</p>
+                        {!product.images.length && <p className="text-xs text-amber-800">Foto do produto pendente</p>}
+                        {product._count.variations > 0 && <p className="text-xs text-amber-800">Opções sem foto: {product._count.variations}</p>}
                       </div>
                     </div>
                   </td>
