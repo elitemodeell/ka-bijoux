@@ -520,6 +520,21 @@ export default function EditarProdutoPage() {
 
                       {/* Campos da variação */}
                       <div className="w-full min-w-0 flex-1 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <label className="col-span-full block text-xs font-medium text-gray-600">
+                          Foto oficial da opção
+                          <select
+                            className="input-field mt-1 py-1.5 text-sm"
+                            value={v.imageUrl}
+                            onChange={(e) => updateVariation(v._key, "imageUrl", e.target.value)}
+                            disabled={v._uploading}
+                          >
+                            <option value="">Sem fotografia individual</option>
+                            {v.imageUrl && !images.includes(v.imageUrl) && <option value={v.imageUrl}>Foto individual carregada</option>}
+                            {[...new Set(images)].map((url) => (
+                              <option key={url} value={url}>Foto {images.indexOf(url) + 1} da galeria</option>
+                            ))}
+                          </select>
+                        </label>
                         <div>
                           <label className="mb-1 block text-xs font-medium text-gray-500">Tipo</label>
                           <input
