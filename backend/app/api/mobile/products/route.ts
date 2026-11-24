@@ -5,6 +5,7 @@ import { catalogSearchAlternatives } from "@/lib/catalog-search";
 import { googlePlayProductWhere } from "@/lib/google-play-distribution";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
 
 const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
   id: true,
@@ -15,6 +16,7 @@ const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
   price: true,
   promotionalPrice: true,
   stock: true,
+  purchaseMode: true,
   sharedVariationStock: true,
   assortedColors: true,
   fixedColor: true,
@@ -45,11 +47,15 @@ const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
 });
 
 function serializeProduct(product: Prisma.ProductGetPayload<{ select: typeof cardSelect }>) {
-  const images = product.images.filter(({ url }) => isOfficialCatalogPhoto(url, product.id, product.sku));
+  const { purchaseMode, ...card } = product;
+  const purchaseReviewRequired = catalogPurchaseBlocked(purchaseMode, product.variations.length);
+  const images = card.images.filter(({ url }) => isOfficialCatalogPhoto(url, card.id, card.sku));
   return {
-    ...product,
+    ...card,
+    purchaseReviewRequired,
+    stock: purchaseReviewRequired ? 0 : card.stock,
     images,
-    variations: product.variations.map((variation) => ({
+    variations: (purchaseReviewRequired ? [] : card.variations).map((variation) => ({
       ...variation,
       stock: product.sharedVariationStock ? product.stock : variation.stock,
       imageUrl: variation.imageUrl && isOfficialCatalogPhoto(variation.imageUrl, product.id, variation.sku, variation.id)
