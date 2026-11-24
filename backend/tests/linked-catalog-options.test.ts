@@ -41,6 +41,14 @@ describe("linked catalog options", () => {
     ]);
   });
 
+  it("never offers an option for sale without its confirmed photo, even with positive stock", async () => {
+    findMany.mockResolvedValue([light, { ...dark, stock: 8, images: [] }]);
+    expect(await linkedCatalogOptions(light.id)).toMatchObject([
+      { id: light.id, imageUrl: light.images[0].url, available: true },
+      { id: dark.id, imageUrl: null, available: false },
+    ]);
+  });
+
   it("uses an approved replacement cover stored under the exact product", async () => {
     const url = `https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/catalog/products/${light.id}/gallery/approved.webp`;
     findMany.mockResolvedValue([{ ...light, images: [{ url }, ...light.images] }, dark]);

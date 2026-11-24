@@ -32,9 +32,10 @@ export async function linkedCatalogOptions(productId: string, mobileScope?: Pris
     const cover = gallery[0];
     const managedCover = cover && isKaCatalogAsset(cover) && new URL(cover, "https://catalog.invalid").pathname
       .startsWith(`/storage/v1/object/public/products/catalog/products/${id}/gallery/`);
+    const imageUrl = managedCover ? cover : gallery.includes(photo) ? photo : null;
     return [{
-      id, label, slug: product.slug, available: product.stock > 0,
-      imageUrl: managedCover ? cover : gallery.includes(photo) ? photo : null,
+      id, label, slug: product.slug, available: product.stock > 0 && Boolean(imageUrl),
+      imageUrl,
       price: getValidPromotionalPrice(Number(product.price), product.promotionalPrice?.toString()) ?? Number(product.price),
     }];
   });
