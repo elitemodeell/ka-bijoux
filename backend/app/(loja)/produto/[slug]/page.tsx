@@ -9,7 +9,6 @@ import ProductDetailPage from "@/components/loja/ProductDetailPage";
 import productContentOverrides from "@/data/product-content-overrides.json";
 import {
   getStaticProduct,
-  getSubcategoryName,
   getSubcategoryPathSlug,
 } from "@/lib/static-sex-shop-catalog";
 import { prisma } from "@/lib/prisma";
@@ -18,10 +17,8 @@ import {
   findBlingProductForSource,
   getCanonicalProductSlug,
   getBlingProductBySlug,
-  getBlingProductCards,
   getProductIdentityKeys,
   isAdultImageUrl,
-  type BlingCatalogProduct,
   type ProductCardProduct,
 } from "@/lib/bling-catalog";
 import { getProductCatalogLine, matchesCatalogLine } from "@/lib/product-line";
@@ -124,8 +121,6 @@ type RelatedDbProduct = Prisma.ProductGetPayload<{
     _count: { select: { variations: true } };
   };
 }>;
-
-type StaticRelatedProduct = NonNullable<ReturnType<typeof getStaticProduct>>;
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -451,72 +446,7 @@ export default async function ProdutoPage(props: PageProps) {
     );
   }
 
-  if (blingProduct) {
-    return (
-      <ProductDetailPage
-        product={buildBlingDetailProduct(blingProduct)}
-        subcategoryName={blingProduct.subcategory?.name ?? blingProduct.category.name}
-        subcategoryPathSlug={getSubcategoryPathSlug(blingProduct.subcategory?.slug ?? "")}
-      />
-    );
-  }
-
-  if (!staticProduct) notFound();
-  const staticBlingProduct = findBlingProductForSource({
-    sku: staticProduct.sku,
-    slug: staticProduct.slug,
-    name: staticProduct.name,
-  });
-  const subcategoryName = getSubcategoryName(staticProduct.subcategorySlug);
-  const subcategoryPathSlug = getSubcategoryPathSlug(staticProduct.subcategorySlug);
-  const relatedProducts = staticProduct.relatedSlugs
-    .map((slug) => getStaticProduct(slug))
-    .filter((product): product is StaticRelatedProduct => Boolean(product))
-    .map((product) => mapStaticRelatedProduct(product, "KA Bijoux", "produtos"))
-    .slice(0, 8);
-
-  return (
-    <ProductDetailPage
-      product={{
-        ...staticProduct,
-        name: staticBlingProduct?.name ?? staticProduct.name,
-        price: staticBlingProduct?.price ?? staticProduct.price,
-        stock: staticBlingProduct?.stock ?? staticProduct.stock,
-        categoryName: "KA Bijoux",
-        categorySlug: "produtos",
-        subcategoryName,
-        relatedProducts,
-      }}
-      subcategoryName={subcategoryName}
-      subcategoryPathSlug={subcategoryPathSlug}
-    />
-  );
-}
-
-function mapStaticRelatedProduct(
-  product: StaticRelatedProduct,
-  categoryName: string,
-  categorySlug: string
-): ProductCardProduct {
-  return {
-    id: product.sku || product.slug,
-    name: product.name,
-    slug: product.slug,
-    price: product.price,
-    image: toPublicImageUrl(product.imageFile),
-    images: [{ url: toPublicImageUrl(product.imageFile), alt: product.name }],
-    badge: product.badge ?? null,
-    stock: product.stock,
-    sku: product.sku,
-    description: product.shortDescription,
-    category: { name: categoryName, slug: categorySlug },
-    subcategory: {
-      name: getSubcategoryName(product.subcategorySlug),
-      slug: product.subcategorySlug,
-    },
-    catalogLine: "adult",
-    isAdult: true,
-  };
+  notFound();
 }
 
 function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | null {
@@ -568,70 +498,6 @@ function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | nu
   };
 }
 
-function buildBlingDetailProduct(product: BlingCatalogProduct) {
-  const contentOverride = getProductContentOverride(product);
-  const galleryImages = getOverrideGalleryImages(
-    contentOverride,
-    product.images.map((image) => image.url)
-  );
-  const productFamily = getProductFamilyName(product.name);
-  const relatedProducts = dedupeProductCards(getBlingProductCards({
-    categorySlug: product.category.slug,
-    subcategorySlug: product.subcategory?.slug,
-    catalogLine: product.catalogLine,
-    limit: 12,
-  }))
-    .filter((related) => related.slug !== product.slug)
-    .sort((a, b) => {
-      const aIsSibling = getProductFamilyName(a.name) === productFamily ? 1 : 0;
-      const bIsSibling = getProductFamilyName(b.name) === productFamily ? 1 : 0;
-      return bIsSibling - aIsSibling;
-    })
-    .slice(0, 8);
-
-  return {
-    slug: product.slug,
-    name: contentOverride?.displayName ?? product.name,
-    sku: product.sku ?? "",
-    ean: product.ean ?? undefined,
-    price: product.price,
-    promotionalPrice: null,
-    categoryName: contentOverride?.categoryName ?? product.category.name,
-    categorySlug: product.category.slug,
-    subcategoryName: contentOverride?.subcategoryName ?? product.subcategory?.name ?? product.category.name,
-    subcategorySlug: product.subcategory?.slug ?? "",
-    imageFile: galleryImages[0] ?? product.image ?? "",
-    galleryImages,
-    shortDescription: contentOverride?.shortDescription ?? product.description ?? "",
-    longDescription: contentOverride?.longDescription ?? "",
-    details: contentOverride?.details ?? product.staticDetails ?? [],
-    benefits: contentOverride?.benefits ?? undefined,
-    howToUse: contentOverride?.howToUse ?? "",
-    composition: contentOverride?.composition ?? undefined,
-    careInstructions: contentOverride?.careInstructions ?? undefined,
-    packageContents: contentOverride?.packageContents ?? undefined,
-    relatedSlugs: [] as string[],
-    relatedProducts,
-    variations: [],
-    badge: product.badge ?? undefined,
-    stock: product.stock,
-    installments: 3,
-    isAdult: contentOverride?.isAdult ?? product.isAdult,
-  };
-}
-
-function getOverrideGalleryImages(contentOverride: ProductContentOverride | null, fallback: string[]) {
-  const overrideImages = contentOverride?.galleryImages
-    ?.filter(Boolean)
-    .map(toPublicImageUrl) ?? [];
-  return overrideImages.length ? overrideImages : fallback;
-}
-
-function toPublicImageUrl(image: string) {
-  if (/^https?:\/\//i.test(image) || image.startsWith("/")) return image;
-  return `/uploads/products/${image}`;
-}
-
 function getProductContentOverride(product: { blingId?: string | null; sku?: string | null; name?: string | null }) {
   const blingId = product.blingId ? String(product.blingId).trim() : "";
   const sku = product.sku ? String(product.sku).trim() : "";
@@ -643,11 +509,4 @@ function getProductContentOverride(product: { blingId?: string | null; sku?: str
     return Boolean((blingId && blingId === candidateId) || (sku && sku === candidateSku));
   });
   return matches.length === 1 ? matches[0] : null;
-}
-
-function getProductFamilyName(name: string) {
-  return normalizeProductText(name)
-    .replace(/\b(preto|preta|rosa|marrom|branco|branca|vermelho|vermelha)\b/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
 }

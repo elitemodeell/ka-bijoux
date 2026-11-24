@@ -72,15 +72,19 @@ it("never transfers a parent's quantity to child SKUs or associates children to 
   const child = { id: 3, idProdutoPai: 2, codigo: "MAX-BLACK", preco: 24,
     situacao: "A", variacao: { nome: "Preto" } };
   const catalog = [
-    { id: "pro", blingId: "1", price: 24, images: [] },
-    { id: "max", blingId: "2", price: 24, images: [] },
+    { id: "pro", blingId: "1", sku: "PRO", price: 24, images: [] },
+    { id: "max", blingId: "2", sku: "MAX", price: 24, images: [] },
   ];
-  const products = [{ id: 1, nome: "iPhone 11 Pro", formato: "V", preco: 24 },
-    { id: 2, nome: "iPhone 11 Pro Max", formato: "V", preco: 24, estoque: { saldoVirtualTotal: 10 }, variacoes: [child] },
+  const products = [{ id: 1, codigo: "PRO", situacao: "A", nome: "iPhone 11 Pro", formato: "V", preco: 24 },
+    { id: 2, codigo: "MAX", situacao: "A", nome: "iPhone 11 Pro Max", formato: "V", preco: 24, estoque: { saldoVirtualTotal: 10 }, variacoes: [child] },
     child];
   const shared = prepareSync({ products, stock: [] }, catalog).records[2];
   expect(shared).toMatchObject({ stock: null, parentId: "max", action: "review-shared-stock" });
   const verified = prepareSync({ products, stock: [{ produto: { id: 3 }, saldoVirtualTotal: 2 }] }, catalog).records[2];
   expect(verified).toMatchObject({ stock: 2, parentId: "max", action: "stage-variation" });
+  const localOnly = { id: "local-only", parentId: "max", sku: "NOT-IN-BLING", active: true, images: [] };
+  expect(prepareSync({ products, stock: [], completeCatalog: true }, [...catalog, localOnly]).restrictions)
+    .toEqual([{ id: "local-only", parentId: "max" }]);
+  expect(prepareSync({ products, stock: [] }, [...catalog, localOnly]).restrictions).toEqual([]);
   await expect(applyInHomologation({}, "postgresql://example.test/ka_bijoux_test")).rejects.toThrow("homologação");
 });

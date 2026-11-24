@@ -61,8 +61,8 @@ async function readLocalCatalog(url) {
     const products = await db.$transaction(async (tx) => {
       await tx.$executeRaw`SET TRANSACTION READ ONLY`;
       return tx.product.findMany({
-        select: { id: true, blingId: true, sku: true, price: true, stock: true, images: { select: { url: true } },
-          variations: { select: { id: true, sku: true, imageUrl: true, stock: true } } },
+        select: { id: true, blingId: true, sku: true, price: true, stock: true, active: true, purchaseMode: true,
+          images: { select: { url: true } }, variations: { select: { id: true, sku: true, imageUrl: true, stock: true, active: true } } },
       });
     }, { timeout: 60_000 });
     return products.flatMap(({ variations, ...p }) => [

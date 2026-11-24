@@ -25,7 +25,8 @@ function prepareSync(snapshot, catalog) {
     if (sku) skuCount.set(sku, (skuCount.get(sku) ?? 0) + 1);
   }
   const confirmedParents = new Map(identity.candidates
-    .filter((row) => row.localId && !row.skuMismatch && !row.parentBlingId)
+    .filter((row) => row.localId && !row.skuMismatch && row.sku && skuCount.get(row.sku) === 1 && !row.parentBlingId &&
+      productById.get(key(row.blingId))?.situacao === "A")
     .map((row) => [key(row.blingId), row.localId]));
 
   const records = identity.candidates.map((row) => {
@@ -43,19 +44,29 @@ function prepareSync(snapshot, catalog) {
       localPhotoCount: row.localPhotoCount, categoryId: live.categoria?.id ?? null,
     };
 
-    if (row.skuMismatch || !validPrice(live.preco)) return { ...evidence, action: "review-identity-or-price" };
+    if (row.skuMismatch || !explicitSku || !validPrice(live.preco)) return { ...evidence, action: "review-identity-or-price" };
+    if (live.situacao !== "A" && !(row.parentBlingId && live.situacao === "I" && row.localId)) {
+      return { ...evidence, action: "review-inactive-erp-record" };
+    }
     if (!row.parentBlingId) {
       if (!row.localId) return { ...evidence, action: "review-unlinked-product" };
       const local = localById.get(row.localId);
       const policy = blingStockPolicy({ format: live.formato, hasChildren: children.has(row.localId),
         activeOptions: activeChildren.has(row.localId), purchaseMode: local.purchaseMode });
-      if (live.formato === "S" && policy.useParentBalance) {
+      if (live.formato === "S" && policy.useParentBalance && stock !== null) {
         return { ...evidence, action: "update-product" };
       }
       if (live.formato === "V") {
         return { ...evidence, purchaseMode: policy.purchaseMode, action: "protect-parent-stock" };
       }
       return { ...evidence, action: "review-parent-or-shared-stock" };
+    }
+    if (row.localId && !localById.get(row.localId)?.parentId) {
+      if (live.situacao !== "A" || parent?.formato !== "V" || parent.situacao !== "A" ||
+          !details || !label || stock === null || children.has(row.localId)) {
+        return { ...evidence, action: "review-standalone-child" };
+      }
+      return { ...evidence, parentId: null, action: "update-product" };
     }
     if (!parentId || !explicitSku || parent?.formato !== "V" || !details || !label) {
       return { ...evidence, action: "review-variation" };
@@ -78,7 +89,11 @@ function prepareSync(snapshot, catalog) {
     /\bip\s*11\s*pro\s*max\b/i.test(row.name));
   const editorialCorrections = max ? [{ localId: max.localId, blingId: max.blingId,
     fromCategory: "bijuterias", toCategory: "capinhas-acessorios-celular" }] : [];
-  return { capturedAt: snapshot.capturedAt, records, editorialCorrections, duplicateNames: identity.duplicateNames,
+  const confirmed = new Set(records.filter((row) => ["update-product", "protect-parent-stock", "update-variation"].includes(row.action) &&
+    row.activeInBling !== false).map((row) => row.localId));
+  const restrictions = snapshot.completeCatalog === true ? catalog.filter((row) => row.active && !confirmed.has(row.id))
+    .map((row) => ({ id: row.id, parentId: row.parentId ?? null })) : [];
+  return { capturedAt: snapshot.capturedAt, records, restrictions, editorialCorrections, duplicateNames: identity.duplicateNames,
     sharedImages: identity.sharedImages, noPhotoEvidence: identity.noPhotoEvidence };
 }
 
@@ -104,6 +119,7 @@ async function applyInHomologation(snapshot, url) {
       const actions = plan.records.filter((record) =>
         ["update-product", "update-variation", "stage-variation", "protect-parent-stock"].includes(record.action));
       const productIds = new Set(actions.map((row) => row.parentId ?? row.localId));
+      for (const row of plan.restrictions) productIds.add(row.parentId ?? row.id);
       const categories = [];
       for (const correction of plan.editorialCorrections) {
         if (byId.get(correction.localId)?.category.slug !== correction.fromCategory) continue;
@@ -128,8 +144,9 @@ async function applyInHomologation(snapshot, url) {
         if (row.action === "update-product") {
           const product = byId.get(row.localId);
           await tx.product.update({ where: { id: product.id }, data: commercialProductUpdate({
+            blingId: String(row.blingId),
             price: row.price,
-            stock: row.stock === null ? undefined : Math.min(product.stock, row.stock),
+            stock: row.stock,
           }) });
           continue;
         }
@@ -143,13 +160,19 @@ async function applyInHomologation(snapshot, url) {
           } });
           continue;
         }
-        const variation = parent.variations.find((record) => record.id === row.localId);
         await tx.productVariation.update({ where: { id: row.localId, productId: row.parentId },
           data: commercialVariationWrite({
             priceModifier,
-            stock: parent.sharedVariationStock ? undefined : Math.min(variation.stock, row.stock),
+            stock: parent.sharedVariationStock ? undefined : row.stock,
             active: row.activeInBling ? undefined : false,
           }) });
+      }
+      for (const row of plan.restrictions) {
+        if (row.parentId) {
+          await tx.productVariation.update({ where: { id: row.id, productId: row.parentId }, data: { active: false } });
+        } else {
+          await tx.product.update({ where: { id: row.id }, data: { active: false, purchaseMode: "REVIEW" } });
+        }
       }
       return { actions: actions.length, categoryCorrections: categories.length, backup };
     }, { isolationLevel: "Serializable", timeout: 120_000 });

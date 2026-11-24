@@ -64,7 +64,7 @@ async function collect(read) {
       ? { ...commercial, variacoes: variacoes.map(withoutMedia) }
       : commercial;
   }
-  return { capturedAt: new Date().toISOString(), products: [...products.values()].map(withoutMedia), stock };
+  return { capturedAt: new Date().toISOString(), completeCatalog: true, products: [...products.values()].map(withoutMedia), stock };
 }
 
 async function writeSnapshot(token) {
