@@ -9,7 +9,7 @@ import { addCartItem } from "@/lib/client-cart";
 import { getDiscountPercentage, getValidPromotionalPrice } from "@/lib/store-rules";
 import ProductCard from "@/components/loja/ProductCard";
 import ProductVariantImage from "@/components/loja/ProductVariantImage";
-import { catalogAttributeChoices, catalogOptionLabel, catalogOptionMatrix, chooseCatalogAttribute, resolveCatalogCombination } from "@shared/catalog-options";
+import { catalogAttributeChoices, catalogOptionLabel, catalogOptionMatrix, catalogSelectionPhoto, chooseCatalogAttribute, resolveCatalogCombination } from "@shared/catalog-options";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -123,6 +123,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
     ? ({ cor: "Cor selecionada", modelo: "Modelo selecionado", tamanho: "Tamanho selecionado", estampa: "Estampa selecionada", artista: "Artista selecionado" } as Record<string, string>)[selectedVariant.optionName?.trim().toLowerCase() ?? ""] ?? selectedVariant.optionName ?? "Opção selecionada"
     : "Opção selecionada";
   const selectionLabel = selectedVariant?.label ?? selectedLinked?.label;
+  const selectionPhoto = matrix && !selectedVariant ? catalogSelectionPhoto(matrix, attributes, (option) => option.images?.[0]) : null;
 
   const images = useMemo(() => {
     const variantGallery = selectedVariant?.images?.filter(Boolean) ?? [];
@@ -134,9 +135,9 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
       ? [product.imageFile.startsWith("/") ? product.imageFile : `/uploads/products/${product.imageFile}`]
       : [];
     return Array.from(new Set(
-      selectedVariant ? [...variantGallery, ...variantFallback] : gallery.length ? gallery : fallback
+      selectedVariant ? [...variantGallery, ...variantFallback] : selectionPhoto ? [selectionPhoto] : gallery.length ? gallery : fallback
     ));
-  }, [product.galleryImages, product.imageFile, selectedVariant]);
+  }, [product.galleryImages, product.imageFile, selectedVariant, selectionPhoto]);
 
   const imageUrl = images[selectedImage] ?? "";
 

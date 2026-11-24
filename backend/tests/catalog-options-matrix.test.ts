@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { catalogAttributeChoices, catalogOptionLabel, catalogOptionMatrix, chooseCatalogAttribute, resolveCatalogCombination } from "@shared/catalog-options";
+import { catalogAttributeChoices, catalogOptionLabel, catalogOptionMatrix, catalogSelectionPhoto, chooseCatalogAttribute, resolveCatalogCombination } from "@shared/catalog-options";
 import { validateCatalogOptions } from "@/lib/catalog-purchase-mode";
 
 const options = [
@@ -10,6 +10,13 @@ const options = [
 ];
 
 describe("catalog combination selection", () => {
+  it("previews only the photo shared by every variant that matches a partial selection", () => {
+    const matrix = catalogOptionMatrix(options, (option) => option)!;
+    expect(catalogSelectionPhoto(matrix, ["Preto", null], (option) => option.imageUrl)).toBe("/black.webp");
+    expect(catalogSelectionPhoto(matrix, [null, "P"], (option) => option.imageUrl)).toBeNull();
+    expect(catalogSelectionPhoto(matrix, ["Vermelho", null], (option) => option.imageUrl)).toBeNull();
+  });
+
   it("clears a previous size when the new color has that size only out of stock", () => {
     const matrix = catalogOptionMatrix([...options, { ...options[2], id: "pink-g", value: "Rosa / G", stock: 0 }], (option) => option)!;
     const selection = chooseCatalogAttribute(matrix, ["Preto", "G"], 0, "Rosa", (option) => option.stock > 0);

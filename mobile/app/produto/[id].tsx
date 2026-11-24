@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { catalogAttributeChoices, catalogOptionLabel, catalogOptionMatrix, chooseCatalogAttribute, resolveCatalogCombination } from "@shared/catalog-options";
+import { catalogAttributeChoices, catalogOptionLabel, catalogOptionMatrix, catalogSelectionPhoto, chooseCatalogAttribute, resolveCatalogCombination } from "@shared/catalog-options";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Dimensions, InteractionManager, LayoutAnimation, Platform, UIManager, Alert, Share,
@@ -449,11 +449,14 @@ export default function ProdutoScreen() {
     const uri = resolveProductPhoto(product.id, url, product.updatedAt, activeVariation?.id);
     return uri ? [{ url, uri }] : [];
   });
-  const galleryImages = galleryPhotos.map(({ uri }) => uri);
-  const selectedImage = Math.max(0, galleryPhotos.findIndex(({ url }) => url === selectedPhoto));
+  const selectionPhoto = matrix && !activeVariation ? catalogSelectionPhoto(matrix, selectedAttributes,
+    (option) => resolveProductPhoto(product.id, option.imageUrl, product.updatedAt, option.id),
+  ) : null;
+  const galleryImages = selectionPhoto ? [selectionPhoto] : galleryPhotos.map(({ uri }) => uri);
+  const selectedImage = selectionPhoto ? 0 : Math.max(0, galleryPhotos.findIndex(({ url }) => url === selectedPhoto));
   function selectGalleryPhoto(index: number) {
     const photo = galleryPhotos[index]?.url;
-    if (activeVariation || !product || !photo) return;
+    if (activeVariation || selectionPhoto || !product || !photo) return;
     setSelectedPhoto(photo);
     void AsyncStorage.setItem(`catalog-photo:${product.id}`, photo).catch(() => undefined);
   }

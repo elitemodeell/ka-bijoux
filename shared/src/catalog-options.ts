@@ -60,6 +60,17 @@ export function resolveCatalogCombination<T>(
   return matrix.rows.find((row) => row.values.every((value, index) => value === values[index]))?.option ?? null;
 }
 
+export function catalogSelectionPhoto<T>(
+  matrix: NonNullable<ReturnType<typeof catalogOptionMatrix<T>>>,
+  values: readonly (string | null)[],
+  photo: (option: T) => string | null | undefined,
+) {
+  if (!values.some(Boolean)) return null;
+  const matching = matrix.rows.filter((row) => values.every((value, axis) => !value || row.values[axis] === value));
+  const first = matching.length ? photo(matching[0].option) : null;
+  return first && matching.every(({ option }) => photo(option) === first) ? first : null;
+}
+
 export function catalogAttributeChoices<T>(
   matrix: NonNullable<ReturnType<typeof catalogOptionMatrix<T>>>,
   axis: number,
