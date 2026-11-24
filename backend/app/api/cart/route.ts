@@ -1,7 +1,8 @@
 export const dynamic = 'force-dynamic';
-import { isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { catalogCartPhoto, isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { catalogPurchaseBlocked, catalogReviewMessage } from "@/lib/catalog-purchase-mode";
 import { NextRequest } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/auth";
@@ -15,7 +16,7 @@ const cartInclude = {
     include: {
       product: {
         include: {
-          images: { where: visibleCatalogPhotos, orderBy: [{ order: "asc" as const }, { id: "asc" as const }], take: 1 },
+          images: { where: visibleCatalogPhotos, orderBy: [{ order: "asc" as const }, { id: "asc" as const }] },
           category: true,
           subcategory: true,
         },
@@ -41,27 +42,31 @@ async function getOrCreateCart(customerId: string) {
   });
 }
 
+function serializeCart(cart: Prisma.CartGetPayload<{ include: typeof cartInclude }>) {
+  const items = cart.items.map((item) => ({
+    ...item,
+    selectionLabel: item.variation ? null : linkedCatalogOptionLabel(item.productId, item.product.sku),
+    selectedPhotoUrl: catalogCartPhoto(item.selectedPhotoUrl, item.product, item.variation),
+    product: {
+      ...item.product,
+      images: item.product.images.filter(({ url }) => isOfficialCatalogPhoto(url, item.productId, item.product.sku)).slice(0, 1),
+    },
+    variation: item.variation ? {
+      ...item.variation,
+      imageUrl: item.variation.imageUrl && isOfficialCatalogPhoto(item.variation.imageUrl, item.productId, item.variation.sku, item.variation.id)
+        ? item.variation.imageUrl : null,
+      stock: item.product.sharedVariationStock ? item.product.stock : item.variation.stock,
+    } : null,
+  }));
+  return { ...cart, items, ...calculateCartTotals(cart), itemCount: items.length };
+}
+
 // GET /api/cart
 export async function GET(req: NextRequest) {
   try {
     const customer = await requireCustomer(req);
     const cart = await getOrCreateCart(customer.id);
-    const totals = calculateCartTotals(cart);
-    const items = cart.items.map((item) => ({
-      ...item,
-      selectionLabel: item.variation ? null : linkedCatalogOptionLabel(item.productId, item.product.sku),
-      product: {
-        ...item.product,
-        images: item.product.images.filter(({ url }) => isOfficialCatalogPhoto(url, item.productId, item.product.sku)),
-      },
-      variation: item.variation ? {
-        ...item.variation,
-        imageUrl: item.variation.imageUrl && isOfficialCatalogPhoto(item.variation.imageUrl, item.productId, item.variation.sku, item.variation.id)
-          ? item.variation.imageUrl : null,
-        stock: item.product.sharedVariationStock ? item.product.stock : item.variation.stock,
-      } : null,
-    }));
-    return apiSuccess({ ...cart, items, ...totals, itemCount: items.length });
+    return apiSuccess(serializeCart(cart));
   } catch (e: unknown) {
     if (e instanceof Error && e.message === "Não autorizado") return apiError("Não autorizado.", 401);
     return apiError("Erro ao buscar carrinho.", 500);
@@ -192,12 +197,7 @@ export async function POST(req: NextRequest) {
     });
     if (!updatedCart) return apiError("Carrinho não encontrado.", 404);
 
-    const totals = calculateCartTotals(updatedCart);
-    return apiSuccess({
-      ...updatedCart,
-      ...totals,
-      itemCount: updatedCart.items.length,
-    });
+    return apiSuccess(serializeCart(updatedCart));
   } catch (error: unknown) {
     if (error instanceof z.ZodError) return apiError(error.issues[0].message, 422);
     if (error instanceof CartMutationError) return apiError(error.message, error.status);

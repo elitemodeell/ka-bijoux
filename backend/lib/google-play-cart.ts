@@ -88,6 +88,7 @@ export async function sanitizeGooglePlayCart(
       unitPrice: Number(item.unitPrice),
       product: {
         ...item.product,
+        images: item.product.images.filter(({ url }) => isOfficialCatalogPhoto(url, item.productId, item.product.sku)),
         price: Number(item.product.price),
         promotionalPrice: item.product.promotionalPrice
           ? Number(item.product.promotionalPrice)
