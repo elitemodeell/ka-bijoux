@@ -10,6 +10,13 @@ const options = [
 ];
 
 describe("catalog combination selection", () => {
+  it("clears a previous size when the new color has that size only out of stock", () => {
+    const matrix = catalogOptionMatrix([...options, { ...options[2], id: "pink-g", value: "Rosa / G", stock: 0 }], (option) => option)!;
+    const selection = chooseCatalogAttribute(matrix, ["Preto", "G"], 0, "Rosa", (option) => option.stock > 0);
+    expect(selection).toEqual(["Rosa", null]);
+    expect(resolveCatalogCombination(matrix, selection)).toBeNull();
+  });
+
   it("waits for every required attribute and never substitutes an absent combination", () => {
     const matrix = catalogOptionMatrix(options, (option) => option)!;
     const partial = chooseCatalogAttribute(matrix, [], 0, "Preto");

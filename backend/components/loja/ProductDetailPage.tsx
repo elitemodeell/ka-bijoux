@@ -419,7 +419,9 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                               disabled={!choice.available}
                               className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-sm disabled:opacity-40 ${attributes[axis] === choice.value ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-200 bg-white"}`}
                               onClick={() => {
-                                setSelectedAttributes({ product: product.slug, values: chooseCatalogAttribute(matrix, attributes, axis, choice.value) });
+                                setSelectedAttributes({ product: product.slug, values: chooseCatalogAttribute(matrix, attributes, axis, choice.value,
+                                  (option) => Boolean(option.active !== false && option.sku?.trim() && (option.stock ?? 0) > 0),
+                                ) });
                                 setSelectedImage(0);
                                 setQuantity(1);
                               }}>

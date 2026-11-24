@@ -663,7 +663,9 @@ export default function ProdutoScreen() {
                           disabled={!choice.available}
                           style={[styles.variationChip, selected && styles.variationChipActive, !choice.available && styles.variationChipUnavailable]}
                           onPress={() => {
-                            setSelectedAttributes(chooseCatalogAttribute(matrix, selectedAttributes, axis, choice.value));
+                            setSelectedAttributes(chooseCatalogAttribute(matrix, selectedAttributes, axis, choice.value,
+                              (option) => Boolean(option.sku?.trim() && (product.sharedVariationStock ? product.stock : option.stock) > 0),
+                            ));
                             setQuantity(1);
                             setVariationError(false);
                           }}>

@@ -37,8 +37,11 @@ export function chooseCatalogAttribute<T>(
   current: readonly (string | null)[],
   index: number,
   value: string,
+  available: (option: T) => boolean = () => true,
 ) {
-  const preferred = matrix.rows.filter((row) => row.values[index] === value);
+  const matching = matrix.rows.filter((row) => row.values[index] === value);
+  const sellable = matching.filter(({ option }) => available(option));
+  const preferred = sellable.length ? sellable : matching;
   const next: (string | null)[] = matrix.names.map(() => null);
   next[index] = value;
   for (let axis = 0; axis < matrix.names.length; axis++) {
