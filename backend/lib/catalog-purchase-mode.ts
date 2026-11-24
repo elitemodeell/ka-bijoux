@@ -23,6 +23,16 @@ export function blingCommercialBlocked(
     Boolean(variation && (!hasBlingCommercialIdentity(variation) || product.sharedVariationStock)));
 }
 
+export function blingPublicationBlocked(
+  product: { images?: readonly { url: string }[] },
+  variation?: { imageUrl?: string | null; approvedImageUrl?: string | null } | null,
+) {
+  if (!blingCommercialEnforced()) return false;
+  return variation
+    ? !variation.imageUrl || variation.imageUrl !== variation.approvedImageUrl
+    : !product.images?.length;
+}
+
 export function catalogPurchaseBlocked(mode: string | null | undefined, optionCount: number) {
   return mode === "REVIEW" || (mode === "OPTIONS" && optionCount === 0) ||
     (mode === "SINGLE" && optionCount > 0);

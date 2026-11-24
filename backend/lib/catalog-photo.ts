@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import quarantinedPhotos from "@/data/catalog-photo-quarantine.json";
 import quarantinedLinks from "@/data/catalog-photo-link-quarantine.json";
 import type { Prisma } from "@prisma/client";
+import { blingCommercialEnforced } from "@/lib/catalog-purchase-mode";
 export { isKaCatalogAsset } from "./catalog-photo-origin.cjs";
 
 const allowedFormats = new Set(["jpeg", "png", "webp"]);
@@ -12,6 +13,7 @@ const safeId = /^[A-Za-z0-9_-]{1,128}$/;
 const quarantine = new Set(quarantinedPhotos);
 const byProduct: Readonly<Record<string, readonly string[]>> = quarantinedLinks;
 export const visibleCatalogPhotos: Prisma.ProductImageWhereInput = {
+  ...(blingCommercialEnforced() ? { approvedForPublication: true } : {}),
   NOT: [
     { url: { contains: "://bling.com.br", mode: "insensitive" } },
     { url: { contains: ".bling.com.br/", mode: "insensitive" } },

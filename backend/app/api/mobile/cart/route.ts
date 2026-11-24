@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { blingCommercialBlocked, catalogPurchaseBlocked, catalogReviewMessage } from "@/lib/catalog-purchase-mode";
+import { blingCommercialBlocked, blingPublicationBlocked, catalogPurchaseBlocked, catalogReviewMessage } from "@/lib/catalog-purchase-mode";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { requireCustomer } from "@/lib/auth";
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     const variation = input.variationId
       ? product.variations.find((entry) => entry.id === input.variationId)
       : null;
-    if (blingCommercialBlocked(product, variation)) return apiError(catalogReviewMessage, 409);
+    if (blingCommercialBlocked(product, variation) || blingPublicationBlocked(product, variation)) return apiError(catalogReviewMessage, 409);
     if (variation && !variation.sku?.trim()) {
       return apiError("Esta opção está temporariamente indisponível.", 409);
     }

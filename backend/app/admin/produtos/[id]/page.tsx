@@ -19,6 +19,7 @@ interface VariationRow {
   value: string;
   sku: string;
   imageUrl: string;
+  approvedImageUrl?: string;
   stock: string;
   priceModifier: string;
   isDefault: boolean;
@@ -60,6 +61,7 @@ export default function EditarProdutoPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const [approvedPhotos, setApprovedPhotos] = useState<string[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [variations, setVariations] = useState<VariationRow[]>([]);
 
@@ -113,10 +115,12 @@ export default function EditarProdutoPage() {
           sharedVariationStock: p.sharedVariationStock ?? false,
         });
         setImages((p.images ?? []).map((img: { url: string }) => img.url));
+        setApprovedPhotos((p.images ?? []).filter((img: { approvedForPublication?: boolean }) =>
+          img.approvedForPublication).map((img: { url: string }) => img.url));
         setVariations(
           (p.variations ?? []).map((v: {
             id: string; name: string; value: string; sku?: string;
-            imageUrl?: string; stock: number; priceModifier: number;
+            imageUrl?: string; approvedImageUrl?: string; stock: number; priceModifier: number;
             isDefault: boolean; order: number; active: boolean;
           }) => ({
             _key: newKey(),
@@ -125,6 +129,7 @@ export default function EditarProdutoPage() {
             value: v.value,
             sku: v.sku ?? "",
             imageUrl: v.imageUrl ?? "",
+            approvedImageUrl: v.approvedImageUrl ?? "",
             stock: v.stock.toString(),
             priceModifier: v.priceModifier.toString(),
             isDefault: v.isDefault,
@@ -256,13 +261,14 @@ export default function EditarProdutoPage() {
           fixedColor: form.assortedColors ? null : form.fixedColor.trim() || null,
           purchaseMode: form.purchaseMode || null,
           sharedVariationStock: form.sharedVariationStock,
-          images: images.map((url, order) => ({ url, order, alt: form.name })),
+          images: images.map((url, order) => ({ url, order, alt: form.name, approvedForPublication: approvedPhotos.includes(url) })),
           variations: variations.map((v, i) => ({
             ...(v.id ? { id: v.id } : {}),
             name: v.name,
             value: v.value,
             sku: v.sku || null,
             imageUrl: v.imageUrl || null,
+            approveImage: Boolean(v.imageUrl && v.approvedImageUrl === v.imageUrl),
             stock: parseInt(v.stock) || 0,
             priceModifier: parseFloat(v.priceModifier) || 0,
             isDefault: v.isDefault,
@@ -402,6 +408,12 @@ export default function EditarProdutoPage() {
                         <input type="file" className="sr-only" accept="image/jpeg,image/png,image/webp"
                           disabled={uploading} onChange={(e) => { void uploadImages(e.target.files, i); e.target.value = ""; }} />
                       </label>
+                      <label className="flex items-center gap-1 text-xs text-gray-700">
+                        <input type="checkbox" checked={approvedPhotos.includes(url)}
+                          onChange={(e) => setApprovedPhotos((previous) => e.target.checked
+                            ? [...previous, url] : previous.filter((item) => item !== url))} />
+                        Foto conferida para o SKU
+                      </label>
                     </div>
                   ))}
                 </div>
@@ -535,6 +547,11 @@ export default function EditarProdutoPage() {
                             ))}
                           </select>
                         </label>
+                        {v.imageUrl && <label className="col-span-full flex items-center gap-2 text-xs text-gray-700">
+                          <input type="checkbox" checked={v.approvedImageUrl === v.imageUrl}
+                            onChange={(e) => updateVariation(v._key, "approvedImageUrl", e.target.checked ? v.imageUrl : "")} />
+                          Foto conferida para esta opção
+                        </label>}
                         <div>
                           <label className="mb-1 block text-xs font-medium text-gray-500">Tipo</label>
                           <input

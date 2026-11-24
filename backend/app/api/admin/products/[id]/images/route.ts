@@ -10,6 +10,7 @@ import { apiError, apiSuccess } from "@/lib/utils";
 const replaceImageSchema = z.object({
   url: z.string().min(1),
   alt: z.string().trim().optional().nullable(),
+  approveForPublication: z.boolean().default(false),
 });
 
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
           url: data.url,
           alt: data.alt || product.name,
           order: 0,
+          approvedForPublication: data.approveForPublication,
         },
       }),
       prisma.product.update({

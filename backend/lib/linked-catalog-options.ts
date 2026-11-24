@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import groups from "@/data/linked-catalog-options.json";
-import { isKaCatalogAsset, officialDatabaseGallery } from "@/lib/catalog-photo";
+import { isKaCatalogAsset, officialDatabaseGallery, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
 import { blingPublicProductWhere } from "@/lib/bling-catalog-visibility";
 import { prisma } from "@/lib/prisma";
@@ -21,7 +21,7 @@ export async function linkedCatalogOptions(productId: string, mobileScope?: Pris
     select: {
       id: true, sku: true, slug: true, stock: true, price: true, promotionalPrice: true, purchaseMode: true,
       _count: { select: { variations: { where: { active: true } } } },
-      images: { orderBy: [{ order: "asc" }, { id: "asc" }], select: { url: true } },
+      images: { where: visibleCatalogPhotos, orderBy: [{ order: "asc" }, { id: "asc" }], select: { url: true } },
     },
   });
   const byId = new Map(products.map((product) => [product.id, product]));

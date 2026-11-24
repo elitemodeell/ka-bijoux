@@ -44,12 +44,16 @@ it("requires a verified Bling SKU and independent stock for an option at checkou
     const item = cartItem();
     expectCheckoutCode(() => priceCart([item]), "CATALOG_REVIEW_REQUIRED");
     Object.assign(item.product, { sku: "ERP-1", blingId: "100", blingVerifiedSku: "ERP-1" });
+    expectCheckoutCode(() => priceCart([item]), "CATALOG_REVIEW_REQUIRED");
+    item.product.images = [{ url: "/uploads/products/approved.webp" }];
     expect(priceCart([item])[0].sku).toBe("ERP-1");
     item.variationId = "local-option";
     item.variation = { id: "local-option", productId: item.productId, sku: "ERP-2", active: true,
       stock: 2, name: "Cor", value: "Azul", priceModifier: 1 };
     expectCheckoutCode(() => priceCart([item]), "CATALOG_REVIEW_REQUIRED");
     Object.assign(item.variation, { blingId: "101", blingVerifiedSku: "ERP-2" });
+    expectCheckoutCode(() => priceCart([item]), "CATALOG_REVIEW_REQUIRED");
+    item.variation.imageUrl = item.variation.approvedImageUrl = "/uploads/products/approved-blue.webp";
     expect(priceCart([item])[0]).toMatchObject({ sku: "ERP-2", unitPriceCents: 2090 });
     item.product.sharedVariationStock = true;
     expectCheckoutCode(() => priceCart([item]), "CATALOG_REVIEW_REQUIRED");

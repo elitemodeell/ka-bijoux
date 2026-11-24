@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { belongsToCatalogGallery, isKaCatalogAsset, isOfficialCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
+import { belongsToCatalogGallery, isKaCatalogAsset, isOfficialCatalogPhoto, officialDatabaseGallery, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { catalogGalleryForPurchase, catalogPurchaseBlocked, catalogPurchaseModes, validateCatalogOptions } from "@/lib/catalog-purchase-mode";
 import { blingPublicProductWhere, blingPublicVariationWhere } from "@/lib/bling-catalog-visibility";
 import { blingCommercialEnforced, hasBlingCommercialIdentity } from "@/lib/catalog-purchase-mode";
@@ -27,7 +27,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const activeFilter = isAdmin ? {} : { active: true, ...blingPublicProductWhere() };
     const detailInclude = isAdmin
       ? { ...productInclude, variations: { orderBy: { order: "asc" as const } } }
-      : { ...productInclude, variations: { ...productInclude.variations, where: blingPublicVariationWhere() } };
+      : { ...productInclude, images: { ...productInclude.images, where: visibleCatalogPhotos },
+        variations: { ...productInclude.variations, where: blingPublicVariationWhere() } };
 
     // First: direct lookup by UUID or slug
     let product = await prisma.product.findFirst({
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     const related = await prisma.product.findMany({
       where: { categoryId: product.categoryId, active: true, id: { not: product.id } },
-      include: { images: { orderBy: { order: "asc" }, take: 1 }, category: true, subcategory: true },
+      include: { images: { where: visibleCatalogPhotos, orderBy: { order: "asc" }, take: 1 }, category: true, subcategory: true },
       take: 6,
     });
 
@@ -114,6 +115,7 @@ const variationUpsertSchema = z.object({
   value: z.string().min(1),
   sku: z.string().trim().optional().nullable(),
   imageUrl: z.string().optional().nullable(),
+  approveImage: z.boolean().optional(),
   stock: z.number().int().min(0).default(0),
   priceModifier: z.number().default(0),
   isDefault: z.boolean().default(false),
@@ -123,7 +125,8 @@ const variationUpsertSchema = z.object({
 
 const updateSchema = z.object({
   name: z.string().min(2).optional(),
-  images: z.array(z.object({ url: z.string(), alt: z.string().optional(), order: z.number().int().optional() })).optional(),
+  images: z.array(z.object({ url: z.string(), alt: z.string().optional(), order: z.number().int().optional(),
+    approvedForPublication: z.boolean().optional() })).optional(),
   variations: z.array(variationUpsertSchema).optional(),
   description: z.string().min(3).optional(),
   brand: z.string().trim().optional().nullable(),
@@ -182,7 +185,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       const current = await tx.product.findUnique({
         where: { id: params.id },
         select: { sku: true, blingId: true, price: true, promotionalPrice: true, stock: true, purchaseMode: true,
-          sharedVariationStock: true, variations: true, images: { select: { url: true } } },
+          sharedVariationStock: true, variations: true, images: { select: { url: true, approvedForPublication: true } } },
       });
       if (blingCommercialEnforced() && current) {
         const same = (input: unknown, saved: unknown) => input === undefined || String(input ?? "") === String(saved ?? "");
@@ -202,10 +205,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       }
       const mode = rest.purchaseMode === undefined ? current?.purchaseMode : rest.purchaseMode;
       const priorGallery = new Set(current?.images.map(({ url }) => url));
+      const priorApprovals = new Set(current?.images.filter((image) => image.approvedForPublication).map(({ url }) => url));
       const priorOptions = new Map(current?.variations.map(({ id, imageUrl }) => [id, imageUrl]));
-      if (images?.some(({ url }) => !priorGallery.has(url) && (!isKaCatalogAsset(url) ||
+      if (images?.some(({ url, approvedForPublication }) => (!priorGallery.has(url) || approvedForPublication) && (!isKaCatalogAsset(url) ||
           !isOfficialCatalogPhoto(url, params.id, rest.sku ?? current?.sku))) ||
-          variations?.some(({ id, imageUrl, sku }) => imageUrl && priorOptions.get(id ?? "") !== imageUrl &&
+          variations?.some(({ id, imageUrl, sku, approveImage }) => imageUrl && (approveImage || priorOptions.get(id ?? "") !== imageUrl) &&
             (!isKaCatalogAsset(imageUrl) || !isOfficialCatalogPhoto(imageUrl, params.id, sku, id)))) {
         return { catalogValidation: "Use uma foto oficial da KA Bijoux que corresponda ao produto ou à opção." } as const;
       }
@@ -244,6 +248,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
               url: img.url,
               alt: img.alt ?? product.name,
               order: img.order ?? i,
+              approvedForPublication: img.approvedForPublication ?? priorApprovals.has(img.url),
             })),
           });
         }
@@ -268,11 +273,15 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
         for (const v of variations) {
           if (v.id) {
+            const approval = v.approveImage === undefined
+              ? current?.variations.find(({ id }) => id === v.id)?.approvedImageUrl === v.imageUrl
+              : v.approveImage;
             await tx.productVariation.update({
               where: { id: v.id, productId: params.id },
               data: {
                 name: v.name, value: v.value,
                 sku: v.sku || null, imageUrl: v.imageUrl || null,
+                approvedImageUrl: approval ? v.imageUrl || null : null,
                 stock: v.stock, priceModifier: v.priceModifier,
                 isDefault: v.isDefault, order: v.order, active: v.active,
               },

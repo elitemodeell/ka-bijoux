@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { catalogCartPhoto, isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
-import { blingCommercialBlocked, catalogPurchaseBlocked, catalogReviewMessage } from "@/lib/catalog-purchase-mode";
+import { blingCommercialBlocked, blingPublicationBlocked, catalogPurchaseBlocked, catalogReviewMessage } from "@/lib/catalog-purchase-mode";
 import { NextRequest } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
@@ -105,7 +105,8 @@ export async function POST(req: NextRequest) {
       `;
 
       for (const { productId, variationId, quantity } of items) {
-        const include = { variations: { where: { active: true } } } as const;
+        const include = { variations: { where: { active: true } },
+          images: { where: visibleCatalogPhotos, select: { url: true }, take: 1 } } as const;
         let product = await tx.product.findFirst({
           where: { active: true, id: productId },
           include,
@@ -126,7 +127,9 @@ export async function POST(req: NextRequest) {
           throw new CartMutationError(catalogReviewMessage, 409);
         }
         const variation = product.variations.find((candidate) => candidate.id === variationId);
-        if (blingCommercialBlocked(product, variation)) throw new CartMutationError(catalogReviewMessage, 409);
+        if (blingCommercialBlocked(product, variation) || blingPublicationBlocked(product, variation)) {
+          throw new CartMutationError(catalogReviewMessage, 409);
+        }
         if (variation && !variation.sku?.trim()) {
           throw new CartMutationError("Esta opção está temporariamente indisponível.", 409);
         }

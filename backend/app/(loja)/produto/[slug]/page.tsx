@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { isOfficialCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
+import { isOfficialCatalogPhoto, officialDatabaseGallery, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { catalogGalleryForPurchase, catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
 import { linkedCatalogOptions } from "@/lib/linked-catalog-options";
 import { blingPublicProductWhere, blingPublicVariationWhere } from "@/lib/bling-catalog-visibility";
@@ -41,7 +41,7 @@ type ProductLookup = {
 const detailProductInclude = {
   category: true,
   subcategory: true,
-  images: { orderBy: { order: "asc" as const } },
+  images: { where: visibleCatalogPhotos, orderBy: { order: "asc" as const } },
   variations: { where: blingPublicVariationWhere() },
 };
 
@@ -326,7 +326,7 @@ export default async function ProdutoPage(props: PageProps) {
       include: {
         category: true,
         subcategory: true,
-        images: { orderBy: { order: "asc" }, take: 1 },
+        images: { where: visibleCatalogPhotos, orderBy: { order: "asc" }, take: 1 },
         _count: { select: { variations: { where: { active: true } } } },
       },
       take: 8,
