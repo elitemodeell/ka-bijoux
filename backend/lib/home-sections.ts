@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
-import { visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
 import { prisma } from "@/lib/prisma";
 import { getPublicCategoryName } from "@/lib/catalog";
 import {
@@ -26,6 +27,8 @@ const homeProductSelect = Prisma.validator<Prisma.ProductSelect>()({
   price: true,
   promotionalPrice: true,
   stock: true,
+  purchaseMode: true,
+  sharedVariationStock: true,
   featured: true,
   isNew: true,
   sku: true,
@@ -43,6 +46,7 @@ const homeProductSelect = Prisma.validator<Prisma.ProductSelect>()({
     orderBy: { order: "asc" },
     select: {
       id: true,
+      sku: true,
       name: true,
       value: true,
       imageUrl: true,
@@ -106,6 +110,7 @@ async function fetchPool(filters: FetchPoolOptions): Promise<ProductCardProduct[
 function mapDbProductToCard(
   product: Prisma.ProductGetPayload<{ select: typeof homeProductSelect }>
 ): ProductCardProduct | null {
+  const purchaseReviewRequired = catalogPurchaseBlocked(product.purchaseMode, product.variations.length);
   const bling = findBlingProductForSource({
     blingId: product.blingId,
     sku: product.sku,
@@ -113,10 +118,9 @@ function mapDbProductToCard(
     name: product.name,
   });
 
-  const rawImages = product.images.map((image) => ({
-    url: image.url,
-    alt: image.alt ?? product.name,
-  }));
+  const rawImages = product.images
+    .filter(({ url }) => isOfficialCatalogPhoto(url, product.id, product.sku))
+    .map((image) => ({ url: image.url, alt: image.alt ?? product.name }));
   const images = rawImages.filter((image) => !isAdultImageUrl(image.url));
   const promotionalPrice = product.promotionalPrice
       ? Number(product.promotionalPrice)
@@ -143,7 +147,8 @@ function mapDbProductToCard(
     promotionalPrice,
     promo: promotionalPrice,
     badge: product.isNew ? "Novo" : product.featured ? "Destaque" : null,
-    stock: product.stock,
+    stock: purchaseReviewRequired ? 0 : product.stock,
+    purchaseReviewRequired,
     sku: product.sku,
     blingId: bling?.blingId ?? product.blingId,
     category,
@@ -155,7 +160,11 @@ function mapDbProductToCard(
     imageSource: images.length ? "DATABASE" : "NONE",
     catalogLine,
     isAdult: catalogLine === "adult",
-    variations: product.variations,
+    variations: (purchaseReviewRequired ? [] : product.variations).map(({ sku, ...variation }) => ({
+      ...variation,
+      stock: product.sharedVariationStock ? product.stock : variation.stock,
+      imageUrl: variation.imageUrl && isOfficialCatalogPhoto(variation.imageUrl, product.id, sku, variation.id) ? variation.imageUrl : null,
+    })),
   } satisfies ProductCardProduct;
 }
 

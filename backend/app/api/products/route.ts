@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
-import { isKaCatalogAsset, visibleCatalogPhotos } from "@/lib/catalog-photo";
+import { isKaCatalogAsset, isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { Prisma, ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { catalogSearchAlternatives } from "@/lib/catalog-search";
-import { catalogPurchaseModes, validateCatalogOptions } from "@/lib/catalog-purchase-mode";
+import { catalogPurchaseBlocked, catalogPurchaseModes, validateCatalogOptions } from "@/lib/catalog-purchase-mode";
 import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError, slugify } from "@/lib/utils";
 import { getPublicCategoryName } from "@/lib/catalog";
@@ -34,6 +34,8 @@ const productListSelect = {
   price: true,
   promotionalPrice: true,
   stock: true,
+  purchaseMode: true,
+  sharedVariationStock: true,
   featured: true,
   isNew: true,
   sku: true,
@@ -51,6 +53,7 @@ const productListSelect = {
     orderBy: { order: "asc" as const },
     select: {
       id: true,
+      sku: true,
       name: true,
       value: true,
       imageUrl: true,
@@ -146,6 +149,7 @@ export async function GET(req: NextRequest) {
 }
 
 function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof productListSelect }>): ProductCardProduct | null {
+  const purchaseReviewRequired = catalogPurchaseBlocked(product.purchaseMode, product.variations.length);
   const bling = findBlingProductForSource({
     blingId: product.blingId,
     sku: product.sku,
@@ -154,7 +158,9 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof p
   });
 
   const isAdultCategory = product.category?.slug === "sex-shop";
-  const rawDbImages = product.images.map((image) => ({ url: image.url, alt: image.alt ?? product.name }));
+  const rawDbImages = product.images
+    .filter(({ url }) => isOfficialCatalogPhoto(url, product.id, product.sku))
+    .map((image) => ({ url: image.url, alt: image.alt ?? product.name }));
   const dbImages = isAdultCategory ? rawDbImages : rawDbImages.filter((i) => !isAdultImageUrl(i.url));
   const images = dbImages;
   const promotionalPrice = product.promotionalPrice
@@ -174,15 +180,15 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof p
     subcategoryName: subcategory?.name,
   });
 
-  const variations = product.variations?.map((v) => ({
+  const variations = (purchaseReviewRequired ? [] : product.variations).map((v) => ({
     id: v.id,
     name: v.name,
     value: v.value,
-    imageUrl: v.imageUrl ?? null,
-    stock: v.stock,
+    imageUrl: v.imageUrl && isOfficialCatalogPhoto(v.imageUrl, product.id, v.sku, v.id) ? v.imageUrl : null,
+    stock: product.sharedVariationStock ? product.stock : v.stock,
     isDefault: v.isDefault,
     order: v.order,
-  })) ?? [];
+  }));
 
   return {
     id: product.id,
@@ -193,7 +199,8 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof p
     promotionalPrice,
     promo: promotionalPrice,
     badge: product.isNew ? "Novo" : product.featured ? "Destaque" : null,
-    stock: product.stock,
+    stock: purchaseReviewRequired ? 0 : product.stock,
+    purchaseReviewRequired,
     sku: product.sku,
     blingId: bling?.blingId ?? product.blingId,
     category,

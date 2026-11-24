@@ -177,7 +177,8 @@ describe("correção completa da Home mobile", () => {
     expect(resilientProductImage).toContain('cachePolicy="memory-disk"');
     expect(productCard).toContain("Esgotado");
     expect(productCard).toContain("formatCurrency(displayPrice)");
-    expect(productCard).toContain("Comprar agora</Text>");
+    expect(productCard).toContain('product.purchaseReviewRequired ? "Em revisão" : "Comprar agora"');
+    expect(productCard).toContain("disabled={!isAvailable || cartAction !== null}");
     expect(productCard).toContain('contentFit="contain"');
     expect(productCard).toContain("product.badge");
   });

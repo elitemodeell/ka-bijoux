@@ -41,6 +41,8 @@ export type ProductCardProduct = {
   images?: ProductCardMedia[];
   slug?: string;
   stock?: number;
+  purchaseReviewRequired?: boolean;
+  requiresOptionSelection?: boolean;
   sku?: string | null;
   blingId?: string | null;
   category?: { name: string; slug?: string } | null;

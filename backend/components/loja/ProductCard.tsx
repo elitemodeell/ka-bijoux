@@ -26,6 +26,8 @@ interface Product {
   images?: ProductMedia[];
   slug?: string;
   stock?: number;
+  purchaseReviewRequired?: boolean;
+  requiresOptionSelection?: boolean;
   sku?: string | null;
   variations?: readonly unknown[];
   category?: { name: string; slug?: string } | null;
@@ -107,7 +109,8 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
 
   function handleAddToCart(event?: MouseEvent<HTMLButtonElement>) {
     event?.stopPropagation();
-    if (normalized.variations?.length) {
+    if (normalized.purchaseReviewRequired) return;
+    if (normalized.requiresOptionSelection || normalized.variations?.length) {
       openQuickShop();
       return;
     }
@@ -231,10 +234,11 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
         <button
           type="button"
           onClick={handleAddToCart}
+          disabled={normalized.purchaseReviewRequired}
           className={`absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/80 bg-white/90 text-pink-500 shadow-sm backdrop-blur transition-all hover:bg-pink-500 hover:text-white ${
             cartAdded ? "bg-pink-500 text-white" : ""
           }`}
-          aria-label={`Adicionar ${name} ao carrinho`}
+          aria-label={normalized.purchaseReviewRequired ? "Produto em revisão" : `Adicionar ${name} ao carrinho`}
         >
           {cartAdded ? <CheckIcon /> : <CartIcon />}
         </button>
@@ -242,6 +246,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
 
       {/* Info area */}
       <div className="flex flex-1 flex-col p-2.5">
+        {normalized.purchaseReviewRequired && <p className="mb-1 text-xs font-semibold text-pink-800">Em revisão</p>}
         {product.slug ? (
           <Link
             href={`/produto/${product.slug}`}

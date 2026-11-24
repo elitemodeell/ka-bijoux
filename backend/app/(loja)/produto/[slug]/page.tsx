@@ -121,6 +121,7 @@ type RelatedDbProduct = Prisma.ProductGetPayload<{
     category: true;
     subcategory: true;
     images: true;
+    _count: { select: { variations: true } };
   };
 }>;
 
@@ -328,6 +329,7 @@ export default async function ProdutoPage(props: PageProps) {
         category: true,
         subcategory: true,
         images: { orderBy: { order: "asc" }, take: 1 },
+        _count: { select: { variations: { where: { active: true } } } },
       },
       take: 8,
     });
@@ -518,6 +520,7 @@ function mapStaticRelatedProduct(
 }
 
 function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | null {
+  const purchaseReviewRequired = catalogPurchaseBlocked(product.purchaseMode, product._count.variations);
   const bling = findBlingProductForSource({
     blingId: product.blingId,
     sku: product.sku,
@@ -553,7 +556,9 @@ function mapRelatedDbProduct(product: RelatedDbProduct): ProductCardProduct | nu
     image,
     images: image ? [{ url: image, alt: product.name }] : [],
     badge: product.isNew ? "Novo" : product.featured ? "Destaque" : null,
-    stock: product.stock,
+    stock: purchaseReviewRequired ? 0 : product.stock,
+    purchaseReviewRequired,
+    requiresOptionSelection: product._count.variations > 0,
     sku: product.sku,
     description: product.description,
     category,

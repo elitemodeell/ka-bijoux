@@ -27,6 +27,7 @@ interface ProductCardProps {
     price: number;
     promotionalPrice?: number | null;
     stock: number;
+    purchaseReviewRequired?: boolean;
     updatedAt?: string | null;
     images: Array<{ url: string }>;
     isNew?: boolean;
@@ -70,9 +71,9 @@ function ProductCardComponent({ product, badgeSeal = false }: ProductCardProps) 
     resolveUrl(product.images[0]?.url, product.updatedAt) ??
     null;
 
-  const isAvailable = hasVariations
+  const isAvailable = !product.purchaseReviewRequired && (hasVariations
     ? variations.some((v) => v.stock > 0)
-    : product.stock > 0;
+    : product.stock > 0);
 
   const hasPromo = !!product.promotionalPrice && product.promotionalPrice < product.price;
   const displayPrice = hasPromo ? product.promotionalPrice! : product.price;
@@ -192,7 +193,9 @@ function ProductCardComponent({ product, badgeSeal = false }: ProductCardProps) 
           disabled={!isAvailable || cartAction !== null}
           activeOpacity={0.8}
         >
-          {cartAction === "buy" ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.addButtonText}>Comprar agora</Text>}
+          {cartAction === "buy" ? <ActivityIndicator size="small" color="#fff" /> : (
+            <Text style={styles.addButtonText}>{product.purchaseReviewRequired ? "Em revisão" : "Comprar agora"}</Text>
+          )}
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
