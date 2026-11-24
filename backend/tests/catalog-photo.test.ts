@@ -5,6 +5,15 @@ import sharp from "sharp";
 import { expect, it } from "vitest";
 import { belongsToCatalogGallery, catalogPhotoPath, isQuarantinedCatalogPhoto, normalizeCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
 
+it("excludes miscategorizations without suppressing the photo on its own SKU", () => {
+  const humidifierGallery = ["milky", "silky", "stepper", "twister", "wavy"].map((model) => `/uploads/products/egg-${model}.png`);
+  expect(officialDatabaseGallery(humidifierGallery, "cmr6kdeh6000j76siv8kly4tu", "3104000000627")).toEqual([]);
+  const pointed = "/uploads/products/mini-bullet-rosa-ponta-fina.png";
+  const rounded = "/uploads/products/mini-bullet-duplo-rosa.png";
+  expect(officialDatabaseGallery([pointed, rounded], "cmr6dj6ry002d13u7lpq4ytz5", "3104000004760")).toEqual([pointed]);
+  expect(officialDatabaseGallery([rounded], "cmr6dj741002j13u7epq3c6pc", "3104000004759")).toEqual([rounded]);
+});
+
 it("excludes a legacy photo that explicitly names a different commercial SKU", () => {
   const wrong = "/uploads/products/modelo-3104000004949.jpg";
   const correct = "/uploads/products/modelo-3104000004955.jpg";
