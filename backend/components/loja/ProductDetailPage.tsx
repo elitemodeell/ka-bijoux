@@ -151,7 +151,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const categorySlug = product.categorySlug ?? "produtos";
   const productSubcategoryName = product.subcategoryName ?? subcategoryName;
   const stock = variations.length ? selectedVariant?.stock ?? 0 : product.stock;
-  const available = !product.purchaseReviewRequired && stock > 0 && (!variations.length || Boolean(selectedVariant?.id));
+  const available = !product.purchaseReviewRequired && stock > 0 && (!variations.length || Boolean(selectedVariant?.id)) && selectedLinked?.available !== false;
   const hasStock = variations.length
     ? variations.some((variant) => variant.id && (variant.stock ?? 0) > 0)
     : product.stock > 0;
@@ -398,14 +398,20 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                   <div className="mt-5">
                     <p className="mb-2 text-sm font-semibold">Escolha a opção</p>
                     <div className="flex flex-wrap gap-2">
-                      {product.linkedOptions?.map((option) => (
-                        <Link key={option.id} href={`/produto/${option.slug ?? option.id}`}
-                          aria-current={option.id === product.id ? "page" : undefined}
-                          className={`inline-flex w-[100px] flex-col items-center gap-1 rounded-xl border p-2 text-center text-xs ${option.id === product.id ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-200"}`}>
+                      {product.linkedOptions?.map((option) => {
+                        const className = `inline-flex w-[100px] flex-col items-center gap-1 rounded-xl border p-2 text-center text-xs ${option.id === product.id ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-200"} ${option.available ? "" : "cursor-not-allowed opacity-50"}`;
+                        const contents = <>
                           {option.imageUrl && <img src={option.imageUrl} alt="" loading="lazy" className="size-20 rounded-lg object-contain" />}
                           <span><span className="block font-semibold">{option.label}</span>{!option.available ? "Indisponível" : option.price !== undefined ? fmt(option.price) : null}</span>
-                        </Link>
-                      ))}
+                        </>;
+                        return option.available ? (
+                          <Link key={option.id} href={`/produto/${option.slug ?? option.id}`}
+                            aria-current={option.id === product.id ? "page" : undefined}
+                            className={className}>{contents}</Link>
+                        ) : (
+                          <span key={option.id} aria-disabled="true" className={className}>{contents}</span>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

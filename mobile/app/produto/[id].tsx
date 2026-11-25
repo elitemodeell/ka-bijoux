@@ -374,7 +374,7 @@ export default function ProdutoScreen() {
   }
 
   async function handleCartAction(action: "add" | "buy") {
-    if (!product || loading || product.purchaseReviewRequired || (product.id !== id && product.slug !== id)) return;
+    if (!product || loading || product.purchaseReviewRequired || product.linkedOptions?.find((option) => option.id === product.id)?.available === false || (product.id !== id && product.slug !== id)) return;
     if (cartActionLock.current) return;
     if (!customer) {
       router.push("/(auth)/entrada");
@@ -460,7 +460,7 @@ export default function ProdutoScreen() {
     setSelectedPhoto(photo);
     void AsyncStorage.setItem(`catalog-photo:${product.id}`, photo).catch(() => undefined);
   }
-  const isAvailable = !product.purchaseReviewRequired && (hasVariations && !product.sharedVariationStock
+  const isAvailable = !product.purchaseReviewRequired && product.linkedOptions?.find((option) => option.id === product.id)?.available !== false && (hasVariations && !product.sharedVariationStock
     ? product.variations.some((v) => v.sku?.trim() && v.stock > 0)
     : product.stock > 0);
   const activeStock = product.sharedVariationStock ? product.stock : activeVariation?.stock ?? product.stock;
@@ -633,9 +633,10 @@ export default function ProdutoScreen() {
               <View style={styles.variations}>
                 {product.linkedOptions?.map((option) => (
                   <TouchableOpacity key={option.id} accessibilityRole="button"
-                    accessibilityState={{ selected: option.id === product.id }}
-                    style={[styles.variationChip, option.id === product.id && styles.variationChipActive]}
-                    onPress={() => { if (option.id !== product.id) router.replace({ pathname: "/produto/[id]", params: { id: option.id } }); }}>
+                    disabled={!option.available}
+                    accessibilityState={{ selected: option.id === product.id, disabled: !option.available }}
+                    style={[styles.variationChip, option.id === product.id && styles.variationChipActive, !option.available && { opacity: 0.45 }]}
+                    onPress={() => { if (option.available && option.id !== product.id) router.replace({ pathname: "/produto/[id]", params: { id: option.id } }); }}>
                     <View style={styles.variationWithImage}>
                       {option.imageUrl && <ResilientProductImage sources={[option.imageUrl]} style={styles.variationThumb} contentFit="contain" compact />}
                       <View>
