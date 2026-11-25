@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   findFirst: vi.fn(),
   findMany: vi.fn(),
   linkedCatalogOptions: vi.fn(),
+  findBlingProductForSource: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -15,6 +16,7 @@ vi.mock("@/lib/google-play-distribution", () => ({
   toGooglePlayPublicData: (value: unknown) => value,
 }));
 vi.mock("@/lib/linked-catalog-options", () => ({ linkedCatalogOptions: mocks.linkedCatalogOptions }));
+vi.mock("@/lib/bling-catalog", () => ({ findBlingProductForSource: mocks.findBlingProductForSource }));
 
 import { GET } from "@/app/api/mobile/products/[id]/route";
 
@@ -28,7 +30,7 @@ const product = {
   stock: 1,
   sharedVariationStock: false,
   purchaseMode: null,
-  images: [],
+  images: [{ url: "https://cdn.example/case-3104000005587.webp" }],
   variations: [],
   category: null,
   subcategory: null,
@@ -38,6 +40,12 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.findFirst.mockResolvedValue(product);
   mocks.findMany.mockResolvedValue([]);
+  mocks.findBlingProductForSource.mockImplementation(({ sku }: { sku?: string | null }) => ({
+    sku,
+    active: true,
+    price: 12,
+    stock: 5,
+  }));
 });
 
 function request() {
@@ -45,7 +53,7 @@ function request() {
 }
 
 describe("mobile linked option without confirmed photo", () => {
-  it("blocks direct purchase until the option has an approved official photo", async () => {
+  it("hides the product until the linked option has an approved official photo", async () => {
     mocks.linkedCatalogOptions.mockResolvedValue([
       { id: product.id, label: "Azul escuro", available: false, imageUrl: null, price: 12 },
     ]);
@@ -53,13 +61,8 @@ describe("mobile linked option without confirmed photo", () => {
     const response = await GET(request(), { params: Promise.resolve({ id: product.id }) });
     const body = await response.json();
 
-    expect(body.data.product).toMatchObject({
-      id: product.id,
-      stock: 0,
-      purchaseReviewRequired: true,
-      images: [],
-      linkedOptions: [{ id: product.id, available: false, imageUrl: null }],
-    });
+    expect(response.status).toBe(404);
+    expect(body.data).toBeUndefined();
   });
 
   it("keeps a linked option purchasable when it has a confirmed official photo", async () => {

@@ -1,24 +1,37 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { findMany } = vi.hoisted(() => ({ findMany: vi.fn() }));
+const { findMany, findBlingProductForSource } = vi.hoisted(() => ({
+  findMany: vi.fn(),
+  findBlingProductForSource: vi.fn(),
+}));
 vi.mock("@/lib/prisma", () => ({ prisma: { product: { findMany } } }));
+vi.mock("@/lib/bling-catalog", () => ({ findBlingProductForSource }));
 
 import { linkedCatalogOptionLabel, linkedCatalogOptions } from "@/lib/linked-catalog-options";
 import groups from "@/data/linked-catalog-options.json";
 
 const [light, dark] = groups[0].options.map(({ id, sku, label, photo }, index) => ({
   id, sku, label, slug: sku, stock: index ? 0 : 2, purchaseMode: null,
-  price: 12, promotionalPrice: index ? null : 10,
+  price: 12, promotionalPrice: null,
   _count: { variations: 0 }, images: [{ url: photo }],
 }));
 
 describe("linked catalog options", () => {
+  beforeEach(() => {
+    findBlingProductForSource.mockImplementation(({ sku }: { sku?: string | null }) => ({
+      sku,
+      active: true,
+      price: 12,
+      stock: 10,
+    }));
+  });
+
   it("keeps each option on its own product, image and availability", async () => {
-    findMany.mockResolvedValue([light, dark]);
+    findMany.mockResolvedValue([light, { ...dark, stock: 2 }]);
     const options = await linkedCatalogOptions(light.id);
     expect(options).toEqual([
-      { id: light.id, label: light.label, slug: light.slug, available: true, imageUrl: light.images[0].url, price: 10 },
-      { id: dark.id, label: dark.label, slug: dark.slug, available: false, imageUrl: dark.images[0].url, price: 12 },
+      { id: light.id, label: light.label, slug: light.slug, available: true, imageUrl: light.images[0].url, price: 12 },
+      { id: dark.id, label: dark.label, slug: dark.slug, available: true, imageUrl: dark.images[0].url, price: 12 },
     ]);
   });
 
@@ -33,25 +46,19 @@ describe("linked catalog options", () => {
     expect(await linkedCatalogOptions(light.id, { active: true })).toEqual([]);
   });
 
-  it("keeps the confirmed option available by text when its photo is no longer attached", async () => {
-    findMany.mockResolvedValue([light, { ...dark, images: light.images }]);
-    expect(await linkedCatalogOptions(light.id)).toMatchObject([
-      { id: light.id, imageUrl: light.images[0].url },
-      { id: dark.id, imageUrl: null, available: false },
-    ]);
+  it("does not expose a selector when only one linked option is currently sellable", async () => {
+    findMany.mockResolvedValue([light, dark]);
+    expect(await linkedCatalogOptions(light.id)).toEqual([]);
   });
 
   it("never offers an option for sale without its confirmed photo, even with positive stock", async () => {
     findMany.mockResolvedValue([light, { ...dark, stock: 8, images: [] }]);
-    expect(await linkedCatalogOptions(light.id)).toMatchObject([
-      { id: light.id, imageUrl: light.images[0].url, available: true },
-      { id: dark.id, imageUrl: null, available: false },
-    ]);
+    expect(await linkedCatalogOptions(light.id)).toEqual([]);
   });
 
   it("uses an approved replacement cover stored under the exact product", async () => {
     const url = `https://sxohqngzypmxtmuulfoa.supabase.co/storage/v1/object/public/products/catalog/products/${light.id}/gallery/approved.webp`;
-    findMany.mockResolvedValue([{ ...light, images: [{ url }, ...light.images] }, dark]);
+    findMany.mockResolvedValue([{ ...light, images: [{ url }, ...light.images] }, { ...dark, stock: 2 }]);
     expect(await linkedCatalogOptions(light.id)).toMatchObject([{ id: light.id, imageUrl: url }, { id: dark.id }]);
   });
 

@@ -44,7 +44,10 @@ describe("ETAPA 5B revisada — 37 requisitos", () => {
     ["14 relacionados não vazam bloqueados", () => expect((backendSource("app/api/mobile/products/[id]/route.ts").match(/googlePlayProductWhere/g) ?? []).length).toBeGreaterThanOrEqual(2)],
     ["15 filtro precede paginação", () => {
       const source = backendSource("app/api/mobile/products/route.ts");
-      expect(source.indexOf("googlePlayProductWhere")).toBeLessThan(source.indexOf("skip:"));
+      const appliedFilter = source.indexOf("const where = googlePlayProductWhere(filters)");
+      const pagedQuery = source.indexOf("const batch = await prisma.product.findMany(");
+      expect(appliedFilter).toBeGreaterThanOrEqual(0);
+      expect(appliedFilter).toBeLessThan(pagedQuery);
     }],
     ["16 banner bloqueado não aparece", () => expect(mobileSource("app/(tabs)/index.tsx")).not.toContain("ka-intima-hero")],
     ["17 story bloqueado não aparece", () => expect(JSON.stringify(googlePlayStoryGroupWhere())).toContain("PLAY_ALLOWED")],

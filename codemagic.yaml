@@ -1,6 +1,6 @@
 workflows:
   ka-bijoux-ios-release:
-    name: KA Bijoux iOS 1.0.4 - TestFlight interno
+    name: KA Bijoux iOS 1.0.5 - TestFlight interno
     instance_type: mac_mini_m2
     max_build_duration: 120
     environment:
@@ -12,8 +12,8 @@ workflows:
         - ka_bijoux_apple
       vars:
         BUNDLE_ID: com.kabijoux.app
-        MARKETING_VERSION: "1.0.4"
-        BUILD_NUMBER: "21"
+        MARKETING_VERSION: "1.0.5"
+        BUILD_NUMBER: "29"
         APP_STORE_APPLE_ID: "6798015933"
         XCODE_WORKSPACE: KABijoux.xcworkspace
         XCODE_SCHEME: KABijoux
@@ -109,16 +109,26 @@ workflows:
       - name: Check production catalog compatibility
         script: |
           set -euo pipefail
-          curl -fsS --max-time 15 "$EXPO_PUBLIC_API_URL/api/mobile/products/cmr6i1pu5001drhf8cvq4gl22" | node -e '
-            const { data } = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
-            const product = data?.product;
-            if (product?.sku !== "3104000004296" || !Array.isArray(product.images) ||
-                !Array.isArray(product.variations) || !Number.isFinite(product.stock) ||
-                (product.assortedColors !== undefined && typeof product.assortedColors !== "boolean") ||
-                (product.fixedColor != null && typeof product.fixedColor !== "string")) {
-              throw new Error("Production catalog API is incompatible with the iOS product detail.");
-            }
-          '
+          node --input-type=module <<'NODE'
+          const base = process.env.EXPO_PUBLIC_API_URL;
+          const listingResponse = await fetch(`${base}/api/mobile/products?page=1&pageSize=1`);
+          if (!listingResponse.ok) throw new Error(`Product listing API returned ${listingResponse.status}`);
+          const listing = await listingResponse.json();
+          const id = listing?.data?.products?.[0]?.id;
+          if (!id) throw new Error("Production mobile API has no currently saleable product to validate.");
+          const detailResponse = await fetch(`${base}/api/mobile/products/${encodeURIComponent(id)}`);
+          if (!detailResponse.ok) throw new Error(`Product detail API returned ${detailResponse.status}`);
+          const detail = await detailResponse.json();
+          const product = detail?.data?.product;
+          if (!product?.sku || !Array.isArray(product.images) ||
+              !Array.isArray(product.variations) || !Array.isArray(product.linkedOptions) ||
+              !Number.isFinite(product.stock) ||
+              (product.assortedColors !== undefined && typeof product.assortedColors !== "boolean") ||
+              (product.fixedColor != null && typeof product.fixedColor !== "string")) {
+            throw new Error("Production catalog API is incompatible with the iOS product detail.");
+          }
+          console.log(`Production catalog contract OK for SKU ${product.sku}.`);
+          NODE
 
       - name: Validate Apple backend contract
         script: |
