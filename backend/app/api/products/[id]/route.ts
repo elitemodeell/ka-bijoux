@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
-import { belongsToCatalogGallery, isKaCatalogAsset, isOfficialCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
+import { belongsToCatalogGallery, isKaCatalogAsset, isOfficialCatalogPhoto, officialDatabaseGallery, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { catalogGalleryForPurchase, catalogPurchaseBlocked, catalogPurchaseModes, validateCatalogOptions } from "@/lib/catalog-purchase-mode";
+import { saleReadyProduct, variationsShareSkuInventory } from "@/lib/catalog-storefront-eligibility";
 import { planKaPhotoPush } from "@/lib/bling-photo-push";
 import { z } from "zod";
 import { ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
@@ -58,8 +59,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     const related = await prisma.product.findMany({
       where: { categoryId: product.categoryId, active: true, id: { not: product.id } },
-      include: { images: { orderBy: { order: "asc" }, take: 1 }, category: true, subcategory: true },
-      take: 6,
+      include: {
+        images: { where: visibleCatalogPhotos, orderBy: { order: "asc" }, take: 1 },
+        category: true,
+        subcategory: true,
+        variations: { where: { active: true }, orderBy: { order: "asc" } },
+      },
+      take: 30,
     });
 
     const isAdultProduct = product.category?.slug === "sex-shop";
@@ -78,14 +84,31 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
           : null,
       })),
     };
-    const filteredRelated = related.map((r) => {
+    if (!isAdmin && !isAdultProduct) {
+      const sale = saleReadyProduct(filteredProduct);
+      if (!sale) return apiError("Produto nÃ£o encontrado.", 404);
+      Object.assign(filteredProduct, sale);
+    }
+
+    const filteredRelated = related.flatMap((r) => {
       const isAdultRelated = r.category?.slug === "sex-shop";
       const images = r.images.filter((img) => isOfficialCatalogPhoto(img.url, r.id, r.sku));
-      return {
+      const sharedSkuInventory = variationsShareSkuInventory(r.sharedVariationStock, r.variations);
+      const card = {
         ...r,
         images: isAdultRelated ? images : images.filter((img) => !isAdultImageUrl(img.url)),
+        variations: r.variations.map((variation) => ({
+          ...variation,
+          stock: sharedSkuInventory ? r.stock : variation.stock,
+          priceModifier: Number(variation.priceModifier),
+        })),
+        price: Number(r.price),
+        purchaseReviewRequired: catalogPurchaseBlocked(r.purchaseMode, r.variations.length),
       };
-    });
+      if (isAdultRelated) return [card];
+      const sale = saleReadyProduct(card);
+      return sale ? [{ ...card, ...sale }] : [];
+    }).slice(0, 6);
 
     // Apply Bling catalog overlays: display name and current price
     // (same strategy the website uses — DB may have stale name/price from import)

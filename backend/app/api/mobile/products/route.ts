@@ -6,10 +6,12 @@ import { googlePlayProductWhere } from "@/lib/google-play-distribution";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
+import { saleReadyProduct, variationsShareSkuInventory } from "@/lib/catalog-storefront-eligibility";
 
 const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
   id: true,
   sku: true,
+  blingId: true,
   name: true,
   slug: true,
   description: true,
@@ -40,6 +42,7 @@ const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
       value: true,
       imageUrl: true,
       stock: true,
+      priceModifier: true,
       isDefault: true,
       order: true,
     },
@@ -50,6 +53,7 @@ function serializeProduct(product: Prisma.ProductGetPayload<{ select: typeof car
   const { purchaseMode, ...card } = product;
   const purchaseReviewRequired = catalogPurchaseBlocked(purchaseMode, product.variations.length);
   const images = card.images.filter(({ url }) => isOfficialCatalogPhoto(url, card.id, card.sku));
+  const sharedSkuInventory = variationsShareSkuInventory(product.sharedVariationStock, card.variations);
   return {
     ...card,
     purchaseReviewRequired,
@@ -57,7 +61,8 @@ function serializeProduct(product: Prisma.ProductGetPayload<{ select: typeof car
     images,
     variations: (purchaseReviewRequired ? [] : card.variations).map((variation) => ({
       ...variation,
-      stock: product.sharedVariationStock ? product.stock : variation.stock,
+      stock: sharedSkuInventory ? product.stock : variation.stock,
+      priceModifier: Number(variation.priceModifier),
       imageUrl: variation.imageUrl && isOfficialCatalogPhoto(variation.imageUrl, product.id, variation.sku, variation.id)
         ? variation.imageUrl
         : null,
@@ -130,19 +135,32 @@ export async function GET(req: NextRequest) {
             ? { soldCount: "desc" }
             : { createdAt: "desc" };
 
-    const [total, products] = await Promise.all([
-      prisma.product.count({ where }),
-      prisma.product.findMany({
+    const candidates = [];
+    let skip = 0;
+    while (true) {
+      const batch = await prisma.product.findMany({
         where,
         select: cardSelect,
         orderBy: [orderBy, { id: "asc" }],
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-    ]);
+        skip,
+        take: 500,
+      });
+      candidates.push(...batch);
+      if (batch.length < 500) break;
+      skip += batch.length;
+      if (skip >= 20_000) return apiError("CatÃ¡logo excede o limite seguro de leitura.", 503);
+    }
+
+    const eligible = candidates.flatMap((product) => {
+      const card = serializeProduct(product);
+      const sale = saleReadyProduct(card);
+      return sale ? [{ ...card, ...sale }] : [];
+    });
+    const total = eligible.length;
+    const products = eligible.slice((page - 1) * pageSize, page * pageSize);
 
     const response = apiSuccess({
-      products: products.map(serializeProduct),
+      products,
       total,
       page,
       pageSize,

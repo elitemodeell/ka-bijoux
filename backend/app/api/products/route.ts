@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { catalogSearchAlternatives } from "@/lib/catalog-search";
 import { catalogPurchaseBlocked, catalogPurchaseModes, validateCatalogOptions } from "@/lib/catalog-purchase-mode";
+import { saleReadyProduct, variationsShareSkuInventory } from "@/lib/catalog-storefront-eligibility";
 import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError, slugify } from "@/lib/utils";
 import { getPublicCategoryName } from "@/lib/catalog";
@@ -58,6 +59,7 @@ const productListSelect = {
       value: true,
       imageUrl: true,
       stock: true,
+      priceModifier: true,
       isDefault: true,
       order: true,
     },
@@ -113,29 +115,40 @@ export async function GET(req: NextRequest) {
             ? { soldCount: "desc" }
             : { createdAt: "desc" };
 
-    const skip = (page - 1) * pageSize;
-    const [total, products] = await withTimeout(
-      Promise.all([
-        prisma.product.count({ where }),
-        prisma.product.findMany({
+    const candidates = await withTimeout((async () => {
+      const all = [];
+      let skip = 0;
+      while (true) {
+        const batch = await prisma.product.findMany({
           where,
           select: productListSelect,
           orderBy: [orderBy, { createdAt: "desc" }, { id: "asc" }],
           skip,
-          take: pageSize,
-        }),
-      ]),
-      DB_QUERY_TIMEOUT_MS
-    );
+          take: 500,
+        });
+        all.push(...batch);
+        if (batch.length < 500) return all;
+        skip += batch.length;
+        if (skip >= 20_000) throw new Error("Catalog exceeds safe query limit");
+      }
+    })(), DB_QUERY_TIMEOUT_MS);
 
-    const dbProducts = products
+    const dbProducts = candidates
       .map((product) => mapDbProductToCard(product))
       .filter((product): product is ProductCardProduct => Boolean(product))
       .filter((product) => !withImage || Boolean(product.image))
-      .filter((product) => matchesCatalogLine(toProductLineSource(product), catalogLine));
+      .filter((product) => matchesCatalogLine(toProductLineSource(product), catalogLine))
+      .map((product) => {
+        if (product.catalogLine === "adult") return product;
+        const sale = saleReadyProduct(product);
+        return sale ? { ...product, ...sale } : null;
+      })
+      .filter((product): product is ProductCardProduct => Boolean(product));
+    const total = dbProducts.length;
+    const products = dbProducts.slice((page - 1) * pageSize, page * pageSize);
 
     const response = apiSuccess({
-      products: dbProducts,
+      products,
       total,
       page,
       pageSize,
@@ -182,10 +195,12 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof p
 
   const variations = (purchaseReviewRequired ? [] : product.variations).map((v) => ({
     id: v.id,
+    sku: v.sku,
     name: v.name,
     value: v.value,
     imageUrl: v.imageUrl && isOfficialCatalogPhoto(v.imageUrl, product.id, v.sku, v.id) ? v.imageUrl : null,
-    stock: product.sharedVariationStock ? product.stock : v.stock,
+    stock: variationsShareSkuInventory(product.sharedVariationStock, product.variations) ? product.stock : v.stock,
+    priceModifier: Number(v.priceModifier),
     isDefault: v.isDefault,
     order: v.order,
   }));
@@ -208,6 +223,7 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof p
     images,
     image: images[0]?.url ?? null,
     sourceOrder: 100000,
+    sharedVariationStock: product.sharedVariationStock,
     priceSource: "DATABASE",
     imageSource: dbImages.length ? "DATABASE" : "NONE",
     catalogLine,

@@ -10,6 +10,7 @@ import {
 } from "@/lib/bling-catalog";
 import { getProductCatalogLine, matchesCatalogLine } from "@/lib/product-line";
 import { googlePlayProductWhere } from "@/lib/google-play-distribution";
+import { saleReadyProduct, variationsShareSkuInventory } from "@/lib/catalog-storefront-eligibility";
 
 export interface HomeSections {
   ofertasRelampago: ProductCardProduct[];
@@ -53,6 +54,7 @@ const homeProductSelect = Prisma.validator<Prisma.ProductSelect>()({
       stock: true,
       isDefault: true,
       order: true,
+      priceModifier: true,
     },
   },
 });
@@ -104,7 +106,11 @@ async function fetchPool(filters: FetchPoolOptions): Promise<ProductCardProduct[
     .map(mapDbProductToCard)
     .filter((product): product is ProductCardProduct => Boolean(product))
     .filter((product) => Boolean(product.image))
-    .filter((product) => matchesCatalogLine(toProductLineSource(product), "normal"));
+    .filter((product) => matchesCatalogLine(toProductLineSource(product), "normal"))
+    .flatMap((product) => {
+      const sale = saleReadyProduct(product);
+      return sale ? [{ ...product, ...sale }] : [];
+    });
 }
 
 function mapDbProductToCard(
@@ -138,6 +144,7 @@ function mapDbProductToCard(
     subcategorySlug: subcategory?.slug,
     subcategoryName: subcategory?.name,
   });
+  const sharedSkuInventory = variationsShareSkuInventory(product.sharedVariationStock, product.variations);
 
   return {
     id: product.id,
@@ -149,6 +156,7 @@ function mapDbProductToCard(
     badge: product.isNew ? "Novo" : product.featured ? "Destaque" : null,
     stock: purchaseReviewRequired ? 0 : product.stock,
     purchaseReviewRequired,
+    requiresOptionSelection: product.purchaseMode === "OPTIONS",
     sku: product.sku,
     blingId: bling?.blingId ?? product.blingId,
     category,
@@ -160,10 +168,11 @@ function mapDbProductToCard(
     imageSource: images.length ? "DATABASE" : "NONE",
     catalogLine,
     isAdult: catalogLine === "adult",
-    variations: (purchaseReviewRequired ? [] : product.variations).map(({ sku, ...variation }) => ({
+    variations: (purchaseReviewRequired ? [] : product.variations).map((variation) => ({
       ...variation,
-      stock: product.sharedVariationStock ? product.stock : variation.stock,
-      imageUrl: variation.imageUrl && isOfficialCatalogPhoto(variation.imageUrl, product.id, sku, variation.id) ? variation.imageUrl : null,
+      stock: sharedSkuInventory ? product.stock : variation.stock,
+      priceModifier: Number(variation.priceModifier),
+      imageUrl: variation.imageUrl && isOfficialCatalogPhoto(variation.imageUrl, product.id, variation.sku, variation.id) ? variation.imageUrl : null,
     })),
   } satisfies ProductCardProduct;
 }

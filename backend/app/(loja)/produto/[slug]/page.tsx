@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { isOfficialCatalogPhoto, officialDatabaseGallery } from "@/lib/catalog-photo";
 import { catalogGalleryForPurchase, catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
+import { saleReadyProduct } from "@/lib/catalog-storefront-eligibility";
 import { linkedCatalogOptions } from "@/lib/linked-catalog-options";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
@@ -317,6 +318,34 @@ export default async function ProdutoPage(props: PageProps) {
   if (params.slug !== canonicalSlug) redirect(`/produto/${canonicalSlug}`);
 
   if (dbProduct) {
+    const isAdultProduct = dbProduct.category?.slug === "sex-shop";
+    const purchaseReviewRequired = catalogPurchaseBlocked(dbProduct.purchaseMode, dbProduct.variations.length);
+    const rawDbImages = officialDatabaseGallery(dbProduct.images.map((image) => image.url), dbProduct.id, dbProduct.sku);
+    const visibleImages = isAdultProduct ? rawDbImages : rawDbImages.filter((url) => !isAdultImageUrl(url));
+    const sale = isAdultProduct ? null : saleReadyProduct({
+      id: dbProduct.id,
+      name: dbProduct.name,
+      slug: dbProduct.slug,
+      sku: dbProduct.sku,
+      blingId: dbProduct.blingId,
+      price: Number(dbProduct.price),
+      promotionalPrice: dbProduct.promotionalPrice ? Number(dbProduct.promotionalPrice) : null,
+      stock: dbProduct.stock,
+      sharedVariationStock: dbProduct.sharedVariationStock,
+      purchaseReviewRequired,
+      images: visibleImages.map((url) => ({ url, alt: dbProduct.name })),
+      variations: dbProduct.variations.map((variation) => ({
+        id: variation.id,
+        sku: variation.sku,
+        name: variation.name,
+        value: variation.value,
+        imageUrl: variation.imageUrl,
+        stock: variation.stock,
+        priceModifier: Number(variation.priceModifier),
+      })),
+    });
+    if (!isAdultProduct && !sale) notFound();
+
     const relatedDbProducts = await prisma.product.findMany({
       where: {
         active: true,
@@ -331,17 +360,13 @@ export default async function ProdutoPage(props: PageProps) {
         images: { orderBy: { order: "asc" }, take: 1 },
         _count: { select: { variations: { where: { active: true } } } },
       },
-      take: 8,
+      take: 30,
     });
 
     const subcategoryName = dbProduct.subcategory?.name ?? "";
     const subcategoryPathSlug = dbProduct.subcategory
       ? getSubcategoryPathSlug(dbProduct.subcategory.slug)
       : "";
-    const isAdultProduct = dbProduct.category?.slug === "sex-shop";
-    const rawDbImages = officialDatabaseGallery(dbProduct.images.map((image) => image.url), dbProduct.id, dbProduct.sku);
-    const visibleImages = isAdultProduct ? rawDbImages : rawDbImages.filter((url) => !isAdultImageUrl(url));
-    const purchaseReviewRequired = catalogPurchaseBlocked(dbProduct.purchaseMode, dbProduct.variations.length);
     const galleryImages = catalogGalleryForPurchase(visibleImages, purchaseReviewRequired);
     const contentOverride = getProductContentOverride({
       blingId: dbProduct.blingId,
@@ -365,6 +390,11 @@ export default async function ProdutoPage(props: PageProps) {
       relatedDbProducts
         .map(mapRelatedDbProduct)
         .filter((product): product is ProductCardProduct => Boolean(product))
+        .flatMap((product) => {
+          if (product.catalogLine === "adult") return [product];
+          const productSale = saleReadyProduct(product);
+          return productSale ? [{ ...product, ...productSale }] : [];
+        })
     ).filter(
       (product) =>
         matchesCatalogLine(
@@ -379,10 +409,13 @@ export default async function ProdutoPage(props: PageProps) {
         ) && !getProductIdentityKeys(product).some((key) => currentIdentity.has(key))
     );
 
-    const dbVariations = dbProduct.variations.map((variation) => ({
+    const saleStocks = new Map((sale?.variations ?? []).map((variation) => [variation.id, Number(variation.stock)]));
+    const dbVariations = dbProduct.variations
+      .filter((variation) => isAdultProduct || saleStocks.has(variation.id))
+      .map((variation) => ({
       id: variation.id,
       sku: variation.sku ?? undefined,
-      stock: dbProduct.sharedVariationStock ? dbProduct.stock : variation.stock,
+      stock: saleStocks.get(variation.id) ?? (dbProduct.sharedVariationStock ? dbProduct.stock : variation.stock),
       priceModifier: Number(variation.priceModifier),
       images: variation.imageUrl && isOfficialCatalogPhoto(variation.imageUrl, dbProduct.id, variation.sku, variation.id)
         ? [variation.imageUrl]
@@ -396,7 +429,7 @@ export default async function ProdutoPage(props: PageProps) {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, ""),
       active: (dbProduct.sharedVariationStock ? dbProduct.stock : variation.stock) > 0,
-    }));
+      }));
 
     const linkedOptions = await linkedCatalogOptions(dbProduct.id);
     const adaptedProduct = {
@@ -437,7 +470,7 @@ export default async function ProdutoPage(props: PageProps) {
       relatedSlugs: [] as string[],
       relatedProducts,
       badge: dbProduct.isNew ? "Novo" : dbProduct.featured ? "Destaque" : undefined,
-      stock: dbProduct.stock,
+      stock: sale?.stock ?? dbProduct.stock,
       installments: 3,
       isAdult: isAdultProduct,
     };
@@ -452,6 +485,7 @@ export default async function ProdutoPage(props: PageProps) {
   }
 
   if (blingProduct) {
+    if (!blingProduct.isAdult && !saleReadyProduct(blingProduct)) notFound();
     return (
       <ProductDetailPage
         product={buildBlingDetailProduct(blingProduct)}

@@ -22,6 +22,8 @@ import {
   matchesCatalogLine,
   type CatalogLine,
 } from "@/lib/product-line";
+import { saleReadyProduct, variationsShareSkuInventory } from "@/lib/catalog-storefront-eligibility";
+import { catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -53,9 +55,18 @@ const productSelect = {
   subcategory: { select: { name: true, slug: true } },
   images: {
     orderBy: { order: "asc" as const },
-    take: 1,
     select: { url: true, alt: true },
   },
+  variations: {
+    where: { active: true },
+    orderBy: [{ order: "asc" as const }, { id: "asc" as const }],
+    select: {
+      id: true, sku: true, name: true, value: true, imageUrl: true, stock: true,
+      priceModifier: true, isDefault: true, order: true,
+    },
+  },
+  purchaseMode: true,
+  sharedVariationStock: true,
 };
 
 const LISTING_PAGE_SIZE = 24;
@@ -863,40 +874,38 @@ async function getLiveProducts(params: LiveProductParams & { page: number }) {
     const where = buildProductWhere(params);
     const orderBy = buildProductOrder(params.sort);
     const requestedPage = Math.max(1, params.page);
-    const requestedSkip = (requestedPage - 1) * LISTING_PAGE_SIZE;
-    const [total, firstProducts] = await withTimeout(
-      Promise.all([
-        prisma.product.count({ where }),
-        prisma.product.findMany({
-          where,
-          select: productSelect,
-          orderBy,
-          skip: requestedSkip,
-          take: LISTING_PAGE_SIZE,
-        }),
-      ]),
+    const candidates = await withTimeout(
+      prisma.product.findMany({ where, select: productSelect, orderBy, take: 20_000 }),
       LISTING_DB_TIMEOUT_MS
     );
-    const totalPages = Math.max(1, Math.ceil(total / LISTING_PAGE_SIZE));
-    const page = Math.min(requestedPage, totalPages);
-    const dbProducts = page === requestedPage
-      ? firstProducts
-      : await withTimeout(
-          prisma.product.findMany({
-            where,
-            select: productSelect,
-            orderBy,
-            skip: (page - 1) * LISTING_PAGE_SIZE,
-            take: LISTING_PAGE_SIZE,
-          }),
-          LISTING_DB_TIMEOUT_MS
-        );
-
-    const products = dbProducts
+    const adultListing = params.catalogLine === "adult";
+    const eligibleProducts = candidates
       .map((product) => mapDbProductToCard(product))
       .filter((product): product is ProductCardProduct => Boolean(product))
       .filter((product) => Boolean(product.image))
-      .filter((product) => matchesCatalogLine(toProductLineSource(product), params.catalogLine));
+      .filter((product) => matchesCatalogLine(toProductLineSource(product), params.catalogLine))
+      .flatMap<ProductCardProduct>((product) => {
+        if (adultListing) return [{
+          ...product,
+          images: product.images?.slice(0, 1),
+          variations: undefined,
+          purchaseReviewRequired: undefined,
+          requiresOptionSelection: undefined,
+          sharedVariationStock: undefined,
+        }];
+        const sale = saleReadyProduct(product);
+        return sale ? [{
+          ...product,
+          stock: sale.stock,
+          image: sale.image,
+          images: [{ url: sale.image, alt: product.name }],
+          variations: sale.variations,
+        } as ProductCardProduct] : [];
+      });
+    const total = eligibleProducts.length;
+    const totalPages = Math.max(1, Math.ceil(total / LISTING_PAGE_SIZE));
+    const page = Math.min(requestedPage, totalPages);
+    const products = eligibleProducts.slice((page - 1) * LISTING_PAGE_SIZE, page * LISTING_PAGE_SIZE);
 
     return { products, total, page, totalPages };
   } catch {
@@ -956,6 +965,7 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof p
   });
 
   const isAdultCategory = product.category?.slug === "sex-shop";
+  const sharedSkuInventory = variationsShareSkuInventory(product.sharedVariationStock, product.variations);
   const rawDbImages = product.images.map((image) => ({ url: image.url, alt: image.alt ?? product.name }));
   const dbImages = isAdultCategory ? rawDbImages : rawDbImages.filter((i) => !isAdultImageUrl(i.url));
   const images = dbImages;
@@ -986,12 +996,20 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof p
     promo: promotionalPrice,
     badge: product.isNew ? "Novo" : product.featured ? "Destaque" : null,
     stock: product.stock,
+    purchaseReviewRequired: catalogPurchaseBlocked(product.purchaseMode, product.variations.length),
+    sharedVariationStock: product.sharedVariationStock,
+    requiresOptionSelection: product.purchaseMode === "OPTIONS",
     sku: product.sku,
     blingId: bling?.blingId ?? product.blingId,
     category,
     subcategory,
     images,
     image: images[0]?.url ?? null,
+    variations: product.variations.map((variation) => ({
+      ...variation,
+      stock: sharedSkuInventory ? product.stock : Number(variation.stock),
+      priceModifier: Number(variation.priceModifier),
+    })),
     sourceOrder: 100000,
     priceSource: "DATABASE",
     imageSource: dbImages.length ? "DATABASE" : "NONE",

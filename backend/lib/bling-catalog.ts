@@ -21,10 +21,12 @@ export type ProductCardMedia = { url: string; alt?: string | null };
 
 export type ProductCardVariation = {
   id: string;
+  sku?: string | null;
   name: string;
   value: string;
   imageUrl?: string | null;
   stock: number;
+  priceModifier?: number;
   isDefault: boolean;
   order: number;
 };
@@ -48,6 +50,7 @@ export type ProductCardProduct = {
   category?: { name: string; slug?: string } | null;
   subcategory?: { name: string; slug?: string } | null;
   sourceOrder?: number;
+  sharedVariationStock?: boolean;
   priceSource?: "BLING" | "DATABASE" | "LOCAL";
   imageSource?: "BLING" | "MARKETPLACE" | "DATABASE" | "STATIC" | "NONE";
   catalogLine?: CatalogLine;

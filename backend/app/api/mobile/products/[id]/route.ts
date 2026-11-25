@@ -6,6 +6,7 @@ import { apiError, apiSuccess } from "@/lib/utils";
 import { isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { catalogGalleryForPurchase, catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
 import { linkedCatalogOptions } from "@/lib/linked-catalog-options";
+import { saleReadyProduct, variationsShareSkuInventory } from "@/lib/catalog-storefront-eligibility";
 
 const detailInclude = Prisma.validator<Prisma.ProductInclude>()({
   category: true,
@@ -27,6 +28,7 @@ function serialize<T extends {
 }>(product: T) {
   const images = product.images.filter(({ url }) => isOfficialCatalogPhoto(url, product.id, product.sku));
   const purchaseReviewRequired = catalogPurchaseBlocked(product.purchaseMode, product.variations.length);
+  const sharedSkuInventory = variationsShareSkuInventory(product.sharedVariationStock, product.variations);
   return {
     ...product,
     price: Number(product.price),
@@ -38,7 +40,7 @@ function serialize<T extends {
       imageUrl: variation.imageUrl && isOfficialCatalogPhoto(variation.imageUrl, product.id, variation.sku, variation.id)
         ? variation.imageUrl
         : null,
-      stock: product.sharedVariationStock ? product.stock : variation.stock,
+      stock: sharedSkuInventory ? product.stock : variation.stock,
       priceModifier: Number(variation.priceModifier),
     })),
     promotionalPrice: product.promotionalPrice
@@ -70,20 +72,27 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
         images: { where: visibleCatalogPhotos, orderBy: { order: "asc" }, take: 1 },
         variations: { where: { active: true }, orderBy: { order: "asc" } },
       },
-      take: 6,
+      take: 30,
     });
 
     const linkedOptions = await linkedCatalogOptions(product.id, googlePlayProductWhere({}));
     const currentLinkedOption = linkedOptions.find((option) => option.id === product.id);
     const missingConfirmedPhoto = Boolean(currentLinkedOption && !currentLinkedOption.imageUrl);
-    const publicProduct = serialize(product);
+    const serializedProduct = serialize(product);
+    const sale = saleReadyProduct(serializedProduct);
+    if (!sale || missingConfirmedPhoto) return apiError("Produto nÃ£o encontrado.", 404);
+    const publicProduct = { ...serializedProduct, ...sale };
+    const relatedProducts = related.flatMap((entry) => {
+      const serialized = serialize(entry);
+      const eligible = saleReadyProduct(serialized);
+      return eligible ? [{ ...serialized, ...eligible }] : [];
+    }).slice(0, 6);
     return apiSuccess(toGooglePlayPublicData({
       product: {
         ...publicProduct,
-        ...(missingConfirmedPhoto ? { purchaseReviewRequired: true, stock: 0, images: [] } : {}),
         linkedOptions,
       },
-      related: related.map(serialize),
+      related: relatedProducts,
     }));
   } catch {
     return apiError("Erro ao buscar produto.", 500);
