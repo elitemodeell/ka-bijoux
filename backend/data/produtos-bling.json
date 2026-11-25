@@ -60401,14 +60401,14 @@
     "categoria": ""
   },
   {
-    "id": "16440936136",
-    "nome": "CAPA A PROVA D'ÁGUA P/CELULAR",
+    "id": "16677329568",
+    "nome": "CAPA A PROVA D'ÁGUA P/CELULAR AZUL",
     "codigo": "3104000000171",
     "preco": "12",
     "situacao": "A",
     "tipo": "P",
-    "unidade": "",
-    "estoque": "73",
+    "unidade": "UN",
+    "estoque": "10",
     "categoria": ""
   },
   {
@@ -62169,6 +62169,17 @@
     "tipo": "P",
     "unidade": "",
     "estoque": "66",
+    "categoria": ""
+  },
+  {
+    "id": "16677397257",
+    "nome": "PEN-DRIVE C/MUSICA ROCK VOL. 3",
+    "codigo": "3104000006601",
+    "preco": "24",
+    "situacao": "A",
+    "tipo": "P",
+    "unidade": "UN",
+    "estoque": "2",
     "categoria": ""
   }
 ]
