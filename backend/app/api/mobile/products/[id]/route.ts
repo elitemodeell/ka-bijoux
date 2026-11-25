@@ -74,8 +74,15 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
     });
 
     const linkedOptions = await linkedCatalogOptions(product.id, googlePlayProductWhere({}));
+    const currentLinkedOption = linkedOptions.find((option) => option.id === product.id);
+    const missingConfirmedPhoto = Boolean(currentLinkedOption && !currentLinkedOption.imageUrl);
+    const publicProduct = serialize(product);
     return apiSuccess(toGooglePlayPublicData({
-      product: { ...serialize(product), linkedOptions },
+      product: {
+        ...publicProduct,
+        ...(missingConfirmedPhoto ? { purchaseReviewRequired: true, stock: 0, images: [] } : {}),
+        linkedOptions,
+      },
       related: related.map(serialize),
     }));
   } catch {
