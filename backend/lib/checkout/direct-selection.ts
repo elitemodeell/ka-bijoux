@@ -29,6 +29,9 @@ export async function readDirectSelection(db: Pick<Prisma.TransactionClient, "pr
   if (selection.selectedPhotoUrl && !photo) {
     throw new CheckoutError("Selecione novamente a foto desta opção.", 422, "CATALOG_PHOTO_CHANGED");
   }
+  if (!photo) {
+    throw new CheckoutError("Este produto aguarda uma fotografia oficial compatível.", 409, "CATALOG_PHOTO_REQUIRED");
+  }
   const item = {
     id: "direct-selection",
     productId: product.id,

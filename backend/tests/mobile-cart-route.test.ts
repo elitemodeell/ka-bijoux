@@ -46,7 +46,7 @@ function request(body: Record<string, unknown>) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.requireCustomer.mockResolvedValue({ id: "customer-1" });
-  mocks.productFindFirst.mockResolvedValue({ id: "product-1", price: 10, promotionalPrice: null, stock: 5, variations: [] });
+  mocks.productFindFirst.mockResolvedValue({ id: "product-1", price: 10, promotionalPrice: null, stock: 5, variations: [], images: [{ url: "/fixtures/cover.png" }] });
   mocks.cartUpsert.mockResolvedValue({ id: "cart-1" });
   mocks.cartItemAggregate.mockResolvedValue({ _sum: { quantity: 0 } });
   mocks.sanitizeCart.mockResolvedValue({ id: "cart-1", items: [] });
@@ -73,6 +73,14 @@ describe("mobile cart mutations", () => {
     expect(response.status).toBe(409);
     expect(mocks.cartUpsert).not.toHaveBeenCalled();
     expect(mocks.cartItemDeleteMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects a product without an official photo before creating a cart line", async () => {
+    mocks.productFindFirst.mockResolvedValue({ id: "product-1", price: 10, stock: 5, variations: [], images: [] });
+    const response = await POST(request({ productId: "product-1" }));
+    expect(response.status).toBe(409);
+    expect(mocks.cartUpsert).not.toHaveBeenCalled();
+    expect(mocks.cartItemCreate).not.toHaveBeenCalled();
   });
 
   it("previews only the latest photo and quantity without writing to the normal cart", async () => {

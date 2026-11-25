@@ -81,11 +81,13 @@ export async function POST(req: NextRequest) {
     if (!input.variationId && product.variations.length > 0) {
       return apiError("Selecione uma variação do produto.", 422);
     }
-    const selectedPhotoUrl = input.selectedPhotoUrl
-      ? catalogCartPhoto(input.selectedPhotoUrl, product, variation)
-      : undefined;
+    const selectedPhotoUrl = catalogCartPhoto(input.selectedPhotoUrl, product, variation);
     if (input.selectedPhotoUrl && !selectedPhotoUrl) {
       return apiError("A foto escolhida não pertence a esta opção. Atualize o produto e escolha novamente.", 422);
+    }
+
+    if (!selectedPhotoUrl) {
+      return apiError("Este produto aguarda uma fotografia oficial compatível e ainda não pode ser comprado.", 409);
     }
 
     await prisma.$transaction(

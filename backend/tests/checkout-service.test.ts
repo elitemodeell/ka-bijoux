@@ -77,11 +77,12 @@ function cart() {
           price: 25,
           promotionalPrice: null,
           stock: 10,
+          sku: "3104000003348",
           weight: 0.3,
           height: 5,
           width: 10,
           length: 15,
-          images: [],
+          images: [{ url: "/fixtures/photo-1-3104000003348.png" }],
         },
         variation: null,
       },
@@ -120,11 +121,12 @@ function paymentResult(orderId: string): CheckoutPaymentResult {
 }
 
 function configureCheckout(
-  options: { addressFound?: boolean; asaasCustomerId?: string | null; withVariation?: boolean; selectedPhotoUrl?: string; secondPhotoUrl?: string } = {}
+  options: { addressFound?: boolean; asaasCustomerId?: string | null; withVariation?: boolean; selectedPhotoUrl?: string; secondPhotoUrl?: string; withoutPhoto?: boolean } = {}
 ) {
   let storedOrder: any = null;
   let successfulOrderCreates = 0;
   const cartValue = cart();
+  if (options.withoutPhoto) cartValue.items[0].product.images = [];
   if (options.selectedPhotoUrl) {
     Object.assign(cartValue.items[0], { selectedPhotoUrl: options.selectedPhotoUrl });
     Object.assign(cartValue.items[0].product, {
@@ -462,6 +464,14 @@ describe("server-authoritative checkout service", () => {
 
     await expect(createOrResumeCheckout(customer.id, input(), setup.service)).rejects.toMatchObject({
       code: "CATALOG_PHOTO_CHANGED",
+    });
+    expect(setup.tx.order.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects checkout when no official product or selected-variation photo remains", async () => {
+    const setup = configureCheckout({ withoutPhoto: true });
+    await expect(createOrResumeCheckout(customer.id, input(), setup.service)).rejects.toMatchObject({
+      code: "CATALOG_PHOTO_REQUIRED",
     });
     expect(setup.tx.order.create).not.toHaveBeenCalled();
   });

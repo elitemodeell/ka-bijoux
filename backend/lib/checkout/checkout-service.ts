@@ -1468,6 +1468,9 @@ export async function createOrResumeCheckout(
                 if (item.selectedPhotoUrl && !productImage) {
                   throw new CheckoutError("A foto escolhida mudou. Selecione novamente a opção do produto.", 409, "CATALOG_PHOTO_CHANGED");
                 }
+                if (!productImage) {
+                  throw new CheckoutError("Este produto aguarda uma fotografia oficial compatível e não pode ser finalizado.", 409, "CATALOG_PHOTO_REQUIRED");
+                }
                 return {
                   productId: item.productId,
                   variationId: item.variationId,
