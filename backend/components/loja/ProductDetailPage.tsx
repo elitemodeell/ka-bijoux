@@ -119,10 +119,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
     : variations.length === 1 && variations[0].id && variations[0].sku?.trim() && variations[0].active !== false
       ? variations[0] : null;
   const selectedLinked = product.linkedOptions?.find((option) => option.id === product.id);
-  const selectionTitle = selectedVariant
-    ? ({ cor: "Cor selecionada", modelo: "Modelo selecionado", tamanho: "Tamanho selecionado", estampa: "Estampa selecionada", artista: "Artista selecionado" } as Record<string, string>)[selectedVariant.optionName?.trim().toLowerCase() ?? ""] ?? selectedVariant.optionName ?? "Opção selecionada"
-    : "Opção selecionada";
-  const selectionLabel = selectedVariant?.label ?? selectedLinked?.label;
+  const hasCommercialSelector = (product.linkedOptions?.length ?? 0) > 1 || Boolean(matrix) || variations.length > 1;
   const selectionPhoto = matrix && !selectedVariant ? catalogSelectionPhoto(matrix, attributes, (option) => option.images?.[0]) : null;
 
   const images = useMemo(() => {
@@ -152,9 +149,6 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
   const productSubcategoryName = product.subcategoryName ?? subcategoryName;
   const stock = variations.length ? selectedVariant?.stock ?? 0 : product.stock;
   const available = !product.purchaseReviewRequired && stock > 0 && (!variations.length || Boolean(selectedVariant?.id)) && selectedLinked?.available !== false;
-  const hasStock = variations.length
-    ? variations.some((variant) => variant.id && (variant.stock ?? 0) > 0)
-    : product.stock > 0;
   const isAdult = product.isAdult ?? isAdultProduct(categorySlug, product.subcategorySlug, productSubcategoryName, product.name);
   const publicBrand = publicText(product.brand);
 
@@ -249,7 +243,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
 
           {/* Images */}
           <div className="-mx-2 min-w-0 sm:mx-0">
-            <div className="group/gallery relative aspect-[4/5] max-h-[680px] overflow-hidden rounded-[32px] border border-pink-100/80 bg-white shadow-[0_24px_70px_rgba(23,7,12,0.16)] sm:aspect-square lg:aspect-[4/5]">
+            <div className="group/gallery relative aspect-square max-h-[680px] overflow-hidden rounded-[32px] border border-pink-100/80 bg-white shadow-[0_24px_70px_rgba(23,7,12,0.16)] sm:aspect-square lg:aspect-[4/5]">
               <span className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-[#17070C]/42 via-transparent to-white/8" aria-hidden="true" />
               <span className="pointer-events-none absolute -right-16 -top-20 z-10 h-48 w-48 rounded-full bg-pink-200/18 blur-3xl" aria-hidden="true" />
               {imageUrl && !imageError ? (
@@ -321,7 +315,6 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
             {images.length > 1 && (
               <div>
               <h2 className="mt-4 text-sm font-semibold text-gray-900">Fotos do produto</h2>
-              <p className="mt-1 text-xs text-gray-600">Use a galeria para visualizar as fotos. Escolha o modelo no seletor de compra, quando disponível.</p>
               <div className="mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {images.map((img, i) => (
                   <button
@@ -347,52 +340,6 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
               </div>
             )}
 
-          </div>
-
-          {/* Purchase Panel */}
-          <aside className="min-w-0 lg:sticky lg:top-[90px]">
-            <div className="relative overflow-hidden rounded-[30px] border border-pink-100/80 bg-white p-5 shadow-[0_24px_70px_rgba(23,7,12,0.10)] backdrop-blur-sm sm:p-6">
-              <span className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-pink-200/30 blur-3xl" aria-hidden="true" />
-              <span className="pointer-events-none absolute bottom-0 left-0 h-28 w-full bg-gradient-to-t from-pink-50/70 to-transparent" aria-hidden="true" />
-
-              <div className="relative">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-[#17070C] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_10px_22px_rgba(23,7,12,0.14)]">KA Bijoux</span>
-                    {isAdult && <span className="rounded-full border border-[#5d2038]/20 bg-[#5d2038] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white">18+</span>}
-                    {!hasStock ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-red-100 bg-red-50 px-3 py-1 text-[11px] font-black text-red-600">
-                        <span className="h-2 w-2 rounded-full bg-red-500" />
-                        Indisponível
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-
-                <h1 className="text-2xl font-black leading-tight tracking-tight text-gray-950 sm:text-[29px]">
-                  {product.name}
-                </h1>
-
-                <div className="mt-5 overflow-hidden rounded-[24px] border border-pink-100 bg-gradient-to-br from-white via-[#fff7fa] to-[#fff0f6] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8b5c6d]">Preço KA Bijoux</p>
-                  {promotionalPrice ? (
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold text-gray-400 line-through">{fmt(product.price)}</span>
-                      {discountPct && (
-                        <span className="rounded-full bg-[#17070C] px-2.5 py-1 text-[11px] font-black text-white">{discountPct}% OFF</span>
-                      )}
-                    </div>
-                  ) : null}
-                  <div className="mt-1 flex items-end gap-2">
-                    <span className="text-[34px] font-black leading-none text-pink-600">{fmt(finalPrice)}</span>
-                  </div>
-                  <p className="mt-2 text-sm font-semibold text-gray-600">Pagamento seguro via Pix</p>
-                </div>
-
-                {shared && (
-                  <p className="mt-3 text-xs font-bold text-emerald-600">Link do produto copiado.</p>
-                )}
-
                 {product.purchaseReviewRequired && <p className="mt-4 text-sm text-gray-700">{catalogReviewMessage}</p>}
                 {(product.linkedOptions?.length ?? 0) > 1 && (
                   <div className="mt-5">
@@ -406,6 +353,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                         </>;
                         return option.available ? (
                           <Link key={option.id} href={`/produto/${option.slug ?? option.id}`}
+                            scroll={false}
                             aria-current={option.id === product.id ? "page" : undefined}
                             className={className}>{contents}</Link>
                         ) : (
@@ -475,11 +423,51 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                   </div>
                 )}
 
-                {selectionLabel && !product.purchaseReviewRequired && (
-                  <div aria-live="polite" className="mt-4 rounded-xl bg-pink-50 px-3 py-2 text-sm text-gray-800">
-                    <strong>{matrix && selectedVariant ? catalogOptionLabel(selectedVariant.optionName ?? "Opção", selectedVariant.label) : `${selectionTitle}: ${selectionLabel}`}</strong>
-                    <p>{fmt(finalPrice)} por unidade · {available ? "Em estoque" : "Indisponível"}</p>
+                {hasCommercialSelector && (selectedVariant || selectedLinked) && !product.purchaseReviewRequired && (
+                  <div aria-live="polite" aria-label={matrix && selectedVariant ? `${selectedVariant.optionName ?? "Option"} ${selectedVariant.label}` : selectedVariant ? `${selectedVariant.optionName}: ${selectedVariant.label}` : selectedLinked?.label} className="mt-2 text-xs text-gray-500">
+                    {selectedVariant?.sku ?? (selectedLinked ? product.sku : null) ? `SKU ${selectedVariant?.sku ?? product.sku}` : null}
                   </div>
+                )}
+
+          </div>
+
+          {/* Purchase Panel */}
+          <aside className="min-w-0 lg:sticky lg:top-[90px]">
+            <div className="relative overflow-hidden rounded-[30px] border border-pink-100/80 bg-white p-5 shadow-[0_24px_70px_rgba(23,7,12,0.10)] backdrop-blur-sm sm:p-6">
+              <span className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-pink-200/30 blur-3xl" aria-hidden="true" />
+              <span className="pointer-events-none absolute bottom-0 left-0 h-28 w-full bg-gradient-to-t from-pink-50/70 to-transparent" aria-hidden="true" />
+
+              <div className="relative">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-[#17070C] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_10px_22px_rgba(23,7,12,0.14)]">KA Bijoux</span>
+                    {isAdult && <span className="rounded-full border border-[#5d2038]/20 bg-[#5d2038] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white">18+</span>}
+                  </div>
+                </div>
+
+                <h1 className="text-2xl font-black leading-tight tracking-tight text-gray-950 sm:text-[29px]">
+                  {product.name}
+                </h1>
+
+                <div className="mt-5 overflow-hidden rounded-[24px] border border-pink-100 bg-gradient-to-br from-white via-[#fff7fa] to-[#fff0f6] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8b5c6d]">Preço KA Bijoux</p>
+                  {promotionalPrice ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-400 line-through">{fmt(product.price)}</span>
+                      {discountPct && (
+                        <span className="rounded-full bg-[#17070C] px-2.5 py-1 text-[11px] font-black text-white">{discountPct}% OFF</span>
+                      )}
+                    </div>
+                  ) : null}
+                  <div className="mt-1 flex items-end gap-2">
+                    <span className="text-[34px] font-black leading-none text-pink-600">{fmt(finalPrice)}</span>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-gray-600">Pagamento seguro via Pix</p>
+                  <p className="mt-2 text-sm font-semibold text-gray-600">{(matrix || variations.length > 1) && !selectedVariant ? "Selecione uma opção para consultar a disponibilidade" : available ? "Em estoque" : "Indisponível"}</p>
+                </div>
+
+                {shared && (
+                  <p className="mt-3 text-xs font-bold text-emerald-600">Link do produto copiado.</p>
                 )}
 
                 <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-pink-100 bg-white/80 p-3">
@@ -513,7 +501,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                     type="button"
                     onClick={handleBuyNow}
                     disabled={!available}
-                    className="ka-btn w-full min-h-[54px] rounded-2xl bg-gradient-to-r from-pink-600 to-pink-400 text-base font-black text-white shadow-[0_14px_34px_rgba(219,39,119,0.26)] transition-all duration-300 hover:shadow-[0_18px_42px_rgba(219,39,119,0.34)] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="ka-btn flex w-full min-h-[54px] items-center justify-center px-4 text-center leading-tight rounded-2xl bg-gradient-to-r from-pink-600 to-pink-400 text-base font-black text-white shadow-[0_14px_34px_rgba(219,39,119,0.26)] transition-all duration-300 hover:shadow-[0_18px_42px_rgba(219,39,119,0.34)] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Comprar agora
                   </button>
@@ -521,7 +509,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
                     type="button"
                     onClick={handleAddToCart}
                     disabled={!available}
-                    className="min-h-[50px] w-full rounded-2xl border-2 border-pink-400 bg-white text-base font-black text-pink-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-pink-50 hover:shadow-[0_12px_26px_rgba(236,72,153,0.14)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex min-h-[50px] w-full items-center justify-center rounded-2xl border-2 px-4 text-center leading-tight border-pink-400 bg-white text-base font-black text-pink-600 transition-all duration-300 hover:-translate-y-0.5 hover:bg-pink-50 hover:shadow-[0_12px_26px_rgba(236,72,153,0.14)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {cartAdded ? "Adicionado ao carrinho" : "Adicionar ao carrinho"}
                   </button>
@@ -583,7 +571,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
               type="button"
               onClick={handleAddToCart}
               disabled={!available}
-              className="min-h-12 rounded-2xl border-2 border-pink-400 bg-white text-pink-600 font-black text-sm transition-all disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.97]"
+              className="flex min-h-12 min-w-0 items-center justify-center rounded-2xl border-2 border-pink-400 bg-white px-2 text-center font-black text-sm transition-all disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.97]"
             >
               {cartAdded ? "✓ Adicionado!" : "Adicionar"}
             </button>
@@ -591,7 +579,7 @@ export default function ProductDetailPage({ product, subcategoryName }: Props) {
               type="button"
               onClick={handleBuyNow}
               disabled={!available}
-              className="min-h-12 whitespace-nowrap rounded-2xl bg-gradient-to-r from-pink-600 to-pink-400 px-2 text-white font-black text-[13px] shadow-[0_12px_28px_rgba(219,39,119,0.25)] transition-all disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.97]"
+              className="flex min-h-12 min-w-0 items-center justify-center rounded-2xl bg-gradient-to-r from-pink-600 to-pink-400 px-2 text-center text-white font-black text-[13px] leading-tight shadow-[0_12px_28px_rgba(219,39,119,0.25)] transition-all disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.97]"
             >
               Comprar agora
             </button>

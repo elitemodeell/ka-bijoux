@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { catalogAttributeChoices, catalogOptionLabel, catalogOptionMatrix, catalogSelectionPhoto, chooseCatalogAttribute, resolveCatalogCombination } from "@shared/catalog-options";
+import { catalogAttributeChoices, catalogOptionMatrix, catalogSelectionPhoto, chooseCatalogAttribute, resolveCatalogCombination } from "@shared/catalog-options";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Dimensions, InteractionManager, LayoutAnimation, Platform, UIManager, Alert, Share,
@@ -111,6 +111,7 @@ type Product = {
   linkedOptions?: { id: string; label: string; available: boolean; imageUrl: string | null; price?: number }[];
   fixedColor?: string | null;
   id: string;
+  sku?: string | null;
   slug?: string | null;
   name: string;
   description: string | null;
@@ -268,11 +269,17 @@ export default function ProdutoScreen() {
   const [reviewsTotal, setReviewsTotal] = useState(0);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [cartAction, setCartAction] = useState<"add" | "buy" | null>(null);
+  const [pendingLinkedOptionId, setPendingLinkedOptionId] = useState<string | null>(null);
   const [secondaryVisible, setSecondaryVisible] = useState(false);
   const cartActionLock = useRef(false);
+  const skipProductFetchRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
+    if (skipProductFetchRef.current === id) {
+      skipProductFetchRef.current = null;
+      return;
+    }
     let current = true;
     setSecondaryVisible(false);
     setLoading(true);
@@ -373,6 +380,31 @@ export default function ProdutoScreen() {
     setQuantity(1);
   }
 
+  async function chooseLinkedProduct(option: NonNullable<Product["linkedOptions"]>[number]) {
+    if (!option.available || option.id === product?.id || pendingLinkedOptionId) return;
+    setPendingLinkedOptionId(option.id);
+    try {
+      const response = await productsApi.getById(option.id);
+      const nextProduct: Product = response.data.data.product;
+      if (nextProduct.id !== option.id) throw new Error("O produto vinculado retornou outro cadastro.");
+      setProduct(nextProduct);
+      setRelated(response.data.data.related ?? []);
+      setSelectedPhoto(null);
+      setSelectedVariation(null);
+      setSelectedAttributes([]);
+      setQuantity(1);
+      setVariationError(false);
+      setSecondaryVisible(false);
+      const nextRouteId = nextProduct.slug ?? nextProduct.id;
+      skipProductFetchRef.current = nextRouteId;
+      router.setParams({ id: nextRouteId });
+    } catch {
+      Alert.alert("Não foi possível carregar esta opção", "Tente novamente.");
+    } finally {
+      setPendingLinkedOptionId(null);
+    }
+  }
+
   async function handleCartAction(action: "add" | "buy") {
     if (!product || loading || product.purchaseReviewRequired || product.linkedOptions?.find((option) => option.id === product.id)?.available === false || (product.id !== id && product.slug !== id)) return;
     if (cartActionLock.current) return;
@@ -439,10 +471,6 @@ export default function ProdutoScreen() {
   const activeVariation = matrix ? resolveCatalogCombination(matrix, selectedAttributes) : product.variations.find((v) => v.id === selectedVariation) ??
     (product.variations.length === 1 && product.variations[0].sku?.trim() ? product.variations[0] : null);
   const selectedLinked = product.linkedOptions?.find((option) => option.id === product.id);
-  const selectionLabel = activeVariation?.value ?? selectedLinked?.label;
-  const selectionTitle = activeVariation
-    ? ({ cor: "Cor selecionada", modelo: "Modelo selecionado", tamanho: "Tamanho selecionado", estampa: "Estampa selecionada", artista: "Artista selecionado" } as Record<string, string>)[activeVariation.name.trim().toLowerCase()] ?? activeVariation.name
-    : "Opção selecionada";
   const photoUrls = activeVariation ? [activeVariation.imageUrl] : product.images.map(({ url }) => url);
   const galleryPhotos = [...new Set(photoUrls)].flatMap((url) => {
     if (!url) return [];
@@ -472,6 +500,112 @@ export default function ProdutoScreen() {
   const discount = hasPromo ? Math.round(((Number(product.price) - Number(product.promotionalPrice!)) / Number(product.price)) * 100) : 0;
   const variationNames = new Set(product.variations.map((variation) => variation.name));
   const variationGroupName = variationNames.size === 1 ? product.variations[0].name : "Opção";
+  const hasCommercialSelector = (product.linkedOptions?.length ?? 0) > 1 || Boolean(matrix) || product.variations.length > 1;
+  const selectedOptionSku = activeVariation?.sku ?? (selectedLinked ? product.sku : null);
+
+  const optionSelector = (
+    <>
+      {product.purchaseReviewRequired && (
+        <View style={[styles.section, styles.optionSection]}>
+          <Text style={styles.selectedVariationLabel}>Este produto está em revisão e ainda não pode ser comprado.</Text>
+        </View>
+      )}
+      {(product.linkedOptions?.length ?? 0) > 1 && (
+        <View style={[styles.section, styles.optionSection]}>
+          <Text style={styles.sectionTitle}>Escolha a opção</Text>
+          <View style={styles.variations}>
+            {product.linkedOptions?.map((option) => (
+              <TouchableOpacity key={option.id} accessibilityRole="button"
+                    disabled={!option.available || pendingLinkedOptionId !== null}
+                    accessibilityState={{ selected: option.id === product.id || option.id === pendingLinkedOptionId, disabled: !option.available || pendingLinkedOptionId !== null }}
+                    style={[styles.variationChip, (option.id === product.id || option.id === pendingLinkedOptionId) && styles.variationChipActive, !option.available && { opacity: 0.45 }]}
+                    onPress={() => { void chooseLinkedProduct(option); }}>
+                <View style={styles.variationWithImage}>
+                  {option.imageUrl && <ResilientProductImage sources={[option.imageUrl]} style={styles.variationThumb} contentFit="contain" compact />}
+                  <View>
+                        <Text style={[styles.variationText, (option.id === product.id || option.id === pendingLinkedOptionId) && styles.variationTextActive]}>{option.label}</Text>
+                    <Text style={styles.variationHint}>{!option.available ? "Indisponível" : option.price !== undefined ? formatCurrency(option.price) : ""}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+      {!product.purchaseReviewRequired && matrix && (
+        <View style={[styles.section, styles.optionSection]}>
+          {matrix.names.map((name, axis) => (
+            <View key={name} style={{ marginBottom: 12 }}>
+              <Text style={styles.sectionTitle}>{name}: {selectedAttributes[axis] ?? "Escolha"}</Text>
+              <View style={styles.variations}>
+                {catalogAttributeChoices(matrix, axis,
+                  (option) => Boolean(option.sku?.trim() && (product.sharedVariationStock ? product.stock : option.stock) > 0),
+                  (option) => resolveProductPhoto(product.id, option.imageUrl, product.updatedAt, option.id),
+                ).map((choice) => {
+                  const selected = selectedAttributes[axis] === choice.value;
+                  return (
+                    <TouchableOpacity key={choice.value} accessibilityRole="button"
+                      accessibilityLabel={`${name}: ${choice.value}`}
+                      accessibilityState={{ selected, disabled: !choice.available }}
+                      disabled={!choice.available}
+                      style={[styles.variationChip, selected && styles.variationChipActive, !choice.available && styles.variationChipUnavailable]}
+                      onPress={() => {
+                        setSelectedAttributes(chooseCatalogAttribute(matrix, selectedAttributes, axis, choice.value,
+                          (option) => Boolean(option.sku?.trim() && (product.sharedVariationStock ? product.stock : option.stock) > 0),
+                        ));
+                        setQuantity(1);
+                        setVariationError(false);
+                      }}>
+                      <View style={styles.variationWithImage}>
+                        {choice.photo && <ResilientProductImage sources={[choice.photo]} style={styles.variationThumb} contentFit="contain" compact />}
+                        <Text style={[styles.variationText, selected && styles.variationTextActive]}>{choice.value}{!choice.available && " · Indisponível"}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          ))}
+          {!activeVariation && <Text style={styles.variationHint}>Escolha todos os atributos para comprar.</Text>}
+        </View>
+      )}
+      {!product.purchaseReviewRequired && !matrix && product.variations.length > 1 && (
+        <View style={[styles.section, styles.optionSection]}>
+          <View style={styles.variationHeader}>
+            <Text style={styles.sectionTitle}>
+              {({ cor: "Escolha a cor", modelo: "Escolha o modelo", tamanho: "Escolha o tamanho", estampa: "Escolha a estampa", artista: "Escolha o artista" } as Record<string, string>)[variationGroupName.trim().toLowerCase()] ?? `Escolha: ${variationGroupName}`}
+            </Text>
+          </View>
+          {variationError && <Text style={styles.variationErrorText}>Selecione uma opção antes de adicionar ao carrinho.</Text>}
+          <View style={styles.variations}>
+            {product.variations.map((v) => {
+              const isSelected = selectedVariation === v.id;
+              const unavailable = !v.sku?.trim() || (product.sharedVariationStock ? product.stock : v.stock) <= 0;
+              const photo = resolveProductPhoto(product.id, v.imageUrl, product.updatedAt, v.id);
+              return (
+                <TouchableOpacity key={v.id}
+                  style={[styles.variationChip, isSelected && styles.variationChipActive, unavailable && styles.variationChipUnavailable, variationError && !selectedVariation && styles.variationChipError]}
+                  onPress={() => handleSelectVariation(v)} disabled={unavailable}
+                  accessibilityRole="button" accessibilityState={{ selected: isSelected, disabled: unavailable }}
+                  accessibilityLabel={`${v.name}: ${v.value}`}>
+                  <View style={styles.variationWithImage}>
+                    {photo && <ResilientProductImage sources={[photo]} style={styles.variationThumb} contentFit="contain" compact />}
+                    <Text style={[styles.variationText, isSelected && styles.variationTextActive, unavailable && styles.variationTextUnavailable]}>{variationNames.size === 1 ? v.value : `${v.name}: ${v.value}`}</Text>
+                  </View>
+                  {unavailable && <View style={styles.strikeThrough} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      )}
+      {hasCommercialSelector && selectedOptionSku && (activeVariation || selectedLinked) && !product.purchaseReviewRequired && (
+        <View style={styles.selectedOptionSummary} accessibilityLiveRegion="polite">
+          {selectedOptionSku && <Text style={styles.selectedOptionSku}>SKU {selectedOptionSku}</Text>}
+        </View>
+      )}
+    </>
+  );
 
   const description = publicText(product.description);
   const benefits = publicText(product.benefits);
@@ -551,7 +685,6 @@ export default function ProdutoScreen() {
           <View>
           <View style={styles.galleryCaption}>
             <Text style={styles.sectionTitle}>Fotos do produto</Text>
-            <Text style={styles.variationHint}>Toque para ampliar a visualização. A opção de compra é definida no seletor, quando disponível.</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbnails}>
             {galleryImages.map((uri, idx) => (
@@ -565,22 +698,13 @@ export default function ProdutoScreen() {
           </View>
         )}
 
+        {optionSelector}
+
         {/* Purchase panel */}
         <View style={styles.purchasePanel}>
           {/* Badges */}
           <View style={styles.badgesRow}>
             <View style={styles.badgeKA}><Text style={styles.badgeKAText}>KA Bijoux</Text></View>
-            {isAvailable ? (
-              <View style={styles.badgeInStock}>
-                <View style={styles.badgeInStockDot} />
-                <Text style={styles.badgeInStockText}>Em estoque</Text>
-              </View>
-            ) : (
-              <View style={styles.badgeOutStock}>
-                <View style={styles.badgeOutStockDot} />
-                <Text style={styles.badgeOutStockText}>Indisponível</Text>
-              </View>
-            )}
           </View>
 
           <Text style={styles.category}>{product.category.name}</Text>
@@ -616,130 +740,10 @@ export default function ProdutoScreen() {
             )}
             <Text style={styles.price}>{formatCurrency(price)}</Text>
             <Text style={styles.installmentText}>Pagamento seguro via Pix</Text>
-          </View>
-
-          {/* Variações */}
-          {product.purchaseReviewRequired && (
-            <Text style={styles.selectedVariationLabel}>Este produto está em revisão e ainda não pode ser comprado.</Text>
-          )}
-          {(product.assortedColors || product.fixedColor) && (
-            <Text style={styles.selectedVariationLabel}>
-              {product.assortedColors ? "Cor enviada conforme disponibilidade." : `Cor: ${product.fixedColor}`}
+            <Text style={styles.availabilityText}>
+              {(matrix || product.variations.length > 1) && !activeVariation ? "Selecione uma opção para consultar a disponibilidade" : activeStock > 0 && isAvailable ? "Em estoque" : "Indisponível"}
             </Text>
-          )}
-          {(product.linkedOptions?.length ?? 0) > 1 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Escolha a opção</Text>
-              <View style={styles.variations}>
-                {product.linkedOptions?.map((option) => (
-                  <TouchableOpacity key={option.id} accessibilityRole="button"
-                    disabled={!option.available}
-                    accessibilityState={{ selected: option.id === product.id, disabled: !option.available }}
-                    style={[styles.variationChip, option.id === product.id && styles.variationChipActive, !option.available && { opacity: 0.45 }]}
-                    onPress={() => { if (option.available && option.id !== product.id) router.replace({ pathname: "/produto/[id]", params: { id: option.id } }); }}>
-                    <View style={styles.variationWithImage}>
-                      {option.imageUrl && <ResilientProductImage sources={[option.imageUrl]} style={styles.variationThumb} contentFit="contain" compact />}
-                      <View>
-                        <Text style={[styles.variationText, option.id === product.id && styles.variationTextActive]}>{option.label}</Text>
-                        <Text style={styles.variationHint}>{!option.available ? "Indisponível" : option.price !== undefined ? formatCurrency(option.price) : ""}</Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-          {!product.purchaseReviewRequired && matrix && (
-            <View style={styles.section}>
-              {matrix.names.map((name, axis) => (
-                <View key={name} style={{ marginBottom: 12 }}>
-                  <Text style={styles.sectionTitle}>{name}: {selectedAttributes[axis] ?? "Escolha"}</Text>
-                  <View style={styles.variations}>
-                    {catalogAttributeChoices(matrix, axis,
-                      (option) => Boolean(option.sku?.trim() && (product.sharedVariationStock ? product.stock : option.stock) > 0),
-                      (option) => resolveProductPhoto(product.id, option.imageUrl, product.updatedAt, option.id),
-                    ).map((choice) => {
-                      const selected = selectedAttributes[axis] === choice.value;
-                      return (
-                        <TouchableOpacity key={choice.value} accessibilityRole="button"
-                          accessibilityLabel={`${name}: ${choice.value}`}
-                          accessibilityState={{ selected, disabled: !choice.available }}
-                          disabled={!choice.available}
-                          style={[styles.variationChip, selected && styles.variationChipActive, !choice.available && styles.variationChipUnavailable]}
-                          onPress={() => {
-                            setSelectedAttributes(chooseCatalogAttribute(matrix, selectedAttributes, axis, choice.value,
-                              (option) => Boolean(option.sku?.trim() && (product.sharedVariationStock ? product.stock : option.stock) > 0),
-                            ));
-                            setQuantity(1);
-                            setVariationError(false);
-                          }}>
-                          <View style={styles.variationWithImage}>
-                            {choice.photo && <ResilientProductImage sources={[choice.photo]} style={styles.variationThumb} contentFit="contain" compact />}
-                            <Text style={[styles.variationText, selected && styles.variationTextActive]}>{choice.value}{!choice.available && " · Indisponível"}</Text>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-              ))}
-              {!activeVariation && <Text style={styles.variationHint}>Escolha todos os atributos para comprar.</Text>}
-            </View>
-          )}
-          {!product.purchaseReviewRequired && !matrix && product.variations.length > 1 && (
-            <View style={styles.section}>
-              <View style={styles.variationHeader}>
-                <Text style={styles.sectionTitle}>
-                  {({
-                    cor: "Escolha a cor",
-                    modelo: "Escolha o modelo",
-                    tamanho: "Escolha o tamanho",
-                    estampa: "Escolha a estampa",
-                    artista: "Escolha o artista",
-                  } as Record<string, string>)[variationGroupName.trim().toLowerCase()] ?? `Escolha: ${variationGroupName}`}
-                </Text>
-              </View>
-              {variationError && (
-                <Text style={styles.variationErrorText}>Selecione uma opção antes de adicionar ao carrinho.</Text>
-              )}
-              <View style={styles.variations}>
-                {product.variations.map((v) => {
-                  const isSelected = selectedVariation === v.id;
-                  const unavailable = !v.sku?.trim() || (product.sharedVariationStock ? product.stock : v.stock) <= 0;
-                  const photo = resolveProductPhoto(product.id, v.imageUrl, product.updatedAt, v.id);
-                  return (
-                    <TouchableOpacity
-                      key={v.id}
-                      style={[styles.variationChip, isSelected && styles.variationChipActive, unavailable && styles.variationChipUnavailable, variationError && !selectedVariation && styles.variationChipError]}
-                      onPress={() => handleSelectVariation(v)}
-                      disabled={unavailable}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: isSelected, disabled: unavailable }}
-                      accessibilityLabel={`${v.name}: ${v.value}`}
-                    >
-                      {photo ? (
-                        <View style={styles.variationWithImage}>
-                          <ResilientProductImage sources={[photo]} style={styles.variationThumb} contentFit="contain" compact />
-                          <Text style={[styles.variationText, isSelected && styles.variationTextActive, unavailable && styles.variationTextUnavailable]}>{variationNames.size === 1 ? v.value : `${v.name}: ${v.value}`}</Text>
-                        </View>
-                      ) : (
-                        <Text style={[styles.variationText, isSelected && styles.variationTextActive, unavailable && styles.variationTextUnavailable]}>{variationNames.size === 1 ? v.value : `${v.name}: ${v.value}`}</Text>
-                      )}
-                      {unavailable && <View style={styles.strikeThrough} />}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-              <Text style={styles.variationHint}>Vendido por unidade — escolha 1 {variationGroupName.toLowerCase()}</Text>
-            </View>
-          )}
-
-          {selectionLabel && !product.purchaseReviewRequired && (
-            <View style={styles.section} accessibilityLiveRegion="polite">
-              <Text style={styles.selectedVariationLabel}>{matrix && activeVariation ? catalogOptionLabel(activeVariation.name, activeVariation.value) : `${selectionTitle}: ${selectionLabel}`}</Text>
-              <Text style={styles.variationHint}>{formatCurrency(price)} por unidade · {activeStock > 0 ? "Em estoque" : "Indisponível"}</Text>
-            </View>
-          )}
+          </View>
 
           {/* Quantidade */}
           <View style={styles.qtyBox}>
@@ -971,7 +975,7 @@ const styles = StyleSheet.create({
   favBtnActive: { backgroundColor: Colors.primary },
 
   // Images
-  imagesContainer: { position: "relative", width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.25, backgroundColor: "#fff" },
+  imagesContainer: { position: "relative", width: SCREEN_WIDTH, height: SCREEN_WIDTH, backgroundColor: "#fff" },
   mainImage: { width: "100%", height: "100%" },
   imagePlaceholder: { alignItems: "center", justifyContent: "center" },
   discountBadge: {
@@ -988,14 +992,14 @@ const styles = StyleSheet.create({
   imageDots: { position: "absolute", bottom: 12, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 6 },
   imageDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.5)" },
   imageDotActive: { width: 20, backgroundColor: "#fff" },
-  thumbnails: { paddingHorizontal: Spacing.base, paddingRight: Spacing.xl, gap: 8, paddingVertical: 12 },
-  galleryCaption: { paddingHorizontal: Spacing.base, paddingTop: 12 },
+  thumbnails: { paddingHorizontal: Spacing.base, paddingRight: Spacing.xl, gap: 8, paddingVertical: 6 },
+  galleryCaption: { paddingHorizontal: Spacing.base, paddingTop: 4 },
   thumbnail: { width: 66, height: 66, borderRadius: BorderRadius.lg, overflow: "hidden", borderWidth: 2, borderColor: Colors.borderLight },
   thumbnailActive: { borderColor: Colors.primary },
   thumbnailImage: { width: "100%", height: "100%" },
 
   // Purchase panel
-  purchasePanel: { paddingHorizontal: Spacing.base, paddingTop: Spacing.base },
+  purchasePanel: { paddingHorizontal: Spacing.base, paddingTop: 8 },
   badgesRow: { flexDirection: "row", gap: 8, alignItems: "center", marginBottom: 12 },
   badgeKA: { backgroundColor: "#17070C", borderRadius: BorderRadius.full, paddingHorizontal: 12, paddingVertical: 4 },
   badgeKAText: { color: "#fff", fontSize: 10, fontWeight: "900", textTransform: "uppercase", letterSpacing: 1.5 },
@@ -1024,6 +1028,10 @@ const styles = StyleSheet.create({
 
   // Variations
   section: { marginTop: 20 },
+  optionSection: { marginTop: 8, marginHorizontal: Spacing.base },
+  selectedOptionSummary: { marginHorizontal: Spacing.base, marginTop: 4, marginBottom: 4, flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 },
+  selectedOptionSku: { fontSize: FontSizes.xs, color: Colors.textMuted },
+  availabilityText: { marginTop: 6, fontSize: FontSizes.sm, color: Colors.textSecondary, fontWeight: "700" },
   sectionTitle: { fontSize: FontSizes.base, fontWeight: "700", color: Colors.textPrimary, marginBottom: 8 },
   variationHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
   selectedVariationLabel: { fontSize: FontSizes.sm, color: Colors.primary, fontWeight: "600", backgroundColor: Colors.pinkSoft, paddingHorizontal: 10, paddingVertical: 3, borderRadius: BorderRadius.full },
