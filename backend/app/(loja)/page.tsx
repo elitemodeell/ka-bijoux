@@ -13,6 +13,7 @@ import { getHomeSections } from "@/lib/home-sections";
 
 const getCachedHomeSections = unstable_cache(() => getHomeSections(), ["ka-home-sections"], {
   revalidate: 60,
+  tags: ["ka-home-sections"],
 });
 
 export const metadata: Metadata = {

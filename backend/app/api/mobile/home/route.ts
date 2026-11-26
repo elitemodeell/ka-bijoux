@@ -16,7 +16,7 @@ import {
   getHomePresentation,
 } from "@/lib/home-content";
 import { getHomeSections } from "@/lib/home-sections";
-import { serializeStoryGroup } from "@/lib/stories";
+import { HIDDEN_HOME_SHORTCUT_STORY_IDS, serializeStoryGroup } from "@/lib/stories";
 import { apiError, apiSuccess } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +37,10 @@ export async function GET() {
         _count: { _all: true },
       }),
       prisma.storyGroup.findMany({
-        where: googlePlayStoryGroupWhere({ items: { some: itemPolicy } }),
+        where: googlePlayStoryGroupWhere({
+          id: { notIn: [...HIDDEN_HOME_SHORTCUT_STORY_IDS] },
+          items: { some: itemPolicy },
+        }),
         orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
         include: {
           items: {

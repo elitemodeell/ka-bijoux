@@ -31,6 +31,17 @@ export const storyGroupInclude = {
   },
 };
 
+// Seeded shortcut groups duplicate the six Home category buttons and use
+// promotional placeholder media. Keep them editable in Admin, but do not show
+// them as customer Stories until they are replaced by genuine published media.
+export const HIDDEN_HOME_SHORTCUT_STORY_IDS = [
+  "story-novidades",
+  "story-promocoes",
+  "story-lancamentos",
+  "story-clientes",
+  "story-ofertas",
+] as const;
+
 export function normalizeStoryItemType(type: string): "IMAGE" | "VIDEO" {
   return type.toLowerCase() === "video" ? "VIDEO" : "IMAGE";
 }

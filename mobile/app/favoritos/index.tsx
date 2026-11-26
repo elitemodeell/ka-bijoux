@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Platform, ScrollView,
+  ActivityIndicator, RefreshControl, Platform, ScrollView, useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -23,6 +23,8 @@ type FavoriteItem = {
 
 export default function FavoritosScreen() {
   const router = useRouter();
+  const { width: viewportWidth } = useWindowDimensions();
+  const productCellWidth = Math.max(0, (viewportWidth - Spacing.base * 2 - 16) / 3);
   const { customer } = useAuthStore();
   const [favorites, setFavorites]   = useState<FavoriteItem[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -148,7 +150,7 @@ export default function FavoritosScreen() {
         <FlatList
           data={favorites}
           keyExtractor={(item) => item.favoriteId}
-          numColumns={2}
+          numColumns={3}
           columnWrapperStyle={styles.row}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
@@ -156,8 +158,8 @@ export default function FavoritosScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
           }
           renderItem={({ item }) => (
-            <View style={{ flex: 1, position: "relative" }}>
-              <ProductCard product={item} />
+            <View style={{ width: productCellWidth, position: "relative" }}>
+              <ProductCard product={item} compact />
               <TouchableOpacity
                 style={styles.removeBtn}
                 onPress={() => removeFavorite(item.favoriteId)}
@@ -185,8 +187,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface, alignItems: "center", justifyContent: "center", ...Shadows.sm,
   },
   title:     { fontSize: FontSizes.lg, fontWeight: "800", color: Colors.textPrimary },
-  row:       { gap: 12 },
-  list:      { padding: Spacing.base, gap: 12 },
+  row:       { gap: 8 },
+  list:      { padding: Spacing.base, gap: 8 },
   removeBtn: {
     position: "absolute", top: 8, right: 8,
     backgroundColor: "rgba(255,255,255,0.92)",

@@ -606,9 +606,9 @@ function RelatedSection({ title, products, href }: { title: string; products: Re
           Ver vitrine →
         </Link>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {products.map((p, i) => (
-          <ProductCard key={`${title}-${p.id}`} product={p} revealDelay={i * 50} />
+          <ProductCard key={`${title}-${p.id}`} product={p} revealDelay={i * 50} compact />
         ))}
       </div>
     </section>

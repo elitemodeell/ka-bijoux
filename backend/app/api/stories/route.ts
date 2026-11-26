@@ -2,13 +2,14 @@ export const revalidate = 60;
 
 import { prisma } from "@/lib/prisma";
 import { apiError, apiSuccess } from "@/lib/utils";
-import { serializeStoryGroup } from "@/lib/stories";
+import { HIDDEN_HOME_SHORTCUT_STORY_IDS, serializeStoryGroup } from "@/lib/stories";
 
 export async function GET() {
   try {
     const groups = await prisma.storyGroup.findMany({
       where: {
         isActive: true,
+        id: { notIn: [...HIDDEN_HOME_SHORTCUT_STORY_IDS] },
         items: { some: { isActive: true } },
       },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],

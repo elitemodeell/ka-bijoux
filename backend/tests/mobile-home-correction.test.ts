@@ -86,6 +86,25 @@ describe("correção completa da Home mobile", () => {
   it("filtra stories e itens no servidor", () => {
     expect(homeRoute).toContain("googlePlayStoryGroupWhere");
     expect(homeRoute).toContain("googlePlayStoryItemWhere");
+    expect(homeRoute).toContain("HIDDEN_HOME_SHORTCUT_STORY_IDS");
+    expect(source("backend/app/api/stories/route.ts")).toContain("HIDDEN_HOME_SHORTCUT_STORY_IDS");
+  });
+
+  it("não substitui capas publicadas por artes genéricas baseadas no título", () => {
+    expect(mobileHome).not.toContain("storyArtwork");
+    expect(mobileHome).toContain("thumbnail(resolveUrl(story.cover || story.coverImageUrl), 256)");
+  });
+
+  it("calcula colunas de produtos sem depender de larguras percentuais aproximadas", () => {
+    const searchScreen = source("mobile/app/(tabs)/busca.tsx");
+    const productList = source("mobile/app/produtos/index.tsx");
+    const favorites = source("mobile/app/favoritos/index.tsx");
+    for (const screen of [searchScreen, productList, favorites]) {
+      expect(screen).toContain("useWindowDimensions");
+      expect(screen).toContain("(viewportWidth - Spacing.base * 2 - 16) / 3");
+      expect(screen).toContain("numColumns={3}");
+      expect(screen).not.toContain('width: "31%"');
+    }
   });
 
   it("retorna vitrines na ordem da loja", () => {
@@ -126,6 +145,21 @@ describe("correção completa da Home mobile", () => {
       expect(current).toBeGreaterThan(previous);
       previous = current;
     }
+  });
+
+  it("mantém seis atalhos reais na Home, em ordem e sem duplicar a seção de Stories", () => {
+    expect(HOME_QUICK_CATEGORIES).toHaveLength(6);
+    expect(new Set(HOME_QUICK_CATEGORIES.map((category) => category.href)).size).toBe(6);
+    expect(mobileHome).toContain("const HIDDEN_HOME_STORY_SHORTCUTS");
+    expect(mobileHome).toContain("HIDDEN_HOME_STORY_SHORTCUTS.has(story.id)");
+  });
+
+  it("valida a curadoria no servidor e invalida o cache imediatamente após salvar", () => {
+    const curadoria = source("backend/app/api/admin/home-curation/route.ts");
+    expect(curadoria).toContain("await requireAdmin(req)");
+    expect(curadoria).toContain(".max(30)");
+    expect(curadoria).toContain('slug: { not: "sex-shop" }');
+    expect(curadoria).toContain('revalidateTag("ka-home-sections", { expire: 0 })');
   });
 
   it("usa o mesmo seletor de vitrines no site e no mobile", () => {

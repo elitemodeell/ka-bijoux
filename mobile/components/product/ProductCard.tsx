@@ -43,7 +43,7 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", cu
 const formatCurrency = (v: number) => currencyFormatter.format(v);
 const PRODUCT_THUMBNAIL_WIDTH = Math.min(
   640,
-  Math.ceil((Dimensions.get("window").width / 2) * PixelRatio.get()),
+  Math.ceil((Dimensions.get("window").width / 3) * PixelRatio.get()),
 );
 
 const SITE = process.env.EXPO_PUBLIC_API_URL ?? "https://kabijoux.com.br";

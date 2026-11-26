@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import {
   View, Text, TextInput, StyleSheet, FlatList,
-  TouchableOpacity, ActivityIndicator, ScrollView,
+  TouchableOpacity, ActivityIndicator, ScrollView, useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -38,6 +38,8 @@ const prices = [
 ];
 
 export default function BuscaScreen() {
+  const { width: viewportWidth } = useWindowDimensions();
+  const productCellWidth = Math.max(0, (viewportWidth - Spacing.base * 2 - 16) / 3);
   const router = useRouter();
   const tabBarHeight = useBottomTabBarHeight();
   const [query, setQuery] = useState("");
@@ -180,7 +182,7 @@ export default function BuscaScreen() {
       <FlatList
         data={loading ? [] : results}
         keyExtractor={(item) => item.id}
-        numColumns={2}
+        numColumns={3}
         columnWrapperStyle={styles.row}
         contentContainerStyle={[styles.list, { paddingBottom: tabBarHeight + 16 }, results.length === 0 && styles.emptyList]}
         automaticallyAdjustKeyboardInsets
@@ -192,8 +194,8 @@ export default function BuscaScreen() {
         windowSize={5}
         removeClippedSubviews
         renderItem={({ item }) => (
-          <View style={{ flex: 1 }}>
-            <ProductCard product={item} />
+            <View style={[styles.productCell, { width: productCellWidth }]}>
+              <ProductCard product={item} compact />
           </View>
         )}
         ListHeaderComponent={
@@ -286,8 +288,9 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyTitle: { fontSize: FontSizes.md, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },
   emptyText: { fontSize: FontSizes.sm, color: Colors.textMuted, textAlign: "center", marginTop: 6 },
-  row: { gap: 12 },
-  list: { padding: Spacing.base, gap: 12 },
+  row: { gap: 8 },
+  list: { padding: Spacing.base, gap: 8 },
+  productCell: { flexGrow: 0, flexShrink: 0 },
   emptyList: { flexGrow: 1 },
   resultCount: { fontSize: FontSizes.sm, color: Colors.textMuted, marginBottom: 8 },
 });

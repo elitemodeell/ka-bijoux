@@ -319,12 +319,10 @@ export default async function ProductListingPage({
             {products.length > 0 ? (
               <div
                 key={productListKey}
-                className={`grid animate-[kaProductsFade_260ms_ease-out] grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 ${
-                  premiumExperience ? "gap-3 sm:gap-5" : "gap-5"
-                }`}
+                className="grid animate-[kaProductsFade_260ms_ease-out] grid-cols-3 gap-2 sm:gap-5 sm:grid-cols-3 lg:grid-cols-4"
               >
                 {products.map((product, index) => (
-                  <ProductCard key={product.id} product={product} revealDelay={index * 70} priority={index < 4} />
+                  <ProductCard key={product.id} product={product} revealDelay={index * 70} priority={index < 3} compact />
                 ))}
               </div>
             ) : (

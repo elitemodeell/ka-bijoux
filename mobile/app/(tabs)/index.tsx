@@ -18,7 +18,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFonts } from "expo-font";
-import { categoryArtwork, storyArtwork, instagramProfile, thumbnail } from "@/components/home/brand";
+import { categoryArtwork, instagramProfile, thumbnail } from "@/components/home/brand";
 import { Image, type ImageSource } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -43,6 +43,13 @@ import type {
 
 const SITE = process.env.EXPO_PUBLIC_API_URL ?? "https://kabijoux.com.br";
 const CACHE_KEY = "ka-mobile-home-v3";
+const HIDDEN_HOME_STORY_SHORTCUTS = new Set([
+  "story-novidades",
+  "story-promocoes",
+  "story-lancamentos",
+  "story-clientes",
+  "story-ofertas",
+]);
 function Text({ style, ...props }: TextProps) {
   return <NativeText {...props} style={[{ fontFamily: 'Inter' }, style]} />;
 }
@@ -359,6 +366,7 @@ function StoryViewer({ story, onClose, onNavigate }: {
 }
 
 function Stories({ stories, onOpen }: { stories: HomeStory[]; onOpen: (story: HomeStory) => void }) {
+  const publishedStories = stories.filter((story) => !HIDDEN_HOME_STORY_SHORTCUTS.has(story.id));
   const open = (story: HomeStory) => {
     const href = story.items.flatMap(item => [item.link, item.linkUrl]).find(value => {
       try { return !!value && /(^|\.)instagram\.com$/.test(new URL(value).hostname); } catch { return false; }
@@ -369,8 +377,9 @@ function Stories({ stories, onOpen }: { stories: HomeStory[]; onOpen: (story: Ho
   return <LinearGradient colors={['#ffffff', '#fff8fb', '#fff2f7']} style={styles.storiesSection}>
     <View style={styles.storyHeadingRow}>
       <Text style={styles.storyHeading}>Stories da <Text style={styles.storyHeadingAccent}>KA</Text></Text>
-      <Text style={styles.storySubtitle}>Confira novidades, ofertas e muito mais!</Text>
-      <Ionicons name="heart-outline" size={23} color={Colors.primary} />
+      <TouchableOpacity onPress={() => void openInstagram()} accessibilityRole="link" accessibilityLabel="Visitar o Instagram da KA Bijoux">
+        <Text style={styles.storyInstagramLink}>Instagram <Ionicons name="open-outline" size={12} color={Colors.primary} /></Text>
+      </TouchableOpacity>
     </View>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storyList}>
       <TouchableOpacity style={styles.storyItem} onPress={() => void openInstagram()} accessibilityLabel="Abrir KA Stories no Instagram">
@@ -383,14 +392,10 @@ function Stories({ stories, onOpen }: { stories: HomeStory[]; onOpen: (story: Ho
         <Text style={styles.storyLabel}>KA Stories</Text>
         <Text style={styles.instagramCaption}>Instagram</Text>
       </TouchableOpacity>
-      {stories.map(story => <TouchableOpacity key={story.id} style={styles.storyItem} onPress={() => open(story)} accessibilityLabel={`Abrir ${story.title}`}>
+      {publishedStories.map(story => <TouchableOpacity key={story.id} style={styles.storyItem} onPress={() => open(story)} accessibilityLabel={`Abrir ${story.title}`}>
         <LinearGradient colors={['#ffe6a1', '#ffafd1', '#ff4182']} style={styles.storyRing}>
           <View style={styles.storyInner}>
-            <Image source={
-              /^\/images\/stories\/[^/]+-cover\.jpg$/.test(story.cover || '')
-                ? storyArtwork[story.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()] || thumbnail(resolveUrl(story.cover || story.coverImageUrl), 256)
-                : thumbnail(resolveUrl(story.cover || story.coverImageUrl), 256)
-            } style={styles.storyCover} contentFit="cover" cachePolicy="memory-disk" />
+            <Image source={thumbnail(resolveUrl(story.cover || story.coverImageUrl), 256)} style={styles.storyCover} contentFit="cover" cachePolicy="memory-disk" />
           </View>
         </LinearGradient>
         <Text style={styles.storyLabel}>{story.title}</Text>
@@ -435,7 +440,10 @@ function SpecialArea({ category, onNavigate }: { category?: HomeCategory; onNavi
 }
 
 function ProductSection({ section, onNavigate }: { section: HomeProductSection; onNavigate: (href: string) => void }) {
+  const { width } = useWindowDimensions();
   if (!section.products.length) return null;
+  const gridGap = 8;
+  const cardWidth = Math.max(0, (width - 24 - gridGap * 2) / 3);
   return (
     <View style={[styles.productSection, section.background === "subtle" && styles.productSectionSubtle]}>
       <View style={styles.sectionHeader}>
@@ -446,9 +454,9 @@ function ProductSection({ section, onNavigate }: { section: HomeProductSection; 
         </View>
         <TouchableOpacity onPress={() => onNavigate(section.route)}><Text style={styles.more}>Ver mais →</Text></TouchableOpacity>
       </View>
-      <View style={[styles.productGrid, section.id === "achadinhos" && styles.productGridCompact]}>
+      <View style={styles.productGrid}>
         {section.products.map((product) => (
-          <View key={product.id} style={[styles.productCell, section.id === "achadinhos" && styles.productCellCompact]}><ProductCard product={product} badgeSeal={section.badgeSeal} compact={section.id === "achadinhos"} /></View>
+          <View key={product.id} style={[styles.productCell, { width: cardWidth }]}><ProductCard product={product} badgeSeal={section.badgeSeal} compact /></View>
         ))}
       </View>
       <TouchableOpacity style={styles.allButton} onPress={() => onNavigate(section.route)}>
@@ -542,6 +550,9 @@ function CategoryGrid({ categories, onNavigate }: { categories: HomeCategory[]; 
 }
 
 function HomeSkeleton() {
+  const { width } = useWindowDimensions();
+  const gap = 8;
+  const cardWidth = Math.max(0, (width - 24 - gap * 2) / 3);
   return (
     <View style={styles.skeletonWrap}>
       <View style={[styles.skeleton, styles.skeletonHero]} />
@@ -550,7 +561,7 @@ function HomeSkeleton() {
       </View>
       <View style={[styles.skeleton, styles.skeletonTitle]} />
       <View style={styles.productGrid}>
-        {[0, 1, 2, 3].map((item) => <View key={item} style={[styles.skeleton, styles.skeletonProduct]} />)}
+        {[0, 1, 2].map((item) => <View key={item} style={[styles.skeleton, styles.skeletonProduct, { width: cardWidth }]} />)}
       </View>
     </View>
   );
@@ -789,7 +800,7 @@ const styles = StyleSheet.create({
   storyHeadingRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   storyHeading: { flex: 1, fontFamily: 'PlayfairDisplay', fontSize: 22, color: '#151015' },
   storyHeadingAccent: { color: Colors.primary },
-  storySubtitle: { maxWidth: "49%", textAlign: "right", fontSize: 9, lineHeight: 12, color: '#3d0f1a' },
+  storyInstagramLink: { color: Colors.primary, fontSize: 10, fontWeight: "700" },
   instagramBadge: { position: 'absolute', top: 57, right: 1, width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   instagramCaption: { marginTop: 3, fontSize: 9, color: '#9ca3af' },
   eyebrow: { color: Colors.primary, fontSize: 10, fontWeight: "900", letterSpacing: 1.5, marginBottom: 4 },
@@ -842,10 +853,8 @@ const styles = StyleSheet.create({
   productSectionTitle: { color: "#111827", fontSize: 25, lineHeight: 31, fontFamily: "PlayfairDisplay" },
   productSectionSubtitle: { color: "#826672", fontSize: 11, lineHeight: 16, marginTop: 4 },
   more: { color: Colors.primary, fontSize: 11, fontWeight: "800" },
-  productGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  productGridCompact: { justifyContent: "space-between", gap: 7 },
-  productCell: { width: "48%", flexGrow: 1, flexBasis: "45%", marginBottom: 2 },
-  productCellCompact: { width: "31.5%", flexGrow: 0, flexBasis: "31.5%" },
+  productGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "stretch" },
+  productCell: { flexGrow: 0, flexShrink: 0, marginBottom: 2 },
   allButton: { alignSelf: "center", marginTop: 16, minHeight: 46, borderRadius: 23, backgroundColor: Colors.primary, paddingHorizontal: 22, maxWidth: "100%", alignItems: "center", justifyContent: "center" },
   allButtonText: { color: "#fff", fontSize: 12, fontWeight: "900" },
   benefits: { marginHorizontal: 10, marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-around", minHeight: 58, paddingVertical: 8, borderRadius: 18, borderWidth: 1, borderColor: "#fce7f3", backgroundColor: "#fff8fb", ...Shadows.sm },
@@ -884,7 +893,7 @@ const styles = StyleSheet.create({
   skeletonRow: { flexDirection: "row", gap: 14, padding: 16 },
   skeletonCircle: { width: 64, height: 64, borderRadius: 32 },
   skeletonTitle: { width: 210, height: 26, borderRadius: 8, margin: 16 },
-  skeletonProduct: { width: "48%", flexGrow: 1, flexBasis: "45%", height: 240, borderRadius: 20 },
+  skeletonProduct: { height: 190, borderRadius: 14 },
   errorState: { minHeight: 440, alignItems: "center", justifyContent: "center", padding: 28 },
   errorTitle: { color: "#4c1425", fontSize: 20, fontWeight: "900", marginTop: 14, textAlign: "center" },
   errorDescription: { color: "#826672", fontSize: 13, marginTop: 6, textAlign: "center" },

@@ -64,7 +64,7 @@ type FetchPoolOptions = {
   featured?: boolean;
   isNew?: boolean;
   promo?: boolean;
-  sort?: "createdAt" | "best_sellers";
+  sort?: "createdAt" | "best_sellers" | "home_order";
   googlePlay?: boolean;
 };
 
@@ -81,6 +81,7 @@ async function fetchPool(filters: FetchPoolOptions): Promise<ProductCardProduct[
   if (filters.featured) extra.featured = true;
   if (filters.isNew) extra.isNew = true;
   if (filters.promo) extra.promotionalPrice = { gt: 0, lt: prisma.product.fields.price };
+  if (filters.sort === "home_order") extra.homeSortOrder = { not: null };
 
   const where = filters.googlePlay
     ? googlePlayProductWhere(extra)
@@ -96,7 +97,11 @@ async function fetchPool(filters: FetchPoolOptions): Promise<ProductCardProduct[
     where,
     select: homeProductSelect,
     orderBy: [
-      filters.sort === "best_sellers" ? { soldCount: "desc" } : { createdAt: "desc" },
+      filters.sort === "home_order"
+        ? { homeSortOrder: "asc" }
+        : filters.sort === "best_sellers"
+          ? { soldCount: "desc" }
+          : { createdAt: "desc" },
       { id: "asc" },
     ],
     take: filters.limit,
@@ -191,14 +196,15 @@ export async function getHomeSections(
   options: { googlePlay?: boolean } = {}
 ): Promise<HomeSections> {
   const googlePlay = options.googlePlay === true;
-  const [main, featured, newProducts, promo] = await Promise.all([
+  const [main, featured, newProducts, promo, curated] = await Promise.all([
     fetchPool({ limit: 70, googlePlay }),
     fetchPool({ limit: 24, featured: true, sort: "best_sellers", googlePlay }),
     fetchPool({ limit: 24, isNew: true, googlePlay }),
     fetchPool({ limit: 24, promo: true, googlePlay }),
+    fetchPool({ limit: 30, sort: "home_order", googlePlay }),
   ]);
 
-  const productPool = mergeUniqueProducts(main, featured, newProducts, promo);
+  const productPool = mergeUniqueProducts(curated, main, featured, newProducts, promo);
   const usedIds = new Set<string>();
 
   function takeSection(priority: ProductCardProduct[], amount: number) {
@@ -214,10 +220,26 @@ export async function getHomeSections(
 
   return {
     ofertasRelampago: promo.slice(0, 8),
-    achadinhos: takeSection(main, 8),
+    achadinhos: takeSection([...curated, ...main], 24),
     novidades: newProducts.slice(0, 8),
     maisVendidos: takeSection([...featured, ...main], 10),
     paraPresentes: takeSection(main, 8),
     belezaAutocuidado: takeSection(main, 8),
   };
+}
+
+/** Products that can be safely placed in the admin-managed storefront curation. */
+export async function getHomeCurationCandidates(googlePlay = false) {
+  const products = await fetchPool({ limit: 1000, sort: "best_sellers", googlePlay });
+  return products.map((product) => ({
+    id: product.id,
+    name: product.name,
+    sku: product.sku,
+    slug: product.slug,
+    price: product.promotionalPrice ?? product.price,
+    stock: product.stock,
+    image: product.image,
+    category: product.category?.name ?? "",
+    categorySlug: product.category?.slug ?? "",
+  }));
 }

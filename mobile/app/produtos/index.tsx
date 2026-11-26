@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl,
+  ActivityIndicator, RefreshControl, useWindowDimensions,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -27,6 +27,8 @@ const PAGE_SIZE = 20;
 export default function ProdutosScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width: viewportWidth } = useWindowDimensions();
+  const productCellWidth = Math.max(0, (viewportWidth - Spacing.base * 2 - 16) / 3);
   const { category, subcategory, title, promo, new: newParam, q, sort: routeSort, ordem, minPrice, maxPrice } = useLocalSearchParams<{
     category?: string;
     subcategory?: string;
@@ -180,7 +182,7 @@ export default function ProdutosScreen() {
         <FlatList
           data={products}
           keyExtractor={(item) => item.id}
-          numColumns={2}
+          numColumns={3}
           columnWrapperStyle={styles.row}
           contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 12) + 16 }]}
           initialNumToRender={6}
@@ -200,8 +202,8 @@ export default function ProdutosScreen() {
               : null
           }
           renderItem={({ item }) => (
-            <View style={{ flex: 1 }}>
-              <ProductCard product={item} />
+            <View style={[styles.productCell, { width: productCellWidth }]}>
+              <ProductCard product={item} compact />
             </View>
           )}
         />
@@ -238,8 +240,9 @@ const styles = StyleSheet.create({
   sortChipActive:     { borderColor: Colors.primary, backgroundColor: Colors.pinkSoft },
   sortChipText:       { fontSize: FontSizes.sm, color: Colors.textSecondary, fontWeight: "500" },
   sortChipTextActive: { color: Colors.primary, fontWeight: "700" },
-  row:  { gap: 12 },
-  list: { padding: Spacing.base, gap: 12 },
+  row:  { gap: 8 },
+  list: { padding: Spacing.base, gap: 8 },
+  productCell: { flexGrow: 0, flexShrink: 0 },
   emptyIcon:  { fontSize: 56, marginBottom: 12 },
   emptyTitle: { fontSize: FontSizes.md, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },
   emptyText:  { fontSize: FontSizes.sm, color: Colors.textMuted, textAlign: "center", marginTop: 6 },

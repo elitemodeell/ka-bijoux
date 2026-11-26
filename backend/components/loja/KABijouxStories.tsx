@@ -457,14 +457,10 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
               Stories da <span className="text-pink-600">KA</span>
             </h2>
           </div>
-          <p className="max-w-[50%] text-right text-[10px] font-medium leading-snug text-[#3d0f1a] sm:max-w-none sm:text-sm">
-            Confira novidades, ofertas e muito mais!
-          </p>
-          <HeartIcon className="h-6 w-6 shrink-0 text-pink-500 sm:h-8 sm:w-8" />
         </div>
 
         <div className="relative z-10">
-          <div className="grid grid-cols-5 items-start gap-1 sm:gap-5 lg:mx-auto lg:max-w-[760px]">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(58px,1fr))] items-start gap-1 sm:grid-cols-[repeat(auto-fit,minmax(94px,1fr))] sm:gap-5 lg:mx-auto lg:max-w-[760px]">
               <a
                 href={instagramProfileUrl}
                 target="_blank"
