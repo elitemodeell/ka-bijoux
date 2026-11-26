@@ -284,6 +284,11 @@ export const homeApi = {
   get: (signal?: AbortSignal) => api.get(`${MOBILE_API_PREFIX}/home`, { signal }),
 };
 
+export const storeLikesApi = {
+  get: (visitorId: string) => api.get("/api/store-likes", { headers: { "x-ka-store-visitor": visitorId } }),
+  set: (visitorId: string, liked: boolean) => api.post("/api/store-likes", { visitorId, liked }),
+};
+
 export const favoritesApi = {
   list: () => api.get(`${MOBILE_API_PREFIX}/favorites`),
   create: (productId: string) => api.post(`${MOBILE_API_PREFIX}/favorites`, { productId }),

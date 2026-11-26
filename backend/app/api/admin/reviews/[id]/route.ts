@@ -8,19 +8,40 @@ import { apiSuccess, apiError } from "@/lib/utils";
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
-    await requireAdmin(req);
+    const admin = await requireAdmin(req);
     const { approved } = await req.json() as { approved: boolean };
 
     if (typeof approved !== "boolean") return apiError("Campo approved obrigatório.", 400);
 
-    if (!approved) {
-      await prisma.review.delete({ where: { id: params.id } });
-      return apiSuccess({ message: "Avaliação rejeitada e removida." });
+    if (approved) {
+      const candidate = await prisma.review.findUnique({
+        where: { id: params.id },
+        select: { id: true, customerId: true, productId: true },
+      });
+      if (!candidate) return apiError("Avaliação não encontrada.", 404);
+      const verifiedPurchase = await prisma.orderItem.findFirst({
+        where: {
+          productId: candidate.productId,
+          order: {
+            customerId: candidate.customerId,
+            status: { in: ["ENTREGUE", "PRONTO_PARA_RETIRADA"] },
+          },
+        },
+        select: { id: true },
+      });
+      if (!verifiedPurchase) return apiError("A avaliação não possui uma compra confirmada.", 422);
     }
 
     const review = await prisma.review.update({
       where: { id: params.id },
-      data: { approved: true },
+      data: {
+        approved,
+        policyReviewStatus: approved ? "APPROVED" : "BLOCKED",
+        policyReviewedAt: new Date(),
+        policyReviewedBy: admin.id,
+        policyReviewNotes: approved ? "Aprovada pela moderação administrativa." : "Ocultada pela moderação administrativa; registro preservado.",
+        distributionChannels: approved ? ["WEB_FULL", "ADMIN"] : ["ADMIN"],
+      },
     });
 
     return apiSuccess(review);

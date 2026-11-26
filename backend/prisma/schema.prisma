@@ -54,6 +54,7 @@ model Customer {
   orders           Order[]
   cart             Cart?
   favorites        Favorite[]
+  storeLike        StoreLike?
   notifications    Notification[]
   reviews          Review[]
   deletionRequests AccountDeletionRequest[]
@@ -593,6 +594,17 @@ model Favorite {
   @@map("favorites")
 }
 
+// Uma curtida por visitante persistente ou por conta da loja.
+model StoreLike {
+  id         String   @id
+  customerId String?  @unique
+  createdAt  DateTime @default(now())
+
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("store_likes")
+}
+
 // ─── Notification ─────────────────────────────────────────────────────────────
 
 model Notification {
@@ -656,6 +668,7 @@ model Review {
   customerId String
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId  String
+  storyGroup StoryGroup?
 
   @@unique([customerId, productId])
   @@index([productId, approved])
@@ -771,10 +784,15 @@ model StoreSettings {
 
 model StoryGroup {
   id                    String                @id @default(cuid())
-  title                 String
-  coverImageUrl         String?
-  isActive              Boolean               @default(true)
-  sortOrder             Int                   @default(0)
+  title                      String
+  category                   StoryCategory         @default(OFFICIAL)
+  reviewId                   String?               @unique
+  coverImageUrl              String?
+  isActive                   Boolean               @default(true)
+  sortOrder                  Int                   @default(0)
+  expiresAt                  DateTime?
+  customerConsentConfirmedAt DateTime?
+  customerConsentConfirmedBy String?
   distributionChannels  DistributionChannel[] @default([WEB_FULL, ADMIN])
   playStoreStatus       PlayStoreStatus       @default(PLAY_REVIEW_REQUIRED)
   playStoreReviewedAt   DateTime?
@@ -789,8 +807,10 @@ model StoryGroup {
   updatedAt             DateTime              @updatedAt
 
   items StoryItem[]
+  review Review? @relation(fields: [reviewId], references: [id], onDelete: SetNull)
 
   @@index([isActive, sortOrder])
+  @@index([category, isActive, expiresAt])
   @@index([isActive, playStoreStatus])
   @@map("story_groups")
 }
@@ -829,4 +849,11 @@ model StoryItem {
 enum StoryItemType {
   IMAGE
   VIDEO
+}
+
+enum StoryCategory {
+  OFFICIAL
+  CUSTOMER
+  REVIEW
+  HIGHLIGHT
 }

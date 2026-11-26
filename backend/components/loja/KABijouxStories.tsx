@@ -5,12 +5,14 @@ import type { TouchEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { DEFAULT_STORY_COVER, type StoryGroup, type StoryItem } from "@/types/stories";
+import { STORY_CATEGORY_LABELS, type StoryCategory } from "@/types/stories";
 import { HOME_BENEFITS, type HomePresentation } from "@/lib/home-content";
+import StoreLoveButton from "@/components/loja/StoreLoveButton";
 
 const seenStorageKey = "ka-bijoux-seen-stories";
 const storyLogo = "/images/brand/ka-bijoux-logo-story-icon.png";
-const instagramProfileUrl = "https://www.instagram.com/kabijoux_?igsh=aGV2Z2dxb252NzF5";
 const HERO_IMAGE_DURATION = 5000;
+const storyCategories: StoryCategory[] = ["OFFICIAL", "CUSTOMER", "REVIEW", "HIGHLIGHT"];
 
 type StoryCoverMedia = {
   type: StoryItem["type"];
@@ -96,6 +98,7 @@ export default function KABijouxStories({ presentation }: { presentation: HomePr
   const [loading, setLoading] = useState(false);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const [activeStoryGroup, setActiveStoryGroup] = useState<StoryGroup | null>(null);
+  const [emptyStoryCategory, setEmptyStoryCategory] = useState<StoryCategory | null>(null);
   const [activeItemIndex, setActiveItemIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [mediaError, setMediaError] = useState(false);
@@ -148,20 +151,32 @@ export default function KABijouxStories({ presentation }: { presentation: HomePr
     });
   }, []);
 
-  const openGroup = useCallback(
-    (index: number) => {
-      const group = visibleGroups[index];
-      if (!group) return;
+  const openCategory = useCallback(
+    (category: StoryCategory) => {
+      const categoryGroups = visibleGroups.filter((group) => group.category === category);
+      const items = categoryGroups.flatMap((group) => group.items);
+      if (!items.length) {
+        setEmptyStoryCategory(category);
+        return;
+      }
 
-      setActiveStoryGroup(group);
+      const first = categoryGroups[0];
+      setEmptyStoryCategory(null);
+      setActiveStoryGroup({
+        ...first,
+        id: `category-${category}`,
+        title: STORY_CATEGORY_LABELS[category],
+        items,
+      });
       setActiveItemIndex(0);
-      markSeen(group.id);
+      categoryGroups.forEach((group) => markSeen(group.id));
     },
     [markSeen, visibleGroups]
   );
 
   const closeViewer = useCallback(() => {
     setActiveStoryGroup(null);
+    setEmptyStoryCategory(null);
     setActiveItemIndex(0);
     setProgress(0);
     setMediaError(false);
@@ -278,7 +293,7 @@ export default function KABijouxStories({ presentation }: { presentation: HomePr
         <StorySpotlight
           groups={visibleGroups}
           loading={loading}
-          onOpenGroup={openGroup}
+          onOpenCategory={openCategory}
           seenIds={seenIds}
         />
         {presentation.seasonalDecoration ? <ChristmasDivider /> : null}
@@ -369,6 +384,25 @@ export default function KABijouxStories({ presentation }: { presentation: HomePr
               )}
             </div>
           </div>
+          {activeGroup.review ? (
+            <div className="pointer-events-none absolute inset-x-4 bottom-7 z-[5] mx-auto max-w-md rounded-2xl border border-white/15 bg-black/60 p-4 text-white backdrop-blur-sm">
+              <p className="text-sm tracking-widest text-amber-300" aria-label={`${activeGroup.review.rating} de 5 estrelas`}>
+                {"★".repeat(activeGroup.review.rating)}{"☆".repeat(5 - activeGroup.review.rating)}
+              </p>
+              {activeGroup.review.comment ? <p className="mt-1 text-sm leading-relaxed">“{activeGroup.review.comment}”</p> : null}
+              <p className="mt-2 text-xs text-pink-100">{activeGroup.review.customerName} · Compra verificada · {activeGroup.review.productName}</p>
+            </div>
+          ) : null}
+        </div>
+      )}
+      {emptyStoryCategory && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-5" role="dialog" aria-modal="true" aria-labelledby="empty-story-title">
+          <div className="relative w-full max-w-sm rounded-3xl border border-pink-100 bg-gradient-to-br from-white via-[#fff8fb] to-[#fff0f6] px-6 pb-7 pt-8 text-center shadow-2xl">
+            <button type="button" onClick={() => setEmptyStoryCategory(null)} className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-white text-xl text-pink-600 shadow" aria-label="Fechar">×</button>
+            <img src={storyLogo} alt="" className="mx-auto h-16 w-16 object-contain" />
+            <h2 id="empty-story-title" className="mt-3 font-playfair text-2xl font-bold text-[#7c1534]">{STORY_CATEGORY_LABELS[emptyStoryCategory]}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">Ainda não há conteúdo publicado nesta seção. Volte em breve para conferir as novidades da KA Bijoux.</p>
+          </div>
         </div>
       )}
     </section>
@@ -441,93 +475,44 @@ function SexShopMobileAccess() {
 type StorySpotlightProps = {
   groups: StoryGroup[];
   loading: boolean;
-  onOpenGroup: (index: number) => void;
+  onOpenCategory: (category: StoryCategory) => void;
   seenIds: Set<string>;
 };
 
-function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotlightProps) {
+function StorySpotlight({ groups, loading, onOpenCategory, seenIds }: StorySpotlightProps) {
+  const categoryGroups = new Map(storyCategories.map((category) => [category, groups.filter((group) => group.category === category)]));
   return (
     <section className="mx-auto mt-3 max-w-7xl px-2.5 sm:mt-5 sm:px-6" aria-label="Stories KA Bijoux">
       <div className="relative overflow-hidden rounded-[22px] border border-pink-100 bg-gradient-to-br from-white via-[#fff8fb] to-[#fff2f7] px-3 pb-3 pt-3.5 shadow-[0_12px_28px_rgba(236,72,153,0.10)] ring-1 ring-white/80 sm:rounded-[28px] sm:p-5">
         <span className="ka-story-spotlight-shine" aria-hidden="true" />
 
         <div className="relative z-10 mb-3 flex items-center justify-between gap-2 sm:gap-3">
-          <div className="min-w-0">
-            <h2 className="font-playfair text-[25px] font-bold leading-none tracking-normal text-[#8a0032] sm:text-4xl">
-              Stories da <span className="text-pink-600">KA</span>
-            </h2>
-          </div>
+          <h2 className="flex min-w-0 items-center gap-1 font-playfair text-[25px] font-bold leading-none tracking-normal text-[#151015] sm:text-4xl">
+            Stories da <span className="inline-flex flex-col items-start"><img src={storyLogo} alt="KA Bijoux" className="h-[25px] w-[53px] object-contain sm:h-9 sm:w-[76px]" /><span className="mt-0.5 h-[2px] w-8 rounded-full bg-pink-500 sm:w-12" /></span>
+          </h2>
+          <StoreLoveButton />
         </div>
 
         <div className="relative z-10">
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(58px,1fr))] items-start gap-1 sm:grid-cols-[repeat(auto-fit,minmax(94px,1fr))] sm:gap-5 lg:mx-auto lg:max-w-[760px]">
-              <a
-                href={instagramProfileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group min-w-0 text-center outline-none"
-                aria-label="Abrir KA Stories no Instagram"
-              >
-                <span className="ka-story-ring ka-story-ring-unseen mx-auto flex h-[clamp(58px,17vw,72px)] w-[clamp(58px,17vw,72px)] items-center justify-center rounded-full p-[3px] transition-transform duration-300 group-hover:scale-[1.04] sm:h-[94px] sm:w-[94px]">
-                  <span className="relative flex h-full w-full items-center justify-center rounded-full border-[3px] border-white bg-[#fff1f6] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.82)]">
-                    <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full">
-                      <Image
-                        src={storyLogo}
-                        alt=""
-                        fill
-                        sizes="(max-width: 639px) 18vw, 94px"
-                        quality={88}
-                        className="object-contain p-2.5 sm:p-4"
-                      />
-                    </span>
-                    <span className="absolute -bottom-1 -right-1 z-20 flex h-6 w-6 items-center justify-center rounded-full border-[2px] border-white bg-white text-pink-500 shadow-[0_8px_18px_rgba(236,72,153,0.22)] sm:h-8 sm:w-8 sm:border-[3px]">
-                      <InstagramIcon className="h-3.5 w-3.5 sm:h-[18px] sm:w-[18px]" />
+          <div className="grid grid-cols-4 items-start gap-1 sm:gap-5 lg:mx-auto lg:max-w-[760px]">
+            {storyCategories.map((category) => {
+              const categoryLabel = STORY_CATEGORY_LABELS[category];
+              const categoryItems = categoryGroups.get(category) ?? [];
+              const coverGroup = categoryItems[0];
+              const hasSeen = categoryItems.length > 0 && categoryItems.every((group) => seenIds.has(group.id));
+              const coverMedia = coverGroup ? getStoryCoverMedia(coverGroup) : null;
+              return (
+                <button key={category} type="button" onClick={() => onOpenCategory(category)} className="group min-w-0 text-center outline-none" aria-label={`Abrir ${categoryLabel}`}>
+                  <span className={`ka-story-ring mx-auto flex h-[clamp(58px,17vw,78px)] w-[clamp(58px,17vw,78px)] items-center justify-center rounded-full p-[3px] transition-transform duration-300 group-hover:scale-[1.04] sm:h-[94px] sm:w-[94px] ${hasSeen ? "ka-story-ring-seen" : "ka-story-ring-unseen"}`}>
+                    <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.78)]">
+                      {coverMedia ? <StoryCover media={coverMedia} title={categoryLabel} /> : category === "OFFICIAL" ? <img src={storyLogo} alt="" className="h-4/5 w-4/5 object-contain" /> : <StoryCategoryIcon category={category} />}
                     </span>
                   </span>
-                </span>
-                <span className="mt-1.5 block whitespace-nowrap text-[10px] font-bold leading-tight text-[#3d0f1a] min-[370px]:text-[11px] sm:mt-2 sm:text-[14px]">
-                  KA Stories
-                </span>
-                <span className="mt-0.5 inline-flex items-center justify-center gap-0.5 text-[9px] font-medium leading-tight text-gray-400 sm:gap-1 sm:text-xs">
-                  <InstagramIcon className="h-2.5 w-2.5 text-pink-400 sm:h-3 sm:w-3" />
-                  Instagram
-                </span>
-              </a>
-
-              {loading
-                ? Array.from({ length: 3 }).map((_, index) => (
-                    <div key={index} className="min-w-0 animate-pulse text-center">
-                      <div className="mx-auto h-[clamp(58px,17vw,72px)] w-[clamp(58px,17vw,72px)] rounded-full bg-pink-100 sm:h-[94px] sm:w-[94px]" />
-                      <div className="mx-auto mt-1.5 h-2.5 w-12 max-w-full rounded-full bg-pink-100/80 sm:mt-2 sm:h-3 sm:w-14" />
-                    </div>
-                  ))
-                : groups.map((group, index) => {
-                    const coverMedia = getStoryCoverMedia(group);
-                    const hasSeen = seenIds.has(group.id);
-
-                    return (
-                      <button
-                        key={group.id}
-                        type="button"
-                        onClick={() => onOpenGroup(index)}
-                        className="group min-w-0 text-center outline-none"
-                        aria-label={`Abrir story ${group.title}`}
-                      >
-                        <span
-                          className={`ka-story-ring mx-auto flex h-[clamp(58px,17vw,72px)] w-[clamp(58px,17vw,72px)] items-center justify-center rounded-full p-[3px] transition-transform duration-300 group-hover:scale-[1.04] sm:h-[94px] sm:w-[94px] ${
-                            hasSeen ? "ka-story-ring-seen" : "ka-story-ring-unseen"
-                          }`}
-                        >
-                          <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.78)]">
-                            <StoryCover media={coverMedia} title={group.title} />
-                          </span>
-                        </span>
-                        <span className="mt-1.5 block truncate text-[10px] font-bold leading-tight text-[#3d0f1a] min-[370px]:text-[11px] sm:mt-2 sm:text-[14px]">
-                          {group.title}
-                        </span>
-                      </button>
-                    );
-              })}
+                  <span className="mt-1.5 block truncate text-[10px] font-bold leading-tight text-[#3d0f1a] min-[370px]:text-[11px] sm:mt-2 sm:text-[14px]">{categoryLabel}</span>
+                  {loading && !coverGroup ? <span className="sr-only">Carregando Stories</span> : null}
+                </button>
+              );
+            })}
           </div>
 
         </div>
@@ -805,20 +790,20 @@ function HeartIcon({ className }: { className?: string }) {
   );
 }
 
+function StoryCategoryIcon({ category }: { category: StoryCategory }) {
+  const paths: Record<StoryCategory, string> = {
+    OFFICIAL: "M12 3 2 8l10 5 10-5-10-5Zm-8 9 8 4 8-4M4 16l8 5 8-5",
+    CUSTOMER: "M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2m12-13a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm2 4a4 4 0 0 1 4 4v2",
+    REVIEW: "m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z",
+    HIGHLIGHT: "m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Zm7 11 1 2.5 2.5 1-2.5 1L19 21l-1-2.5-2.5-1 2.5-1L19 14Z",
+  };
+  return <svg className="h-9 w-9 text-pink-500 sm:h-12 sm:w-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[category]} /></svg>;
+}
+
 function ChevronRightIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
-
-function InstagramIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <path d="M17.5 6.5h.01" />
     </svg>
   );
 }

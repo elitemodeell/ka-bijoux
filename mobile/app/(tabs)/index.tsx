@@ -18,17 +18,18 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFonts } from "expo-font";
-import { categoryArtwork, instagramProfile, thumbnail } from "@/components/home/brand";
+import { categoryArtwork, thumbnail } from "@/components/home/brand";
 import { Image, type ImageSource } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useVideoPlayer, VideoView } from "expo-video";
+import * as Crypto from "expo-crypto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Colors, BorderRadius, Shadows } from "@/constants/theme";
-import { homeApi } from "@/services/api";
+import { homeApi, storeLikesApi } from "@/services/api";
 import { useAuthStore } from "@/stores/authStore";
 import { useCartStore } from "@/stores/cartStore";
 import type {
@@ -43,21 +44,15 @@ import type {
 
 const SITE = process.env.EXPO_PUBLIC_API_URL ?? "https://kabijoux.com.br";
 const CACHE_KEY = "ka-mobile-home-v3";
+const STORE_LOVE_VISITOR_KEY = "ka-store-love-visitor-v1";
 const HIDDEN_HOME_STORY_SHORTCUTS = new Set([
   "story-novidades",
   "story-promocoes",
   "story-lancamentos",
-  "story-clientes",
   "story-ofertas",
 ]);
 function Text({ style, ...props }: TextProps) {
   return <NativeText {...props} style={[{ fontFamily: 'Inter' }, style]} />;
-}
-
-async function openInstagram(href = instagramProfile) {
-  // HTTPS universal/app links open Instagram when supported, otherwise the browser.
-  try { await Linking.openURL(href); }
-  catch { Alert.alert('Instagram', 'Não foi possível abrir o Instagram. Tente novamente.'); }
 }
 
 function resolveUrl(value?: string | null): string | null;
@@ -167,6 +162,75 @@ function Header({ itemCount, onNavigate }: { itemCount: number; onNavigate: (hre
         </TouchableOpacity>
       </View>
     </LinearGradient>
+  );
+}
+
+function StoreLoveButton() {
+  const customer = useAuthStore((state) => state.customer);
+  const [visitorId, setVisitorId] = useState<string | null>(null);
+  const [count, setCount] = useState<number | null>(null);
+  const [liked, setLiked] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const scale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        let id = await AsyncStorage.getItem(STORE_LOVE_VISITOR_KEY);
+        if (!id) {
+          id = Crypto.randomUUID();
+          await AsyncStorage.setItem(STORE_LOVE_VISITOR_KEY, id);
+        }
+        if (!active) return;
+        setVisitorId(id);
+        const response = await storeLikesApi.get(id);
+        if (active) {
+          setCount(response.data.data.count);
+          setLiked(response.data.data.liked);
+        }
+      } catch {
+        if (active) setCount(null);
+      }
+    })();
+    return () => { active = false; };
+  }, [customer?.id]);
+
+  const toggle = async () => {
+    if (!visitorId || count === null || saving) return;
+    const previous = { liked, count };
+    const next = !liked;
+    setSaving(true);
+    setLiked(next);
+    setCount(Math.max(0, count + (next ? 1 : -1)));
+    Animated.sequence([
+      Animated.spring(scale, { toValue: 1.18, useNativeDriver: true, speed: 32 }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 25 }),
+    ]).start();
+    try {
+      const response = await storeLikesApi.set(visitorId, next);
+      setCount(response.data.data.count);
+      setLiked(response.data.data.liked);
+    } catch {
+      setLiked(previous.liked);
+      setCount(previous.count);
+      Alert.alert("Amor pela KA", "Não foi possível salvar sua curtida. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <TouchableOpacity onPress={() => void toggle()} disabled={!visitorId || count === null || saving}
+      accessibilityRole="button" accessibilityState={{ selected: liked, disabled: saving || count === null }}
+      accessibilityLabel={liked ? `Retirar curtida. ${count ?? 0} curtidas` : `Curtir a loja. ${count ?? 0} curtidas`}
+      style={styles.storeLove}>
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <Ionicons name={liked ? "heart" : "heart-outline"} size={19} color={Colors.primary} />
+      </Animated.View>
+      <Text style={styles.storeLoveLabel}>Amor pela KA</Text>
+      <View style={styles.storeLoveCount}><Text style={styles.storeLoveCountText}>{count === null ? "—" : new Intl.NumberFormat("pt-BR").format(count)}</Text></View>
+    </TouchableOpacity>
   );
 }
 
@@ -335,6 +399,11 @@ function StoryViewer({ story, onClose, onNavigate }: {
             )}
           </View>
           {item?.text ? <Text style={styles.storyText}>{item.text}</Text> : null}
+          {story?.review ? <View style={styles.storyReviewCard}>
+            <Text style={styles.storyReviewStars}>{"★".repeat(story.review.rating)}{"☆".repeat(5 - story.review.rating)}</Text>
+            {story.review.comment ? <Text style={styles.storyReviewQuote}>“{story.review.comment}”</Text> : null}
+            <Text style={styles.storyReviewByline}>{story.review.customerName} · Compra verificada · {story.review.productName}</Text>
+          </View> : null}
           <View style={styles.storyActions}>
             {itemIndex > 0 ? (
               <TouchableOpacity style={styles.storyNavButton} onPress={() => setItemIndex((current) => current - 1)}>
@@ -365,42 +434,64 @@ function StoryViewer({ story, onClose, onNavigate }: {
   );
 }
 
+const STORY_CATEGORIES = [
+  { key: "OFFICIAL", label: "KA Stories", icon: "storefront-outline" as const },
+  { key: "CUSTOMER", label: "Clientes", icon: "people-outline" as const },
+  { key: "REVIEW", label: "Avaliações", icon: "star-outline" as const },
+  { key: "HIGHLIGHT", label: "Destaques", icon: "sparkles-outline" as const },
+] as const;
+
 function Stories({ stories, onOpen }: { stories: HomeStory[]; onOpen: (story: HomeStory) => void }) {
-  const publishedStories = stories.filter((story) => !HIDDEN_HOME_STORY_SHORTCUTS.has(story.id));
-  const open = (story: HomeStory) => {
-    const href = story.items.flatMap(item => [item.link, item.linkUrl]).find(value => {
-      try { return !!value && /(^|\.)instagram\.com$/.test(new URL(value).hostname); } catch { return false; }
-    });
-    if (href) void openInstagram(href);
-    else onOpen(story);
+  const [emptyCategory, setEmptyCategory] = useState<string | null>(null);
+  const openCategory = (category: typeof STORY_CATEGORIES[number]) => {
+    const groups = stories.filter((story) => (story.category ?? "OFFICIAL") === category.key && !HIDDEN_HOME_STORY_SHORTCUTS.has(story.id));
+    const items = groups.flatMap((group) => group.items);
+    if (!items.length) {
+      setEmptyCategory(category.label);
+      return;
+    }
+    onOpen({ ...groups[0], id: `story-category-${category.key}`, title: category.label, items });
   };
+
   return <LinearGradient colors={['#ffffff', '#fff8fb', '#fff2f7']} style={styles.storiesSection}>
     <View style={styles.storyHeadingRow}>
-      <Text style={styles.storyHeading}>Stories da <Text style={styles.storyHeadingAccent}>KA</Text></Text>
-      <TouchableOpacity onPress={() => void openInstagram()} accessibilityRole="link" accessibilityLabel="Visitar o Instagram da KA Bijoux">
-        <Text style={styles.storyInstagramLink}>Instagram <Ionicons name="open-outline" size={12} color={Colors.primary} /></Text>
-      </TouchableOpacity>
+      <View style={styles.storyHeadingGroup}>
+        <Text style={styles.storyHeading}>Stories da</Text>
+        <View style={styles.storyBrandMark}>
+          <Image source={resolveUrl('/images/brand/ka-bijoux-logo-story-icon.png')} style={styles.storyHeadingLogo} contentFit="contain" cachePolicy="memory-disk" />
+          <View style={styles.storyHeadingUnderline} />
+        </View>
+      </View>
+      <StoreLoveButton />
     </View>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storyList}>
-      <TouchableOpacity style={styles.storyItem} onPress={() => void openInstagram()} accessibilityLabel="Abrir KA Stories no Instagram">
-        <LinearGradient colors={['#ffe6a1', '#ffafd1', '#ff4182']} style={styles.storyRing}>
-          <View style={styles.storyInner}>
-            <Image source={thumbnail(resolveUrl('/images/brand/ka-bijoux-logo-story-icon.png'), 256)} style={styles.storyCover} contentFit="contain" cachePolicy="memory-disk" />
-          </View>
-        </LinearGradient>
-        <View style={styles.instagramBadge}><Ionicons name="logo-instagram" size={13} color="#ec4899" /></View>
-        <Text style={styles.storyLabel}>KA Stories</Text>
-        <Text style={styles.instagramCaption}>Instagram</Text>
-      </TouchableOpacity>
-      {publishedStories.map(story => <TouchableOpacity key={story.id} style={styles.storyItem} onPress={() => open(story)} accessibilityLabel={`Abrir ${story.title}`}>
-        <LinearGradient colors={['#ffe6a1', '#ffafd1', '#ff4182']} style={styles.storyRing}>
-          <View style={styles.storyInner}>
-            <Image source={thumbnail(resolveUrl(story.cover || story.coverImageUrl), 256)} style={styles.storyCover} contentFit="cover" cachePolicy="memory-disk" />
-          </View>
-        </LinearGradient>
-        <Text style={styles.storyLabel}>{story.title}</Text>
-      </TouchableOpacity>)}
-    </ScrollView>
+    <View style={styles.storyList}>
+      {STORY_CATEGORIES.map((category) => {
+        const group = stories.find((story) => (story.category ?? "OFFICIAL") === category.key && story.items.length > 0);
+        const cover = group?.cover || group?.coverImageUrl;
+        return <TouchableOpacity key={category.key} style={styles.storyItem} onPress={() => openCategory(category)} accessibilityLabel={`Abrir ${category.label}`}>
+          <LinearGradient colors={['#e9b43e', '#ffafd1', '#ec4899']} style={styles.storyRing}>
+            <View style={styles.storyInner}>
+              {cover ? <Image source={thumbnail(resolveUrl(cover), 256)} style={styles.storyCover} contentFit="cover" cachePolicy="memory-disk" />
+                : category.key === "OFFICIAL" ? <Image source={resolveUrl('/images/brand/ka-bijoux-logo-story-icon.png')} style={styles.storyCover} contentFit="contain" cachePolicy="memory-disk" />
+                : <Ionicons name={category.icon} size={28} color={Colors.primary} style={styles.storyEmptyIcon} />}
+            </View>
+          </LinearGradient>
+          <Text style={styles.storyLabel}>{category.label}</Text>
+        </TouchableOpacity>;
+      })}
+    </View>
+    <Modal transparent visible={Boolean(emptyCategory)} animationType="fade" onRequestClose={() => setEmptyCategory(null)}>
+      <View style={styles.emptyStoryBackdrop}>
+        <View style={styles.emptyStoryCard}>
+          <TouchableOpacity style={styles.emptyStoryClose} onPress={() => setEmptyCategory(null)} accessibilityLabel="Fechar">
+            <Ionicons name="close" size={21} color={Colors.primary} />
+          </TouchableOpacity>
+          <Image source={resolveUrl('/images/brand/ka-bijoux-logo-story-icon.png')} style={styles.emptyStoryLogo} contentFit="contain" />
+          <Text style={styles.emptyStoryTitle}>{emptyCategory}</Text>
+          <Text style={styles.emptyStoryText}>Ainda não há conteúdo publicado nesta seção. Volte em breve para conferir as novidades da KA Bijoux.</Text>
+        </View>
+      </View>
+    </Modal>
   </LinearGradient>;
 }
 
@@ -798,19 +889,30 @@ const styles = StyleSheet.create({
   dotActive: { width: 18, backgroundColor: "#f12b70" },
   storiesSection: { marginHorizontal: 10, marginTop: 10, padding: 10, borderRadius: 18, borderWidth: 1, borderColor: '#fce7f3', ...Shadows.sm },
   storyHeadingRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  storyHeading: { flex: 1, fontFamily: 'PlayfairDisplay', fontSize: 22, color: '#151015' },
-  storyHeadingAccent: { color: Colors.primary },
-  storyInstagramLink: { color: Colors.primary, fontSize: 10, fontWeight: "700" },
-  instagramBadge: { position: 'absolute', top: 57, right: 1, width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  instagramCaption: { marginTop: 3, fontSize: 9, color: '#9ca3af' },
+  storyHeadingGroup: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 4 },
+  storyHeading: { fontFamily: 'PlayfairDisplay', fontSize: 20, color: '#151015', fontWeight: "700" },
+  storyBrandMark: { alignItems: "flex-start", justifyContent: "center" },
+  storyHeadingLogo: { width: 54, height: 28 },
+  storyHeadingUnderline: { width: 30, height: 2, borderRadius: 2, backgroundColor: Colors.primary, marginTop: -2 },
+  storeLove: { minHeight: 34, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 1 },
+  storeLoveLabel: { color: Colors.primary, fontSize: 8, fontWeight: "800" },
+  storeLoveCount: { borderWidth: 1, borderColor: "#f9a8d4", borderRadius: 14, paddingHorizontal: 6, paddingVertical: 4 },
+  storeLoveCountText: { color: Colors.primary, fontSize: 8, fontWeight: "800", fontVariant: ["tabular-nums"] },
   eyebrow: { color: Colors.primary, fontSize: 10, fontWeight: "900", letterSpacing: 1.5, marginBottom: 4 },
   sectionHeading: { color: "#6e1430", fontSize: 23, lineHeight: 28, fontFamily: "PlayfairDisplay" },
-  storyList: { paddingTop: 10, paddingBottom: 2, gap: 6, justifyContent: "space-between" },
-  storyItem: { width: 64, alignItems: "center" },
-  storyRing: { width: 60, height: 60, borderRadius: 30, padding: 3 },
-  storyInner: { flex: 1, borderRadius: 27, padding: 2, backgroundColor: "#fff" },
-  storyCover: { flex: 1, borderRadius: 25, backgroundColor: "#ffe5ee" },
-  storyLabel: { marginTop: 5, color: "#48101f", fontSize: 8, fontWeight: "700", width: 64, textAlign: "center" },
+  storyList: { paddingTop: 10, paddingBottom: 2, flexDirection: "row", justifyContent: "space-between", gap: 4 },
+  storyItem: { flex: 1, minWidth: 0, alignItems: "center" },
+  storyRing: { width: 64, height: 64, borderRadius: 32, padding: 3 },
+  storyInner: { flex: 1, borderRadius: 29, padding: 2, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  storyCover: { width: "100%", height: "100%", borderRadius: 27, backgroundColor: "#fff6fa" },
+  storyEmptyIcon: { alignSelf: "center" },
+  storyLabel: { marginTop: 5, color: "#48101f", fontSize: 9, fontWeight: "700", textAlign: "center" },
+  emptyStoryBackdrop: { flex: 1, justifyContent: "center", alignItems: "center", padding: 22, backgroundColor: "rgba(0,0,0,0.68)" },
+  emptyStoryCard: { width: "100%", maxWidth: 360, borderRadius: 26, borderWidth: 1, borderColor: "#fce7f3", paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24, alignItems: "center", backgroundColor: "#fff8fb", ...Shadows.md },
+  emptyStoryClose: { position: "absolute", right: 12, top: 12, width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" },
+  emptyStoryLogo: { width: 62, height: 62 },
+  emptyStoryTitle: { color: "#7b1837", fontFamily: "PlayfairDisplay", fontWeight: "800", fontSize: 22, marginTop: 8 },
+  emptyStoryText: { color: "#6b5b62", fontSize: 13, lineHeight: 19, textAlign: "center", marginTop: 8 },
   storyModal: { flex: 1, backgroundColor: "rgba(9,2,5,0.98)" },
   storySafe: { flex: 1 },
   storyTop: { height: 52, paddingHorizontal: 14, flexDirection: "row", alignItems: "center" },
@@ -825,6 +927,10 @@ const styles = StyleSheet.create({
   storyUnavailable: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   storyUnavailableText: { color: "#fff", fontSize: 14 },
   storyText: { color: "#fff", textAlign: "center", fontSize: 15, paddingHorizontal: 18, paddingTop: 12 },
+  storyReviewCard: { marginHorizontal: 14, marginTop: 10, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 15, backgroundColor: "rgba(255,255,255,0.12)" },
+  storyReviewStars: { color: "#f8cc64", fontSize: 13, letterSpacing: 2 },
+  storyReviewQuote: { color: "#fff", fontSize: 13, lineHeight: 18, marginTop: 4 },
+  storyReviewByline: { color: "#ffdbe8", fontSize: 10, marginTop: 5 },
   storyActions: { minHeight: 76, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   storyNavButton: { minWidth: 82, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 10 },
   storyNavText: { color: "#fff", fontSize: 12, fontWeight: "700" },

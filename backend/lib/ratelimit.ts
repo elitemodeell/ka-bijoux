@@ -131,4 +131,16 @@ export const RATE_LIMITS = {
     keyPrefix: "account-delete-email",
     failClosed: true,
   },
+  storeLike: {
+    limit: 45,
+    windowMs: 15 * 60 * 1000,
+    keyPrefix: "store-like",
+    failClosed: true,
+  },
+  storeLikeIp: {
+    limit: 90,
+    windowMs: 15 * 60 * 1000,
+    keyPrefix: "store-like-ip",
+    failClosed: true,
+  },
 } as const;

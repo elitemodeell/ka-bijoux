@@ -27,9 +27,13 @@ const itemSchema = z.object({
 
 const createStorySchema = z.object({
   title: z.string().trim().min(2, "Informe o título do story."),
+  category: z.enum(["OFFICIAL", "CUSTOMER", "REVIEW", "HIGHLIGHT"]).default("OFFICIAL"),
+  reviewId: z.string().trim().nullable().optional(),
   coverImageUrl: nullableText,
   isActive: z.boolean().default(true),
   sortOrder: z.number().int().default(0),
+  expiresAt: z.string().datetime().nullable().optional(),
+  customerConsentConfirmed: z.boolean().default(false),
   items: z.array(itemSchema).optional(),
 });
 
@@ -47,6 +51,7 @@ export async function GET(req: NextRequest) {
     const groups = await prisma.storyGroup.findMany({
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
       include: {
+        review: { select: { rating: true, comment: true, customer: { select: { name: true } }, product: { select: { name: true } } } },
         items: {
           orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         },
@@ -61,15 +66,41 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireAdmin(req);
+    const admin = await requireAdmin(req);
 
     const data = createStorySchema.parse(await req.json());
+    if (data.category === "REVIEW" && data.isActive) {
+      if (!data.reviewId || !data.customerConsentConfirmed) {
+        return apiError("Vincule uma avaliação aprovada e confirme a autorização do cliente.", 422);
+      }
+      const approvedReview = await prisma.review.findFirst({
+        where: { id: data.reviewId, approved: true },
+        select: { id: true, customerId: true, productId: true },
+      });
+      if (!approvedReview) return apiError("A avaliação vinculada não está aprovada.", 422);
+      const verifiedPurchase = await prisma.orderItem.findFirst({
+        where: {
+          productId: approvedReview.productId,
+          order: {
+            customerId: approvedReview.customerId,
+            status: { in: ["ENTREGUE", "PRONTO_PARA_RETIRADA"] },
+          },
+        },
+        select: { id: true },
+      });
+      if (!verifiedPurchase) return apiError("A avaliação não possui uma compra confirmada.", 422);
+    }
     const story = await prisma.storyGroup.create({
       data: {
         title: data.title,
+        category: data.category,
+        reviewId: data.category === "REVIEW" ? data.reviewId : null,
         coverImageUrl: data.coverImageUrl,
-        isActive: data.isActive,
+        isActive: data.isActive && (!["CUSTOMER", "REVIEW"].includes(data.category) || data.customerConsentConfirmed),
         sortOrder: data.sortOrder,
+        expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
+        customerConsentConfirmedAt: ["CUSTOMER", "REVIEW"].includes(data.category) && data.customerConsentConfirmed ? new Date() : null,
+        customerConsentConfirmedBy: ["CUSTOMER", "REVIEW"].includes(data.category) && data.customerConsentConfirmed ? admin.id : null,
         items: data.items?.length
           ? {
               create: data.items.map((item) => ({
@@ -86,6 +117,7 @@ export async function POST(req: NextRequest) {
           : undefined,
       },
       include: {
+        review: { select: { rating: true, comment: true, customer: { select: { name: true } }, product: { select: { name: true } } } },
         items: {
           orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         },

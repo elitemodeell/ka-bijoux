@@ -4,7 +4,7 @@ import {
   googlePlayStoryItemWhere,
   toGooglePlayPublicData,
 } from "@/lib/google-play-distribution";
-import { serializeStoryGroup } from "@/lib/stories";
+import { publicStoryGroupWhere, serializeStoryGroup } from "@/lib/stories";
 import { apiError, apiSuccess } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -13,9 +13,10 @@ export async function GET() {
   try {
     const itemPolicy = googlePlayStoryItemWhere();
     const groups = await prisma.storyGroup.findMany({
-      where: googlePlayStoryGroupWhere({ items: { some: itemPolicy } }),
+      where: googlePlayStoryGroupWhere({ AND: [publicStoryGroupWhere()], items: { some: itemPolicy } }),
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
       include: {
+        review: { select: { rating: true, comment: true, customer: { select: { name: true } }, product: { select: { name: true } } } },
         items: {
           where: itemPolicy,
           orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],

@@ -49,9 +49,14 @@ export type HomeStoryItem = {
 export type HomeStory = {
   id: string;
   title: string;
+  category?: "OFFICIAL" | "CUSTOMER" | "REVIEW" | "HIGHLIGHT";
+  reviewId?: string | null;
+  review?: { rating: number; comment: string | null; customerName: string; productName: string } | null;
   cover: string;
   coverImageUrl?: string | null;
   sortOrder: number;
+  expiresAt?: string | null;
+  customerConsentConfirmedAt?: string | null;
   items: HomeStoryItem[];
 };
 

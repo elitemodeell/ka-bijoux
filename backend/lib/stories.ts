@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { DEFAULT_STORY_COVER, type StoryGroup, type StoryItem } from "@/types/stories";
 
 type PrismaStoryItem = {
@@ -17,9 +18,14 @@ type PrismaStoryItem = {
 type PrismaStoryGroup = {
   id: string;
   title: string;
+  category: "OFFICIAL" | "CUSTOMER" | "REVIEW" | "HIGHLIGHT";
+  reviewId: string | null;
+  review: { rating: number; comment: string | null; customer: { name: string }; product: { name: string } } | null;
   coverImageUrl: string | null;
   isActive: boolean;
   sortOrder: number;
+  expiresAt: Date | null;
+  customerConsentConfirmedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   items: PrismaStoryItem[];
@@ -38,7 +44,6 @@ export const HIDDEN_HOME_SHORTCUT_STORY_IDS = [
   "story-novidades",
   "story-promocoes",
   "story-lancamentos",
-  "story-clientes",
   "story-ofertas",
 ] as const;
 
@@ -72,12 +77,41 @@ export function serializeStoryGroup(group: PrismaStoryGroup): StoryGroup {
   return {
     id: group.id,
     title: group.title,
+    category: group.category,
+    reviewId: group.reviewId,
+    review: group.review ? {
+      rating: group.review.rating,
+      comment: group.review.comment,
+      customerName: group.review.customer.name.trim().split(/\s+/)[0] ?? "Cliente",
+      productName: group.review.product.name,
+    } : null,
     cover,
     coverImageUrl: group.coverImageUrl,
     isActive: group.isActive,
     sortOrder: group.sortOrder,
+    expiresAt: group.expiresAt?.toISOString() ?? null,
+    customerConsentConfirmedAt: group.customerConsentConfirmedAt?.toISOString() ?? null,
     createdAt: group.createdAt.toISOString(),
     updatedAt: group.updatedAt.toISOString(),
     items: group.items.map(serializeStoryItem),
+  };
+}
+
+export function publicStoryGroupWhere(now = new Date()): Prisma.StoryGroupWhereInput {
+  return {
+    AND: [
+      { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+      {
+        OR: [
+          { category: { notIn: ["CUSTOMER", "REVIEW"] } },
+          { category: "CUSTOMER", customerConsentConfirmedAt: { not: null } },
+          {
+            category: "REVIEW",
+            customerConsentConfirmedAt: { not: null },
+            review: { is: { approved: true } },
+          },
+        ],
+      },
+    ],
   };
 }

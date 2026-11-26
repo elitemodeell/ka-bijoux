@@ -92,7 +92,9 @@ describe("correção completa da Home mobile", () => {
 
   it("não substitui capas publicadas por artes genéricas baseadas no título", () => {
     expect(mobileHome).not.toContain("storyArtwork");
-    expect(mobileHome).toContain("thumbnail(resolveUrl(story.cover || story.coverImageUrl), 256)");
+    expect(mobileHome).toContain("thumbnail(resolveUrl(cover), 256)");
+    expect(mobileHome).toContain("STORY_CATEGORIES.map");
+    expect(mobileHome).toContain("/images/brand/ka-bijoux-logo-story-icon.png");
   });
 
   it("calcula colunas de produtos sem depender de larguras percentuais aproximadas", () => {

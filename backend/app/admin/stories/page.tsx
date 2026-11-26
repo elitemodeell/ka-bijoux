@@ -2,14 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/admin/Header";
-import { DEFAULT_STORY_COVER, type StoryGroup, type StoryItem } from "@/types/stories";
+import { DEFAULT_STORY_COVER, STORY_CATEGORY_LABELS, type StoryCategory, type StoryGroup, type StoryItem } from "@/types/stories";
 
 type StoryGroupForm = {
   id?: string;
   title: string;
+  category: StoryCategory;
+  reviewId: string;
   coverImageUrl: string;
   isActive: boolean;
   sortOrder: number;
+  expiresAt: string;
+  customerConsentConfirmed: boolean;
 };
 
 type StoryItemForm = {
@@ -26,9 +30,13 @@ type StoryItemForm = {
 
 const emptyGroupForm: StoryGroupForm = {
   title: "",
+  category: "OFFICIAL",
+  reviewId: "",
   coverImageUrl: "",
   isActive: true,
   sortOrder: 0,
+  expiresAt: "",
+  customerConsentConfirmed: false,
 };
 
 const emptyItemForm: StoryItemForm = {
@@ -47,8 +55,17 @@ const formatDate = new Intl.DateTimeFormat("pt-BR", {
   timeStyle: "short",
 });
 
+function toLocalDateTimeInput(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
 export default function AdminStoriesPage() {
   const [stories, setStories] = useState<StoryGroup[]>([]);
+  const [approvedReviews, setApprovedReviews] = useState<Array<{ id: string; rating: number; comment: string | null; verifiedPurchase: boolean; customer: { name: string }; product: { name: string } }>>([]);
+  const [storeLikesCount, setStoreLikesCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
@@ -97,7 +114,11 @@ export default function AdminStoriesPage() {
       coverImageUrl: groupForm.coverImageUrl || selectedStory?.coverImageUrl || null,
       isActive: groupForm.isActive,
       sortOrder: groupForm.sortOrder,
+      category: groupForm.category,
+      reviewId: groupForm.reviewId || null,
       items,
+      expiresAt: groupForm.expiresAt ? new Date(groupForm.expiresAt).toISOString() : null,
+      customerConsentConfirmedAt: groupForm.customerConsentConfirmed ? new Date().toISOString() : null,
     };
   }, [groupForm, itemForm, selectedStory]);
 
@@ -116,6 +137,14 @@ export default function AdminStoriesPage() {
 
       const data = Array.isArray(json.data) ? json.data : [];
       setStories(data);
+      const likesResponse = await fetch("/api/admin/store-likes", { cache: "no-store" });
+      const likesJson = await likesResponse.json();
+      if (likesResponse.ok && Number.isInteger(likesJson.data?.count)) setStoreLikesCount(likesJson.data.count);
+      const reviewsResponse = await fetch("/api/admin/reviews?pending=false", { cache: "no-store" });
+      const reviewsJson = await reviewsResponse.json();
+      if (reviewsResponse.ok && Array.isArray(reviewsJson.data)) {
+        setApprovedReviews(reviewsJson.data.filter((review: { approved?: boolean; verifiedPurchase?: boolean }) => review.approved && review.verifiedPurchase));
+      }
       if (!selectedStoryId && data[0]) setSelectedStoryId(data[0].id);
     } catch {
       setError("Erro de conexão ao carregar stories.");
@@ -142,9 +171,13 @@ export default function AdminStoriesPage() {
     setGroupForm({
       id: story.id,
       title: story.title,
+      category: story.category ?? "OFFICIAL",
+      reviewId: story.reviewId ?? "",
       coverImageUrl: story.coverImageUrl ?? "",
       isActive: story.isActive,
       sortOrder: story.sortOrder,
+      expiresAt: toLocalDateTimeInput(story.expiresAt),
+      customerConsentConfirmed: Boolean(story.customerConsentConfirmedAt),
     });
     setItemForm(emptyItemForm);
     setShowGroupForm(true);
@@ -163,9 +196,13 @@ export default function AdminStoriesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: groupForm.title,
+          category: groupForm.category,
+          reviewId: groupForm.reviewId || null,
           coverImageUrl: groupForm.coverImageUrl || null,
           isActive: groupForm.isActive,
           sortOrder: groupForm.sortOrder,
+          expiresAt: groupForm.expiresAt ? new Date(groupForm.expiresAt).toISOString() : null,
+          customerConsentConfirmed: groupForm.customerConsentConfirmed,
         }),
       });
 
@@ -179,9 +216,13 @@ export default function AdminStoriesPage() {
       setGroupForm({
         id: json.data.id,
         title: json.data.title,
+        category: json.data.category,
+        reviewId: json.data.reviewId ?? "",
         coverImageUrl: json.data.coverImageUrl ?? "",
         isActive: json.data.isActive,
         sortOrder: json.data.sortOrder,
+        expiresAt: toLocalDateTimeInput(json.data.expiresAt),
+        customerConsentConfirmed: Boolean(json.data.customerConsentConfirmedAt),
       });
       setShowGroupForm(true);
       await fetchStories();
@@ -334,7 +375,7 @@ export default function AdminStoriesPage() {
     <div>
       <Header
         title="Stories"
-        subtitle={`${stories.length} grupos cadastrados para a home`}
+        subtitle={`${stories.length} grupos cadastrados · ${storeLikesCount === null ? "curtidas indisponíveis" : `${storeLikesCount} curtidas reais da loja`}`}
         action={
           <button type="button" onClick={startNewStory} className="btn-primary">
             + Novo Story
@@ -381,7 +422,7 @@ export default function AdminStoriesPage() {
                           <div>
                             <p className="font-semibold text-gray-900">{story.title}</p>
                             <p className="text-xs text-gray-400">
-                              Criado em {story.createdAt ? formatDate.format(new Date(story.createdAt)) : "-"}
+                              {STORY_CATEGORY_LABELS[story.category ?? "OFFICIAL"]} · Criado em {story.createdAt ? formatDate.format(new Date(story.createdAt)) : "-"}
                             </p>
                           </div>
                         </div>
@@ -454,6 +495,39 @@ export default function AdminStoriesPage() {
                   </div>
 
                   <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Seção da Home</label>
+                    <select
+                      value={groupForm.category}
+                      onChange={(event) => setGroupForm((prev) => ({ ...prev, category: event.target.value as StoryCategory }))}
+                      className="input-field"
+                    >
+                      {(Object.entries(STORY_CATEGORY_LABELS) as Array<[StoryCategory, string]>).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {groupForm.category === "REVIEW" ? (
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Avaliação aprovada de compra verificada *</label>
+                      <select
+                        value={groupForm.reviewId}
+                        onChange={(event) => setGroupForm((prev) => ({ ...prev, reviewId: event.target.value }))}
+                        required
+                        className="input-field"
+                      >
+                        <option value="">Selecione uma avaliação real</option>
+                        {approvedReviews.map((review) => (
+                          <option key={review.id} value={review.id}>
+                            {"★".repeat(review.rating)} · {review.product.name} · {review.customer.name.split(" ")[0]}
+                          </option>
+                        ))}
+                      </select>
+                      {approvedReviews.length === 0 ? <p className="mt-1 text-xs text-amber-700">Nenhuma avaliação aprovada disponível. Não é possível publicar conteúdo de avaliação sem uma compra verificada.</p> : null}
+                    </div>
+                  ) : null}
+
+                  <div>
                     <label className="mb-1.5 block text-sm font-medium text-gray-700">Imagem de capa</label>
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <input
@@ -507,6 +581,30 @@ export default function AdminStoriesPage() {
                   />
                   <span className="text-sm text-gray-700">Story ativo na home</span>
                 </label>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Válido até (opcional)</label>
+                  <input
+                    type="datetime-local"
+                    value={groupForm.expiresAt}
+                    onChange={(event) => setGroupForm((prev) => ({ ...prev, expiresAt: event.target.value }))}
+                    className="input-field"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">O conteúdo sai automaticamente da área pública após esse horário.</p>
+                </div>
+                {["CUSTOMER", "REVIEW"].includes(groupForm.category) ? (
+                  <label className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <input
+                      type="checkbox"
+                      checked={groupForm.customerConsentConfirmed}
+                      onChange={(event) => setGroupForm((prev) => ({ ...prev, customerConsentConfirmed: event.target.checked }))}
+                      className="mt-0.5 h-4 w-4 accent-pink-500"
+                    />
+                    <span>Confirmo que a autorização do cliente para publicação da imagem foi recebida e registrada. Sem esta confirmação, o grupo não aparece ao público.</span>
+                  </label>
+                ) : null}
               </div>
 
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

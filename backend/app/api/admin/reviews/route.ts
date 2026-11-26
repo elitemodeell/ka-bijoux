@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     const pending = url.searchParams.get("pending") !== "false";
 
     const reviews = await prisma.review.findMany({
-      where: pending ? { approved: false } : {},
+      where: pending ? { approved: false, policyReviewStatus: { not: "BLOCKED" } } : { approved: true },
       include: {
         customer: { select: { name: true, email: true } },
         product: { select: { name: true, slug: true } },
@@ -21,7 +21,26 @@ export async function GET(req: NextRequest) {
       take: 100,
     });
 
-    return apiSuccess(reviews);
+    const [customerIds, productIds] = [
+      [...new Set(reviews.map((review) => review.customerId))],
+      [...new Set(reviews.map((review) => review.productId))],
+    ];
+    const verifiedOrders = reviews.length ? await prisma.orderItem.findMany({
+      where: {
+        productId: { in: productIds },
+        order: {
+          customerId: { in: customerIds },
+          status: { in: ["ENTREGUE", "PRONTO_PARA_RETIRADA"] },
+        },
+      },
+      select: { productId: true, order: { select: { customerId: true } } },
+    }) : [];
+    const verifiedPairs = new Set(verifiedOrders.map((item) => `${item.order.customerId}:${item.productId}`));
+
+    return apiSuccess(reviews.map((review) => ({
+      ...review,
+      verifiedPurchase: verifiedPairs.has(`${review.customerId}:${review.productId}`),
+    })));
   } catch (e) {
     if (e instanceof Error && e.message === "Não autorizado") return apiError("Não autorizado.", 401);
     return apiError("Erro ao buscar avaliações.", 500);
