@@ -285,6 +285,6 @@ workflows:
         # O grupo interno Team (Expo) recebe automaticamente todas as builds.
         # Não solicitar Beta App Review, que é exclusiva de teste externo.
         submit_to_testflight: false
-        beta_groups:
-          - Team (Expo)
+        # Internal App Store Connect testers can access active builds directly.
+        # Do not assign this internal group through Codemagic's beta_groups API.
         submit_to_app_store: false
