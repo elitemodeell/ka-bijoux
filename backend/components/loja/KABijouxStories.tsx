@@ -5,18 +5,12 @@ import type { TouchEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { DEFAULT_STORY_COVER, type StoryGroup, type StoryItem } from "@/types/stories";
-import {
-  feriasBannerHref,
-  feriasBannerImage,
-} from "@/lib/campaign-media";
-import { HOME_HERO_SLIDES } from "@/lib/home-content";
+import { HOME_BENEFITS, type HomePresentation } from "@/lib/home-content";
 
 const seenStorageKey = "ka-bijoux-seen-stories";
 const storyLogo = "/images/brand/ka-bijoux-logo-story-icon.png";
 const instagramProfileUrl = "https://www.instagram.com/kabijoux_?igsh=aGV2Z2dxb252NzF5";
-const HERO_IMAGE_DURATION = 3000;
-
-const heroSlides = HOME_HERO_SLIDES;
+const HERO_IMAGE_DURATION = 5000;
 
 type StoryCoverMedia = {
   type: StoryItem["type"];
@@ -97,7 +91,7 @@ function normalizeGroups(data: unknown): StoryGroup[] {
     .filter((group): group is StoryGroup => Boolean(group && group.items.length > 0));
 }
 
-export default function KABijouxStories() {
+export default function KABijouxStories({ presentation }: { presentation: HomePresentation }) {
   const [groups, setGroups] = useState<StoryGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
@@ -252,8 +246,6 @@ export default function KABijouxStories() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activeGroup, closeViewer, goNext, goPrevious]);
 
-  if (!loading && visibleGroups.length === 0) return null;
-
   return (
     <section className="relative overflow-hidden bg-white">
       <div className="pointer-events-none absolute inset-x-0 top-10 z-0 mx-auto h-56 max-w-[440px]" aria-hidden="true">
@@ -281,15 +273,15 @@ export default function KABijouxStories() {
 
       <div className="relative z-10 pb-10 pt-0 sm:pb-12 sm:pt-3">
         <SexShopMobileAccess />
-        <MainHeroCarousel />
+        <MainHeroCarousel slides={presentation.banners} />
+        <ChristmasBenefits />
         <StorySpotlight
           groups={visibleGroups}
           loading={loading}
           onOpenGroup={openGroup}
           seenIds={seenIds}
         />
-        <FeriasBanner />
-        <FeriasPromoStrip />
+        {presentation.seasonalDecoration ? <ChristmasDivider /> : null}
       </div>
 
       {activeGroup && activeItem && (
@@ -459,19 +451,20 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
       <div className="relative overflow-hidden rounded-[22px] border border-pink-100 bg-gradient-to-br from-white via-[#fff8fb] to-[#fff2f7] px-3 pb-3 pt-3.5 shadow-[0_12px_28px_rgba(236,72,153,0.10)] ring-1 ring-white/80 sm:rounded-[28px] sm:p-5">
         <span className="ka-story-spotlight-shine" aria-hidden="true" />
 
-        <div className="relative z-10 mb-3 flex items-start justify-between gap-2 sm:gap-3">
+        <div className="relative z-10 mb-3 flex items-center justify-between gap-2 sm:gap-3">
           <div className="min-w-0">
             <h2 className="font-playfair text-[25px] font-bold leading-none tracking-normal text-[#8a0032] sm:text-4xl">
-              Stories da KA<span className="text-[#ff7a4d]">*</span>
+              Stories da <span className="text-pink-600">KA</span>
             </h2>
-            <p className="mt-1.5 max-w-[520px] text-[11px] font-medium leading-snug text-[#3d0f1a] sm:mt-2 sm:text-base">
-              Acompanhe novidades, ofertas, clientes e nossos stories do Instagram.
-            </p>
           </div>
+          <p className="max-w-[50%] text-right text-[10px] font-medium leading-snug text-[#3d0f1a] sm:max-w-none sm:text-sm">
+            Confira novidades, ofertas e muito mais!
+          </p>
+          <HeartIcon className="h-6 w-6 shrink-0 text-pink-500 sm:h-8 sm:w-8" />
         </div>
 
         <div className="relative z-10">
-          <div className="grid grid-cols-4 items-start gap-1 sm:gap-5 lg:mx-auto lg:max-w-[620px]">
+          <div className="grid grid-cols-5 items-start gap-1 sm:gap-5 lg:mx-auto lg:max-w-[760px]">
               <a
                 href={instagramProfileUrl}
                 target="_blank"
@@ -541,72 +534,13 @@ function StorySpotlight({ groups, loading, onOpenGroup, seenIds }: StorySpotligh
               })}
           </div>
 
-          <div className="mt-3 flex items-center justify-center gap-1.5 sm:mt-4 sm:gap-2" aria-hidden="true">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <span
-                key={index}
-                className={`h-1.5 w-1.5 rounded-full sm:h-2.5 sm:w-2.5 ${
-                  index === 0 ? "bg-pink-500" : "bg-pink-100"
-                }`}
-              />
-            ))}
-          </div>
         </div>
       </div>
     </section>
   );
 }
 
-function FeriasBanner() {
-  return (
-    <section className="mt-4 px-0 sm:mx-auto sm:mt-8 sm:max-w-7xl sm:px-6" aria-label="Férias com Estilo">
-      <Link href={feriasBannerHref} className="group block" aria-label="Férias com Estilo — Quero aproveitar">
-        <div className="overflow-hidden rounded-none sm:rounded-[28px] shadow-none sm:shadow-[0_24px_70px_rgba(236,72,153,0.20)] transition-transform duration-300 sm:group-hover:scale-[1.005]">
-          <Image
-            src="/banners/banner-destino-ferias.webp"
-            alt="Destino Férias — Ofertas especiais para curtir seus melhores momentos"
-            width={1400}
-            height={1050}
-            sizes="(max-width: 639px) 100vw, (max-width: 1280px) calc(100vw - 48px), 1232px"
-            quality={82}
-            className="w-full object-cover"
-          />
-        </div>
-      </Link>
-    </section>
-  );
-}
-
-function FeriasPromoStrip() {
-  return (
-    <section className="mx-auto mt-4 max-w-7xl px-4 sm:mt-5 sm:px-6" aria-label="Férias com Estilo">
-      <Link
-        href={feriasBannerHref}
-        className="group flex flex-col gap-4 rounded-[24px] bg-gradient-to-r from-pink-600 via-rose-500 to-orange-400 p-5 text-white shadow-[0_20px_54px_rgba(236,72,153,0.24)] sm:flex-row sm:items-center sm:justify-between sm:p-6"
-      >
-        <span className="flex items-center gap-4">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/12 text-4xl shadow-inner backdrop-blur" aria-hidden="true">
-            ✈️
-          </span>
-          <span>
-            <span className="block text-xl font-black uppercase leading-tight sm:text-2xl">
-              FÉRIAS COM ESTILO!
-            </span>
-            <span className="mt-1 block text-sm font-semibold text-yellow-100 sm:text-base">
-              Ofertas para viajar, sair e se cuidar
-            </span>
-          </span>
-        </span>
-        <span className="ka-btn inline-flex min-h-12 items-center justify-center gap-3 rounded-2xl bg-white px-6 py-3 text-sm font-black uppercase tracking-wide text-pink-600 shadow-[0_14px_30px_rgba(0,0,0,0.14)] sm:min-w-[190px]">
-          QUERO APROVEITAR
-          <span className="text-xl leading-none transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true">→</span>
-        </span>
-      </Link>
-    </section>
-  );
-}
-
-function MainHeroCarousel() {
+function MainHeroCarousel({ slides }: { slides: HomePresentation["banners"] }) {
   const [activeSlide, setActiveSlide] = useState(0);
   const [paused, setPaused] = useState(false);
   const [loadedSlides, setLoadedSlides] = useState<Set<number>>(() => new Set([0]));
@@ -614,16 +548,16 @@ function MainHeroCarousel() {
   const touchDeltaX = useRef(0);
 
   const goToSlide = useCallback((index: number) => {
-    setActiveSlide((index + heroSlides.length) % heroSlides.length);
-  }, []);
+    setActiveSlide((index + slides.length) % slides.length);
+  }, [slides.length]);
 
   const goNextSlide = useCallback(() => {
-    setActiveSlide((current) => (current + 1) % heroSlides.length);
-  }, []);
+    setActiveSlide((current) => (current + 1) % slides.length);
+  }, [slides.length]);
 
   const goPreviousSlide = useCallback(() => {
-    setActiveSlide((current) => (current - 1 + heroSlides.length) % heroSlides.length);
-  }, []);
+    setActiveSlide((current) => (current - 1 + slides.length) % slides.length);
+  }, [slides.length]);
 
   useEffect(() => {
     if (paused) return;
@@ -640,7 +574,7 @@ function MainHeroCarousel() {
     });
 
     const preload = window.setTimeout(() => {
-      const nextIndex = (activeSlide + 1) % heroSlides.length;
+      const nextIndex = (activeSlide + 1) % slides.length;
       setLoadedSlides((current) => {
         if (current.has(nextIndex)) return current;
         const next = new Set(current);
@@ -650,7 +584,7 @@ function MainHeroCarousel() {
     }, 1200);
 
     return () => window.clearTimeout(preload);
-  }, [activeSlide]);
+  }, [activeSlide, slides.length]);
 
   function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
     touchStartX.current = event.touches[0]?.clientX ?? null;
@@ -676,7 +610,7 @@ function MainHeroCarousel() {
   return (
     <div className="px-0 pt-0 pb-0 sm:px-4">
       <div
-        className="relative overflow-hidden rounded-none sm:rounded-[24px] shadow-none sm:shadow-[0_8px_32px_rgba(236,72,153,0.18)] aspect-[4/3] sm:aspect-[16/7] lg:aspect-[16/6]"
+        className="relative mx-2 overflow-hidden rounded-[22px] border border-pink-100 shadow-[0_8px_28px_rgba(236,72,153,0.14)] aspect-[2/1] sm:mx-0 sm:rounded-[24px]"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -685,7 +619,7 @@ function MainHeroCarousel() {
           className="absolute inset-0 flex transition-transform duration-500 ease-out"
           style={{ transform: `translateX(-${activeSlide * 100}%)` }}
         >
-          {heroSlides.map((slide, index) => (
+          {slides.map((slide, index) => (
             <Link
               key={slide.title}
               href={slide.href}
@@ -699,8 +633,7 @@ function MainHeroCarousel() {
                   <img
                     src={slide.image}
                     alt={slide.title}
-                    className="h-full w-full object-cover"
-                    style={{ objectPosition: slide.objectPosition }}
+                    className="h-full w-full object-contain"
                     loading={index === 0 ? "eager" : "lazy"}
                     fetchPriority={index === 0 ? "high" : "auto"}
                     decoding="async"
@@ -710,30 +643,13 @@ function MainHeroCarousel() {
                 <span className="block h-full w-full bg-pink-50" aria-hidden="true" />
               )}
 
-              <span className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-24 bg-gradient-to-t from-black/45 via-black/12 to-transparent sm:h-28" aria-hidden="true" />
-
-              <span className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-between gap-2 px-4 pb-4 sm:px-5 sm:pb-4">
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-xs font-black text-white drop-shadow-md sm:text-sm line-clamp-1">
-                    {slide.title}
-                  </span>
-                  {slide.subtitle && (
-                    <span className="hidden text-[11px] font-medium text-white/80 drop-shadow sm:block sm:text-xs line-clamp-1">
-                      {slide.subtitle}
-                    </span>
-                  )}
-                </span>
-                <span className="shrink-0 rounded-full bg-gradient-to-r from-pink-600 to-pink-400 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white shadow-[0_4px_16px_rgba(236,72,153,0.5)] sm:px-5 sm:py-2 sm:text-xs">
-                  {slide.cta}
-                </span>
-              </span>
             </Link>
           ))}
         </div>
 
         {/* dot indicators */}
         <div className="absolute inset-x-0 bottom-2.5 z-40 flex items-center justify-center gap-1.5">
-          {heroSlides.map((_, index) => (
+          {slides.map((_, index) => (
             <button
               key={index}
               type="button"
@@ -748,6 +664,41 @@ function MainHeroCarousel() {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ChristmasBenefits() {
+  const icons = { gift: "🚚", card: "▣", shield: "✦" };
+  return (
+    <section aria-label="Vantagens da loja" className="mx-2 mt-3 rounded-[20px] border border-pink-100 bg-gradient-to-r from-white via-[#fff8fb] to-[#fff1f6] px-2 py-2 shadow-[0_8px_20px_rgba(190,24,93,0.09)] sm:mx-0 sm:mt-4 sm:px-4">
+      <div className="grid grid-cols-3 divide-x divide-pink-200/80">
+        {HOME_BENEFITS.map((benefit) => (
+          <div key={benefit.title} className="flex min-w-0 items-center justify-center gap-1.5 px-1 sm:gap-2.5 sm:px-3">
+            <span aria-hidden="true" className="shrink-0 text-lg text-pink-500 sm:text-2xl">{icons[benefit.icon as keyof typeof icons] ?? "♡"}</span>
+            <span className="min-w-0 text-[9px] font-bold leading-tight text-[#30131f] sm:text-xs">
+              <span className="block">{benefit.title}</span>
+              <span className="mt-0.5 hidden font-medium text-gray-500 min-[390px]:block">{benefit.subtitle}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ChristmasDivider() {
+  return (
+    <div aria-hidden="true" className="mx-auto my-5 flex max-w-5xl items-center gap-2 px-6 sm:my-7">
+      <span className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-400 to-amber-500" />
+      <svg className="h-10 w-28 shrink-0 sm:h-12 sm:w-36" viewBox="0 0 160 54" fill="none">
+        <path d="M4 27h41M115 27h41" stroke="#D9A62E" strokeWidth="2" />
+        <path d="M9 27c18-2 25-18 39-14-9 5-12 11-16 14 8-1 14 2 19 8-16-3-23 3-42-8Zm142 0c-18-2-25-18-39-14 9 5 12 11 16 14-8-1-14 2-19 8 16-3 23 3 42-8Z" fill="#17613A" />
+        <path d="M70 19c-18-17-29 2-5 8-24 5-11 24 6 8 6 18 25 6 9-8 24-6 12-25-6-8-1-19-20-19-4 0Z" fill="#C91F43" stroke="#8D102B" strokeWidth="1.5" />
+        <path d="M76 22c-2 6-3 12-1 19M64 23c3 4 9 6 15 5" stroke="#F5C552" strokeWidth="2" />
+        <circle cx="49" cy="27" r="2.5" fill="#E9B43E" /><circle cx="111" cy="27" r="2.5" fill="#E9B43E" />
+      </svg>
+      <span className="h-px flex-1 bg-gradient-to-l from-transparent via-amber-400 to-amber-500" />
     </div>
   );
 }

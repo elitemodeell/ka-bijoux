@@ -36,6 +36,7 @@ interface ProductCardProps {
     variations?: Variation[];
   };
   badgeSeal?: boolean;
+  compact?: boolean;
 }
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -53,7 +54,7 @@ function resolveUrl(url?: string | null, version?: string | null): string | null
   return `${resolved}${resolved.includes("?") ? "&" : "?"}v=${encodeURIComponent(version)}`;
 }
 
-function ProductCardComponent({ product, badgeSeal = false }: ProductCardProps) {
+function ProductCardComponent({ product, badgeSeal = false, compact = false }: ProductCardProps) {
   const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
   const buyNow = useCartStore((state) => state.buyNow);
@@ -130,12 +131,12 @@ function ProductCardComponent({ product, badgeSeal = false }: ProductCardProps) 
 
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[styles.card, compact && styles.compactCard]}
       onPress={openProduct}
       activeOpacity={0.9}
     >
       {/* Imagem */}
-      <View style={styles.imageContainer}>
+      <View style={[styles.imageContainer, compact && styles.compactImageContainer]}>
         <ResilientProductImage
           sources={[mainImageUrl ? thumbnail(mainImageUrl, PRODUCT_THUMBNAIL_WIDTH) : null, mainImageUrl]}
           style={styles.image}
@@ -173,28 +174,28 @@ function ProductCardComponent({ product, badgeSeal = false }: ProductCardProps) 
       </View>
 
       {/* Informações */}
-      <View style={styles.info}>
-        <Text style={styles.name}>{product.name}</Text>
+      <View style={[styles.info, compact && styles.compactInfo]}>
+        <Text style={[styles.name, compact && styles.compactName]} numberOfLines={2}>{product.name}</Text>
 
         <View style={styles.priceRow}>
           <View>
             {hasPromo && (
               <Text style={styles.originalPrice}>{formatCurrency(product.price)}</Text>
             )}
-            <Text style={[styles.price, hasPromo && styles.pricePromo]}>
+            <Text style={[styles.price, compact && styles.compactPrice, hasPromo && styles.pricePromo]}>
               {formatCurrency(displayPrice)}
             </Text>
           </View>
 
         </View>
         <TouchableOpacity
-          style={[styles.addButton, !isAvailable && styles.addButtonDisabled]}
+          style={[styles.addButton, compact && styles.compactAddButton, !isAvailable && styles.addButtonDisabled]}
           onPress={() => handleCartAction("buy")}
           disabled={!isAvailable || cartAction !== null}
           activeOpacity={0.8}
         >
           {cartAction === "buy" ? <ActivityIndicator size="small" color="#fff" /> : (
-            <Text style={styles.addButtonText}>{product.purchaseReviewRequired ? "Em revisão" : "Comprar agora"}</Text>
+            <Text style={[styles.addButtonText, compact && styles.compactAddButtonText]}>{product.purchaseReviewRequired ? "Em revisão" : compact ? "Comprar" : "Comprar agora"}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -214,11 +215,13 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
     flex: 1,
   },
+  compactCard: { borderRadius: 11 },
   imageContainer: {
     position: "relative",
     aspectRatio: 4 / 5,
     backgroundColor: Colors.pinkPale,
   },
+  compactImageContainer: { aspectRatio: 1 },
   image: {
     width: "100%",
     height: "100%",
@@ -287,6 +290,7 @@ const styles = StyleSheet.create({
     gap: 8,
     flex: 1,
   },
+  compactInfo: { padding: 6, gap: 5 },
   name: {
     fontSize: 13,
     color: Colors.textPrimary,
@@ -294,6 +298,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     minHeight: 36,
   },
+  compactName: { fontSize: 9, lineHeight: 12, minHeight: 24 },
   colorHint: {
     fontSize: 10,
     color: Colors.primary,
@@ -315,6 +320,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.textPrimary,
   },
+  compactPrice: { fontSize: 12 },
   pricePromo: { color: Colors.primary },
   addButton: {
     backgroundColor: Colors.primary,
@@ -326,6 +332,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  compactAddButton: { minHeight: 30, borderRadius: 16 },
   addButtonText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  compactAddButtonText: { fontSize: 10 },
   addButtonDisabled: { backgroundColor: Colors.textLight },
 });

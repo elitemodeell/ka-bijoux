@@ -8,7 +8,7 @@ import AnimatedSection from "@/components/loja/AnimatedSection";
 import KABijouxStories from "@/components/loja/KABijouxStories";
 import QuickCategoryBar from "@/components/loja/QuickCategoryBar";
 import type { ProductCardProduct } from "@/lib/bling-catalog";
-import { HOME_SECTION_DEFINITIONS, pickHomeBadge } from "@/lib/home-content";
+import { HOME_SECTION_DEFINITIONS, getHomePresentation, pickHomeBadge } from "@/lib/home-content";
 import { getHomeSections } from "@/lib/home-sections";
 
 const getCachedHomeSections = unstable_cache(() => getHomeSections(), ["ka-home-sections"], {
@@ -34,17 +34,38 @@ export default async function HomePage() {
     paraPresentes,
     belezaAutocuidado,
   } = await getCachedHomeSections();
+  const presentation = getHomePresentation();
 
   return (
     <main className="overflow-x-hidden">
 
-      <AnnouncementBar />
+      <AnnouncementBar messages={presentation.announcements} />
 
       <section className="bg-white pt-[72px] md:pt-[26px]">
-        <KABijouxStories />
+        <KABijouxStories presentation={presentation} />
       </section>
 
       <QuickCategoryBar />
+
+      <section className="ka-deferred-section py-6 bg-white sm:py-10">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6">
+          <AnimatedSection className="flex items-end justify-between mb-4 sm:mb-8">
+            <h2 className="font-playfair text-2xl font-bold text-gray-900 sm:text-4xl">{findsConfig.title}</h2>
+            <Link href={findsConfig.route} className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm flex-shrink-0">
+              Ver mais →
+            </Link>
+          </AnimatedSection>
+          <SectionGrid
+            products={achadinhos}
+            badgeOptions={findsConfig.badges}
+            keyPrefix="ach"
+            revealStep={55}
+            moreHref={findsConfig.route}
+            moreLabel={findsConfig.moreLabel}
+            compact
+          />
+        </div>
+      </section>
 
       {/* ── Ofertas Relâmpago ─────────────────────────────── */}
       <section className="ka-deferred-section py-10 bg-ka-subtle sm:py-14">
@@ -74,75 +95,6 @@ export default async function HomePage() {
             moreHref={offersConfig.route}
             moreLabel={offersConfig.moreLabel}
           />
-        </div>
-      </section>
-
-      {/* ── Achadinhos KA Bijoux ──────────────────────────── */}
-      <section className="ka-deferred-section py-10 bg-white sm:py-14">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <AnimatedSection className="flex items-end justify-between mb-6 sm:mb-10">
-            <div>
-              <span className="text-pink-500 text-sm font-semibold tracking-widest uppercase mb-2 block">
-                {findsConfig.label}
-              </span>
-              <h2 className="font-playfair text-3xl font-bold text-gray-900 sm:text-4xl">
-                {findsConfig.title}
-              </h2>
-              <p className="text-gray-500 text-sm mt-1">{findsConfig.subtitle}</p>
-            </div>
-            <Link
-              href={findsConfig.route}
-              className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm hover:gap-2 transition-all duration-200 flex-shrink-0"
-            >
-              Ver mais →
-            </Link>
-          </AnimatedSection>
-
-          <SectionGrid
-            products={achadinhos}
-            badgeOptions={findsConfig.badges}
-            keyPrefix="ach"
-            revealStep={55}
-            moreHref={findsConfig.route}
-            moreLabel={findsConfig.moreLabel}
-          />
-        </div>
-      </section>
-
-      {/* ── Faixa info ────────────────────────────────────── */}
-      <section className="ka-deferred-section py-6 bg-gradient-to-r from-pink-600 via-pink-500 to-pink-400">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
-            <div className="flex items-center gap-3 text-center sm:text-left">
-              <span className="text-3xl">🎁</span>
-              <div>
-                <p className="font-bold text-lg">Envio e retirada</p>
-                <p className="text-white/80 text-sm">Escolha a melhor forma na finalização</p>
-              </div>
-            </div>
-            <div className="h-px sm:h-10 w-full sm:w-px bg-white/20" />
-            <div className="flex items-center gap-3 text-center sm:text-left">
-              <span className="text-3xl">💳</span>
-              <div>
-                <p className="font-bold text-lg">Pix via Asaas</p>
-                <p className="text-white/80 text-sm">Pagamento seguro e confirmado</p>
-              </div>
-            </div>
-            <div className="h-px sm:h-10 w-full sm:w-px bg-white/20" />
-            <div className="flex items-center gap-3 text-center sm:text-left">
-              <span className="text-3xl">🚀</span>
-              <div>
-                <p className="font-bold text-lg">Compra segura</p>
-                <p className="text-white/80 text-sm">Pedido acompanhado com cuidado</p>
-              </div>
-            </div>
-            <Link
-              href="/produtos"
-              className="flex-shrink-0 bg-white text-pink-600 font-bold px-6 py-3 rounded-2xl hover:bg-pink-50 transition-colors text-sm"
-            >
-              Aproveitar →
-            </Link>
-          </div>
         </div>
       </section>
 
@@ -335,6 +287,7 @@ type SectionGridProps = {
   keyPrefix?: string;
   revealStep?: number;
   badgeSeal?: boolean;
+  compact?: boolean;
 };
 
 function SectionGrid({
@@ -345,10 +298,11 @@ function SectionGrid({
   keyPrefix = "product",
   revealStep = 50,
   badgeSeal = false,
+  compact = false,
 }: SectionGridProps) {
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5">
+      <div className={compact ? "grid grid-cols-3 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5" : "grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5"}>
         {products.map((product, i) => (
           <ProductCard
             key={`${keyPrefix}-${product.id}`}
@@ -358,6 +312,7 @@ function SectionGrid({
             }}
             revealDelay={i * revealStep}
             badgeSeal={badgeSeal}
+            compact={compact}
           />
         ))}
       </div>

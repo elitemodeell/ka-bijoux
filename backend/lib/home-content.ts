@@ -9,10 +9,28 @@ export type HomeHeroSlide = {
   objectPosition: string;
 };
 
+export type HomeCampaignContent = {
+  title: string;
+  subtitle: string;
+  image: string;
+  href: string;
+  promoTitle: string;
+  promoSubtitle: string;
+  cta: string;
+};
+
+export type HomePresentation = {
+  theme: "christmas" | "default";
+  seasonalDecoration: boolean;
+  announcements: readonly string[];
+  banners: readonly HomeHeroSlide[];
+  campaign: HomeCampaignContent;
+};
+
 export type HomeQuickCategory = {
   label: string;
   description: string;
-  icon: "sparkles" | "tag" | "new" | "diamond" | "phone" | "heart";
+  icon: "sparkles" | "tag" | "new" | "diamond" | "phone" | "heart" | "grid";
   href: string;
   playAllowed: boolean;
 };
@@ -49,7 +67,7 @@ export const HOME_ANNOUNCEMENTS = [
   "\uD83C\uDF81 Presentes especiais para quem você ama",
 ] as const;
 
-export const HOME_HERO_SLIDES: HomeHeroSlide[] = [
+const DEFAULT_HOME_HERO_SLIDES: HomeHeroSlide[] = [
   {
     id: "ferias-com-estilo",
     title: "Férias com Estilo",
@@ -92,6 +110,35 @@ export const HOME_HERO_SLIDES: HomeHeroSlide[] = [
   },
 ];
 
+const CHRISTMAS_ANNOUNCEMENTS = [
+  "🎄 Presentes que encantam neste Natal",
+  "✨ Brilhe neste Natal com KA Bijoux",
+  "🎁 Encontre acessórios especiais para presentear",
+] as const;
+
+const CHRISTMAS_HERO_SLIDES: HomeHeroSlide[] = [
+  {
+    id: "natal-presentes-que-encantam",
+    title: "Presentes que encantam",
+    subtitle: "Bijuterias e acessórios para surpreender",
+    cta: "Conferir coleção",
+    href: "/produtos",
+    image: "/banners/ka-natal-presentes-encantam.webp",
+    mobileImage: "/banners/ka-natal-presentes-encantam.webp",
+    objectPosition: "center",
+  },
+  {
+    id: "natal-brilhe-neste-natal",
+    title: "Brilhe neste Natal",
+    subtitle: "Bijuterias e acessórios para valorizar seu estilo",
+    cta: "Comprar agora",
+    href: "/categoria/bijuterias",
+    image: "/banners/ka-natal-brilhe-neste-natal.webp",
+    mobileImage: "/banners/ka-natal-brilhe-neste-natal.webp",
+    objectPosition: "center",
+  },
+];
+
 export const HOME_QUICK_CATEGORIES: HomeQuickCategory[] = [
   {
     label: "Novidades",
@@ -129,11 +176,11 @@ export const HOME_QUICK_CATEGORIES: HomeQuickCategory[] = [
     playAllowed: true,
   },
   {
-    label: "Sex Shop",
-    description: "Bem-estar e prazer.",
-    icon: "heart",
-    href: "/categoria/sex-shop",
-    playAllowed: false,
+    label: "Ver categorias",
+    description: "Explore a loja completa.",
+    icon: "grid",
+    href: "/produtos",
+    playAllowed: true,
   },
 ];
 
@@ -146,6 +193,44 @@ export const HOME_CAMPAIGN = {
   promoSubtitle: "Ofertas para viajar, sair e se cuidar",
   cta: "Quero aproveitar",
 } as const;
+
+const CHRISTMAS_CAMPAIGN = {
+  title: "Natal KA Bijoux",
+  subtitle: "Presentes que encantam",
+  image: "/banners/ka-natal-presentes-encantam.webp",
+  href: "/produtos",
+  promoTitle: "Brilhe neste Natal",
+  promoSubtitle: "Bijuterias e acessórios especiais para presentear",
+  cta: "Conferir coleção",
+} as const;
+
+/** Seasonal content is returned by the backend so it can expire without a mobile rebuild. */
+export function getHomePresentation(now = new Date()): HomePresentation {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(now);
+  const month = Number(parts.find((part) => part.type === "month")?.value);
+  const day = Number(parts.find((part) => part.type === "day")?.value);
+  const christmas = month === 11 || (month === 12 && day <= 26);
+
+  return christmas
+    ? {
+        theme: "christmas",
+        seasonalDecoration: true,
+        announcements: CHRISTMAS_ANNOUNCEMENTS,
+        banners: CHRISTMAS_HERO_SLIDES,
+        campaign: CHRISTMAS_CAMPAIGN,
+      }
+    : {
+        theme: "default",
+        seasonalDecoration: false,
+        announcements: HOME_ANNOUNCEMENTS,
+        banners: DEFAULT_HOME_HERO_SLIDES,
+        campaign: HOME_CAMPAIGN,
+      };
+}
 
 export const HOME_BENEFITS = [
   { icon: "gift", title: "Envio e retirada", subtitle: "Escolha a melhor forma na finalização" },
@@ -169,8 +254,8 @@ export const HOME_SECTION_DEFINITIONS: readonly HomeSectionDefinition[] = [
     id: "achadinhos",
     key: "achadinhos",
     label: "Achados da semana",
-    title: "Achadinhos KA Bijoux 💖",
-    subtitle: "Produtos lindos para comprar sem pensar muito.",
+    title: "Achados da Semana",
+    subtitle: "Seleção especial da KA Bijoux.",
     route: "/produtos",
     moreLabel: "Ver mais achadinhos",
     badges: ["Achadinho", "Queridinho", "Boa Compra", "Favorito"],

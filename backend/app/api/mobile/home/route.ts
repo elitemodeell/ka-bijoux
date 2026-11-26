@@ -8,14 +8,12 @@ import {
   toGooglePlayPublicData,
 } from "@/lib/google-play-distribution";
 import {
-  HOME_ANNOUNCEMENTS,
   HOME_BENEFITS,
-  HOME_CAMPAIGN,
   HOME_FINAL_CTA,
-  HOME_HERO_SLIDES,
   HOME_QUICK_CATEGORIES,
   HOME_SECTION_DEFINITIONS,
   pickHomeBadge,
+  getHomePresentation,
 } from "@/lib/home-content";
 import { getHomeSections } from "@/lib/home-sections";
 import { serializeStoryGroup } from "@/lib/stories";
@@ -72,6 +70,7 @@ export async function GET() {
     ]);
 
     const counts = new Map(categoryCounts.map((entry) => [entry.categoryId, entry._count._all]));
+    const presentation = getHomePresentation();
     const productSections = HOME_SECTION_DEFINITIONS.map((definition) => ({
       id: definition.id,
       label: definition.label,
@@ -97,9 +96,10 @@ export async function GET() {
     const payload = {
       schemaVersion: 2,
       generatedAt: new Date().toISOString(),
-      announcements: HOME_ANNOUNCEMENTS,
-      banners: HOME_HERO_SLIDES,
-      campaign: HOME_CAMPAIGN,
+      theme: { name: presentation.theme, seasonalDecoration: presentation.seasonalDecoration },
+      announcements: presentation.announcements,
+      banners: presentation.banners,
+      campaign: presentation.campaign,
       quickCategories: HOME_QUICK_CATEGORIES.filter((category) => category.playAllowed),
       categories: categories
         .map((category) => ({ ...category, mobileProductCount: counts.get(category.id) ?? 0 }))

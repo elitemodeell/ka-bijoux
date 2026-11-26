@@ -39,6 +39,7 @@ interface Props {
   revealDelay?: number;
   priority?: boolean;
   badgeSeal?: boolean;
+  compact?: boolean;
 }
 
 const productRevealCallbacks = new Map<Element, () => void>();
@@ -82,7 +83,7 @@ function observeProductReveal(element: HTMLElement) {
   };
 }
 
-function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = false }: Props) {
+function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = false, compact = false }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [imgError, setImgError] = useState(false);
   const [cartAdded, setCartAdded] = useState(false);
@@ -144,7 +145,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
   return (
     <div
       ref={cardRef}
-      className="ka-product-card ka-product-reveal group flex flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      className={`ka-product-card ka-product-reveal group flex flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${compact ? "ka-home-product-card" : ""}`}
     >
       {/* Image area */}
       <div className="relative aspect-square overflow-hidden bg-[#FFF5F7]">
@@ -245,7 +246,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
       </div>
 
       {/* Info area */}
-      <div className="flex flex-1 flex-col p-2.5">
+      <div className={`flex flex-1 flex-col ${compact ? "p-1.5 sm:p-2.5" : "p-2.5"}`}>
         {normalized.purchaseReviewRequired && <p className="mb-1 text-xs font-semibold text-pink-800">Em revisão</p>}
         {product.slug ? (
           <Link
@@ -254,27 +255,27 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
             onClick={rememberListingPosition}
             className="text-left"
           >
-            <h3 className="line-clamp-2 text-[12px] font-semibold leading-snug text-gray-800 transition-colors hover:text-pink-500">
+            <h3 className={`${compact ? "line-clamp-2 text-[10px] leading-tight sm:text-[12px]" : "line-clamp-2 text-[12px] leading-snug"} font-semibold text-gray-800 transition-colors hover:text-pink-500`}>
               {name}
             </h3>
           </Link>
         ) : (
           <button type="button" onClick={openQuickShop} className="text-left">
-            <h3 className="line-clamp-2 text-[12px] font-semibold leading-snug text-gray-800 transition-colors hover:text-pink-500">
+            <h3 className={`${compact ? "line-clamp-2 text-[10px] leading-tight sm:text-[12px]" : "line-clamp-2 text-[12px] leading-snug"} font-semibold text-gray-800 transition-colors hover:text-pink-500`}>
               {name}
             </h3>
           </button>
         )}
 
-        <div className="mt-auto pt-2">
+        <div className={`${compact ? "mt-1 pt-1 sm:mt-auto sm:pt-2" : "mt-auto pt-2"}`}>
           <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
             {promo ? (
               <>
-                <span className="text-[14px] font-bold text-pink-500">{fmt(promo)}</span>
+              <span className={`${compact ? "text-[12px] sm:text-[14px]" : "text-[14px]"} font-bold text-pink-500`}>{fmt(promo)}</span>
                 <span className="text-[10px] text-gray-400 line-through">{fmt(price)}</span>
               </>
             ) : (
-              <span className="text-[14px] font-bold text-gray-800">{fmt(price)}</span>
+              <span className={`${compact ? "text-[12px] sm:text-[14px]" : "text-[14px]"} font-bold text-gray-800`}>{fmt(price)}</span>
             )}
           </div>
           {installment.eligible && (
@@ -285,7 +286,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
               href={`/produto/${normalized.slug}`}
               prefetch={false}
               onClick={rememberListingPosition}
-              className="ka-btn mt-2 flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-pink-500 to-pink-400 py-2 text-[12px] font-bold text-white"
+              className={`ka-btn mt-1.5 flex w-full items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-pink-400 ${compact ? "py-1.5 text-[10px] sm:mt-2 sm:rounded-lg sm:py-2 sm:text-[12px]" : "py-2 text-[12px]"} font-bold text-white`}
             >
               Comprar
             </Link>
@@ -293,7 +294,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
             <button
               type="button"
               onClick={openQuickShop}
-              className="ka-btn mt-2 w-full rounded-lg bg-gradient-to-r from-pink-500 to-pink-400 py-2 text-[12px] font-bold text-white"
+              className={`ka-btn mt-1.5 w-full rounded-full bg-gradient-to-r from-pink-500 to-pink-400 ${compact ? "py-1.5 text-[10px] sm:mt-2 sm:rounded-lg sm:py-2 sm:text-[12px]" : "py-2 text-[12px]"} font-bold text-white`}
             >
               Comprar
             </button>

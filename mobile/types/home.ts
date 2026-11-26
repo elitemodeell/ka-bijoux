@@ -67,7 +67,7 @@ export type HomeCategory = {
 export type HomeQuickCategory = {
   label: string;
   description: string;
-  icon: "sparkles" | "tag" | "new" | "diamond" | "phone";
+  icon: "sparkles" | "tag" | "new" | "diamond" | "phone" | "grid";
   href: string;
 };
 
@@ -86,6 +86,7 @@ export type HomeProductSection = {
 export type MobileHomePayload = {
   schemaVersion: number;
   generatedAt: string;
+  theme?: { name: "christmas" | "default"; seasonalDecoration: boolean };
   announcements: string[];
   banners: HomeBanner[];
   campaign: {

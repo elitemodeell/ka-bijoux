@@ -49,6 +49,20 @@ function resolveProductPhoto(productId: string, url?: string | null, version?: s
   }
 }
 
+function sameCatalogPhoto(left?: string | null, right?: string | null) {
+  if (!left || !right) return false;
+  try {
+    const normalize = (value: string) => {
+      const url = new URL(value, API_BASE_URL);
+      url.searchParams.delete("v");
+      return url.toString();
+    };
+    return normalize(left) === normalize(right);
+  } catch {
+    return left === right;
+  }
+}
+
 const BENEFIT_CARDS = [
   { icon: "car-outline" as const, title: "Opções de entrega", subtitle: "Exibidas no checkout" },
   { icon: "shield-checkmark-outline" as const, title: "Compra segura", subtitle: "Dados protegidos" },
@@ -248,7 +262,10 @@ export default function ProdutoScreen() {
       price: Number(previewPrice),
       promotionalPrice: Number.isFinite(promotionalPrice) ? promotionalPrice : null,
       stock: Number(previewStock ?? 0),
-      images: previewImage && Platform.OS !== "ios" ? [{ url: previewImage }] : [],
+      // The listing already loaded this official catalog image. Show it while
+      // the product request is in flight; the response below confirms it
+      // belongs to this product before it is kept on screen.
+      images: previewImage ? [{ url: previewImage }] : [],
       category: { name: "" },
       variations: [],
     };
@@ -296,8 +313,11 @@ export default function ProdutoScreen() {
         }
         const savedPhoto = await AsyncStorage.getItem(`catalog-photo:${p.id}`).catch(() => null);
         if (!current) return;
+        const confirmedImages = p.images.map((image) => image.url);
+        const confirmedSavedPhoto = confirmedImages.find((url) => sameCatalogPhoto(url, savedPhoto)) ?? null;
+        const confirmedPreviewPhoto = confirmedImages.find((url) => sameCatalogPhoto(url, previewImage)) ?? null;
         setProduct(p);
-        setSelectedPhoto(savedPhoto);
+        setSelectedPhoto(confirmedSavedPhoto ?? confirmedPreviewPhoto);
         setRelated(res.data.data.related ?? []);
         setSelectedVariation(null);
         setSelectedAttributes([]);

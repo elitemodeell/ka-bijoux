@@ -28,7 +28,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Colors, BorderRadius, Shadows } from "@/constants/theme";
-import { applyChildrenCampaign } from "@/constants/homeCampaign";
 import { homeApi } from "@/services/api";
 import { useAuthStore } from "@/stores/authStore";
 import { useCartStore } from "@/stores/cartStore";
@@ -43,7 +42,7 @@ import type {
 } from "@/types/home";
 
 const SITE = process.env.EXPO_PUBLIC_API_URL ?? "https://kabijoux.com.br";
-const CACHE_KEY = "ka-mobile-home-v2";
+const CACHE_KEY = "ka-mobile-home-v3";
 function Text({ style, ...props }: TextProps) {
   return <NativeText {...props} style={[{ fontFamily: 'Inter' }, style]} />;
 }
@@ -141,38 +140,25 @@ function AnnouncementBar({ messages }: { messages: string[] }) {
 
 function Header({ itemCount, onNavigate }: { itemCount: number; onNavigate: (href: string) => void }) {
   return (
-    <LinearGradient colors={["#fff1f6", "#ffdce9", "#fff4f8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
-      <View pointerEvents="none" style={styles.headerDecor} accessibilityElementsHidden>
-        <Text style={[styles.headerHeart, styles.headerHeartLeft]}>♡</Text>
-        <Text style={[styles.headerHeart, styles.headerHeartCenter]}>♥</Text>
-        <Text style={[styles.headerHeart, styles.headerHeartRight]}>♡</Text>
+    <LinearGradient colors={["#fffafd", "#fff2f7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
+      <TouchableOpacity style={styles.headerButton} accessibilityLabel="Abrir categorias" onPress={() => onNavigate("/(tabs)/categorias")}>
+        <Ionicons name="menu-outline" size={27} color={Colors.primary} />
+      </TouchableOpacity>
+      <View style={styles.wordmark} accessibilityLabel="KA Bijoux">
+        <Text style={styles.wordmarkKa}>KA</Text><Text style={styles.wordmarkBijoux}>Bijoux</Text>
       </View>
-      <Image
-        source={resolveUrl("/images/brand/ka-bijoux-logo-header-320.png")}
-        style={styles.logo}
-        contentFit="contain"
-        cachePolicy="memory-disk"
-        accessibilityLabel="KA Bijoux"
-      />
-      <TouchableOpacity
-        style={styles.search}
-        onPress={() => onNavigate("/(tabs)/busca")}
-        accessibilityRole="button"
-        accessibilityLabel="Pesquisar produtos"
-      >
-        <Text style={styles.searchText} numberOfLines={1}>O que você procura?</Text>
-        <View style={styles.searchButton}>
-          <Ionicons name="search" size={15} color="#fff" />
-        </View>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.headerButton} accessibilityLabel="Abrir carrinho" onPress={() => onNavigate("/(tabs)/carrinho")}>
-        <Ionicons name="bag-outline" size={22} color={Colors.textPrimary} />
-        {itemCount > 0 ? (
-          <View style={styles.cartBadge}>
-            <Text style={styles.cartBadgeText}>{Math.min(itemCount, 99)}</Text>
-          </View>
-        ) : null}
-      </TouchableOpacity>
+      <View style={styles.headerActions}>
+        <TouchableOpacity style={styles.headerButton} accessibilityLabel="Pesquisar produtos" onPress={() => onNavigate("/(tabs)/busca")}>
+          <Ionicons name="search-outline" size={24} color={Colors.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.headerButton} accessibilityLabel="Abrir favoritos" onPress={() => onNavigate("/favoritos")}>
+          <Ionicons name="heart-outline" size={24} color={Colors.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.headerButton} accessibilityLabel="Abrir carrinho" onPress={() => onNavigate("/(tabs)/carrinho")}>
+          <Ionicons name="cart-outline" size={24} color={Colors.primary} />
+          {itemCount > 0 ? <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{Math.min(itemCount, 99)}</Text></View> : null}
+        </TouchableOpacity>
+      </View>
     </LinearGradient>
   );
 }
@@ -381,8 +367,11 @@ function Stories({ stories, onOpen }: { stories: HomeStory[]; onOpen: (story: Ho
     else onOpen(story);
   };
   return <LinearGradient colors={['#ffffff', '#fff8fb', '#fff2f7']} style={styles.storiesSection}>
-    <Text style={styles.storyHeading}>Stories da KA</Text>
-    <Text style={styles.storySubtitle}>Mês das Crianças, novidades, ofertas, clientes e nossos stories do Instagram.</Text>
+    <View style={styles.storyHeadingRow}>
+      <Text style={styles.storyHeading}>Stories da <Text style={styles.storyHeadingAccent}>KA</Text></Text>
+      <Text style={styles.storySubtitle}>Confira novidades, ofertas e muito mais!</Text>
+      <Ionicons name="heart-outline" size={23} color={Colors.primary} />
+    </View>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storyList}>
       <TouchableOpacity style={styles.storyItem} onPress={() => void openInstagram()} accessibilityLabel="Abrir KA Stories no Instagram">
         <LinearGradient colors={['#ffe6a1', '#ffafd1', '#ff4182']} style={styles.storyRing}>
@@ -410,66 +399,26 @@ function Stories({ stories, onOpen }: { stories: HomeStory[]; onOpen: (story: Ho
   </LinearGradient>;
 }
 
-function Campaign({ campaign, onNavigate }: {
-  campaign: MobileHomePayload["campaign"];
-  onNavigate: (href: string) => void;
-}) {
-  return (
-    <>
-      <TouchableOpacity
-        style={styles.campaignImageWrap}
-        onPress={() => onNavigate(campaign.href)}
-        accessibilityRole="button"
-        accessibilityLabel="Mês das Crianças - Cabelo Maluco. Ver ofertas"
-      >
-        <Image source={resolveUrl(campaign.image)} style={styles.campaignImage} contentFit="contain" cachePolicy="memory-disk" />
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={() => onNavigate(campaign.href)}
-        activeOpacity={0.9}
-        accessibilityRole="button"
-        accessibilityLabel="Ver ofertas do Mês das Crianças"
-      >
-        <LinearGradient colors={["#F72570", "#FF6F61", "#FF914D"]} style={styles.campaignStrip}>
-          <View style={styles.campaignTopRow}>
-            <View style={styles.campaignIcon}><Ionicons name="color-palette-outline" size={27} color="#fff" /></View>
-            <View style={styles.campaignWordmark}>
-              <View style={styles.campaignTitleRow}>
-                <Text style={[styles.campaignTitleWord, { color: "#FFE151" }]}>MÊS</Text>
-                <Text style={[styles.campaignTitleWord, { color: "#FFFFFF" }]}> DAS </Text>
-                <Text style={[styles.campaignTitleWord, { color: "#55D6E8" }]}>CRIANÇAS</Text>
-                <Text style={styles.campaignStar}>☆</Text>
-              </View>
-              <View style={styles.campaignRibbon}>
-                <Text style={styles.campaignRibbonText}>Cabelo Maluco</Text>
-              </View>
-            </View>
-            <Text style={styles.campaignRainbow}>🌈</Text>
-          </View>
-          <Text style={styles.campaignSubtitle}>{campaign.promoSubtitle}</Text>
-          <View style={styles.campaignButton}><Text style={styles.campaignButtonText}>{campaign.cta}</Text></View>
-        </LinearGradient>
-      </TouchableOpacity>
-    </>
-  );
-}
-
 function QuickCategories({ categories, onNavigate }: { categories: HomeQuickCategory[]; onNavigate: (href: string) => void }) {
   if (!categories.length) return null;
   return <LinearGradient colors={['#fff', '#fffafd', '#fff6fa']} style={styles.quickSection}>
     <View style={styles.quickFrame}><View style={styles.quickGrid}>
       {categories.map(category => <TouchableOpacity key={category.href} style={styles.quickCard}
         accessibilityLabel={`Abrir categoria ${category.label}. ${category.description}`} onPress={() => onNavigate(category.href)}>
-        <LinearGradient colors={['#fff', '#fff2f6', '#ffe8ef']} style={styles.quickIcon}>
-          <View style={styles.quickIconRing} />
-          <Image source={categoryArtwork[category.icon]} style={{ width: 56, height: 56 }} contentFit="contain" />
-        </LinearGradient>
+        <View style={styles.quickIcon}>{category.icon === "grid"
+          ? <Ionicons name="grid-outline" size={27} color={Colors.primary} />
+          : <Image source={categoryArtwork[category.icon]} style={{ width: 31, height: 31 }} contentFit="contain" />}</View>
         <Text style={styles.quickTitle}>{category.label}</Text>
-        <Text style={styles.quickDescription}>{category.description}</Text>
-        <LinearGradient colors={['#ff5b8d', '#f43069']} style={styles.quickArrow}><Ionicons name="chevron-forward" size={16} color="#fff" /></LinearGradient>
+        <Ionicons style={styles.quickArrow} name="chevron-forward" size={17} color={Colors.primary} />
       </TouchableOpacity>)}
     </View></View>
   </LinearGradient>;
+}
+
+function SeasonalDivider() {
+  return <View style={styles.seasonalDivider} accessibilityElementsHidden>
+    <View style={styles.seasonalRule} /><Text style={styles.seasonalBranch}>🌿</Text><Text style={styles.seasonalBow}>🎀</Text><Text style={styles.seasonalBranch}>🌿</Text><View style={styles.seasonalRule} />
+  </View>;
 }
 
 function SpecialArea({ category, onNavigate }: { category?: HomeCategory; onNavigate: (href: string) => void }) {
@@ -497,9 +446,9 @@ function ProductSection({ section, onNavigate }: { section: HomeProductSection; 
         </View>
         <TouchableOpacity onPress={() => onNavigate(section.route)}><Text style={styles.more}>Ver mais →</Text></TouchableOpacity>
       </View>
-      <View style={styles.productGrid}>
+      <View style={[styles.productGrid, section.id === "achadinhos" && styles.productGridCompact]}>
         {section.products.map((product) => (
-          <View key={product.id} style={styles.productCell}><ProductCard product={product} badgeSeal={section.badgeSeal} /></View>
+          <View key={product.id} style={[styles.productCell, section.id === "achadinhos" && styles.productCellCompact]}><ProductCard product={product} badgeSeal={section.badgeSeal} compact={section.id === "achadinhos"} /></View>
         ))}
       </View>
       <TouchableOpacity style={styles.allButton} onPress={() => onNavigate(section.route)}>
@@ -509,27 +458,21 @@ function ProductSection({ section, onNavigate }: { section: HomeProductSection; 
   );
 }
 
-function Benefits({ benefits, onNavigate }: { benefits: MobileHomePayload["benefits"]; onNavigate: (href: string) => void }) {
+function Benefits({ benefits }: { benefits: MobileHomePayload["benefits"] }) {
   const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
     gift: "gift-outline",
     card: "card-outline",
     shield: "shield-checkmark-outline",
   };
   return (
-    <LinearGradient colors={[Colors.primary, "#e83e5a"]} style={styles.benefits}>
+    <View style={styles.benefits}>
       {benefits.map((benefit) => (
         <View key={benefit.title} style={styles.benefitItem}>
-          <Ionicons name={icons[benefit.icon] ?? "checkmark-circle-outline"} size={25} color="#fff" />
-          <View style={styles.benefitCopy}>
-            <Text style={styles.benefitTitle}>{benefit.title}</Text>
-            <Text style={styles.benefitSubtitle}>{benefit.subtitle}</Text>
-          </View>
+          <Ionicons name={icons[benefit.icon] ?? "checkmark-circle-outline"} size={22} color={Colors.primary} />
+          <View style={styles.benefitCopy}><Text style={styles.benefitTitle}>{benefit.title}</Text><Text style={styles.benefitSubtitle}>{benefit.subtitle}</Text></View>
         </View>
       ))}
-      <TouchableOpacity style={styles.benefitButton} onPress={() => onNavigate("/produtos")}>
-        <Text style={styles.benefitButtonText}>Aproveitar →</Text>
-      </TouchableOpacity>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -544,7 +487,7 @@ function FinalCta({ cta, onNavigate }: { cta: MobileHomePayload["finalCta"]; onN
         style={styles.finalCtaButton}
         onPress={() => onNavigate(cta.href)}
         accessibilityRole="button"
-        accessibilityLabel="Ver novidades do Mês das Crianças"
+        accessibilityLabel="Ver coleção e novidades da KA Bijoux"
       >
         <Text style={styles.finalCtaButtonText}>{cta.button}</Text>
       </TouchableOpacity>
@@ -617,7 +560,7 @@ type HomeBlock =
   | { key: "special"; type: "special"; category?: HomeCategory }
   | { key: "hero"; type: "hero"; banners: HomeBanner[] }
   | { key: "stories"; type: "stories"; stories: HomeStory[] }
-  | { key: "campaign"; type: "campaign"; campaign: MobileHomePayload["campaign"] }
+  | { key: "seasonal-divider"; type: "seasonal-divider" }
   | { key: "quick"; type: "quick"; categories: HomeQuickCategory[] }
   | { key: string; type: "products"; section: HomeProductSection }
   | { key: "benefits"; type: "benefits"; benefits: MobileHomePayload["benefits"] }
@@ -633,10 +576,10 @@ const HomeBlockView = memo(function HomeBlockView({ block, onNavigate, onOpenSto
     case "special": return <SpecialArea category={block.category} onNavigate={onNavigate} />;
     case "hero": return <HeroCarousel banners={block.banners} onNavigate={onNavigate} />;
     case "stories": return <Stories stories={block.stories} onOpen={onOpenStory} />;
-    case "campaign": return <Campaign campaign={block.campaign} onNavigate={onNavigate} />;
+    case "seasonal-divider": return <SeasonalDivider />;
     case "quick": return <QuickCategories categories={block.categories} onNavigate={onNavigate} />;
     case "products": return <ProductSection section={block.section} onNavigate={onNavigate} />;
-    case "benefits": return <Benefits benefits={block.benefits} onNavigate={onNavigate} />;
+    case "benefits": return <Benefits benefits={block.benefits} />;
     case "reviews": return <RealReviews reviews={block.reviews} />;
     case "final": return <FinalCta cta={block.cta} onNavigate={onNavigate} />;
   }
@@ -664,7 +607,6 @@ export default function HomeScreen() {
     () => new Set(home?.categories.map((category) => category.slug) ?? []),
     [home?.categories]
   );
-  const themedHome = useMemo(() => (home ? applyChildrenCampaign(home) : null), [home]);
 
   const navigate = useCallback((href: string) => {
     if (!isSafeStoreHref(href, allowedCategorySlugs)) return;
@@ -742,29 +684,30 @@ export default function HomeScreen() {
   }, [customer, fetchCart]);
 
   const homeBlocks = useMemo<HomeBlock[]>(() => {
-    if (!themedHome) return [];
-    const special: HomeBlock = { key: "special", type: "special", category: themedHome.categories.find((category) => category.slug === "sex-shop") };
+    if (!home) return [];
+    const special: HomeBlock = { key: "special", type: "special", category: home.categories.find((category) => category.slug === "sex-shop") };
     const featured: HomeBlock[] = [
-      { key: "hero", type: "hero", banners: themedHome.banners },
-      { key: "stories", type: "stories", stories: themedHome.stories },
-      { key: "campaign", type: "campaign", campaign: themedHome.campaign },
-      { key: "quick", type: "quick", categories: themedHome.quickCategories },
+      { key: "hero", type: "hero", banners: home.banners },
+      { key: "benefits", type: "benefits", benefits: home.benefits },
+      { key: "stories", type: "stories", stories: home.stories },
+      ...(home.theme?.seasonalDecoration ? [{ key: "seasonal-divider" as const, type: "seasonal-divider" as const }] : []),
+      { key: "quick", type: "quick", categories: home.quickCategories },
     ];
     const blocks: HomeBlock[] = Platform.OS === "ios" ? [...featured, special] : [special, ...featured];
-    themedHome.sections.forEach((section, index) => {
+    const sections = [...home.sections].sort((a, b) => Number(b.id === "achadinhos") - Number(a.id === "achadinhos"));
+    sections.forEach((section) => {
       blocks.push({ key: `products-${section.id}`, type: "products", section });
-      if (index === 1) blocks.push({ key: "benefits", type: "benefits", benefits: themedHome.benefits });
     });
     blocks.push(
-      { key: "reviews", type: "reviews", reviews: themedHome.reviews },
-      { key: "final", type: "final", cta: themedHome.finalCta },
+      { key: "reviews", type: "reviews", reviews: home.reviews },
+      { key: "final", type: "final", cta: home.finalCta },
     );
     return blocks;
-  }, [themedHome]);
+  }, [home]);
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      {themedHome ? <AnnouncementBar messages={themedHome.announcements} /> : null}
+      {home ? <AnnouncementBar messages={home.announcements} /> : null}
       <Header itemCount={itemCount} onNavigate={navigate} />
       {offline ? (
         <TouchableOpacity style={styles.offlineBanner} onPress={() => void loadHome(true)}>
@@ -808,37 +751,22 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: {},
   header: {
-    minHeight: Platform.OS === "ios" ? 64 : 54,
+    minHeight: Platform.OS === "ios" ? 60 : 54,
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
-    paddingHorizontal: Platform.OS === "ios" ? 14 : 12,
-    paddingVertical: Platform.OS === "ios" ? 8 : 5,
+    justifyContent: "space-between",
+    gap: 4,
+    paddingHorizontal: Platform.OS === "ios" ? 12 : 10,
+    paddingVertical: Platform.OS === "ios" ? 6 : 5,
     overflow: "hidden",
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#f7cbd7",
     zIndex: 10,
   },
-  headerDecor: { ...StyleSheet.absoluteFillObject },
-  headerHeart: { position: "absolute", color: "rgba(244,63,126,0.34)", fontSize: 28, fontWeight: "300" },
-  headerHeartLeft: { left: 66, top: 2, transform: [{ rotate: "-12deg" }] },
-  headerHeartCenter: { left: "48%", bottom: -9, color: "rgba(255,255,255,0.58)", fontSize: 22, transform: [{ rotate: "12deg" }] },
-  headerHeartRight: { right: 4, top: -2, transform: [{ rotate: "14deg" }] },
-  logo: { width: Platform.OS === "ios" ? 48 : 40, height: Platform.OS === "ios" ? 44 : 36, zIndex: 1 },
-  search: {
-    flex: 1,
-    height: Platform.OS === "ios" ? 44 : 36,
-    borderRadius: Platform.OS === "ios" ? 22 : 14,
-    borderWidth: 1,
-    borderColor: "#fce7f3",
-    backgroundColor: "#fff9fb",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingLeft: 13,
-    zIndex: 1,
-  },
-  searchText: { flex: 1, color: "#9b7280", fontSize: Platform.OS === "ios" ? 14 : 12 },
-  searchButton: { width: Platform.OS === "ios" ? 38 : 30, height: Platform.OS === "ios" ? 38 : 30, marginRight: 4, borderRadius: Platform.OS === "ios" ? 19 : 12, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center" },
+  wordmark: { flex: 1, flexDirection: "row", alignItems: "baseline", justifyContent: "center", gap: 3 },
+  wordmarkKa: { color: "#f12b70", fontFamily: "PlayfairDisplay", fontSize: 30, fontWeight: "900", fontStyle: "italic", letterSpacing: -2 },
+  wordmarkBijoux: { color: "#b87913", fontFamily: "PlayfairDisplay", fontSize: 21, fontStyle: "italic", letterSpacing: -1 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 0 },
   headerButton: { width: Platform.OS === "ios" ? 42 : 38, height: Platform.OS === "ios" ? 42 : 38, alignItems: "center", justifyContent: "center", zIndex: 1 },
   cartBadge: { position: "absolute", right: 0, top: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
   cartBadgeText: { color: "#fff", fontSize: 9, fontWeight: "800" },
@@ -852,24 +780,26 @@ const styles = StyleSheet.create({
   announcementFadeRight: { right: 0 },
   offlineBanner: { minHeight: 38, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#fee2e2", flexDirection: "row", gap: 7, alignItems: "center" },
   offlineText: { flex: 1, color: "#7f1d1d", fontSize: 11, fontWeight: "600" },
-  heroWrap: { marginTop: Platform.OS === "ios" ? 0 : 10 },
-  heroSlide: { width: "100%", aspectRatio: 3 / 2, backgroundColor: "#FFF7FA" },
-  dots: { position: "absolute", left: 0, right: 0, bottom: 10, zIndex: 4, flexDirection: "row", justifyContent: "center", gap: 6 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.7)" },
-  dotActive: { width: 20, backgroundColor: "#29BFC7" },
+  heroWrap: { marginTop: Platform.OS === "ios" ? 0 : 8, marginHorizontal: 10, overflow: "hidden", borderRadius: 18, borderWidth: 1, borderColor: "#f9dce6", ...Shadows.sm },
+  heroSlide: { width: "100%", aspectRatio: 2 / 1, backgroundColor: "#FFF7FA" },
+  dots: { position: "absolute", left: 0, right: 0, bottom: 8, zIndex: 4, flexDirection: "row", justifyContent: "center", gap: 7 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.82)" },
+  dotActive: { width: 18, backgroundColor: "#f12b70" },
   storiesSection: { marginHorizontal: 10, marginTop: 10, padding: 10, borderRadius: 18, borderWidth: 1, borderColor: '#fce7f3', ...Shadows.sm },
-  storyHeading: { fontFamily: 'PlayfairDisplay', fontSize: 23, color: '#8a0032' },
-  storySubtitle: { marginTop: 4, fontSize: 11, lineHeight: 15, color: '#3d0f1a' },
-  instagramBadge: { position: 'absolute', top: 54, right: 5, width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  storyHeadingRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  storyHeading: { flex: 1, fontFamily: 'PlayfairDisplay', fontSize: 22, color: '#151015' },
+  storyHeadingAccent: { color: Colors.primary },
+  storySubtitle: { maxWidth: "49%", textAlign: "right", fontSize: 9, lineHeight: 12, color: '#3d0f1a' },
+  instagramBadge: { position: 'absolute', top: 57, right: 1, width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   instagramCaption: { marginTop: 3, fontSize: 9, color: '#9ca3af' },
   eyebrow: { color: Colors.primary, fontSize: 10, fontWeight: "900", letterSpacing: 1.5, marginBottom: 4 },
   sectionHeading: { color: "#6e1430", fontSize: 23, lineHeight: 28, fontFamily: "PlayfairDisplay" },
-  storyList: { paddingTop: 10, paddingBottom: 2, gap: 10 },
-  storyItem: { width: 74, alignItems: "center" },
-  storyRing: { width: 64, height: 64, borderRadius: 32, padding: 3 },
-  storyInner: { flex: 1, borderRadius: 29, padding: 2, backgroundColor: "#fff" },
-  storyCover: { flex: 1, borderRadius: 27, backgroundColor: "#ffe5ee" },
-  storyLabel: { marginTop: 5, color: "#48101f", fontSize: 10, fontWeight: "700", width: 74, textAlign: "center" },
+  storyList: { paddingTop: 10, paddingBottom: 2, gap: 6, justifyContent: "space-between" },
+  storyItem: { width: 64, alignItems: "center" },
+  storyRing: { width: 60, height: 60, borderRadius: 30, padding: 3 },
+  storyInner: { flex: 1, borderRadius: 27, padding: 2, backgroundColor: "#fff" },
+  storyCover: { flex: 1, borderRadius: 25, backgroundColor: "#ffe5ee" },
+  storyLabel: { marginTop: 5, color: "#48101f", fontSize: 8, fontWeight: "700", width: 64, textAlign: "center" },
   storyModal: { flex: 1, backgroundColor: "rgba(9,2,5,0.98)" },
   storySafe: { flex: 1 },
   storyTop: { height: 52, paddingHorizontal: 14, flexDirection: "row", alignItems: "center" },
@@ -889,53 +819,40 @@ const styles = StyleSheet.create({
   storyNavText: { color: "#fff", fontSize: 12, fontWeight: "700" },
   storyLinkButton: { backgroundColor: Colors.primary, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 10 },
   storyLinkText: { color: "#fff", fontSize: 11, fontWeight: "900" },
-  campaignImageWrap: { marginTop: 14, width: "100%", aspectRatio: 3 / 2, backgroundColor: "#FFF7FA" },
-  campaignImage: { width: "100%", height: "100%" },
-  campaignStrip: { marginHorizontal: 10, marginTop: 10, marginBottom: 12, borderRadius: 20, paddingHorizontal: 14, paddingTop: 13, paddingBottom: 12, ...Shadows.md },
-  campaignTopRow: { minHeight: 55, flexDirection: "row", alignItems: "center", gap: 9 },
-  campaignIcon: { width: 50, height: 50, borderRadius: 25, borderWidth: 1.2, borderColor: "rgba(255,255,255,0.65)", alignItems: "center", justifyContent: "center" },
-  campaignWordmark: { flex: 1, alignItems: "center", justifyContent: "center" },
-  campaignTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap" },
-  campaignTitleWord: { fontSize: Platform.OS === "ios" ? 17 : 15, lineHeight: 20, fontWeight: "900", letterSpacing: -0.7, textShadowColor: "rgba(151,21,79,0.42)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 1 },
-  campaignStar: { color: "#fff", fontSize: 20, lineHeight: 21, fontWeight: "900", marginLeft: 3 },
-  campaignRibbon: { marginTop: 2, minWidth: "78%", paddingHorizontal: 14, paddingVertical: 1, borderRadius: 12, backgroundColor: "#FFE58A", transform: [{ rotate: "-1deg" }] },
-  campaignRibbonText: { color: "#D52A68", fontFamily: "PlayfairDisplay", fontSize: 16, lineHeight: 20, textAlign: "center", fontStyle: "italic" },
-  campaignRainbow: { width: 35, fontSize: 29, textAlign: "center" },
-  campaignSubtitle: { color: "#FFFFFF", fontSize: 11, lineHeight: 15, marginTop: 8, marginBottom: 10, textAlign: "center" },
-  campaignButton: { width: "100%", minHeight: 48, paddingHorizontal: 20, paddingVertical: 13, borderRadius: 15, backgroundColor: "#fff", justifyContent: "center" },
-  campaignButtonText: { color: "#E32C71", fontSize: 13, fontWeight: "900", textAlign: "center", textTransform: "uppercase" },
-  quickSection: { paddingHorizontal: 10, paddingVertical: 12 },
-  quickFrame: { padding: 8, borderRadius: 22, borderWidth: 1, borderColor: '#fce7f3', backgroundColor: '#fff', ...Shadows.sm },
-  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  quickCard: { flexBasis: '30%', flexGrow: 1, maxWidth: '32%', minHeight: 164, paddingTop: 10, paddingHorizontal: 5, paddingBottom: 40, borderRadius: 18, borderWidth: 1, borderColor: '#fce7f3', backgroundColor: '#fffafd', alignItems: 'center', ...Shadows.sm },
-  quickIcon: { width: 58, height: 58, borderRadius: 29, borderWidth: 1, borderColor: '#ffc5d4', alignItems: 'center', justifyContent: 'center', marginBottom: 7, ...Shadows.sm },
-  quickIconRing: { position: 'absolute', top: 5, bottom: 5, left: 5, right: 5, borderRadius: 30, borderWidth: 1, borderColor: '#fff' },
-  quickTitle: { color: '#192131', fontSize: 12, fontWeight: '800', textAlign: 'center' },
-  quickDescription: { color: '#687080', fontSize: 10, textAlign: 'center', marginTop: 4, lineHeight: 13 },
-  quickArrow: { position: 'absolute', bottom: 10, right: 10, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  seasonalDivider: { flexDirection: "row", alignItems: "center", gap: 3, marginHorizontal: 28, marginVertical: 12 },
+  seasonalRule: { flex: 1, height: 1, backgroundColor: "#d9a62e" },
+  seasonalBranch: { fontSize: 18 },
+  seasonalBow: { fontSize: 27, marginHorizontal: -3 },
+  quickSection: { paddingHorizontal: 10, paddingVertical: 9 },
+  quickFrame: { padding: 0 },
+  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: "space-between", gap: 8 },
+  quickCard: { width: "31.5%", minHeight: 58, paddingHorizontal: 5, paddingVertical: 7, borderRadius: 18, borderWidth: 1, borderColor: '#fce7f3', backgroundColor: '#fffafd', flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 3, ...Shadows.sm },
+  quickIcon: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  quickTitle: { flex: 1, color: '#192131', fontSize: 9, fontWeight: '800', textAlign: 'center', lineHeight: 11 },
+  quickArrow: { marginLeft: "auto" },
   specialArea: { margin: 10, borderRadius: 28, overflow: 'hidden' },
   specialInner: { padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   specialLabel: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 1 },
   specialTitle: { fontFamily: 'PlayfairDisplay', color: '#fff', fontSize: 24, marginVertical: 4 },
   specialSubtitle: { color: '#ffe4ef', fontSize: 12 },
-  productSection: { paddingHorizontal: 16, paddingVertical: 24, backgroundColor: "#fff" },
+  productSection: { paddingHorizontal: 12, paddingVertical: 20, backgroundColor: "#fff" },
   productSectionSubtle: { backgroundColor: Colors.pinkPale },
   sectionHeader: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginBottom: 16 },
   sectionHeaderCopy: { flex: 1 },
-  productSectionTitle: { color: "#111827", fontSize: 30, lineHeight: 36, fontFamily: "PlayfairDisplay" },
+  productSectionTitle: { color: "#111827", fontSize: 25, lineHeight: 31, fontFamily: "PlayfairDisplay" },
   productSectionSubtitle: { color: "#826672", fontSize: 11, lineHeight: 16, marginTop: 4 },
   more: { color: Colors.primary, fontSize: 11, fontWeight: "800" },
   productGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  productGridCompact: { justifyContent: "space-between", gap: 7 },
   productCell: { width: "48%", flexGrow: 1, flexBasis: "45%", marginBottom: 2 },
+  productCellCompact: { width: "31.5%", flexGrow: 0, flexBasis: "31.5%" },
   allButton: { alignSelf: "center", marginTop: 16, minHeight: 46, borderRadius: 23, backgroundColor: Colors.primary, paddingHorizontal: 22, maxWidth: "100%", alignItems: "center", justifyContent: "center" },
   allButtonText: { color: "#fff", fontSize: 12, fontWeight: "900" },
-  benefits: { paddingVertical: 24, paddingHorizontal: 24, gap: 16 },
-  benefitItem: { flexDirection: "row", alignItems: "center", gap: 12 },
-  benefitCopy: { flex: 1 },
-  benefitTitle: { color: "#fff", fontSize: 18, fontWeight: "900" },
-  benefitSubtitle: { color: "rgba(255,255,255,0.8)", fontSize: 14, lineHeight: 19, marginTop: 2 },
-  benefitButton: { alignSelf: "center", minHeight: 48, paddingHorizontal: 24, borderRadius: 16, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
-  benefitButtonText: { color: "#db2777", fontSize: 14, fontWeight: "900" },
+  benefits: { marginHorizontal: 10, marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-around", minHeight: 58, paddingVertical: 8, borderRadius: 18, borderWidth: 1, borderColor: "#fce7f3", backgroundColor: "#fff8fb", ...Shadows.sm },
+  benefitItem: { flex: 1, minWidth: 0, minHeight: 34, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingHorizontal: 4, borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: "#edbad0" },
+  benefitCopy: { flex: 1, minWidth: 0 },
+  benefitTitle: { color: "#25131d", fontSize: 8, lineHeight: 10, fontWeight: "900" },
+  benefitSubtitle: { color: "#77616b", fontSize: 7, lineHeight: 9, marginTop: 1 },
   finalCta: { paddingHorizontal: 24, paddingVertical: 72, alignItems: "center" },
   finalCtaLabel: { color: "#f472b6", fontSize: 14, fontWeight: "700", letterSpacing: 2 },
   finalCtaTitle: { marginTop: 16, color: "#fff", fontFamily: "PlayfairDisplay", fontSize: 34, lineHeight: 40, fontWeight: "800", textAlign: "center" },
@@ -963,7 +880,7 @@ const styles = StyleSheet.create({
   footerCopy: { color: "#806d75", fontSize: 9, marginTop: 16 },
   skeletonWrap: { paddingBottom: 20 },
   skeleton: { backgroundColor: "#f5e6eb", overflow: "hidden" },
-  skeletonHero: { width: "100%", aspectRatio: 3 / 2, marginTop: 10 },
+  skeletonHero: { width: "100%", aspectRatio: 2 / 1, marginTop: 10 },
   skeletonRow: { flexDirection: "row", gap: 14, padding: 16 },
   skeletonCircle: { width: 64, height: 64, borderRadius: 32 },
   skeletonTitle: { width: 210, height: 26, borderRadius: 8, margin: 16 },

@@ -7,50 +7,28 @@ export default function QuickCategoryBar() {
   return (
     <nav
       aria-label="Categorias rápidas"
-      className="border-b border-pink-100/80 bg-gradient-to-b from-white via-[#fffafd] to-[#fff6fa] px-2.5 py-4 sm:px-6 sm:py-6"
+      className="border-b border-pink-100/80 bg-gradient-to-b from-white via-[#fffafd] to-[#fff6fa] px-2.5 py-3 sm:px-6 sm:py-5"
     >
-      <div className="mx-auto max-w-4xl">
-        <div className="rounded-[30px] border border-pink-100/90 bg-white/95 p-2.5 shadow-[0_18px_48px_rgba(190,24,93,0.10)] ring-1 ring-white sm:rounded-[34px] sm:p-4">
-          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+      <div className="mx-auto max-w-5xl">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {HOME_QUICK_CATEGORIES.map((category) => (
               <Link
                 key={category.href}
                 href={category.href}
-                aria-label={`Abrir categoria ${category.label}`}
-                className="group relative flex h-[180px] min-w-0 flex-col items-center overflow-hidden rounded-[25px] border border-pink-100/90 bg-gradient-to-br from-white via-white to-[#fff7fa] px-2 pb-10 pt-3 text-center shadow-[0_10px_24px_rgba(190,24,93,0.08)] transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-1 hover:border-pink-200 hover:shadow-[0_18px_34px_rgba(190,24,93,0.16)] active:scale-[1.025] active:border-pink-300 active:shadow-[0_20px_38px_rgba(236,72,153,0.22)] min-[360px]:h-[170px] sm:h-[210px] sm:rounded-[30px] sm:px-4 sm:pb-14 sm:pt-5"
+                aria-label={`Abrir ${category.label}: ${category.description}`}
+                className="group flex min-h-[58px] min-w-0 items-center gap-1.5 rounded-[18px] border border-pink-100 bg-gradient-to-br from-white to-[#fff3f7] px-1.5 py-2 shadow-[0_6px_16px_rgba(190,24,93,0.09)] transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-pink-200 hover:shadow-[0_10px_22px_rgba(190,24,93,0.15)] min-[390px]:gap-2 min-[390px]:px-2 sm:min-h-[72px] sm:rounded-[22px] sm:px-4"
               >
-                <span
-                  className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-pink-200 to-transparent"
-                  aria-hidden="true"
-                />
-                <span
-                  className="pointer-events-none absolute right-2.5 top-2.5 text-[#ff9c83] opacity-80 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110 sm:right-4 sm:top-4"
-                  aria-hidden="true"
-                >
-                  <MiniSparkle />
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-pink-100 bg-white text-pink-500 sm:h-10 sm:w-10">
+                  <span className="scale-[0.52] sm:scale-[0.64]"><CategoryIcon name={category.icon} /></span>
                 </span>
-
-                <span className="relative flex h-[66px] w-[66px] shrink-0 items-center justify-center rounded-full border border-[#ffc5d4] bg-gradient-to-br from-white via-[#fff2f6] to-[#ffe8ef] shadow-[inset_0_2px_5px_rgba(255,255,255,0.95),0_10px_22px_rgba(236,72,153,0.16)] transition-transform duration-300 group-hover:scale-105 group-active:scale-110 sm:h-[92px] sm:w-[92px]">
-                  <span
-                    className="absolute inset-[5px] rounded-full border border-white/90"
-                    aria-hidden="true"
-                  />
-                  <CategoryIcon name={category.icon} />
-                </span>
-
-                <span className="mt-2 block max-w-full text-[10px] font-black leading-tight text-[#192131] min-[360px]:text-[12px] sm:mt-3 sm:text-lg">
+                <span className="min-w-0 flex-1 text-center text-[9px] font-black leading-tight text-[#192131] min-[390px]:text-[10px] sm:text-sm">
                   {category.label}
                 </span>
-                <span className="mt-1 line-clamp-3 max-w-full text-[9px] font-medium leading-[1.3] text-[#687080] sm:mt-1.5 sm:text-[13px] sm:leading-snug">
-                  {category.description}
-                </span>
-
-                <span className="absolute bottom-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#ff5b8d] to-[#f43069] text-white shadow-[0_8px_18px_rgba(244,48,105,0.30)] transition-all duration-200 group-hover:translate-x-0.5 group-hover:shadow-[0_10px_22px_rgba(244,48,105,0.42)] sm:bottom-4 sm:right-4 sm:h-9 sm:w-9">
+                <span className="shrink-0 text-pink-500 transition-transform duration-200 group-hover:translate-x-0.5">
                   <ArrowRightIcon />
                 </span>
               </Link>
             ))}
-          </div>
         </div>
       </div>
     </nav>
@@ -58,6 +36,14 @@ export default function QuickCategoryBar() {
 }
 
 function CategoryIcon({ name }: { name: CategoryIconName }) {
+  if (name === "grid") {
+    return (
+      <svg className="relative h-[56px] w-[56px]" viewBox="0 0 80 80" fill="none" stroke="#E62E71" strokeWidth="5" strokeLinecap="round" aria-hidden="true">
+        <rect x="10" y="10" width="24" height="24" rx="4" /><rect x="46" y="10" width="24" height="24" rx="4" />
+        <rect x="10" y="46" width="24" height="24" rx="4" /><rect x="46" y="46" width="24" height="24" rx="4" />
+      </svg>
+    );
+  }
   if (name === "tag") {
     return (
       <svg className="relative h-[52px] w-[52px] drop-shadow-[0_7px_8px_rgba(190,24,93,0.20)] sm:h-[72px] sm:w-[72px]" viewBox="0 0 80 80" aria-hidden="true">
@@ -185,14 +171,6 @@ function CategoryIcon({ name }: { name: CategoryIconName }) {
       <path d="m40 7 .5 47.5L26 44l5.5-16.5L40 7Z" fill="url(#category-star-facet)" opacity=".72" />
       <path d="M27 27c5-8 13-11 21-8" fill="none" stroke="white" strokeOpacity=".72" strokeWidth="4" strokeLinecap="round" />
       <path d="m65 8 2.1 5.9L73 16l-5.9 2.1L65 24l-2.1-5.9L57 16l5.9-2.1L65 8Z" fill="#FF7A61" />
-    </svg>
-  );
-}
-
-function MiniSparkle() {
-  return (
-    <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="currentColor">
-      <path d="m12 1.5 2.1 7.1 7.1 2.1-7.1 2.1L12 20l-2.1-7.2-7.1-2.1 7.1-2.1L12 1.5Z" />
     </svg>
   );
 }

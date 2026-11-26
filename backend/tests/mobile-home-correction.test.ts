@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   HOME_ANNOUNCEMENTS,
-  HOME_HERO_SLIDES,
+  getHomePresentation,
   HOME_QUICK_CATEGORIES,
   HOME_SECTION_DEFINITIONS,
 } from "@/lib/home-content";
@@ -47,18 +47,20 @@ describe("correção completa da Home mobile", () => {
   });
 
   it("centraliza os banners usados pelo site e pela API", () => {
-    expect(source("backend/components/loja/KABijouxStories.tsx")).toContain("HOME_HERO_SLIDES");
-    expect(homeRoute).toContain("HOME_HERO_SLIDES");
+    expect(source("backend/components/loja/KABijouxStories.tsx")).toContain("presentation.banners");
+    expect(homeRoute).toContain("presentation.banners");
+    expect(getHomePresentation(new Date("2026-11-25T12:00:00-03:00")).theme).toBe("christmas");
+    expect(getHomePresentation(new Date("2026-12-27T12:00:00-03:00")).theme).toBe("default");
   });
 
   it("centraliza as mensagens usadas pelo site e pela API", () => {
     expect(source("backend/components/loja/AnnouncementBar.tsx")).toContain("HOME_ANNOUNCEMENTS");
-    expect(homeRoute).toContain("HOME_ANNOUNCEMENTS");
+    expect(homeRoute).toContain("presentation.announcements");
     expect(HOME_ANNOUNCEMENTS.length).toBeGreaterThan(0);
   });
 
   it("todos os banners canônicos são próprios para a Play Store", () => {
-    expect(JSON.stringify(HOME_HERO_SLIDES)).not.toMatch(/sex[-_ ]?shop|lingerie|adulto|er[oó]tico/i);
+    expect(JSON.stringify(getHomePresentation(new Date("2026-11-25T12:00:00-03:00")).banners)).not.toMatch(/sex[-_ ]?shop|lingerie|adulto|er[oó]tico/i);
   });
 
   it("remove a categoria adulta dos atalhos móveis", () => {
@@ -112,8 +114,9 @@ describe("correção completa da Home mobile", () => {
     const markers = [
       '{ key: "special"',
       '{ key: "hero"',
+      '{ key: "benefits"',
       '{ key: "stories"',
-      '{ key: "campaign"',
+      '{ key: "seasonal-divider"',
       '{ key: "quick"',
       'type: "products"',
     ];
@@ -177,7 +180,7 @@ describe("correção completa da Home mobile", () => {
     expect(resilientProductImage).toContain('cachePolicy="memory-disk"');
     expect(productCard).toContain("Esgotado");
     expect(productCard).toContain("formatCurrency(displayPrice)");
-    expect(productCard).toContain('product.purchaseReviewRequired ? "Em revisão" : "Comprar agora"');
+    expect(productCard).toContain('product.purchaseReviewRequired ? "Em revisão" : compact ? "Comprar" : "Comprar agora"');
     expect(productCard).toContain("disabled={!isAvailable || cartAction !== null}");
     expect(productCard).toContain('contentFit="contain"');
     expect(productCard).toContain("product.badge");

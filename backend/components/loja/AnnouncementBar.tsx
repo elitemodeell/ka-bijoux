@@ -2,8 +2,8 @@
 
 import { HOME_ANNOUNCEMENTS } from "@/lib/home-content";
 
-export default function AnnouncementBar() {
-  const loopMessages = [...HOME_ANNOUNCEMENTS, ...HOME_ANNOUNCEMENTS];
+export default function AnnouncementBar({ messages = HOME_ANNOUNCEMENTS }: { messages?: readonly string[] }) {
+  const loopMessages = [...messages, ...messages];
 
   return (
     <div className="relative z-50 overflow-hidden border-b border-pink-100/70 bg-gradient-to-r from-pink-50/95 via-white/92 to-pink-100/95 text-[12px] font-semibold text-pink-600 shadow-[0_8px_24px_rgba(236,72,153,0.08)] backdrop-blur-md">
