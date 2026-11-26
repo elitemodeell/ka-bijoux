@@ -1,3 +1,4 @@
+import { goBackOr } from "@/lib/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
@@ -160,7 +161,7 @@ export default function CheckoutEntregaScreen() {
         {Platform.OS === "ios" ? <LuxuryBackground /> : null}
         <View style={styles.buyNowLoading}>
           <Text style={styles.buyNowLoadingTitle}>Selecione o produto novamente</Text>
-          <Button label="Voltar" onPress={() => router.back()} />
+          <Button label="Voltar" onPress={() => goBackOr(router, "/(tabs)/carrinho")} />
         </View>
       </SafeAreaView>
     );
@@ -172,7 +173,7 @@ export default function CheckoutEntregaScreen() {
       {Platform.OS === "ios" ? (
         <View style={styles.iosHero}>
           <Image source={require("../../assets/redesign-ios/checkout-hero.png")} style={styles.iosHeroArt} contentFit="cover" />
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => router.back()} style={styles.iosBackBtn}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => goBackOr(router, "/(tabs)/carrinho")} style={styles.iosBackBtn}>
             <Ionicons name="arrow-back" size={25} color="#7c0b2e" />
           </TouchableOpacity>
           <View style={styles.iosHeroCopy}>
@@ -183,7 +184,7 @@ export default function CheckoutEntregaScreen() {
         </View>
       ) : (
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => goBackOr(router, "/(tabs)/carrinho")} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.title}>Entrega</Text>

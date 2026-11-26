@@ -220,6 +220,7 @@ async function anonymizeCustomer(
   alreadyDeleted: boolean;
   retainedOrderData: boolean;
   authUserId: string | null;
+  avatarPath: string | null;
 }> {
   const customer = await tx.customer.findUnique({
     where: { id: customerId },
@@ -227,11 +228,12 @@ async function anonymizeCustomer(
       id: true,
       active: true,
       authUserId: true,
+        avatarPath: true,
       orders: { select: { id: true }, take: 1 },
     },
   });
   if (!customer) {
-    return { found: false, alreadyDeleted: false, retainedOrderData: false, authUserId: null };
+    return { found: false, alreadyDeleted: false, retainedOrderData: false, authUserId: null, avatarPath: null };
   }
   if (!customer.active) {
     return {
@@ -239,6 +241,7 @@ async function anonymizeCustomer(
       alreadyDeleted: true,
       retainedOrderData: customer.orders.length > 0,
       authUserId: customer.authUserId,
+      avatarPath: customer.avatarPath,
     };
   }
 
@@ -264,6 +267,7 @@ async function anonymizeCustomer(
       passwordResetExpires: null,
       authUserId: null,
       authMigratedAt: null,
+      avatarPath: null,
     },
   });
 
@@ -272,7 +276,23 @@ async function anonymizeCustomer(
     alreadyDeleted: false,
     retainedOrderData: customer.orders.length > 0,
     authUserId: customer.authUserId,
+    avatarPath: customer.avatarPath,
   };
+}
+
+async function removeCustomerAvatar(customerId: string, avatarPath: string | null): Promise<void> {
+  if (!avatarPath) return;
+  if (!avatarPath.startsWith(`${customerId}/`)) {
+    console.error("private customer avatar path did not match its owner", { customerId });
+    return;
+  }
+  try {
+    const { supabaseAdmin } = await import("@/lib/supabase");
+    const { error } = await supabaseAdmin.storage.from("customer-avatars").remove([avatarPath]);
+    if (error) console.error("private customer avatar removal failed", { customerId });
+  } catch {
+    console.error("private customer avatar removal failed", { customerId });
+  }
 }
 
 async function removeSupabaseIdentity(authUserId: string | null): Promise<void> {
@@ -310,8 +330,10 @@ export async function executeAccountDeletion(
         tx
       );
       return {
+        customerId: request.customerId,
         retainedOrderData: deletion.retainedOrderData,
         authUserId: deletion.authUserId,
+        avatarPath: deletion.avatarPath,
       };
     }
 
@@ -343,12 +365,15 @@ export async function executeAccountDeletion(
     );
 
     return {
+      customerId: request.customerId,
       retainedOrderData: deletion.retainedOrderData,
       authUserId: deletion.authUserId,
+      avatarPath: deletion.avatarPath,
     };
   });
 
   if (!result) return { status: "invalid" };
+  await removeCustomerAvatar(result.customerId, result.avatarPath);
   await removeSupabaseIdentity(result.authUserId);
   return { status: "completed", retainedOrderData: result.retainedOrderData };
 }
@@ -376,6 +401,7 @@ export async function executeAuthenticatedAccountDeletion(
     );
     return result;
   });
+  await removeCustomerAvatar(customerId, result.avatarPath);
   await removeSupabaseIdentity(result.authUserId);
   return {
     found: result.found,

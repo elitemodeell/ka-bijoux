@@ -11,7 +11,7 @@ import { linkedCatalogOptionLabel, linkedCatalogOptions } from "@/lib/linked-cat
 import groups from "@/data/linked-catalog-options.json";
 
 const [light, dark] = groups[0].options.map(({ id, sku, label, photo }, index) => ({
-  id, sku, label, slug: sku, stock: index ? 0 : 2, purchaseMode: null,
+  id, sku, label, name: `Produto ${label}`, slug: sku, stock: index ? 0 : 2, purchaseMode: null,
   price: 12, promotionalPrice: null,
   _count: { variations: 0 }, images: [{ url: photo }],
 }));
@@ -30,8 +30,8 @@ describe("linked catalog options", () => {
     findMany.mockResolvedValue([light, { ...dark, stock: 2 }]);
     const options = await linkedCatalogOptions(light.id);
     expect(options).toEqual([
-      { id: light.id, label: light.label, slug: light.slug, available: true, imageUrl: light.images[0].url, price: 12 },
-      { id: dark.id, label: dark.label, slug: dark.slug, available: true, imageUrl: dark.images[0].url, price: 12 },
+      { id: light.id, label: light.label, name: light.name, slug: light.slug, sku: light.sku, stock: 2, available: true, imageUrl: light.images[0].url, price: 12 },
+      { id: dark.id, label: dark.label, name: dark.name, slug: dark.slug, sku: dark.sku, stock: 2, available: true, imageUrl: dark.images[0].url, price: 12 },
     ]);
   });
 
@@ -46,14 +46,20 @@ describe("linked catalog options", () => {
     expect(await linkedCatalogOptions(light.id, { active: true })).toEqual([]);
   });
 
-  it("does not expose a selector when only one linked option is currently sellable", async () => {
+  it("keeps the family stable when a commercial option has no stock", async () => {
     findMany.mockResolvedValue([light, dark]);
-    expect(await linkedCatalogOptions(light.id)).toEqual([]);
+    expect(await linkedCatalogOptions(light.id)).toMatchObject([
+      { id: light.id, available: true },
+      { id: dark.id, available: false, stock: 0 },
+    ]);
   });
 
-  it("never offers an option for sale without its confirmed photo, even with positive stock", async () => {
+  it("keeps a photo-pending commercial option visible but unavailable", async () => {
     findMany.mockResolvedValue([light, { ...dark, stock: 8, images: [] }]);
-    expect(await linkedCatalogOptions(light.id)).toEqual([]);
+    expect(await linkedCatalogOptions(light.id)).toMatchObject([
+      { id: light.id, available: true },
+      { id: dark.id, available: false, stock: 8, imageUrl: null },
+    ]);
   });
 
   it("uses an approved replacement cover stored under the exact product", async () => {

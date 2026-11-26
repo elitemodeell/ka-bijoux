@@ -6,7 +6,7 @@ import { apiError, apiSuccess } from "@/lib/utils";
 import { isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
 import { catalogGalleryForPurchase, catalogPurchaseBlocked } from "@/lib/catalog-purchase-mode";
 import { linkedCatalogOptions } from "@/lib/linked-catalog-options";
-import { saleReadyProduct, variationsShareSkuInventory } from "@/lib/catalog-storefront-eligibility";
+import { catalogVariantsForSelection, saleReadyProduct, variationsShareSkuInventory } from "@/lib/catalog-storefront-eligibility";
 
 const detailInclude = Prisma.validator<Prisma.ProductInclude>()({
   category: true,
@@ -79,9 +79,14 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
     const currentLinkedOption = linkedOptions.find((option) => option.id === product.id);
     const missingConfirmedPhoto = Boolean(currentLinkedOption && !currentLinkedOption.imageUrl);
     const serializedProduct = serialize(product);
-    const sale = saleReadyProduct(serializedProduct);
+    const selectionVariations = catalogVariantsForSelection(serializedProduct);
+    const sale = saleReadyProduct({ ...serializedProduct, variations: selectionVariations });
     if (!sale || missingConfirmedPhoto) return apiError("Produto nÃ£o encontrado.", 404);
     const publicProduct = { ...serializedProduct, ...sale };
+    // The selector uses the complete confirmed commercial family. Stock-zero
+    // or photo-pending children stay visible as unavailable instead of
+    // disappearing after another option is selected.
+    publicProduct.variations = selectionVariations;
     const relatedProducts = related.flatMap((entry) => {
       const serialized = serialize(entry);
       const eligible = saleReadyProduct(serialized);

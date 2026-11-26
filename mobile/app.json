@@ -19,7 +19,9 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "A KA Bijoux usa sua localização somente quando você solicitar, para preencher seu endereço de entrega."
+        "NSLocationWhenInUseUsageDescription": "A KA Bijoux usa sua localização somente quando você solicitar, para preencher seu endereço de entrega.",
+        "NSCameraUsageDescription": "A KA Bijoux usa a c?mera somente quando voc? escolhe tirar uma foto para seu perfil.",
+        "NSPhotoLibraryUsageDescription": "A KA Bijoux acessa apenas a foto que voc? escolher para seu perfil."
       }
     },
     "android": {
@@ -34,7 +36,6 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.CALL_PHONE",
-        "android.permission.CAMERA",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.READ_CONTACTS",
         "android.permission.READ_EXTERNAL_STORAGE",
@@ -63,6 +64,14 @@
       "expo-updates",
       "expo-secure-store",
       "expo-apple-authentication",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "A KA Bijoux acessa apenas a foto que voc? escolher para seu perfil.",
+          "cameraPermission": "A KA Bijoux usa a c?mera somente quando voc? escolhe tirar uma foto para seu perfil.",
+          "microphonePermission": false
+        }
+      ],
       [
         "expo-video",
         {

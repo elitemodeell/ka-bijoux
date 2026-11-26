@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, View, type ImageStyle, type StyleProp, type ViewStyle } from "react-native";
+import { StyleSheet, View, type ImageStyle, type StyleProp, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
-
-import { Colors } from "@/constants/theme";
 
 const imageOrigin = process.env.EXPO_PUBLIC_API_URL || (__DEV__ ? "http://127.0.0.1:3000" : "https://kabijoux.com.br");
 
@@ -20,7 +18,6 @@ export function ResilientProductImage({
   style,
   placeholderStyle,
   contentFit = "contain",
-  compact = false,
   accessibilityLabel,
 }: Props) {
   const candidates = useMemo(
@@ -40,15 +37,7 @@ export function ResilientProductImage({
 
   return (
     <View style={[styles.frame, style as StyleProp<ViewStyle>]}>
-      <View style={[StyleSheet.absoluteFill, styles.placeholder, placeholderStyle]}>
-        <Image
-          source={require("../../assets/icon.png")}
-          style={compact ? styles.logoCompact : styles.logo}
-          contentFit="contain"
-          accessibilityElementsHidden
-        />
-        {!compact ? <Text style={styles.brand}>KA Bijoux</Text> : null}
-      </View>
+      <View style={[StyleSheet.absoluteFill, styles.placeholder, placeholderStyle]} />
       {uri ? (
         <Image
           source={{ uri }}
@@ -80,8 +69,5 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff4f8",
     borderColor: "#fce7f3",
   },
-  logo: { width: 54, height: 54, opacity: 0.72 },
-  logoCompact: { width: 30, height: 30, opacity: 0.66 },
-  brand: { marginTop: 6, color: Colors.primary, fontSize: 11, fontWeight: "700", letterSpacing: 0.4 },
   hidden: { opacity: 0 },
 });

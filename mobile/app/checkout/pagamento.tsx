@@ -1,3 +1,4 @@
+import { goBackOr } from "@/lib/navigation";
 import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -183,7 +184,7 @@ export default function PagamentoScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => goBackOr(router, "/checkout")} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>Pagamento</Text>

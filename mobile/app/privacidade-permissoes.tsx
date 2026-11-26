@@ -1,3 +1,4 @@
+import { goBackOr } from "@/lib/navigation";
 import { Alert, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -71,7 +72,7 @@ export default function PrivacyPermissionsScreen() {
       <SafeAreaView style={iosStyles.safe} edges={["top", "left", "right"]}>
         <LuxuryBackground />
         <ScrollView contentContainerStyle={[iosStyles.content, { paddingBottom: Math.max(insets.bottom, 16) + 26 }]} showsVerticalScrollIndicator={false}>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => router.back()} style={iosStyles.backButton}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => goBackOr(router, "/(tabs)/perfil")} style={iosStyles.backButton}>
             <Ionicons name="arrow-back" size={26} color="#770b2d" />
           </TouchableOpacity>
           <View style={iosStyles.heroHeader}>
@@ -121,7 +122,7 @@ export default function PrivacyPermissionsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <View style={styles.header}>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => goBackOr(router, "/(tabs)/perfil")} style={styles.backButton}>
           <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text accessibilityRole="header" style={styles.headerTitle}>Privacidade e permissões</Text>

@@ -1,3 +1,4 @@
+import { goBackOr } from "@/lib/navigation";
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, FlatList,
@@ -83,7 +84,7 @@ export default function NotificacoesScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(true); }} tintColor="#e90058" />}
         >
           <View style={iosStyles.topRow}>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => router.back()} style={iosStyles.backButton}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => goBackOr(router, "/(tabs)/perfil")} style={iosStyles.backButton}>
               <Ionicons name="arrow-back" size={25} color="#d90050" />
             </TouchableOpacity>
             <Text style={iosStyles.backLabel}>Voltar</Text>
@@ -138,7 +139,7 @@ export default function NotificacoesScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}><Text style={styles.back}>← Voltar</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => goBackOr(router, "/(tabs)/perfil")}><Text style={styles.back}>← Voltar</Text></TouchableOpacity>
           <Text style={styles.title}>Notificações</Text>
           <View style={{ width: 60 }} />
         </View>
@@ -152,7 +153,7 @@ export default function NotificacoesScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => goBackOr(router, "/(tabs)/perfil")}>
           <Text style={styles.back}>← Voltar</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Notificações</Text>

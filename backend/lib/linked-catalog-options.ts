@@ -19,7 +19,7 @@ export async function linkedCatalogOptions(productId: string, mobileScope?: Pris
   const products = await prisma.product.findMany({
     where: { AND: [{ id: { in: group.options.map(({ id }) => id) }, active: true }, mobileScope ?? {}] },
     select: {
-      id: true, sku: true, blingId: true, slug: true, stock: true, price: true, promotionalPrice: true, purchaseMode: true,
+      id: true, sku: true, blingId: true, slug: true, name: true, stock: true, price: true, promotionalPrice: true, purchaseMode: true,
       category: { select: { slug: true } },
       _count: { select: { variations: { where: { active: true } } } },
       images: { orderBy: [{ order: "asc" }, { id: "asc" }], select: { url: true } },
@@ -41,18 +41,21 @@ export async function linkedCatalogOptions(productId: string, mobileScope?: Pris
       sku: product.sku,
       slug: product.slug,
     });
+    let available = true;
+    let stock = Number(product.stock);
     if (!isAdult) {
       const promotionalPrice = Number(product.promotionalPrice ?? 0);
       if (!/^310400\d{7}$/.test(sku) || !bling || bling.sku !== sku || !bling.active ||
-          Number(product.stock) <= 0 || Number(bling.stock) <= 0 ||
           Math.round(Number(product.price) * 100) !== Math.round(Number(bling.price) * 100) ||
-          (promotionalPrice > 0 && promotionalPrice < Number(product.price)) || !imageUrl) return [];
+          (promotionalPrice > 0 && promotionalPrice < Number(product.price))) return [];
+      stock = Math.min(Math.max(0, Number(product.stock) || 0), Math.max(0, Number(bling.stock) || 0));
+      available = stock > 0 && Boolean(imageUrl);
     }
     const price = isAdult
       ? getValidPromotionalPrice(Number(product.price), product.promotionalPrice?.toString()) ?? Number(product.price)
       : Number(bling?.price ?? product.price);
     return [{
-      id, label, slug: product.slug, available: isAdult || (product.stock > 0 && Number(bling?.stock ?? 0) > 0 && Boolean(imageUrl)),
+      id, label, name: product.name, slug: product.slug, sku, stock, available,
       imageUrl,
       price,
     }];

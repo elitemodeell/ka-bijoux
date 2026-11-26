@@ -15,6 +15,7 @@ const welcome = read("components/privacy/WelcomeScreen.tsx");
 const rootLayout = read("app/_layout.tsx");
 const privacy = read("app/privacidade-permissoes.tsx");
 const profile = read("app/(tabs)/perfil.tsx");
+const profileEditor = read("app/conta/editar-perfil.tsx");
 const entry = read("app/(auth)/entrada.tsx");
 const login = read("app/(auth)/login.tsx");
 const register = read("app/(auth)/cadastro.tsx");
@@ -42,7 +43,6 @@ check("vídeo não habilita reprodução em segundo plano ou PiP", videoPlugin?.
 const blocked = new Set(config.expo.android.blockedPermissions ?? []);
 for (const permission of [
   "android.permission.ACCESS_FINE_LOCATION",
-  "android.permission.CAMERA",
   "android.permission.POST_NOTIFICATIONS",
   "android.permission.READ_CONTACTS",
   "android.permission.READ_MEDIA_IMAGES",
@@ -52,9 +52,12 @@ for (const permission of [
   check(`${permission} está bloqueada`, blocked.has(permission));
 }
 
+const pickerPlugin = config.expo.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === "expo-image-picker");
+check("profile picker declares contextual permissions", Boolean(pickerPlugin?.[1]?.cameraPermission && pickerPlugin?.[1]?.photosPermission));
+check("camera permission is requested only from the profile flow", !rootLayout.match(/requestCameraPermissionsAsync/i) && profileEditor.includes("requestCameraPermissionsAsync"));
 const positiveManifestPermissions = [...manifest.matchAll(/<uses-permission\s+android:name="([^"]+)"(?![^>]*tools:node="remove")[^>]*\/>/g)].map((match) => match[1]);
 check("manifest fonte mantém apenas INTERNET como permissão positiva", positiveManifestPermissions.length === 1 && positiveManifestPermissions[0] === "android.permission.INTERNET");
-check("Info.plist declara somente localização em uso", config.expo.ios.infoPlist?.NSLocationWhenInUseUsageDescription && !Object.keys(config.expo.ios.infoPlist ?? {}).some((key) => /^NS.+Always.+UsageDescription$/.test(key)));
+check("Info.plist has contextual location, camera and photo purpose strings", config.expo.ios.infoPlist?.NSLocationWhenInUseUsageDescription && config.expo.ios.infoPlist?.NSCameraUsageDescription && config.expo.ios.infoPlist?.NSPhotoLibraryUsageDescription && !Object.keys(config.expo.ios.infoPlist ?? {}).some((key) => /^NS.+Always.+UsageDescription$/.test(key)));
 check("não há API de solicitação de permissão no fluxo inicial", !rootLayout.match(/request.*Permission/i) && !welcome.match(/request.*Permission/i));
 
 const failed = checks.filter((item) => !item.ok);

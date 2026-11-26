@@ -168,8 +168,8 @@ export const productsApi = {
   list: (params?: Record<string, string | number | boolean>, signal?: AbortSignal) =>
     api.get(`${MOBILE_API_PREFIX}/products`, { params: { withImage: true, ...params }, signal }),
 
-  getById: (id: string) =>
-    api.get(`${MOBILE_API_PREFIX}/products/${id}`),
+  getById: (id: string, signal?: AbortSignal) =>
+    api.get(`${MOBILE_API_PREFIX}/products/${id}`, { signal }),
 
   search: (query: string, params?: Record<string, string | number | boolean>, signal?: AbortSignal) =>
     api.get(`${MOBILE_API_PREFIX}/products`, { params: { withImage: true, q: query, ...params }, signal }),
@@ -256,6 +256,15 @@ export const customerApi = {
   getMe: () => api.get("/api/customers/me"),
   updateMe: (data: { name?: string; phone?: string | null; cpf?: string }) =>
     api.patch("/api/customers/me", data),
+  getAvatar: () => api.get("/api/customers/me/avatar"),
+  uploadAvatar: (uri: string) => {
+    const form = new FormData();
+    form.append("file", { uri, name: "profile.webp", type: "image/webp" } as unknown as Blob);
+    return api.post("/api/customers/me/avatar", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+  removeAvatar: () => api.delete("/api/customers/me/avatar"),
 };
 
 // ─── Notifications ────────────────────────────────────────────────────────────

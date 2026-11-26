@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => {
     tx,
     transitionEnabled: false,
     deleteSupabaseUser: vi.fn(),
+    removeAvatar: vi.fn(),
     prisma: {
       $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
     },
@@ -26,6 +27,9 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }));
+vi.mock("@/lib/supabase", () => ({
+  supabaseAdmin: { storage: { from: () => ({ remove: mocks.removeAvatar }) } },
+}));
 vi.mock("@/lib/supabase-auth", () => ({
   isSupabaseAuthTransitionEnabled: () => mocks.transitionEnabled,
   deleteSupabaseUser: mocks.deleteSupabaseUser,
@@ -44,6 +48,7 @@ beforeEach(() => {
   vi.stubEnv("JWT_SECRET", "test-only-secret-with-at-least-32-characters");
   mocks.transitionEnabled = false;
   mocks.deleteSupabaseUser.mockResolvedValue({ error: null });
+  mocks.removeAvatar.mockResolvedValue({ error: null });
   mocks.tx.accountDeletionRequest.findUnique.mockResolvedValue({
     id: "request-1",
     customerId: "customer-1",
@@ -57,6 +62,7 @@ beforeEach(() => {
     id: "customer-1",
     active: true,
     authUserId: null,
+    avatarPath: null,
     orders: [{ id: "order-1" }],
   });
   mocks.tx.customer.update.mockResolvedValue({ id: "customer-1" });
@@ -64,6 +70,23 @@ beforeEach(() => {
 });
 
 describe("secure account deletion token", () => {
+  it("removes a private avatar only after its owning customer is anonymized", async () => {
+    mocks.tx.customer.findUnique.mockResolvedValueOnce({
+      id: "customer-1",
+      active: true,
+      authUserId: null,
+      avatarPath: "customer-1/profile.webp",
+      orders: [],
+    });
+
+    await executeAccountDeletion(token);
+
+    expect(mocks.tx.customer.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ avatarPath: null }),
+    }));
+    expect(mocks.removeAvatar).toHaveBeenCalledWith(["customer-1/profile.webp"]);
+  });
+
   it("[124] executes a valid one-time request and stores only the token hash", async () => {
     const result = await executeAccountDeletion(token);
 

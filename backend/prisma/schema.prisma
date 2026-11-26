@@ -38,6 +38,7 @@ model Customer {
   authMigratedAt            DateTime?
   phone                     String?
   cpf                       String?   @unique
+  avatarPath                String?   @db.Text
   passwordHash              String
   active                    Boolean   @default(true)
   pushToken                 String?

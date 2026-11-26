@@ -13,6 +13,7 @@ export interface Customer {
   email: string;
   phone?: string;
   cpf?: string | null;
+  avatarUrl?: string | null;
 }
 
 interface AuthState {

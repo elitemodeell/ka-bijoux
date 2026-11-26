@@ -1,3 +1,4 @@
+import { goBackOr } from "@/lib/navigation";
 import { useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { catalogAttributeChoices, catalogOptionMatrix, catalogSelectionPhoto, chooseCatalogAttribute, resolveCatalogCombination } from "@shared/catalog-options";
@@ -114,6 +115,7 @@ type Variation = {
   sku?: string | null;
   imageUrl?: string | null;
   stock: number;
+  available?: boolean;
   priceModifier?: number;
   isDefault?: boolean;
   order?: number;
@@ -122,7 +124,7 @@ type Variation = {
 type Product = {
   assortedColors?: boolean;
   purchaseReviewRequired?: boolean;
-  linkedOptions?: { id: string; label: string; available: boolean; imageUrl: string | null; price?: number }[];
+  linkedOptions?: { id: string; label: string; name?: string; sku?: string; stock?: number; available: boolean; imageUrl: string | null; price?: number }[];
   fixedColor?: string | null;
   id: string;
   sku?: string | null;
@@ -270,6 +272,7 @@ export default function ProdutoScreen() {
       variations: [],
     };
   });
+  const [linkedFamilyOptions, setLinkedFamilyOptions] = useState<Product["linkedOptions"]>(undefined);
   const [related, setRelated] = useState<RelatedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -298,12 +301,13 @@ export default function ProdutoScreen() {
       return;
     }
     let current = true;
+    const controller = new AbortController();
     setSecondaryVisible(false);
     setLoading(true);
     setNotFound(false);
     setSelectedPhoto(null);
     setVariationError(false);
-    productsApi.getById(id)
+    productsApi.getById(id, controller.signal)
       .then(async (res) => {
         if (!current) return;
         const p: Product = res.data.data.product;
@@ -317,6 +321,14 @@ export default function ProdutoScreen() {
         const confirmedSavedPhoto = confirmedImages.find((url) => sameCatalogPhoto(url, savedPhoto)) ?? null;
         const confirmedPreviewPhoto = confirmedImages.find((url) => sameCatalogPhoto(url, previewImage)) ?? null;
         setProduct(p);
+        if (p.linkedOptions?.some((option) => option.id === p.id)) {
+          setLinkedFamilyOptions((current) => {
+            if (!current?.length) return p.linkedOptions;
+            const next = new Map(current.map((option) => [option.id, option]));
+            for (const option of p.linkedOptions ?? []) next.set(option.id, option);
+            return [...next.values()];
+          });
+        }
         setSelectedPhoto(confirmedSavedPhoto ?? confirmedPreviewPhoto);
         setRelated(res.data.data.related ?? []);
         setSelectedVariation(null);
@@ -325,7 +337,7 @@ export default function ProdutoScreen() {
       })
       .catch(() => { if (current) setNotFound(true); })
       .finally(() => { if (current) setLoading(false); });
-    return () => { current = false; };
+    return () => { current = false; controller.abort(); };
   }, [id]);
 
   useEffect(() => {
@@ -336,14 +348,17 @@ export default function ProdutoScreen() {
 
   useEffect(() => {
     if (!product || loading || !secondaryVisible) return;
+    let current = true;
     reviewsApi.list(product.id)
       .then((res) => {
+        if (!current) return;
         const data = res.data.data;
         setReviews(data.reviews ?? []);
         setAvgRating(data.avgRating ?? 0);
         setReviewsTotal(data.total ?? 0);
       })
       .catch(() => {});
+    return () => { current = false; };
   }, [product?.id, loading, secondaryVisible]);
 
   useEffect(() => {
@@ -351,8 +366,10 @@ export default function ProdutoScreen() {
       setFavoriteId(null);
       return;
     }
+    let current = true;
     favoritesApi.list()
       .then((res) => {
+        if (!current) return;
         const list: Array<{ favoriteId: string; id: string; slug?: string | null }> = res.data.data ?? [];
         const found = list.find((f) =>
           f.id === product.id ||
@@ -362,6 +379,7 @@ export default function ProdutoScreen() {
         setFavoriteId(found?.favoriteId ?? null);
       })
       .catch(() => {});
+    return () => { current = false; };
   }, [customer, product?.id, product?.slug, id]);
 
   async function toggleFavorite() {
@@ -408,6 +426,14 @@ export default function ProdutoScreen() {
       const nextProduct: Product = response.data.data.product;
       if (nextProduct.id !== option.id) throw new Error("O produto vinculado retornou outro cadastro.");
       setProduct(nextProduct);
+      if (nextProduct.linkedOptions?.some((item) => item.id === nextProduct.id)) {
+        setLinkedFamilyOptions((current) => {
+          if (!current?.length) return nextProduct.linkedOptions;
+          const next = new Map(current.map((item) => [item.id, item]));
+          for (const item of nextProduct.linkedOptions ?? []) next.set(item.id, item);
+          return [...next.values()];
+        });
+      }
       setRelated(response.data.data.related ?? []);
       setSelectedPhoto(null);
       setSelectedVariation(null);
@@ -468,7 +494,7 @@ export default function ProdutoScreen() {
     setOpenFaq((prev) => (prev === index ? null : index));
   }
 
-  if (!notFound && ((loading && !product) || (product && product.id !== id && product.slug !== id))) {
+  if (!notFound && ((loading && !product) || (product && product.id !== id && product.slug !== id && !pendingLinkedOptionId))) {
     return <View style={styles.center}><ActivityIndicator color={Colors.primary} size="large" /></View>;
   }
 
@@ -477,7 +503,7 @@ export default function ProdutoScreen() {
       <View style={styles.center}>
         <Ionicons name="alert-circle-outline" size={48} color={Colors.textMuted} />
         <Text style={[styles.emptyText, { marginTop: 12 }]}>Produto não encontrado.</Text>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 8 }}>
+        <TouchableOpacity onPress={() => goBackOr(router, "/produtos")} style={{ marginTop: 8 }}>
           <Text style={[styles.emptyText, { color: Colors.primary }]}>Voltar</Text>
         </TouchableOpacity>
       </View>
@@ -487,10 +513,11 @@ export default function ProdutoScreen() {
   // ── Computed values ────────────────────────────────────────────────────────
 
   const hasVariations = product.variations.length > 0;
+  const linkedOptions = linkedFamilyOptions?.length ? linkedFamilyOptions : product.linkedOptions ?? [];
   const matrix = product.variations.length > 1 ? catalogOptionMatrix(product.variations, (option) => option) : null;
   const activeVariation = matrix ? resolveCatalogCombination(matrix, selectedAttributes) : product.variations.find((v) => v.id === selectedVariation) ??
     (product.variations.length === 1 && product.variations[0].sku?.trim() ? product.variations[0] : null);
-  const selectedLinked = product.linkedOptions?.find((option) => option.id === product.id);
+  const selectedLinked = linkedOptions.find((option) => option.id === product.id);
   const photoUrls = activeVariation ? [activeVariation.imageUrl] : product.images.map(({ url }) => url);
   const galleryPhotos = [...new Set(photoUrls)].flatMap((url) => {
     if (!url) return [];
@@ -508,11 +535,11 @@ export default function ProdutoScreen() {
     setSelectedPhoto(photo);
     void AsyncStorage.setItem(`catalog-photo:${product.id}`, photo).catch(() => undefined);
   }
-  const isAvailable = !product.purchaseReviewRequired && product.linkedOptions?.find((option) => option.id === product.id)?.available !== false && (hasVariations && !product.sharedVariationStock
-    ? product.variations.some((v) => v.sku?.trim() && v.stock > 0)
+  const isAvailable = !product.purchaseReviewRequired && selectedLinked?.available !== false && (hasVariations && !product.sharedVariationStock
+    ? product.variations.some((v) => v.sku?.trim() && v.stock > 0 && v.available !== false && Boolean(v.imageUrl))
     : product.stock > 0);
   const activeStock = product.sharedVariationStock ? product.stock : activeVariation?.stock ?? product.stock;
-  const matrixPurchaseBlocked = Boolean(matrix && (!activeVariation || !activeVariation.sku?.trim() || activeStock <= 0));
+  const matrixPurchaseBlocked = Boolean(matrix && (!activeVariation || !activeVariation.sku?.trim() || activeVariation.available === false || activeStock <= 0 || !activeVariation.imageUrl));
   const priceModifier = Number(activeVariation?.priceModifier ?? 0);
   const basePrice = product.promotionalPrice && product.promotionalPrice < product.price ? product.promotionalPrice : product.price;
   const hasPromo = !!product.promotionalPrice && product.promotionalPrice < product.price;
@@ -520,7 +547,7 @@ export default function ProdutoScreen() {
   const discount = hasPromo ? Math.round(((Number(product.price) - Number(product.promotionalPrice!)) / Number(product.price)) * 100) : 0;
   const variationNames = new Set(product.variations.map((variation) => variation.name));
   const variationGroupName = variationNames.size === 1 ? product.variations[0].name : "Opção";
-  const hasCommercialSelector = (product.linkedOptions?.length ?? 0) > 1 || Boolean(matrix) || product.variations.length > 1;
+  const hasCommercialSelector = linkedOptions.length > 1 || Boolean(matrix) || product.variations.length > 1;
   const selectedOptionSku = activeVariation?.sku ?? (selectedLinked ? product.sku : null);
 
   const optionSelector = (
@@ -530,11 +557,11 @@ export default function ProdutoScreen() {
           <Text style={styles.selectedVariationLabel}>Este produto está em revisão e ainda não pode ser comprado.</Text>
         </View>
       )}
-      {(product.linkedOptions?.length ?? 0) > 1 && (
+      {linkedOptions.length > 1 && (
         <View style={[styles.section, styles.optionSection]}>
           <Text style={styles.sectionTitle}>Escolha a opção</Text>
           <View style={styles.variations}>
-            {product.linkedOptions?.map((option) => (
+            {linkedOptions.map((option) => (
               <TouchableOpacity key={option.id} accessibilityRole="button"
                     disabled={!option.available || pendingLinkedOptionId !== null}
                     accessibilityState={{ selected: option.id === product.id || option.id === pendingLinkedOptionId, disabled: !option.available || pendingLinkedOptionId !== null }}
@@ -544,7 +571,7 @@ export default function ProdutoScreen() {
                   {option.imageUrl && <ResilientProductImage sources={[option.imageUrl]} style={styles.variationThumb} contentFit="contain" compact />}
                   <View>
                         <Text style={[styles.variationText, (option.id === product.id || option.id === pendingLinkedOptionId) && styles.variationTextActive]}>{option.label}</Text>
-                    <Text style={styles.variationHint}>{!option.available ? "Indisponível" : option.price !== undefined ? formatCurrency(option.price) : ""}</Text>
+                    <Text style={styles.variationHint}>{!option.available ? (option.stock === 0 ? "Esgotado" : "Foto oficial pendente") : option.price !== undefined ? formatCurrency(option.price) : ""}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -559,7 +586,7 @@ export default function ProdutoScreen() {
               <Text style={styles.sectionTitle}>{name}: {selectedAttributes[axis] ?? "Escolha"}</Text>
               <View style={styles.variations}>
                 {catalogAttributeChoices(matrix, axis,
-                  (option) => Boolean(option.sku?.trim() && (product.sharedVariationStock ? product.stock : option.stock) > 0),
+                  (option) => option.available === true && Boolean(option.sku?.trim() && (product.sharedVariationStock ? product.stock : option.stock) > 0 && option.imageUrl),
                   (option) => resolveProductPhoto(product.id, option.imageUrl, product.updatedAt, option.id),
                 ).map((choice) => {
                   const selected = selectedAttributes[axis] === choice.value;
@@ -571,7 +598,7 @@ export default function ProdutoScreen() {
                       style={[styles.variationChip, selected && styles.variationChipActive, !choice.available && styles.variationChipUnavailable]}
                       onPress={() => {
                         setSelectedAttributes(chooseCatalogAttribute(matrix, selectedAttributes, axis, choice.value,
-                          (option) => Boolean(option.sku?.trim() && (product.sharedVariationStock ? product.stock : option.stock) > 0),
+                          (option) => option.available === true && Boolean(option.sku?.trim() && (product.sharedVariationStock ? product.stock : option.stock) > 0 && option.imageUrl),
                         ));
                         setQuantity(1);
                         setVariationError(false);
@@ -600,7 +627,7 @@ export default function ProdutoScreen() {
           <View style={styles.variations}>
             {product.variations.map((v) => {
               const isSelected = selectedVariation === v.id;
-              const unavailable = !v.sku?.trim() || (product.sharedVariationStock ? product.stock : v.stock) <= 0;
+              const unavailable = !v.sku?.trim() || v.available === false || !v.imageUrl || (product.sharedVariationStock ? product.stock : v.stock) <= 0;
               const photo = resolveProductPhoto(product.id, v.imageUrl, product.updatedAt, v.id);
               return (
                 <TouchableOpacity key={v.id}
@@ -658,7 +685,7 @@ export default function ProdutoScreen() {
 
         {/* Botões flutuantes */}
         <View style={styles.floatingBtns}>
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity onPress={() => goBackOr(router, "/produtos")}>
             <View style={styles.floatingBtnInner}>
               <Ionicons name="arrow-back" size={20} color={Colors.textPrimary} />
             </View>

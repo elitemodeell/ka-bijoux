@@ -56,6 +56,40 @@ export function variationsShareSkuInventory(
   return Boolean(sharedVariationStock && sharedSku && variations.every(({ sku }) => sku === sharedSku));
 }
 
+/**
+ * Keeps every active child SKU that still exists commercially in Bling available
+ * to the selector. Out-of-stock and photo-pending options remain visible but
+ * cannot be purchased; only the sale-ready subset is returned by saleReadyProduct.
+ */
+export function catalogVariantsForSelection<T extends SaleCandidate>(candidate: T) {
+  const basePrice = Number(candidate.promotionalPrice && Number(candidate.promotionalPrice) < Number(candidate.price)
+    ? candidate.promotionalPrice
+    : candidate.price);
+  if (!Number.isFinite(basePrice)) return [];
+  const sharedSkuInventory = variationsShareSkuInventory(candidate.sharedVariationStock, candidate.variations ?? []);
+
+  return (candidate.variations ?? []).flatMap((variant) => {
+    const sku = variant.sku?.trim();
+    if (!sku || !SKU_PATTERN.test(sku)) return [];
+    const bling = findBlingProductForSource({ sku });
+    if (!bling || bling.sku !== sku || !bling.active || !Number.isFinite(Number(bling.price))) return [];
+    const stock = Math.min(
+      Math.max(0, Number(sharedSkuInventory ? candidate.stock : variant.stock) || 0),
+      Math.max(0, Number(bling.stock) || 0),
+    );
+    const imageUrl = variant.imageUrl && isOfficialCatalogPhoto(variant.imageUrl, candidate.id, sku, variant.id)
+      ? variant.imageUrl
+      : null;
+    return [{
+      ...variant,
+      stock,
+      imageUrl,
+      priceModifier: Number(bling.price) - basePrice,
+      available: stock > 0 && Boolean(imageUrl),
+    }];
+  });
+}
+
 export function saleReadyProduct<T extends SaleCandidate>(candidate: T): SaleReadyData<T> | null {
   if (candidate.purchaseReviewRequired || !candidate.sku || !SKU_PATTERN.test(candidate.sku)) return null;
 

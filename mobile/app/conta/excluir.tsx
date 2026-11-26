@@ -1,3 +1,4 @@
+import { goBackOr } from "@/lib/navigation";
 import { useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
@@ -71,7 +72,7 @@ export default function ExcluirContaScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => goBackOr(router, "/(tabs)/perfil")} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>Excluir Conta</Text>
@@ -132,7 +133,7 @@ export default function ExcluirContaScreen() {
 
         <Button
           label="Cancelar"
-          onPress={() => router.back()}
+          onPress={() => goBackOr(router, "/(tabs)/perfil")}
           variant="outline"
           fullWidth
           size="lg"

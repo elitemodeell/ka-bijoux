@@ -1,3 +1,4 @@
+import { goBackOr } from "@/lib/navigation";
 import { useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
@@ -125,7 +126,7 @@ export default function PedidoDetalheScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => goBackOr(router, "/pedidos")} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.title}>Pedido</Text>
@@ -133,7 +134,7 @@ export default function PedidoDetalheScreen() {
         </View>
         <View style={styles.center}>
           <Text style={styles.errorText}>{error || "Pedido não encontrado."}</Text>
-          <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
+          <TouchableOpacity onPress={() => goBackOr(router, "/pedidos")} style={{ marginTop: 16 }}>
             <Text style={{ color: Colors.primary, fontWeight: "600" }}>Voltar</Text>
           </TouchableOpacity>
         </View>
@@ -161,7 +162,7 @@ export default function PedidoDetalheScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => goBackOr(router, "/pedidos")} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title} numberOfLines={1}>{order.orderNumber}</Text>

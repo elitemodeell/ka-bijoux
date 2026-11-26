@@ -1,7 +1,9 @@
+import { goBackOr } from "@/lib/navigation";
 import { useEffect, useState } from "react";
 import {
   Alert,
   ActivityIndicator,
+  Linking,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +15,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { Colors, FontSizes, Spacing, BorderRadius } from "@/constants/theme";
 import { useAuthStore } from "@/stores/authStore";
 import { customerApi } from "@/services/api";
@@ -34,6 +38,109 @@ export default function EditarPerfilScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState("");
+  const [avatarBusy, setAvatarBusy] = useState(false);
+
+  useEffect(() => {
+    if (!customer?.id) return;
+    let active = true;
+    customerApi.getAvatar()
+      .then((response) => {
+        if (!active) return;
+        const avatarUrl = response.data.data?.avatarUrl ?? null;
+        const current = useAuthStore.getState().customer;
+        if (current?.id === customer.id) void setCustomer({ ...current, avatarUrl });
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [customer?.id, setCustomer]);
+
+  async function chooseAvatar(source: "library" | "camera") {
+    if (avatarBusy) return;
+    setAvatarBusy(true);
+    try {
+      const permission = source === "camera"
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Permissão necessária",
+          source === "camera"
+            ? "Permita o acesso à câmera para tirar sua foto de perfil."
+            : "Permita o acesso às fotos para escolher sua foto de perfil.",
+          [
+            { text: "Agora não", style: "cancel" },
+            ...(permission.canAskAgain ? [] : [{ text: "Abrir Ajustes", onPress: () => { void Linking.openSettings(); } }]),
+          ],
+        );
+        return;
+      }
+
+      const pickerOptions: ImagePicker.ImagePickerOptions = {
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.88,
+        exif: false,
+        base64: false,
+      };
+      const result = source === "camera"
+        ? await ImagePicker.launchCameraAsync(pickerOptions)
+        : await ImagePicker.launchImageLibraryAsync(pickerOptions);
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const asset = result.assets[0];
+      const side = Math.min(asset.width, asset.height);
+      const image = await ImageManipulator.manipulate(asset.uri)
+        .crop({
+          originX: Math.floor((asset.width - side) / 2),
+          originY: Math.floor((asset.height - side) / 2),
+          width: side,
+          height: side,
+        })
+        .resize({ width: 512, height: 512 })
+        .renderAsync();
+      const compressed = await image.saveAsync({ format: SaveFormat.WEBP, compress: 0.82 });
+      const response = await customerApi.uploadAvatar(compressed.uri);
+      const avatarUrl = response.data.data?.avatarUrl;
+      if (!avatarUrl) throw new Error("AVATAR_URL_MISSING");
+      const current = useAuthStore.getState().customer;
+      if (current) await setCustomer({ ...current, avatarUrl });
+    } catch {
+      Alert.alert("Não foi possível atualizar a foto", "Confira sua conexão e tente novamente. Sua foto atual foi preservada.");
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
+  async function removeAvatar() {
+    if (!customer?.avatarUrl || avatarBusy) return;
+    Alert.alert("Remover foto de perfil?", "Sua foto será removida da conta.", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Remover",
+        style: "destructive",
+        onPress: () => {
+          setAvatarBusy(true);
+          void customerApi.removeAvatar()
+            .then(async () => {
+              const current = useAuthStore.getState().customer;
+              if (current) await setCustomer({ ...current, avatarUrl: null });
+            })
+            .catch(() => Alert.alert("Não foi possível remover", "Tente novamente quando sua conexão estiver estável."))
+            .finally(() => setAvatarBusy(false));
+        },
+      },
+    ]);
+  }
+
+  function openAvatarOptions() {
+    Alert.alert("Foto do perfil", "Escolha uma opção", [
+      { text: "Escolher da galeria", onPress: () => { void chooseAvatar("library"); } },
+      { text: "Tirar foto", onPress: () => { void chooseAvatar("camera"); } },
+      ...(customer?.avatarUrl ? [{ text: "Remover foto", style: "destructive" as const, onPress: removeAvatar }] : []),
+      { text: "Cancelar", style: "cancel" },
+    ]);
+  }
 
   useEffect(() => {
     let active = true;
@@ -46,7 +153,10 @@ export default function EditarPerfilScreen() {
         setPhone(formatBrazilianPhone(profile?.phone ?? customer?.phone ?? ""));
         setCpf(formatCpf(profile?.cpf ?? ""));
         setCpfLocked(isValidCpf(profile?.cpf ?? ""));
-        if (profile) void setCustomer(profile);
+        if (profile) {
+          const current = useAuthStore.getState().customer;
+          void setCustomer({ ...profile, avatarUrl: current?.avatarUrl ?? null });
+        }
       })
       .catch(() => {
         if (active) setError("Não foi possível carregar todos os dados do perfil.");
@@ -82,11 +192,12 @@ export default function EditarPerfilScreen() {
         cpf: normalizeCpf(cpf),
       });
       const updatedProfile = response.data.data;
-      await setCustomer(updatedProfile);
+      const current = useAuthStore.getState().customer;
+      await setCustomer({ ...updatedProfile, avatarUrl: current?.avatarUrl ?? null });
       setCpf(formatCpf(updatedProfile.cpf ?? ""));
       setCpfLocked(isValidCpf(updatedProfile.cpf ?? ""));
       Alert.alert("Sucesso", "Dados atualizados com sucesso.", [
-        { text: "OK", onPress: () => router.back() },
+        { text: "OK", onPress: () => goBackOr(router, "/(tabs)/perfil") },
       ]);
     } catch (requestError: unknown) {
       const response = (requestError as {
@@ -115,7 +226,7 @@ export default function EditarPerfilScreen() {
         <LuxuryBackground />
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={iosStyles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => router.back()} style={iosStyles.backRow}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => goBackOr(router, "/(tabs)/perfil")} style={iosStyles.backRow}>
               <View style={iosStyles.backButton}><Ionicons name="arrow-back" size={28} color="#df0053" /></View><Text style={iosStyles.backText}>Voltar</Text>
             </TouchableOpacity>
             <View style={iosStyles.heroHeader}>
@@ -124,9 +235,13 @@ export default function EditarPerfilScreen() {
                 <Text style={iosStyles.subtitle}>Mantenha seus dados sempre atualizados{`\n`}para uma experiência ainda melhor{`\n`}na KA Bijoux.</Text>
               </View>
               <View style={iosStyles.logoMedallion}>
-                <Image source={require("../../assets/icon.png")} style={iosStyles.logo} contentFit="contain" accessibilityLabel="Logo oficial KA Bijoux" />
+                {customer?.avatarUrl
+                  ? <Image source={{ uri: customer.avatarUrl }} style={iosStyles.logo} contentFit="cover" accessibilityLabel="Foto do perfil" cachePolicy="memory-disk" />
+                  : <Text style={iosStyles.avatarInitial}>{customer?.name?.trim().charAt(0).toUpperCase() || "K"}</Text>}
               </View>
-              <View style={iosStyles.pencilBadge}><Ionicons name="pencil-outline" size={20} color="#e00054" /></View>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Alterar foto do perfil" disabled={avatarBusy} onPress={openAvatarOptions} style={iosStyles.pencilBadge}>
+                {avatarBusy ? <ActivityIndicator size="small" color="#e00054" /> : <Ionicons name="pencil-outline" size={20} color="#e00054" />}
+              </TouchableOpacity>
             </View>
 
             {error ? <View style={iosStyles.errorBox}><Ionicons name="alert-circle-outline" size={20} color={Colors.error} /><Text style={iosStyles.errorText}>{error}</Text></View> : null}
@@ -168,10 +283,25 @@ export default function EditarPerfilScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => goBackOr(router, "/(tabs)/perfil")} style={styles.backBtn}>
             <Text style={styles.backText}>← Voltar</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Editar perfil</Text>
+
+          <View style={styles.avatarEditor}>
+            <View style={styles.avatarCircle}>
+              {customer?.avatarUrl
+                ? <Image source={{ uri: customer.avatarUrl }} style={styles.avatarImage} contentFit="cover" accessibilityLabel="Foto do perfil" cachePolicy="memory-disk" />
+                : <Text style={styles.avatarInitial}>{customer?.name?.trim().charAt(0).toUpperCase() || "K"}</Text>}
+            </View>
+            <View style={{ flex: 1, gap: 8 }}>
+              <Text style={styles.label}>Foto do perfil</Text>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Alterar foto do perfil" onPress={openAvatarOptions} disabled={avatarBusy} style={styles.avatarAction}>
+                {avatarBusy ? <ActivityIndicator size="small" color={Colors.primary} /> : <Ionicons name="camera-outline" size={18} color={Colors.primary} />}
+                <Text style={styles.avatarActionText}>{avatarBusy ? "Salvando foto..." : "Escolher ou tirar foto"}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           {error ? (
             <View style={styles.errorBox}>
@@ -256,6 +386,12 @@ const styles = StyleSheet.create({
   errorBox: { backgroundColor: Colors.errorLight, borderRadius: BorderRadius.lg, padding: 12, marginBottom: 12 },
   errorText: { color: Colors.error, fontSize: FontSizes.sm, fontWeight: "500" },
   form: { gap: 16 },
+  avatarEditor: { flexDirection: "row", alignItems: "center", gap: 16, padding: 16, marginBottom: 20, borderRadius: BorderRadius.xl, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
+  avatarCircle: { width: 76, height: 76, borderRadius: 38, overflow: "hidden", alignItems: "center", justifyContent: "center", backgroundColor: "#fff0f4" },
+  avatarImage: { width: "100%", height: "100%" },
+  avatarInitial: { color: Colors.primary, fontSize: 30, fontWeight: "800" },
+  avatarAction: { flexDirection: "row", alignItems: "center", gap: 7, minHeight: 36 },
+  avatarActionText: { color: Colors.primary, fontSize: FontSizes.sm, fontWeight: "700" },
   inputGroup: { gap: 6 },
   label: { fontSize: FontSizes.sm, fontWeight: "600", color: Colors.textPrimary },
   input: { backgroundColor: Colors.surface, borderWidth: 1.5, borderColor: Colors.border, borderRadius: BorderRadius.xl, paddingHorizontal: 16, paddingVertical: 14, fontSize: FontSizes.base, color: Colors.textPrimary },
@@ -276,6 +412,7 @@ const iosStyles = StyleSheet.create({
   subtitle: { color: "#726e78", fontFamily: "Inter", fontSize: 14, lineHeight: 20, marginTop: 8 },
   logoMedallion: { position: "absolute", right: 1, top: 7, width: 132, height: 132, borderRadius: 66, overflow: "hidden", backgroundColor: "#fff0f4", borderWidth: 5, borderColor: "rgba(255,255,255,0.85)", shadowColor: "#c44d71", shadowOpacity: 0.15, shadowRadius: 13, shadowOffset: { width: 0, height: 6 } },
   logo: { width: "100%", height: "100%" },
+  avatarInitial: { color: "#d90050", fontFamily: "PlayfairDisplay", fontSize: 52, fontWeight: "800" },
   pencilBadge: { position: "absolute", right: -1, top: 111, width: 44, height: 44, borderRadius: 22, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#bf4b70", shadowOpacity: 0.16, shadowRadius: 9, shadowOffset: { width: 0, height: 4 } },
   errorBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(254,226,226,0.9)", borderRadius: 17, padding: 12, marginBottom: 12 },
   errorText: { flex: 1, color: Colors.error, fontFamily: "Inter", fontSize: 12, lineHeight: 17 },

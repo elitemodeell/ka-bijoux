@@ -1,12 +1,14 @@
+import { useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Alert, Share, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/Button";
-import { api } from "@/services/api";
+import { api, customerApi } from "@/services/api";
 import { Image } from "expo-image";
 import { LuxuryBackground } from "@/components/ios/LuxuryBackground";
 
@@ -31,7 +33,18 @@ const menuItems: MenuItem[] = [
 export default function PerfilScreen() {
   const router = useRouter();
   const tabBarHeight = useBottomTabBarHeight();
-  const { customer, logout } = useAuthStore();
+  const { customer, logout, setCustomer } = useAuthStore();
+
+  useFocusEffect(useCallback(() => {
+    if (!customer?.id) return;
+    let active = true;
+    customerApi.getAvatar().then((response) => {
+      if (!active) return;
+      const current = useAuthStore.getState().customer;
+      if (current?.id === customer.id) void setCustomer({ ...current, avatarUrl: response.data.data?.avatarUrl ?? null });
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [customer?.id, setCustomer]));
 
   if (!customer) {
     return (
@@ -73,7 +86,9 @@ export default function PerfilScreen() {
 
           <View style={iosStyles.profileCard}>
             <View style={iosStyles.avatar}>
-              <Image source={require("../../assets/icon.png")} style={iosStyles.avatarLogo} contentFit="contain" accessibilityLabel="Logo oficial KA Bijoux" />
+              {customer.avatarUrl
+                ? <Image source={{ uri: customer.avatarUrl }} style={iosStyles.avatarLogo} contentFit="cover" accessibilityLabel="Foto do perfil" cachePolicy="memory-disk" />
+                : <Text style={iosStyles.avatarInitial}>{customer.name.charAt(0).toUpperCase()}</Text>}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={iosStyles.clientLabel}>C L I E N T E</Text>
@@ -129,7 +144,9 @@ export default function PerfilScreen() {
         {/* Avatar e dados */}
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{customer.name.charAt(0).toUpperCase()}</Text>
+            {customer.avatarUrl
+              ? <Image source={{ uri: customer.avatarUrl }} style={styles.avatarImage} contentFit="cover" accessibilityLabel="Foto do perfil" cachePolicy="memory-disk" />
+              : <Text style={styles.avatarText}>{customer.name.charAt(0).toUpperCase()}</Text>}
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.profileName}>{customer.name}</Text>
@@ -241,7 +258,9 @@ const styles = StyleSheet.create({
     width: 54, height: 54, borderRadius: 27,
     backgroundColor: Colors.primary,
     alignItems: "center", justifyContent: "center",
+    overflow: "hidden",
   },
+  avatarImage: { width: "100%", height: "100%" },
   avatarText: { color: "#fff", fontSize: FontSizes.xl, fontWeight: "800" },
   profileName: { fontSize: FontSizes.md, fontWeight: "700", color: Colors.textPrimary },
   profileEmail: { fontSize: FontSizes.sm, color: Colors.textMuted, marginTop: 2 },
@@ -297,6 +316,7 @@ const iosStyles = StyleSheet.create({
   profileCard: { minHeight: 112, marginTop: -2, borderRadius: 25, padding: 15, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "rgba(255,255,255,0.92)", shadowColor: "#cb718d", shadowOpacity: 0.11, shadowRadius: 16, shadowOffset: { width: 0, height: 7 } },
   avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: "#fff4f6", borderWidth: 2, borderColor: "#ffe3ea", overflow: "hidden" },
   avatarLogo: { width: "100%", height: "100%" },
+  avatarInitial: { color: "#df0053", fontFamily: "PlayfairDisplay", fontSize: 35, fontWeight: "800", textAlign: "center", textAlignVertical: "center", width: "100%", height: "100%" },
   clientLabel: { color: "#b27b8a", fontFamily: "Inter", fontSize: 10, letterSpacing: 3 },
   profileName: { color: "#16070c", fontFamily: "Inter", fontSize: 18, fontWeight: "800", marginTop: 4 },
   profileEmail: { color: "#9b878e", fontFamily: "Inter", fontSize: 12, marginTop: 4 },

@@ -1,3 +1,4 @@
+import { goBackOr } from "@/lib/navigation";
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
@@ -69,7 +70,7 @@ export default function FavoritosScreen() {
       <SafeAreaView style={iosStyles.safe} edges={["top"]}>
         <LuxuryBackground />
         <ScrollView contentContainerStyle={iosStyles.content} showsVerticalScrollIndicator={false}>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => router.back()} style={iosStyles.backButton}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => goBackOr(router, "/(tabs)/perfil")} style={iosStyles.backButton}>
             <Ionicons name="chevron-back" size={31} color="#c80049" />
           </TouchableOpacity>
           <Text accessibilityRole="header" style={iosStyles.title}>Favoritos</Text>
@@ -106,7 +107,7 @@ export default function FavoritosScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => goBackOr(router, "/(tabs)/perfil")} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.title}>Favoritos</Text>
@@ -126,7 +127,7 @@ export default function FavoritosScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => goBackOr(router, "/(tabs)/perfil")} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>Favoritos</Text>

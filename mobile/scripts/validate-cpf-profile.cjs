@@ -15,7 +15,7 @@ assert.ok(cpf.includes('/^(\\d)\\1{10}$/'), "Sequências repetidas de CPF não s
 assert.ok(profile.includes("isValidCpf(cpf)"), "Tela não valida CPF antes do envio");
 assert.ok(profile.includes("cpf: normalizeCpf(cpf)"), "Tela não envia CPF normalizado");
 assert.ok(profile.includes("cpfLocked"), "CPF já vinculado não está protegido contra alteração");
-assert.ok(profile.includes("await setCustomer(updatedProfile)"), "Perfil atualizado não entra no estado/cache local");
+assert.ok(profile.includes("await setCustomer({ ...updatedProfile, avatarUrl:"), "Perfil atualizado não entra no estado/cache local sem perder a foto");
 assert.ok(authStore.includes('SecureStore.setItemAsync("ka-customer"'), "Perfil não persiste após reiniciar o app");
 assert.ok(authStore.includes("cpf?: string | null"), "Tipo local do Customer não contém CPF");
 assert.ok(payment.includes("customerApi") && payment.includes(".getMe()"), "Pagamento não busca o Customer no servidor");
