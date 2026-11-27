@@ -44,7 +44,11 @@ assert.ok(payment.includes("useSafeAreaInsets"), "Pagamento não respeita safe a
 assert.ok(payment.includes("submitLock.current"), "Pagamento não bloqueia duplo toque");
 assert.ok(payment.includes("Tentar novamente"), "Pagamento não oferece nova tentativa idempotente");
 assert.ok(payment.includes("response?.data?.code"), "Pagamento não diferencia falhas do checkout");
-assert.ok(tabs.includes("60 + insets.bottom"), "Barra de abas não inclui a safe area do sistema");
+assert.ok(
+  tabs.includes("height: 60 + Math.max(insets.bottom, 6)") &&
+    tabs.includes("paddingBottom: Math.max(insets.bottom, 6)"),
+  "Barra de abas não inclui a safe area do sistema",
+);
 assert.match(gallery, /name="close" size=\{26\} color="#141414"/, "Botão de fechar precisa ter ícone escuro");
 assert.match(gallery, /closeButton: \{[^}]*backgroundColor: "#fff"/, "Botão de fechar precisa de fundo branco opaco");
 assert.ok(gallery.includes("onSelectedIndexChange(lastModalIndex.current)") && !gallery.includes("cartApi"),
