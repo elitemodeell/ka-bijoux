@@ -18,7 +18,8 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFonts } from "expo-font";
-import { categoryArtwork, instagramProfile, thumbnail } from "@/components/home/brand";
+import * as WebBrowser from "expo-web-browser";
+import { categoryArtwork, instagramProfile, instagramStoriesUrl, thumbnail } from "@/components/home/brand";
 import { Image, type ImageSource } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -69,11 +70,11 @@ function resolveUrl(value?: string | number | ImageSource | null) {
 
 async function openInstagram() {
   try {
-    // The HTTPS universal link opens Instagram when installed and the system browser otherwise.
-    await Linking.openURL(instagramProfile);
+    // The Stories universal link opens Instagram when installed, otherwise the browser.
+    await Linking.openURL(instagramStoriesUrl);
   } catch {
     try {
-      await Linking.openURL("https://www.instagram.com/kabijoux_/");
+      await WebBrowser.openBrowserAsync(instagramStoriesUrl).catch(() => Linking.openURL(instagramProfile));
     } catch {
       Alert.alert("Instagram", "Não foi possível abrir o Instagram. Tente novamente.");
     }

@@ -15,6 +15,7 @@ const source = (relativePath: string) =>
 
 const homeRoute = source("backend/app/api/mobile/home/route.ts");
 const mobileHome = source("mobile/app/(tabs)/index.tsx");
+const mobileBrand = source("mobile/components/home/brand.ts");
 const mobileApi = source("mobile/services/api.ts");
 const productCard = source("mobile/components/product/ProductCard.tsx");
 const resilientProductImage = source(
@@ -23,6 +24,15 @@ const resilientProductImage = source(
 const siteStories = source("backend/components/loja/KABijouxStories.tsx");
 
 describe("correção completa da Home mobile", () => {
+  it("abre KA Stories pelo link de Stories e mantém browser e perfil como fallback", () => {
+    expect(mobileBrand).toContain("instagramUsername = 'kabijoux_'");
+    expect(mobileBrand).toContain("/stories/${instagramUsername}/");
+    expect(mobileHome).toContain("Linking.openURL(instagramStoriesUrl)");
+    expect(mobileHome).toContain("WebBrowser.openBrowserAsync(instagramStoriesUrl)");
+    expect(mobileHome).toContain("Linking.openURL(instagramProfile)");
+    expect(mobileHome).toContain('category.key === "OFFICIAL" ? void openInstagram() : openCategory(category)');
+  });
+
   it("usa o endpoint mobile dedicado", () => {
     expect(mobileApi).toContain("`${MOBILE_API_PREFIX}/home`");
   });

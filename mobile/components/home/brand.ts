@@ -8,7 +8,9 @@ export const categoryArtwork = {
   heart: require('../../assets/home/heart.webp'),
 };
 
-export const instagramProfile = 'https://www.instagram.com/kabijoux_?igsh=aGV2Z2dxb252NzF5';
+export const instagramUsername = 'kabijoux_';
+export const instagramStoriesUrl = `https://www.instagram.com/stories/${instagramUsername}/`;
+export const instagramProfile = `https://www.instagram.com/${instagramUsername}/?igsh=aGV2Z2dxb252NzF5`;
 
 // Existing official highlight artwork, resized to the actual mobile display size.
 export const storyArtwork: Record<string, number> = {
