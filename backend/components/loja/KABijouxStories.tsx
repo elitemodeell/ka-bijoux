@@ -10,7 +10,7 @@ import { HOME_BENEFITS, type HomePresentation } from "@/lib/home-content";
 import StoreLoveButton from "@/components/loja/StoreLoveButton";
 
 const seenStorageKey = "ka-bijoux-seen-stories";
-const storyLogo = "/images/brand/ka-bijoux-logo-story-icon.png";
+const storyLogo = "/images/brand/ka-bijoux-logo-natal-story.png";
 const HERO_IMAGE_DURATION = 5000;
 const storyCategories: StoryCategory[] = ["OFFICIAL", "CUSTOMER", "REVIEW", "HIGHLIGHT"];
 
@@ -286,7 +286,7 @@ export default function KABijouxStories({ presentation }: { presentation: HomePr
         />
       </div>
 
-      <div className="relative z-10 pb-10 pt-0 sm:pb-12 sm:pt-3">
+      <div className="relative z-10 pb-4 pt-0 sm:pb-12 sm:pt-3">
         <SexShopMobileAccess />
         <MainHeroCarousel slides={presentation.banners} />
         <ChristmasBenefits />
@@ -411,10 +411,10 @@ export default function KABijouxStories({ presentation }: { presentation: HomePr
 
 function SexShopMobileAccess() {
   return (
-    <section className="mx-auto mb-3 mt-2 w-full px-1.5 sm:hidden" aria-label="Acesso ao Sex Shop">
+    <section className="mx-auto mb-3 mt-1 w-full px-3 sm:hidden" aria-label="Acesso ao Sex Shop">
       <Link
         href="/categoria/sex-shop"
-        className="ka-btn group relative flex min-h-[102px] w-full items-center gap-3 overflow-hidden rounded-[30px] border border-white/25 px-4 py-4 text-white shadow-[0_24px_54px_rgba(126,9,49,0.36)] ring-1 ring-pink-100/45"
+        className="ka-btn group relative flex min-h-[86px] w-full items-center gap-3 overflow-hidden rounded-[22px] border border-white/40 px-3 py-3 text-white shadow-[0_14px_34px_rgba(126,9,49,0.25)] ring-1 ring-pink-100/45"
         style={{
           backgroundImage:
             "radial-gradient(circle at 18% 18%, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 32%), linear-gradient(116deg, rgba(64, 5, 29, 0.98) 0%, rgba(178, 15, 78, 0.96) 42%, rgba(255, 79, 135, 0.72) 62%, rgba(75, 5, 33, 0.96) 100%), url('/banners/ka-intima-hero-premium-mobile.webp')",
@@ -430,44 +430,27 @@ function SexShopMobileAccess() {
         <span className="pointer-events-none absolute -bottom-9 right-10 h-24 w-24 rounded-[38%_62%_48%_52%] border border-white/16 bg-white/8 backdrop-blur-sm" aria-hidden="true" />
         <span className="pointer-events-none absolute right-[72px] top-4 h-10 w-10 rounded-full border border-white/12 bg-white/10" aria-hidden="true" />
 
-        <span className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-[22px] border border-white/25 bg-white/16 shadow-[inset_0_0_22px_rgba(255,255,255,0.20),0_14px_26px_rgba(70,0,30,0.26)] backdrop-blur-md transition-transform duration-300 group-hover:scale-105">
-          <HeartIcon className="h-7 w-7 text-pink-50 drop-shadow-[0_0_10px_rgba(255,255,255,0.72)]" />
+        <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[17px] border border-white/25 bg-white/16 shadow-[inset_0_0_22px_rgba(255,255,255,0.20),0_14px_26px_rgba(70,0,30,0.26)] backdrop-blur-md transition-transform duration-300 group-hover:scale-105">
+          <HeartIcon className="h-6 w-6 text-pink-50 drop-shadow-[0_0_10px_rgba(255,255,255,0.72)]" />
         </span>
 
         <span className="relative min-w-0 flex-1">
-          <span className="mb-1 inline-flex rounded-full border border-white/18 bg-white/12 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-pink-50 backdrop-blur">
+          <span className="mb-0.5 inline-flex rounded-full border border-white/35 bg-white/10 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-pink-50 backdrop-blur">
             Area especial
           </span>
-          <span className="block truncate font-playfair text-[25px] font-bold leading-tight tracking-normal text-white drop-shadow-sm">
+          <span className="block truncate font-playfair text-[21px] font-bold leading-tight tracking-normal text-white drop-shadow-sm">
             Entrar no Sex Shop
           </span>
-          <span className="mt-1 block truncate text-[13px] font-semibold leading-snug text-pink-50/95">
+          <span className="mt-0.5 block truncate text-[11px] font-semibold leading-snug text-pink-50/95">
             Lingerie e produtos especiais
           </span>
         </span>
 
-        <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#b30f51] shadow-[0_14px_28px_rgba(80,0,32,0.28)] transition-transform duration-300 group-hover:translate-x-1 group-hover:scale-105">
-          <ChevronRightIcon className="h-5 w-5" />
+        <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-[#b30f51] shadow-[0_14px_28px_rgba(80,0,32,0.28)] transition-transform duration-300 group-hover:translate-x-1 group-hover:scale-105">
+          <ChevronRightIcon className="h-4 w-4" />
         </span>
       </Link>
 
-      <div className="mx-auto mt-2 flex max-w-[330px] items-center justify-center overflow-hidden rounded-full border border-pink-100 bg-white/94 text-[#b51655] shadow-[0_12px_28px_rgba(236,72,153,0.13)] backdrop-blur">
-        <Link
-          href="/categoria/lingerie"
-          className="flex min-h-11 flex-1 items-center justify-center gap-1.5 px-3 text-[13px] font-black"
-        >
-          <HeartIcon className="h-3.5 w-3.5 text-pink-400" />
-          Lingerie
-        </Link>
-        <span className="h-5 w-px bg-pink-100" aria-hidden="true" />
-        <Link
-          href="/categoria/sex-shop"
-          className="flex min-h-11 flex-1 items-center justify-center gap-1.5 px-3 text-[13px] font-black"
-        >
-          Moda &Iacute;ntima
-          <ChevronRightIcon className="h-3.5 w-3.5 text-pink-400" />
-        </Link>
-      </div>
     </section>
   );
 }
@@ -483,12 +466,12 @@ function StorySpotlight({ groups, loading, onOpenCategory, seenIds }: StorySpotl
   const categoryGroups = new Map(storyCategories.map((category) => [category, groups.filter((group) => group.category === category)]));
   return (
     <section className="mx-auto mt-3 max-w-7xl px-2.5 sm:mt-5 sm:px-6" aria-label="Stories KA Bijoux">
-      <div className="relative overflow-hidden rounded-[22px] border border-pink-100 bg-gradient-to-br from-white via-[#fff8fb] to-[#fff2f7] px-3 pb-3 pt-3.5 shadow-[0_12px_28px_rgba(236,72,153,0.10)] ring-1 ring-white/80 sm:rounded-[28px] sm:p-5">
+      <div className="relative overflow-hidden rounded-[20px] border border-pink-100/80 bg-white/55 px-2.5 pb-2 pt-2.5 shadow-[0_6px_18px_rgba(236,72,153,0.07)] sm:rounded-[28px] sm:p-5">
         <span className="ka-story-spotlight-shine" aria-hidden="true" />
 
-        <div className="relative z-10 mb-3 flex items-center justify-between gap-2 sm:gap-3">
-          <h2 className="flex min-w-0 items-center gap-1 font-playfair text-[25px] font-bold leading-none tracking-normal text-[#151015] sm:text-4xl">
-            Stories da <span className="inline-flex flex-col items-start"><img src={storyLogo} alt="KA Bijoux" className="h-[25px] w-[53px] object-contain sm:h-9 sm:w-[76px]" /><span className="mt-0.5 h-[2px] w-8 rounded-full bg-pink-500 sm:w-12" /></span>
+        <div className="relative z-10 mb-2 flex items-center justify-between gap-1.5 sm:mb-3 sm:gap-3">
+          <h2 className="flex min-w-0 items-center gap-1 font-playfair text-[24px] font-bold leading-none tracking-normal text-[#151015] sm:text-4xl">
+            Stories da <span className="font-playfair italic text-[#eb1760]">KA</span>
           </h2>
           <StoreLoveButton />
         </div>
@@ -591,7 +574,7 @@ function MainHeroCarousel({ slides }: { slides: HomePresentation["banners"] }) {
   return (
     <div className="px-0 pt-0 pb-0 sm:px-4">
       <div
-        className="relative mx-2 overflow-hidden rounded-[22px] border border-pink-100 shadow-[0_8px_28px_rgba(236,72,153,0.14)] aspect-[2/1] sm:mx-0 sm:rounded-[24px]"
+        className="relative mx-3 overflow-hidden rounded-[20px] border border-pink-100 shadow-[0_8px_22px_rgba(236,72,153,0.12)] aspect-[2/1] sm:mx-0 sm:rounded-[24px]"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -650,14 +633,13 @@ function MainHeroCarousel({ slides }: { slides: HomePresentation["banners"] }) {
 }
 
 function ChristmasBenefits() {
-  const icons = { gift: "🚚", card: "▣", shield: "✦" };
   return (
-    <section aria-label="Vantagens da loja" className="mx-2 mt-3 rounded-[20px] border border-pink-100 bg-gradient-to-r from-white via-[#fff8fb] to-[#fff1f6] px-2 py-2 shadow-[0_8px_20px_rgba(190,24,93,0.09)] sm:mx-0 sm:mt-4 sm:px-4">
+    <section aria-label="Vantagens da loja" className="mx-3 mt-2 rounded-[18px] border border-pink-100 bg-gradient-to-r from-white via-[#fff8fb] to-[#fff1f6] px-1.5 py-2 shadow-[0_6px_16px_rgba(190,24,93,0.07)] sm:mx-0 sm:mt-4 sm:px-4">
       <div className="grid grid-cols-3 divide-x divide-pink-200/80">
         {HOME_BENEFITS.map((benefit) => (
-          <div key={benefit.title} className="flex min-w-0 items-center justify-center gap-1.5 px-1 sm:gap-2.5 sm:px-3">
-            <span aria-hidden="true" className="shrink-0 text-lg text-pink-500 sm:text-2xl">{icons[benefit.icon as keyof typeof icons] ?? "♡"}</span>
-            <span className="min-w-0 text-[9px] font-bold leading-tight text-[#30131f] sm:text-xs">
+          <div key={benefit.title} className="flex min-w-0 items-center justify-center gap-1 px-0.5 sm:gap-2.5 sm:px-3">
+            <BenefitIcon name={benefit.icon} />
+            <span className="min-w-0 text-[8px] font-bold leading-tight text-[#30131f] min-[390px]:text-[9px] sm:text-xs">
               <span className="block">{benefit.title}</span>
               <span className="mt-0.5 hidden font-medium text-gray-500 min-[390px]:block">{benefit.subtitle}</span>
             </span>
@@ -666,6 +648,13 @@ function ChristmasBenefits() {
       </div>
     </section>
   );
+}
+
+function BenefitIcon({ name }: { name: string }) {
+  const common = "h-5 w-5 shrink-0 text-pink-600 sm:h-7 sm:w-7";
+  if (name === "gift") return <svg className={common} viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 8h15v13H2zM17 12h5l4 4v5h-9z"/><path d="M5 8V5h9v3M20 12v5h6"/><circle cx="7" cy="22" r="2" fill="white"/><circle cx="22" cy="22" r="2" fill="white"/></svg>;
+  if (name === "card") return <svg className={common} viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2.5" y="5.5" width="23" height="17" rx="3"/><path d="M3 11h22M7 17h5"/></svg>;
+  return <svg className={common} viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2 24 6v7c0 6-4.4 10.2-10 13-5.6-2.8-10-7-10-13V6l10-4Z"/><path d="m14 7 1.5 4.2L20 13l-4.5 1.8L14 19l-1.7-4.2L8 13l4.3-1.8L14 7Z"/></svg>;
 }
 
 function ChristmasDivider() {

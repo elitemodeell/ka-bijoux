@@ -142,6 +142,7 @@ export default function SeasonalAudioControlWeb({ darkHeader = false, onPresenta
       audio.removeEventListener("playing", onPlaying);
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("error", onError);
+      audio.pause();
     };
   }, []);
 
@@ -195,20 +196,14 @@ export default function SeasonalAudioControlWeb({ darkHeader = false, onPresenta
         title={enabled && !playing ? "Música ativada; toque para iniciar se o navegador bloquear o áudio automático" : enabled ? "Desativar música" : "Ativar música"}
         className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-300 ${darkHeader ? "text-white hover:bg-white/10" : "text-pink-600 hover:bg-pink-50"}`}
       >
-        {enabled ? (
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M11 5 6 9H3v6h3l5 4V5Z" />
-            <path className="ka-audio-wave ka-audio-wave-first" d="M15.5 8.5a5 5 0 0 1 0 7" />
-            <path className="ka-audio-wave ka-audio-wave-second" d="M18.5 5.5a9 9 0 0 1 0 13" />
-          </svg>
-        ) : (
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M11 5 6 9H3v6h3l5 4V5Z" />
-            <path d="m16 9 5 6m0-6-5 6" />
-          </svg>
-        )}
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+          <path className="ka-audio-wave ka-audio-wave-first" d="M15.5 8.5a5 5 0 0 1 0 7" />
+          <path className="ka-audio-wave ka-audio-wave-second" d="M18.5 5.5a9 9 0 0 1 0 13" />
+          {!enabled ? <path d="m17 9 5 6m0-6-5 6" /> : null}
+        </svg>
       </button>
-      {enabled && playing ? <span aria-hidden="true" className="ka-audio-note pointer-events-none absolute -right-0.5 -top-1 text-[12px] font-black">♫</span> : null}
+      <span aria-hidden="true" className="ka-audio-note pointer-events-none absolute -right-0.5 -top-1 text-[12px] font-black">♫</span>
       {enabled && autoplayBlocked ? (
         <span role="status" className="ka-audio-hint pointer-events-none absolute right-0 top-full mt-1 whitespace-nowrap rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#8d002a] shadow-lg ring-1 ring-pink-100">
           Toque para ouvir

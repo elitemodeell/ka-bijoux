@@ -7,25 +7,20 @@ export default function QuickCategoryBar() {
   return (
     <nav
       aria-label="Categorias rápidas"
-      className="border-b border-pink-100/80 bg-gradient-to-b from-white via-[#fffafd] to-[#fff6fa] px-2.5 py-3 sm:px-6 sm:py-5"
+      className="mx-3 my-2 overflow-hidden rounded-[22px] border border-pink-100 bg-white/95 px-1.5 py-2 shadow-[0_5px_18px_rgba(166,22,70,0.08)] sm:mx-auto sm:my-5 sm:max-w-5xl sm:px-3 sm:py-3"
     >
       <div className="mx-auto max-w-5xl">
-        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="grid grid-cols-6 divide-x divide-pink-200/80">
             {HOME_QUICK_CATEGORIES.map((category) => (
               <Link
                 key={category.href}
                 href={category.href}
                 aria-label={`Abrir ${category.label}: ${category.description}`}
-                className="group flex min-h-[58px] min-w-0 items-center gap-1.5 rounded-[18px] border border-pink-100 bg-gradient-to-br from-white to-[#fff3f7] px-1.5 py-2 shadow-[0_6px_16px_rgba(190,24,93,0.09)] transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-pink-200 hover:shadow-[0_10px_22px_rgba(190,24,93,0.15)] min-[390px]:gap-2 min-[390px]:px-2 sm:min-h-[72px] sm:rounded-[22px] sm:px-4"
+                className="group flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-1 px-0.5 text-pink-600 transition-colors hover:bg-pink-50 sm:min-h-[72px] sm:gap-1.5"
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-pink-100 bg-white text-pink-500 sm:h-10 sm:w-10">
-                  <span className="scale-[0.52] sm:scale-[0.64]"><CategoryIcon name={category.icon} /></span>
-                </span>
-                <span className="min-w-0 flex-1 text-center text-[9px] font-black leading-tight text-[#192131] min-[390px]:text-[10px] sm:text-sm">
+                <CompactCategoryIcon name={category.icon} />
+                <span className="min-w-0 max-w-full text-center text-[8px] font-semibold leading-tight text-[#321522] min-[390px]:text-[9px] sm:text-sm">
                   {category.label}
-                </span>
-                <span className="shrink-0 text-pink-500 transition-transform duration-200 group-hover:translate-x-0.5">
-                  <ArrowRightIcon />
                 </span>
               </Link>
             ))}
@@ -33,6 +28,18 @@ export default function QuickCategoryBar() {
       </div>
     </nav>
   );
+}
+
+function CompactCategoryIcon({ name }: { name: CategoryIconName }) {
+  const common = "h-[23px] w-[23px]";
+  if (name === "grid") return <svg className={common} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>;
+  if (name === "tag") return <svg className={common} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V4h9l8.6 8.6a.6.6 0 0 1 0 .8Z"/><circle cx="7.5" cy="8" r="1.2"/><path d="m15 10 4 4m-3-4h.01M17 14h.01"/></svg>;
+  if (name === "new") return <svg className={common} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/></svg>;
+  if (name === "sparkles") return <svg className={common} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m12 3 1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6L12 3Z"/><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z"/></svg>;
+  if (name === "diamond") return <svg className={common} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true"><path d="M3 8 6 4h12l3 4-9 12L3 8Z"/><path d="M3 8h18M6 4l3 4 3 12 3-12 3-4"/></svg>;
+  if (name === "phone") return <svg className={common} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 5h4m-3 14h2"/></svg>;
+  if (name === "heart") return <svg className={common} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true"><path d="m12 21-1.5-1.4C5 14.6 2 11.9 2 8.5A5.5 5.5 0 0 1 7.5 3 6 6 0 0 1 12 5a6 6 0 0 1 4.5-2A5.5 5.5 0 0 1 22 8.5c0 3.4-3 6.1-8.5 11.1L12 21Z"/></svg>;
+  return <svg className={common} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M12 3v18M3 12h18"/><path d="m5 5 14 14M19 5 5 19"/></svg>;
 }
 
 function CategoryIcon({ name }: { name: CategoryIconName }) {

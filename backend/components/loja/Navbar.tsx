@@ -54,7 +54,8 @@ export default function Navbar() {
   const [megaOpen, setMegaOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [cartCount, setCartCount] = useState(0);
-  const [christmasTheme, setChristmasTheme] = useState(false);
+  const [mobileViewport, setMobileViewport] = useState(false);
+  const [christmasTheme, setChristmasTheme] = useState(true);
   const [christmasLogoUrl, setChristmasLogoUrl] = useState("");
 
   const handlePresentation = useCallback((theme: "christmas" | "default", logoUrl: string) => {
@@ -66,6 +67,14 @@ export default function Navbar() {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const update = () => setMobileViewport(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
   }, []);
 
   useEffect(() => {
@@ -185,10 +194,10 @@ export default function Navbar() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-12 z-40 transition-all duration-300 md:top-0 md:z-50 ${christmasTheme ? "border-b border-white/15 bg-gradient-to-r from-[#76001f] via-[#920028] to-[#690018] text-white shadow-[0_10px_30px_rgba(73,0,18,0.2)]" : scrolled ? "border-b border-pink-50 bg-white/96 shadow-sm backdrop-blur-md" : "border-b border-pink-50 bg-white/90 backdrop-blur-md md:bg-white/82"}`}
+      className={`fixed inset-x-0 ${pathname === "/" ? "top-0" : "top-12 md:top-0"} z-40 transition-all duration-300 md:z-50 ${christmasTheme ? "border-b border-white/15 bg-gradient-to-r from-[#76001f] via-[#920028] to-[#690018] text-white shadow-[0_10px_30px_rgba(73,0,18,0.2)]" : scrolled ? "border-b border-pink-50 bg-white/96 shadow-sm backdrop-blur-md" : "border-b border-pink-50 bg-white/90 backdrop-blur-md md:bg-white/82"}`}
       onMouseLeave={() => setMegaOpen(false)}
     >
-      <div className="relative isolate mx-auto flex h-[72px] max-w-7xl items-center gap-2 px-3 sm:gap-3 sm:px-4 md:h-[74px] md:px-5">
+      <div className="relative mx-auto hidden h-[74px] max-w-7xl items-center gap-2 px-3 sm:gap-3 sm:px-4 md:flex md:px-5">
         <HeaderSparkles />
 
         <Link href="/" className="ka-logo-sparkle-wrap relative z-20 flex shrink-0 items-center" aria-label="KA Bijoux">
@@ -245,7 +254,7 @@ export default function Navbar() {
         </nav>
 
         <div className="relative z-20 flex shrink-0 items-center gap-0.5 self-center">
-          <SeasonalAudioControlWeb onPresentation={handlePresentation} darkHeader={christmasTheme} />
+          {!mobileViewport ? <SeasonalAudioControlWeb onPresentation={handlePresentation} darkHeader={christmasTheme} /> : null}
           <Link href='/conta' className={`group rounded-xl p-2.5 transition-colors ${christmasTheme ? "text-white hover:bg-white/10" : "hover:bg-pink-50"}`} aria-label='Minha conta'>
             <UserIcon className={`h-[18px] w-[18px] transition-colors ${christmasTheme ? "text-white" : "text-gray-500 group-hover:text-pink-500"}`} />
           </Link>
@@ -268,6 +277,27 @@ export default function Navbar() {
             <HamburgerIcon />
           </button>
         </div>
+      </div>
+
+      <div className={`relative mx-auto max-w-7xl px-3 pb-3 pt-[env(safe-area-inset-top)] md:hidden ${christmasTheme ? "text-white" : "text-gray-700"}`}>
+        <div className="relative flex h-[68px] items-center justify-between">
+          <button type="button" onClick={() => setMenuOpen(true)} className="flex h-10 w-10 items-center justify-center" aria-label="Abrir menu">
+            <HamburgerIcon />
+          </button>
+          <Link href="/" className="ka-logo-sparkle-wrap absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center" aria-label="KA Bijoux">
+            <Image src={christmasTheme ? christmasLogoUrl || "/images/brand/ka-bijoux-logo-natal.png" : "/images/brand/ka-bijoux-logo-header-320.png"} alt="KA Bijoux" width={christmasTheme ? 1024 : 320} height={christmasTheme ? 1024 : 294} sizes="92px" quality={82} priority className={christmasTheme ? "h-[86px] w-[86px] object-contain" : "h-12 w-auto max-w-[92px] object-contain"} />
+          </Link>
+          <div className="flex items-center gap-0.5">
+            <button type="button" onClick={() => document.getElementById("ka-mobile-search")?.focus()} className="flex h-9 w-9 items-center justify-center" aria-label="Pesquisar"><SearchIcon className="h-[21px] w-[21px]" /></button>
+            {mobileViewport ? <SeasonalAudioControlWeb onPresentation={handlePresentation} darkHeader={christmasTheme} /> : null}
+            <Link href="/conta" className="flex h-9 w-9 items-center justify-center" aria-label="Favoritos e conta"><HeartOutlineIcon /></Link>
+            <Link href="/carrinho" className="relative flex h-9 w-9 items-center justify-center" aria-label={`Sacola com ${cartCount} itens`}>
+              <BagIcon className="h-[21px] w-[21px]" />
+              {cartCount > 0 && <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-pink-500 px-1 text-[9px] font-bold text-white">{cartCount > 99 ? "99+" : cartCount}</span>}
+            </Link>
+          </div>
+        </div>
+        <AutocompleteSearch value={search} onChange={setSearch} onChoose={navigateSearch} inputId="ka-mobile-search" formClassName="relative z-40 block w-full" inputClassName="h-[44px] w-full rounded-full border border-white/80 bg-white pl-10 pr-4 text-[14px] font-medium text-gray-700 shadow-sm outline-none placeholder:text-gray-500 focus:ring-2 focus:ring-pink-200" iconClassName="left-3.5 text-gray-500" placeholder="Buscar produtos, categorias e mais..." showSubmitButton={false} />
       </div>
 
       {megaOpen && (
@@ -463,6 +493,7 @@ function AutocompleteSearch({
   iconClassName,
   placeholder,
   showSubmitButton,
+  inputId,
   adultMode = false,
 }: {
   value: string;
@@ -473,6 +504,7 @@ function AutocompleteSearch({
   iconClassName: string;
   placeholder: string;
   showSubmitButton: boolean;
+  inputId?: string;
   adultMode?: boolean;
 }) {
   const router = useRouter();
@@ -546,6 +578,7 @@ function AutocompleteSearch({
     >
       <SearchIcon className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 ${iconClassName}`} />
       <input
+        id={inputId}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onFocus={() => setFocused(true)}
@@ -685,6 +718,10 @@ function SearchIcon({ className }: { className?: string }) {
       <path d="m21 21-4.35-4.35" />
     </svg>
   );
+}
+
+function HeartOutlineIcon() {
+  return <svg className="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg>;
 }
 
 function BagIcon({ className }: { className?: string }) {

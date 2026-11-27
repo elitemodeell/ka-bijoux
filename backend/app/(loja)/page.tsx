@@ -43,20 +43,23 @@ export default async function HomePage() {
   return (
     <main className="overflow-x-hidden">
 
-      <AnnouncementBar messages={presentation.announcements} theme={presentation.theme} />
+      <div className="hidden md:block"><AnnouncementBar messages={presentation.announcements} theme={presentation.theme} /></div>
 
-      <section className="bg-white pt-[72px] md:pt-[26px]">
+      <section className="bg-gradient-to-b from-[#fff1f5] via-[#fff9fb] to-white pt-[148px] md:bg-white md:pt-[26px]">
         <KABijouxStories presentation={presentation} />
       </section>
 
       <QuickCategoryBar />
 
-      <section className="ka-deferred-section py-6 bg-white sm:py-10">
+      <section className="ka-deferred-section bg-white py-3 sm:py-10">
         <div className="max-w-7xl mx-auto px-3 sm:px-6">
-          <AnimatedSection className="flex items-end justify-between mb-4 sm:mb-8">
-            <h2 className="font-playfair text-2xl font-bold text-gray-900 sm:text-4xl">{findsConfig.title}</h2>
-            <Link href={findsConfig.route} className="inline-flex items-center gap-1 text-pink-500 font-semibold text-sm flex-shrink-0">
-              Ver mais →
+          <AnimatedSection className="mb-3 flex items-end justify-between sm:mb-8">
+            <div>
+              <h2 className="font-playfair text-[25px] font-bold text-gray-900 sm:text-4xl">{findsConfig.title}</h2>
+              <p className="mt-0.5 text-[12px] text-gray-500 sm:text-base">Seleção especial da KA Bijoux.</p>
+            </div>
+            <Link href={findsConfig.route} className="inline-flex shrink-0 items-center gap-1 pb-1 text-[13px] font-semibold text-pink-600 sm:text-sm">
+              Ver mais <span aria-hidden="true">→</span>
             </Link>
           </AnimatedSection>
           <SectionGrid
