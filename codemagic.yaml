@@ -1,11 +1,11 @@
 workflows:
   ka-bijoux-ios-release:
-    name: KA Bijoux iOS 1.1.0 - TestFlight interno
+    name: KA Bijoux iOS 1.1.0 - App Store público
     triggering:
       events:
         - tag
       tag_patterns:
-        - pattern: "ka-bijoux-testflight-*"
+        - pattern: "ka-bijoux-release-*"
           include: true
     instance_type: mac_mini_m2
     max_build_duration: 120
@@ -227,7 +227,8 @@ workflows:
         script: |
           set -euo pipefail
           cd "$CM_BUILD_DIR/mobile"
-          xcode-project use-profiles --custom-export-options='{"testFlightInternalTestingOnly": true}'
+          # Use the App Store Connect distribution profile for public review.
+          xcode-project use-profiles
           profile_ok=0
           for profile in \
             "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"*.mobileprovision \
@@ -288,8 +289,8 @@ workflows:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        # Envia a build ao TestFlight e libera o grupo interno já existente.
-        submit_to_testflight: true
-        beta_groups:
-          - Team (Expo)
-        submit_to_app_store: false
+        # This release is for public App Store review, not an internal-only build.
+        submit_to_testflight: false
+        submit_to_app_store: true
+        release_type: AFTER_APPROVAL
+        phased_release: false
