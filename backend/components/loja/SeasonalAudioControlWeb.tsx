@@ -26,6 +26,10 @@ function normalizedVolume(value: number) {
   return Math.min(0.08, Math.max(0, Number.isFinite(value) ? value : 0.08));
 }
 
+function isAutoplayBlocked(error: unknown) {
+  return error instanceof DOMException && error.name === "NotAllowedError";
+}
+
 export default function SeasonalAudioControlWeb({ darkHeader = false, onPresentation }: Props) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const musicRef = useRef<AmbientMusic | null>(null);
@@ -35,6 +39,7 @@ export default function SeasonalAudioControlWeb({ darkHeader = false, onPresenta
   const [preferenceLoaded, setPreferenceLoaded] = useState(false);
   const [enabled, setEnabled] = useState(true);
   const [playing, setPlaying] = useState(false);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -75,9 +80,11 @@ export default function SeasonalAudioControlWeb({ darkHeader = false, onPresenta
     try {
       await audio.play();
       setPlaying(true);
-    } catch {
+      setAutoplayBlocked(false);
+    } catch (error) {
       // Browsers may block playback until the visitor presses the speaker button.
       setPlaying(false);
+      setAutoplayBlocked(isAutoplayBlocked(error));
     }
   }, [music]);
 
@@ -90,7 +97,15 @@ export default function SeasonalAudioControlWeb({ darkHeader = false, onPresenta
       const audio = audioRef.current;
       if (!config?.enabled || !preferenceLoadedRef.current || !enabledRef.current || !audio || !audio.paused) return;
       audio.volume = normalizedVolume(config.volume);
-      void audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+      void audio.play()
+        .then(() => {
+          setPlaying(true);
+          setAutoplayBlocked(false);
+        })
+        .catch((error: unknown) => {
+          setPlaying(false);
+          setAutoplayBlocked(isAutoplayBlocked(error));
+        });
     };
 
     window.addEventListener("pointerdown", startAfterGesture, { capture: true, passive: true });
@@ -114,7 +129,10 @@ export default function SeasonalAudioControlWeb({ darkHeader = false, onPresenta
     const audio = audioRef.current;
     if (!audio) return;
 
-    const onPlaying = () => setPlaying(true);
+    const onPlaying = () => {
+      setPlaying(true);
+      setAutoplayBlocked(false);
+    };
     const onPause = () => setPlaying(false);
     const onError = () => setPlaying(false);
     audio.addEventListener("playing", onPlaying);
@@ -160,7 +178,7 @@ export default function SeasonalAudioControlWeb({ darkHeader = false, onPresenta
   }
 
   return (
-    <>
+    <div className="relative z-50 flex shrink-0">
       <audio
         ref={audioRef}
         src={music.url || DEFAULT_TRACK}
@@ -175,12 +193,13 @@ export default function SeasonalAudioControlWeb({ darkHeader = false, onPresenta
         aria-label={enabled ? (playing ? "Desativar música natalina" : "Música ativada; toque para iniciar") : "Ativar música natalina"}
         aria-pressed={enabled}
         title={enabled && !playing ? "Música ativada; toque para iniciar se o navegador bloquear o áudio automático" : enabled ? "Desativar música" : "Ativar música"}
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-300 ${darkHeader ? "text-white hover:bg-white/10" : "text-pink-600 hover:bg-pink-50"}`}
+        className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-300 ${darkHeader ? "text-white hover:bg-white/10" : "text-pink-600 hover:bg-pink-50"}`}
       >
         {enabled ? (
           <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M11 5 6 9H3v6h3l5 4V5Z" />
-            <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" />
+            <path className="ka-audio-wave ka-audio-wave-first" d="M15.5 8.5a5 5 0 0 1 0 7" />
+            <path className="ka-audio-wave ka-audio-wave-second" d="M18.5 5.5a9 9 0 0 1 0 13" />
           </svg>
         ) : (
           <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -189,6 +208,12 @@ export default function SeasonalAudioControlWeb({ darkHeader = false, onPresenta
           </svg>
         )}
       </button>
-    </>
+      {enabled && playing ? <span aria-hidden="true" className="ka-audio-note pointer-events-none absolute -right-0.5 -top-1 text-[12px] font-black">♫</span> : null}
+      {enabled && autoplayBlocked ? (
+        <span role="status" className="ka-audio-hint pointer-events-none absolute right-0 top-full mt-1 whitespace-nowrap rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#8d002a] shadow-lg ring-1 ring-pink-100">
+          Toque para ouvir
+        </span>
+      ) : null}
+    </div>
   );
 }

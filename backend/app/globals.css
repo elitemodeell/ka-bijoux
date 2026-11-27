@@ -58,6 +58,19 @@ body {
   0%, 100% { box-shadow: 0 0 0 0 rgba(255, 77, 109, 0.5); }
   50%       { box-shadow: 0 0 0 18px rgba(255, 77, 109, 0); }
 }
+@keyframes ka-audio-wave {
+  0%, 100% { opacity: 0.45; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+@keyframes ka-audio-note {
+  0% { opacity: 0; transform: translate(0, 5px) scale(0.8); }
+  22% { opacity: 1; }
+  100% { opacity: 0; transform: translate(7px, -13px) scale(1.1); }
+}
+@keyframes ka-audio-hint {
+  0%, 100% { opacity: 0.9; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}
 @keyframes ka-ticker {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
@@ -208,6 +221,10 @@ body {
 /* ─── Utility Classes ────────────────────────────────────────────────────── */
 
 .ka-fade-up        { animation: ka-fade-up 0.65s ease-out both; }
+.ka-audio-wave { transform-box: fill-box; transform-origin: center; animation: ka-audio-wave 1.25s ease-in-out infinite; }
+.ka-audio-wave-second { animation-delay: 0.22s; }
+.ka-audio-note { animation: ka-audio-note 1.8s ease-out infinite; }
+.ka-audio-hint { animation: ka-audio-hint 1.4s ease-in-out infinite; }
 .ka-fade-in        { animation: ka-fade-in 0.5s ease-out both; }
 .ka-scale-in       { animation: ka-scale-in 0.55s ease-out both; }
 .ka-float          { animation: ka-float 4s ease-in-out infinite; }
@@ -437,6 +454,11 @@ body {
   .ka-copa-banner,
   .ka-copa-banner::after,
   .ka-copa-promo-strip {
+    animation: none;
+  }
+  .ka-audio-wave,
+  .ka-audio-note,
+  .ka-audio-hint {
     animation: none;
   }
   .ka-announcement-ticker {
