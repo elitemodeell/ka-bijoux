@@ -19,20 +19,23 @@ export async function storeLikeState(visitorId: string | null, customerId: strin
 
   if (visitorKey && accountKey) {
     await prisma.$transaction(async (tx) => {
-      const [visitorLike, accountLike] = await Promise.all([
-        tx.storeLike.findUnique({ where: { id: visitorKey }, select: { id: true } }),
-        tx.storeLike.findUnique({ where: { id: accountKey }, select: { id: true, customerId: true } }),
-      ]);
-      if (visitorLike && accountLike) {
-        await tx.storeLike.delete({ where: { id: visitorKey } });
-      } else if (visitorLike) {
-        await tx.storeLike.update({
-          where: { id: visitorKey },
-          data: { id: accountKey, customerId },
-        });
-      } else if (accountLike && accountLike.customerId !== customerId) {
-        await tx.storeLike.update({ where: { id: accountKey }, data: { customerId } });
-      }
+      const visitorLike = await tx.storeLike.findUnique({
+        where: { id: visitorKey },
+        select: { id: true },
+      });
+      if (!visitorLike) return;
+
+      // Upsert the authenticated actor first, then remove the anonymous key.
+      // This makes concurrent auth refreshes/remounts idempotent: a visitor like
+      // is retained once, and an existing customer like is not counted twice.
+      await tx.storeLike.upsert({
+        where: { id: accountKey },
+        create: { id: accountKey, customerId },
+        update: { customerId },
+      });
+      await tx.storeLike.deleteMany({
+        where: { id: visitorKey },
+      });
     });
   }
 
@@ -45,14 +48,41 @@ export async function storeLikeState(visitorId: string | null, customerId: strin
 }
 
 export async function setStoreLike(visitorId: string, customerId: string | null, liked: boolean) {
-  const state = await storeLikeState(visitorId, customerId);
-  const key = customerId ? actorId("customer", customerId) : actorId("visitor", visitorId);
+  const visitorKey = actorId("visitor", visitorId);
+  const key = customerId ? actorId("customer", customerId) : visitorKey;
 
-  if (liked) {
+  if (customerId) {
+    // Merge the visitor identity and apply the user's requested state in one
+    // transaction. A concurrent auth refresh can no longer resurrect a like
+    // after the user has explicitly removed it.
+    await prisma.$transaction(async (tx) => {
+      const visitorLike = await tx.storeLike.findUnique({
+        where: { id: visitorKey },
+        select: { id: true },
+      });
+      if (visitorLike && liked) {
+        await tx.storeLike.upsert({
+          where: { id: key },
+          create: { id: key, customerId },
+          update: { customerId },
+        });
+      }
+      await tx.storeLike.deleteMany({ where: { id: visitorKey } });
+      if (liked && !visitorLike) {
+        await tx.storeLike.upsert({
+          where: { id: key },
+          create: { id: key, customerId },
+          update: { customerId },
+        });
+      } else {
+        await tx.storeLike.deleteMany({ where: { id: key } });
+      }
+    });
+  } else if (liked) {
     await prisma.storeLike.upsert({
       where: { id: key },
-      create: { id: key, customerId },
-      update: customerId ? { customerId } : {},
+      create: { id: key, customerId: null },
+      update: {},
     });
   } else {
     await prisma.storeLike.deleteMany({ where: { id: key } });
@@ -62,5 +92,5 @@ export async function setStoreLike(visitorId: string, customerId: string | null,
     prisma.storeLike.count(),
     prisma.storeLike.findUnique({ where: { id: key }, select: { id: true } }),
   ]);
-  return { count, liked: Boolean(current), previousCount: state.count };
+  return { count, liked: Boolean(current) };
 }

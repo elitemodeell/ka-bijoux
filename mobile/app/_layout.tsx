@@ -9,6 +9,7 @@ import { useTheme } from "@/lib/useTheme";
 import { runGooglePlayCatalogMigration } from "@/lib/googlePlayCatalogMigration";
 import { completeOnboarding, hasCompletedOnboarding } from "@/lib/onboarding";
 import { WelcomeScreen } from "@/components/privacy/WelcomeScreen";
+import { SeasonalAudioProvider } from "@/components/home/SeasonalAudioProvider";
 import { useFonts } from "expo-font";
 
 SplashScreen.preventAutoHideAsync();
@@ -60,25 +61,27 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style={isDark ? "light" : "dark"} backgroundColor={Colors.background} />
-        {!onboardingCompleted ? (
-          <WelcomeScreen onFinish={finishOnboarding} busy={savingOnboarding} />
-        ) : <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="auth/callback" options={{ presentation: "card" }} />
-          <Stack.Screen name="produto/[id]" options={{ presentation: "card" }} />
-          <Stack.Screen name="produtos" options={{ presentation: "card" }} />
-          <Stack.Screen name="checkout" options={{ presentation: "card" }} />
-          <Stack.Screen name="pedidos" options={{ presentation: "card" }} />
-          <Stack.Screen name="favoritos" options={{ presentation: "card" }} />
-          <Stack.Screen name="endereco" options={{ presentation: "modal" }} />
-          <Stack.Screen name="notificacoes" options={{ presentation: "card" }} />
-          <Stack.Screen name="conta/editar-perfil" options={{ presentation: "card" }} />
-          <Stack.Screen name="conta/excluir" options={{ presentation: "card" }} />
-          <Stack.Screen name="privacidade-permissoes" options={{ presentation: "card" }} />
-          <Stack.Screen name="avaliar/[productId]" options={{ presentation: "modal" }} />
-        </Stack>}
+        <SeasonalAudioProvider>
+          <StatusBar style={isDark ? "light" : "dark"} backgroundColor={Colors.background} />
+          {!onboardingCompleted ? (
+            <WelcomeScreen onFinish={finishOnboarding} busy={savingOnboarding} />
+          ) : <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="auth/callback" options={{ presentation: "card" }} />
+            <Stack.Screen name="produto/[id]" options={{ presentation: "card" }} />
+            <Stack.Screen name="produtos" options={{ presentation: "card" }} />
+            <Stack.Screen name="checkout" options={{ presentation: "card" }} />
+            <Stack.Screen name="pedidos" options={{ presentation: "card" }} />
+            <Stack.Screen name="favoritos" options={{ presentation: "card" }} />
+            <Stack.Screen name="endereco" options={{ presentation: "modal" }} />
+            <Stack.Screen name="notificacoes" options={{ presentation: "card" }} />
+            <Stack.Screen name="conta/editar-perfil" options={{ presentation: "card" }} />
+            <Stack.Screen name="conta/excluir" options={{ presentation: "card" }} />
+            <Stack.Screen name="privacidade-permissoes" options={{ presentation: "card" }} />
+            <Stack.Screen name="avaliar/[productId]" options={{ presentation: "modal" }} />
+          </Stack>}
+        </SeasonalAudioProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

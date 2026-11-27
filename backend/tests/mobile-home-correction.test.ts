@@ -16,6 +16,7 @@ const source = (relativePath: string) =>
 
 const homeRoute = source("backend/app/api/mobile/home/route.ts");
 const mobileHome = source("mobile/app/(tabs)/index.tsx");
+const mobileRootLayout = source("mobile/app/_layout.tsx");
 const mobileBrand = source("mobile/components/home/brand.ts");
 const mobileApi = source("mobile/services/api.ts");
 const productCard = source("mobile/components/product/ProductCard.tsx");
@@ -25,6 +26,7 @@ const resilientProductImage = source(
 const siteStories = source("backend/components/loja/KABijouxStories.tsx");
 const seasonalAudio = source("mobile/components/home/SeasonalAudioControl.tsx");
 const seasonalAudioPlayback = source("mobile/components/home/seasonalAudioPlayback.ts");
+const seasonalAudioProvider = source("mobile/components/home/SeasonalAudioProvider.tsx");
 
 describe("correção completa da Home mobile", () => {
   it("abre KA Stories pelo link de Stories e mantém browser e perfil como fallback", () => {
@@ -103,16 +105,31 @@ describe("correção completa da Home mobile", () => {
   });
 
   it("reproduz música ambiente só no tema sazonal, respeita silêncio e pausa em segundo plano", () => {
+    expect(mobileRootLayout).toContain("<SeasonalAudioProvider>");
+    expect(mobileRootLayout).toContain("</SeasonalAudioProvider>");
+    expect(seasonalAudio).not.toContain("useAudioPlayer(");
+    expect(seasonalAudioProvider.match(/useAudioPlayer\(/g)).toHaveLength(1);
+    expect(seasonalAudioProvider).toContain("PREFERENCE_KEY");
     expect(seasonalAudio).toContain("if (!available) return null");
-    expect(seasonalAudio).toContain("shouldPlayRef.current = available && enabled === true");
-    expect(seasonalAudio).toContain("playsInSilentMode: false");
-    expect(seasonalAudio).toContain("shouldPlayInBackground: false");
-    expect(seasonalAudio).toContain('interruptionMode: "mixWithOthers"');
-    expect(seasonalAudio).toContain("AppState.addEventListener");
-    expect(seasonalAudio).toContain('AsyncStorage.setItem(PREFERENCE_KEY, next ? "on" : "off")');
+    expect(seasonalAudioProvider).toContain("configuration.available && enabled === true");
+    expect(seasonalAudioProvider).toContain("playsInSilentMode: false");
+    expect(seasonalAudioProvider).toContain("shouldPlayInBackground: false");
+    expect(seasonalAudioProvider).toContain('interruptionMode: "mixWithOthers"');
+    expect(seasonalAudioProvider).toContain("AppState.addEventListener");
+    expect(seasonalAudioProvider).toContain('AsyncStorage.setItem(PREFERENCE_KEY, next ? "on" : "off")');
     expect(seasonalAudioPlayback).toContain("Math.max(0, Math.min(0.08");
     expect(seasonalAudioPlayback).toContain("this.player.loop = true");
     expect(source("mobile/assets/audio/LICENSE.txt")).toContain("CC0 1.0");
+  });
+
+  it("mantém favoritos de produto separados e atualiza a conta ao autenticar", () => {
+    const favoritesRoute = source("backend/app/api/mobile/favorites/route.ts");
+    const productScreen = source("mobile/app/produto/[id].tsx");
+    expect(favoritesRoute).toContain("customerId: customer.id");
+    expect(favoritesRoute).toContain("customerId_productId");
+    expect(mobileHome).toContain("setFavoriteIds({})");
+    expect(productScreen).toContain("if (!customer || !product)");
+    expect(productScreen).toContain("setFavoriteId(null)");
   });
 
   it("centraliza as mensagens usadas pelo site e pela API", () => {
