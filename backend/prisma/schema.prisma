@@ -776,6 +776,7 @@ model StoreSettings {
   shippingHandlingDays  Int      @default(1)
   logoUrl            String?
   bannerUrls         String[] @default([])
+  homePresentation   Json     @default("{}")
   updatedAt          DateTime @updatedAt
 
   @@map("store_settings")

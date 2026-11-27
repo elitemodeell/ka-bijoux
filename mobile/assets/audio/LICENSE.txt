@@ -1,0 +1,9 @@
+Jingle Bells (music-box style) — Mystery Mammal
+
+Recording: “Jingle Bells” by Mystery Mammal
+Source record: SoundSafari / Public-Domain-Music dataset
+Source page: https://sonvela.site/library/jingle-bells-mystery-mammal
+Direct source page: https://huggingface.co/datasets/SoundSafari/Public-Domain-Music/blob/main/Mystery%20Mammal%20-%20Jingle%20Bells.mp3
+License: CC0 1.0 (commercial use permitted; attribution is optional).
+The recording is a 1:02 instrumental with bells and piano, intended for quiet seasonal ambient playback.
+SHA-256: 11deaa33d8c358942813ff51dd717deff93e08a2da3b789e5904882c554bc29f

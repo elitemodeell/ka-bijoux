@@ -7,6 +7,7 @@ import {
   HOME_QUICK_CATEGORIES,
   HOME_SECTION_DEFINITIONS,
 } from "@/lib/home-content";
+import { homePresentationSettingsSchema } from "@/lib/home-presentation-settings";
 import { googlePlayCategoryWhere, googlePlayProductWhere } from "@/lib/google-play-distribution";
 
 const repoRoot = path.resolve(process.cwd(), "..");
@@ -22,6 +23,7 @@ const resilientProductImage = source(
   "mobile/components/product/ResilientProductImage.tsx"
 );
 const siteStories = source("backend/components/loja/KABijouxStories.tsx");
+const seasonalAudio = source("mobile/components/home/SeasonalAudioControl.tsx");
 
 describe("correção completa da Home mobile", () => {
   it("abre KA Stories pelo link de Stories e mantém browser e perfil como fallback", () => {
@@ -61,6 +63,54 @@ describe("correção completa da Home mobile", () => {
     expect(homeRoute).toContain("presentation.banners");
     expect(getHomePresentation(new Date("2026-11-25T12:00:00-03:00")).theme).toBe("christmas");
     expect(getHomePresentation(new Date("2026-12-27T12:00:00-03:00")).theme).toBe("default");
+  });
+
+  it("administra o tema sazonal, logos, cores, banners e música sem alteração mobile", () => {
+    const settings = homePresentationSettingsSchema.parse({
+      themeMode: "CHRISTMAS",
+      logoUrl: "/images/brand/ka-bijoux-logo-natal.png",
+      storyLogoUrl: "/images/brand/ka-bijoux-logo-natal-story.png",
+      headerColors: ["#7a002e", "#51001f"],
+      bannerUrls: ["/banners/one.webp", "/banners/two.webp", "/banners/three.webp"],
+      ambientMusicEnabled: true,
+    });
+    const presentation = getHomePresentation(new Date("2026-07-01T12:00:00-03:00"), settings);
+    expect(presentation.theme).toBe("christmas");
+    expect(presentation.banners).toHaveLength(3);
+    expect(presentation.logoUrl).toBe(settings.logoUrl);
+    expect(presentation.storyLogoUrl).toBe(settings.storyLogoUrl);
+    expect(presentation.ambientMusic.enabled).toBe(true);
+    expect(homeRoute).toContain("storeSettings.findFirst({ select: { homePresentation: true } })");
+    expect(source("backend/app/api/admin/settings/route.ts")).toContain("homePresentationSettingsSchema.safeParse");
+  });
+
+  it("mantém o tema padrão seguro e não ativa música sazonal fora do Natal", () => {
+    const presentation = getHomePresentation(new Date("2026-07-01T12:00:00-03:00"), {
+      themeMode: "DEFAULT",
+      ambientMusicEnabled: true,
+    });
+    expect(presentation.theme).toBe("default");
+    expect(presentation.logoUrl).toBe("");
+    expect(presentation.ambientMusic.enabled).toBe(false);
+    expect(presentation.storyLogoUrl).toBe("/images/brand/ka-bijoux-logo-story-icon.png");
+  });
+
+  it("não aceita URLs inseguras para imagens nem música sazonal", () => {
+    expect(homePresentationSettingsSchema.safeParse({ ambientMusicUrl: "http://untrusted.example/music.mp3" }).success).toBe(false);
+    expect(homePresentationSettingsSchema.safeParse({ logoUrl: "//untrusted.example/logo.png" }).success).toBe(false);
+    expect(homePresentationSettingsSchema.safeParse({ ambientMusicUrl: "https://media.example/music.mp3" }).success).toBe(true);
+  });
+
+  it("reproduz música ambiente só no tema sazonal, respeita silêncio e pausa em segundo plano", () => {
+    expect(seasonalAudio).toContain("if (!available || enabled === false) return null");
+    expect(seasonalAudio).toContain("playsInSilentMode: false");
+    expect(seasonalAudio).toContain("shouldPlayInBackground: false");
+    expect(seasonalAudio).toContain('interruptionMode: "mixWithOthers"');
+    expect(seasonalAudio).toContain("AppState.addEventListener");
+    expect(seasonalAudio).toContain('AsyncStorage.setItem(PREFERENCE_KEY, next ? "on" : "off")');
+    expect(seasonalAudio).toContain("Math.min(0.07");
+    expect(seasonalAudio).toContain("player.loop = true");
+    expect(source("mobile/assets/audio/LICENSE.txt")).toContain("CC0 1.0");
   });
 
   it("centraliza as mensagens usadas pelo site e pela API", () => {

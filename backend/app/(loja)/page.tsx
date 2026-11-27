@@ -10,6 +10,8 @@ import QuickCategoryBar from "@/components/loja/QuickCategoryBar";
 import type { ProductCardProduct } from "@/lib/bling-catalog";
 import { HOME_SECTION_DEFINITIONS, getHomePresentation, pickHomeBadge } from "@/lib/home-content";
 import { getHomeSections } from "@/lib/home-sections";
+import { prisma } from "@/lib/prisma";
+import { parseHomePresentationSettings } from "@/lib/home-presentation-settings";
 
 const getCachedHomeSections = unstable_cache(() => getHomeSections(), ["ka-home-sections"], {
   revalidate: 60,
@@ -35,7 +37,8 @@ export default async function HomePage() {
     paraPresentes,
     belezaAutocuidado,
   } = await getCachedHomeSections();
-  const presentation = getHomePresentation();
+  const storeSettings = await prisma.storeSettings.findFirst({ select: { homePresentation: true } });
+  const presentation = getHomePresentation(new Date(), parseHomePresentationSettings(storeSettings?.homePresentation));
 
   return (
     <main className="overflow-x-hidden">

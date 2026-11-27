@@ -91,7 +91,14 @@ export type HomeProductSection = {
 export type MobileHomePayload = {
   schemaVersion: number;
   generatedAt: string;
-  theme?: { name: "christmas" | "default"; seasonalDecoration: boolean };
+  theme?: {
+    name: "christmas" | "default";
+    seasonalDecoration: boolean;
+    logoUrl?: string;
+    storyLogoUrl?: string;
+    headerColors?: readonly [string, string];
+    ambientMusic?: { enabled: boolean; url: string | null };
+  };
   announcements: string[];
   banners: HomeBanner[];
   campaign: {

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/utils";
+import { homePresentationSettingsSchema } from "@/lib/home-presentation-settings";
 
 async function getOrCreateSettings() {
   const existing = await prisma.storeSettings.findFirst();
@@ -42,6 +43,14 @@ export async function PATCH(req: NextRequest) {
       if (key in body) {
         data[key] = body[key];
       }
+    }
+
+    if (body.homePresentation !== undefined) {
+      const homePresentation = homePresentationSettingsSchema.safeParse(body.homePresentation);
+      if (!homePresentation.success) {
+        return apiError("Revise as configurações visuais da Home e os endereços de imagem ou música.", 422);
+      }
+      data.homePresentation = homePresentation.data;
     }
 
     if (typeof data.mototaxiPrice === "string") {

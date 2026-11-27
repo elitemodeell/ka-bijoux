@@ -16,6 +16,7 @@ import {
   getHomePresentation,
 } from "@/lib/home-content";
 import { getHomeSections } from "@/lib/home-sections";
+import { parseHomePresentationSettings } from "@/lib/home-presentation-settings";
 import { HIDDEN_HOME_SHORTCUT_STORY_IDS, publicStoryGroupWhere, serializeStoryGroup } from "@/lib/stories";
 import { apiError, apiSuccess } from "@/lib/utils";
 
@@ -24,7 +25,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const itemPolicy = googlePlayStoryItemWhere();
-    const [sections, categories, categoryCounts, stories, reviews] = await Promise.all([
+    const [sections, categories, categoryCounts, stories, reviews, storeSettings] = await Promise.all([
       getHomeSections({ googlePlay: true }),
       prisma.category.findMany({
         where: googlePlayCategoryWhere({ parentId: null }),
@@ -71,10 +72,11 @@ export async function GET() {
           },
         },
       }),
+      prisma.storeSettings.findFirst({ select: { homePresentation: true } }),
     ]);
 
     const counts = new Map(categoryCounts.map((entry) => [entry.categoryId, entry._count._all]));
-    const presentation = getHomePresentation();
+    const presentation = getHomePresentation(new Date(), parseHomePresentationSettings(storeSettings?.homePresentation));
     const productSections = HOME_SECTION_DEFINITIONS.map((definition) => ({
       id: definition.id,
       label: definition.label,
@@ -100,7 +102,14 @@ export async function GET() {
     const payload = {
       schemaVersion: 2,
       generatedAt: new Date().toISOString(),
-      theme: { name: presentation.theme, seasonalDecoration: presentation.seasonalDecoration },
+      theme: {
+        name: presentation.theme,
+        seasonalDecoration: presentation.seasonalDecoration,
+        logoUrl: presentation.logoUrl,
+        storyLogoUrl: presentation.storyLogoUrl,
+        headerColors: presentation.headerColors,
+        ambientMusic: presentation.ambientMusic,
+      },
       announcements: presentation.announcements,
       banners: presentation.banners,
       campaign: presentation.campaign,

@@ -20,6 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFonts } from "expo-font";
 import * as WebBrowser from "expo-web-browser";
 import { categoryArtwork, instagramProfile, instagramStoriesUrl, thumbnail } from "@/components/home/brand";
+import { SeasonalAudioControl } from "@/components/home/SeasonalAudioControl";
 import { Image, type ImageSource } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -127,21 +128,37 @@ function isHomePayload(value: unknown): value is MobileHomePayload {
   );
 }
 
-function Header({ itemCount, favoriteCount, onNavigate }: { itemCount: number; favoriteCount: number; onNavigate: (href: string) => void }) {
+function Header({ itemCount, favoriteCount, theme, onNavigate }: {
+  itemCount: number;
+  favoriteCount: number;
+  theme?: MobileHomePayload["theme"];
+  onNavigate: (href: string) => void;
+}) {
   const openSearch = () => onNavigate("/(tabs)/busca");
+  const headerColors = theme?.headerColors ?? ["#7a002e", "#51001f"];
+  const logo = theme?.seasonalDecoration
+    ? theme.logoUrl && theme.logoUrl !== "/images/brand/ka-bijoux-logo-natal.png"
+      ? resolveUrl(theme.logoUrl)
+      : require("../../assets/brand/ka-bijoux-logo-natal.png")
+    : theme?.logoUrl
+      ? resolveUrl(theme.logoUrl)
+      : null;
   return (
-    <LinearGradient colors={["#7a002e", "#a60043", "#51001f"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
-      <View style={styles.headerTopRow}>
+    <LinearGradient colors={[headerColors[0], "#a60043", headerColors[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
+      <View style={[styles.headerTopRow, theme?.seasonalDecoration && styles.headerTopRowSeasonal]}>
         <TouchableOpacity style={styles.headerButton} accessibilityLabel="Abrir categorias" onPress={() => onNavigate("/(tabs)/categorias")}>
           <Ionicons name="menu-outline" size={27} color="#fff" />
         </TouchableOpacity>
         <View style={styles.wordmark} accessibilityLabel="KA Bijoux">
-          <Text style={styles.wordmarkKa}>KA</Text><Text style={styles.wordmarkBijoux}>Bijoux</Text>
+          {logo ? <Image source={logo} style={styles.seasonalLogo} contentFit="contain" cachePolicy="memory-disk" accessibilityLabel="Logomarca natalina KA Bijoux" /> : <>
+            <Text style={styles.wordmarkKa}>KA</Text><Text style={styles.wordmarkBijoux}>Bijoux</Text>
+          </>}
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.headerButton} accessibilityLabel="Pesquisar produtos" onPress={openSearch}>
             <Ionicons name="search-outline" size={23} color="#fff" />
           </TouchableOpacity>
+          {theme?.seasonalDecoration ? <SeasonalAudioControl available={theme.ambientMusic?.enabled === true} url={theme.ambientMusic?.url} /> : null}
         <TouchableOpacity style={styles.headerButton} accessibilityLabel="Abrir favoritos" onPress={() => onNavigate("/favoritos")}>
             <Ionicons name="heart-outline" size={23} color="#fff" />
             {favoriteCount > 0 ? <View style={styles.headerBadge}><Text style={styles.headerBadgeText}>{Math.min(favoriteCount, 99)}</Text></View> : null}
@@ -448,7 +465,7 @@ const STORY_CATEGORIES = [
   { key: "HIGHLIGHT", label: "Destaques", icon: "sparkles-outline" as const },
 ] as const;
 
-function Stories({ stories, onOpen }: { stories: HomeStory[]; onOpen: (story: HomeStory) => void }) {
+function Stories({ stories, logoUrl, onOpen }: { stories: HomeStory[]; logoUrl?: string; onOpen: (story: HomeStory) => void }) {
   const [emptyCategory, setEmptyCategory] = useState<string | null>(null);
   const openCategory = (category: typeof STORY_CATEGORIES[number]) => {
     const groups = stories.filter((story) => (story.category ?? "OFFICIAL") === category.key && !HIDDEN_HOME_STORY_SHORTCUTS.has(story.id));
@@ -478,7 +495,7 @@ function Stories({ stories, onOpen }: { stories: HomeStory[]; onOpen: (story: Ho
           <LinearGradient colors={['#e9b43e', '#ffafd1', '#ec4899']} style={styles.storyRing}>
             <View style={styles.storyInner}>
               {cover ? <Image source={thumbnail(resolveUrl(cover), 256)} style={styles.storyCover} contentFit="cover" cachePolicy="memory-disk" />
-                : category.key === "OFFICIAL" ? <Image source={resolveUrl('/images/brand/ka-bijoux-logo-story-icon.png')} style={styles.storyCover} contentFit="contain" cachePolicy="memory-disk" />
+                : category.key === "OFFICIAL" ? <Image source={logoUrl === "/images/brand/ka-bijoux-logo-natal-story.png" ? require("../../assets/brand/ka-bijoux-logo-natal-story.png") : logoUrl ? resolveUrl(logoUrl) : resolveUrl('/images/brand/ka-bijoux-logo-story-icon.png')} style={styles.storyCover} contentFit="contain" cachePolicy="memory-disk" />
                 : <Ionicons name={category.icon} size={28} color={Colors.primary} style={styles.storyEmptyIcon} />}
             </View>
           </LinearGradient>
@@ -492,7 +509,7 @@ function Stories({ stories, onOpen }: { stories: HomeStory[]; onOpen: (story: Ho
           <TouchableOpacity style={styles.emptyStoryClose} onPress={() => setEmptyCategory(null)} accessibilityLabel="Fechar">
             <Ionicons name="close" size={21} color={Colors.primary} />
           </TouchableOpacity>
-          <Image source={resolveUrl('/images/brand/ka-bijoux-logo-story-icon.png')} style={styles.emptyStoryLogo} contentFit="contain" />
+          <Image source={logoUrl === "/images/brand/ka-bijoux-logo-natal-story.png" ? require("../../assets/brand/ka-bijoux-logo-natal-story.png") : logoUrl ? resolveUrl(logoUrl) : resolveUrl('/images/brand/ka-bijoux-logo-story-icon.png')} style={styles.emptyStoryLogo} contentFit="contain" />
           <Text style={styles.emptyStoryTitle}>{emptyCategory}</Text>
           <Text style={styles.emptyStoryText}>Ainda não há conteúdo publicado nesta seção. Volte em breve para conferir as novidades da KA Bijoux.</Text>
         </View>
@@ -668,7 +685,7 @@ function HomeSkeleton() {
 type HomeBlock =
   | { key: "special"; type: "special"; category?: HomeCategory }
   | { key: "hero"; type: "hero"; banners: HomeBanner[] }
-  | { key: "stories"; type: "stories"; stories: HomeStory[] }
+  | { key: "stories"; type: "stories"; stories: HomeStory[]; logoUrl?: string }
   | { key: "quick"; type: "quick"; categories: HomeQuickCategory[] }
   | { key: string; type: "products"; section: HomeProductSection }
   | { key: "benefits"; type: "benefits"; benefits: MobileHomePayload["benefits"] }
@@ -685,7 +702,7 @@ const HomeBlockView = memo(function HomeBlockView({ block, onNavigate, onOpenSto
   switch (block.type) {
     case "special": return <SpecialArea category={block.category} onNavigate={onNavigate} />;
     case "hero": return <HeroCarousel banners={block.banners} onNavigate={onNavigate} />;
-    case "stories": return <Stories stories={block.stories} onOpen={onOpenStory} />;
+    case "stories": return <Stories stories={block.stories} logoUrl={block.logoUrl} onOpen={onOpenStory} />;
     case "quick": return <QuickCategories categories={block.categories} onNavigate={onNavigate} />;
     case "products": return <ProductSection section={block.section} onNavigate={onNavigate} favoriteIds={favoriteIds} onFavoriteToggle={onFavoriteToggle} />;
     case "benefits": return <Benefits benefits={block.benefits} />;
@@ -841,20 +858,10 @@ export default function HomeScreen() {
   const homeBlocks = useMemo<HomeBlock[]>(() => {
     if (!home) return [];
     const special: HomeBlock = { key: "special", type: "special", category: home.categories.find((category) => category.slug === "sex-shop") };
-    const banners = home.theme?.seasonalDecoration && home.banners.length < 3
-      ? [...home.banners, {
-          id: "natal-ka-cheio-de-estilo-local",
-          title: "Brilhe neste Natal",
-          subtitle: "Bijuterias e acessórios especiais para valorizar o seu estilo",
-          cta: "Comprar agora",
-          href: "/produtos",
-          image: require("../../../backend/public/banners/ka-natal-cheio-de-estilo.webp"),
-          mobileImage: require("../../../backend/public/banners/ka-natal-cheio-de-estilo.webp"),
-        }]
-      : home.banners;
+    const banners = home.banners;
     const featured: HomeBlock[] = [
       { key: "hero", type: "hero", banners },
-      { key: "stories", type: "stories", stories: home.stories },
+      { key: "stories", type: "stories", stories: home.stories, logoUrl: home.theme?.storyLogoUrl },
       { key: "quick", type: "quick", categories: home.quickCategories },
     ];
     const blocks: HomeBlock[] = Platform.OS === "ios" ? [...featured, special] : [special, ...featured];
@@ -871,8 +878,8 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      <StatusBar style="light" backgroundColor="#7a002e" />
-      <Header itemCount={itemCount} favoriteCount={Object.keys(favoriteIds).length} onNavigate={navigate} />
+      <StatusBar style="light" backgroundColor={home?.theme?.headerColors?.[0] ?? "#7a002e"} />
+      <Header itemCount={itemCount} favoriteCount={Object.keys(favoriteIds).length} theme={home?.theme} onNavigate={navigate} />
       {offline ? (
         <TouchableOpacity style={styles.offlineBanner} onPress={() => void loadHome(true)}>
           <Ionicons name="cloud-offline-outline" size={16} color="#7f1d1d" />
@@ -930,7 +937,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 4,
   },
+  headerTopRowSeasonal: { minHeight: 66 },
   wordmark: { flex: 1, flexDirection: "row", alignItems: "baseline", justifyContent: "center", gap: 3 },
+  seasonalLogo: { width: 126, height: 80 },
   wordmarkKa: { color: "#fff", fontFamily: "PlayfairDisplay", fontSize: 29, fontWeight: "900", letterSpacing: -2 },
   wordmarkBijoux: { color: "#f5d277", fontFamily: "PlayfairDisplay", fontSize: 21, letterSpacing: -1 },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 0 },

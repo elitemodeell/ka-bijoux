@@ -22,6 +22,10 @@ export type HomeCampaignContent = {
 export type HomePresentation = {
   theme: "christmas" | "default";
   seasonalDecoration: boolean;
+  logoUrl: string;
+  storyLogoUrl: string;
+  headerColors: readonly [string, string];
+  ambientMusic: { enabled: boolean; url: string | null };
   announcements: readonly string[];
   banners: readonly HomeHeroSlide[];
   campaign: HomeCampaignContent;
@@ -123,8 +127,8 @@ const CHRISTMAS_HERO_SLIDES: HomeHeroSlide[] = [
     subtitle: "Bijuterias e acessórios para surpreender",
     cta: "Conferir coleção",
     href: "/produtos",
-    image: "/banners/ka-natal-presentes-encantam.webp",
-    mobileImage: "/banners/ka-natal-presentes-encantam.webp",
+      image: "/banners/ka-natal-presentes-encantam-brand.webp",
+      mobileImage: "/banners/ka-natal-presentes-encantam-brand.webp",
     objectPosition: "center",
   },
   {
@@ -133,10 +137,20 @@ const CHRISTMAS_HERO_SLIDES: HomeHeroSlide[] = [
     subtitle: "Bijuterias e acessórios para valorizar seu estilo",
     cta: "Comprar agora",
     href: "/categoria/bijuterias",
-    image: "/banners/ka-natal-brilhe-neste-natal.webp",
-    mobileImage: "/banners/ka-natal-brilhe-neste-natal.webp",
+      image: "/banners/ka-natal-brilhe-neste-natal-brand.webp",
+      mobileImage: "/banners/ka-natal-brilhe-neste-natal-brand.webp",
     objectPosition: "center",
   },
+    {
+      id: "natal-cheio-de-estilo",
+      title: "Brilhe neste Natal",
+      subtitle: "Bijuterias e acessórios para valorizar seu estilo",
+      cta: "Comprar agora",
+      href: "/categoria/bijuterias",
+      image: "/banners/ka-natal-cheio-de-estilo-brand.webp",
+      mobileImage: "/banners/ka-natal-cheio-de-estilo-brand.webp",
+      objectPosition: "center",
+    },
 ];
 
 export const HOME_QUICK_CATEGORIES: HomeQuickCategory[] = [
@@ -197,7 +211,7 @@ export const HOME_CAMPAIGN = {
 const CHRISTMAS_CAMPAIGN = {
   title: "Natal KA Bijoux",
   subtitle: "Presentes que encantam",
-  image: "/banners/ka-natal-presentes-encantam.webp",
+  image: "/banners/ka-natal-presentes-encantam-brand.webp",
   href: "/produtos",
   promoTitle: "Brilhe neste Natal",
   promoSubtitle: "Bijuterias e acessórios especiais para presentear",
@@ -205,7 +219,21 @@ const CHRISTMAS_CAMPAIGN = {
 } as const;
 
 /** Seasonal content is returned by the backend so it can expire without a mobile rebuild. */
-export function getHomePresentation(now = new Date()): HomePresentation {
+export type HomePresentationSettings = {
+  themeMode?: "AUTO" | "CHRISTMAS" | "DEFAULT";
+  logoUrl?: string | null;
+  storyLogoUrl?: string | null;
+  headerColors?: readonly [string, string];
+  bannerUrls?: readonly string[];
+  ambientMusicEnabled?: boolean;
+  ambientMusicUrl?: string | null;
+};
+
+const DEFAULT_HEADER_COLORS = ["#7a002e", "#51001f"] as const;
+const DEFAULT_CHRISTMAS_LOGO = "/images/brand/ka-bijoux-logo-natal.png";
+const DEFAULT_CHRISTMAS_STORY_LOGO = "/images/brand/ka-bijoux-logo-natal-story.png";
+
+export function getHomePresentation(now = new Date(), settings: HomePresentationSettings = {}): HomePresentation {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Sao_Paulo",
     month: "numeric",
@@ -213,9 +241,14 @@ export function getHomePresentation(now = new Date()): HomePresentation {
   }).formatToParts(now);
   const month = Number(parts.find((part) => part.type === "month")?.value);
   const day = Number(parts.find((part) => part.type === "day")?.value);
-  const christmas = month === 11 || (month === 12 && day <= 26);
+  const automaticChristmas = month === 11 || (month === 12 && day <= 26);
+  const christmas = settings.themeMode === "CHRISTMAS"
+    ? true
+    : settings.themeMode === "DEFAULT"
+      ? false
+      : automaticChristmas;
 
-  return christmas
+  const presentation: Omit<HomePresentation, "logoUrl" | "storyLogoUrl" | "headerColors" | "ambientMusic"> = christmas
     ? {
         theme: "christmas",
         seasonalDecoration: true,
@@ -230,6 +263,23 @@ export function getHomePresentation(now = new Date()): HomePresentation {
         banners: DEFAULT_HOME_HERO_SLIDES,
         campaign: HOME_CAMPAIGN,
       };
+
+  const banners = presentation.banners.map((slide, index) => {
+    const image = settings.bannerUrls?.[index];
+    return image ? { ...slide, image, mobileImage: image } : slide;
+  });
+
+  return {
+    ...presentation,
+    banners,
+    logoUrl: christmas ? settings.logoUrl || DEFAULT_CHRISTMAS_LOGO : "",
+    storyLogoUrl: christmas ? settings.storyLogoUrl || DEFAULT_CHRISTMAS_STORY_LOGO : "/images/brand/ka-bijoux-logo-story-icon.png",
+    headerColors: settings.headerColors ?? DEFAULT_HEADER_COLORS,
+    ambientMusic: {
+      enabled: christmas && (settings.ambientMusicEnabled ?? true),
+      url: settings.ambientMusicUrl || null,
+    },
+  };
 }
 
 export const HOME_BENEFITS = [
