@@ -590,5 +590,5 @@ workflows:
         beta_groups:
           - Team (Expo)
         submit_to_app_store: false
-        release_type: AFTER_APPROVAL
-        phased_release: false
+
+
