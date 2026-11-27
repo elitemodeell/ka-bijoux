@@ -46,6 +46,8 @@ export type ProductCardProduct = {
   purchaseReviewRequired?: boolean;
   requiresOptionSelection?: boolean;
   sku?: string | null;
+  brand?: string | null;
+  ean?: string | null;
   blingId?: string | null;
   category?: { name: string; slug?: string } | null;
   subcategory?: { name: string; slug?: string } | null;

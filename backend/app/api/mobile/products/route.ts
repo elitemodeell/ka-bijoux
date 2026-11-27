@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { catalogSearchAlternatives } from "@/lib/catalog-search";
+import { catalogSearchAlternatives, catalogSearchRank } from "@/lib/catalog-search";
 import { googlePlayProductWhere } from "@/lib/google-play-distribution";
 import { apiError, apiSuccess } from "@/lib/utils";
 import { isOfficialCatalogPhoto, visibleCatalogPhotos } from "@/lib/catalog-photo";
@@ -15,6 +15,8 @@ const cardSelect = Prisma.validator<Prisma.ProductSelect>()({
   name: true,
   slug: true,
   description: true,
+  brand: true,
+  ean: true,
   price: true,
   promotionalPrice: true,
   stock: true,
@@ -83,6 +85,10 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, Number(params.get("page") ?? 1) || 1);
     const pageSize = Math.min(50, Math.max(1, Number(params.get("pageSize") ?? 20) || 20));
     const search = params.get("q")?.trim();
+    const suggestionsOnly = params.get("suggestions") === "true";
+    if (suggestionsOnly && (!search || search.length < 3)) {
+      return apiSuccess({ products: [], total: 0, page, pageSize, totalPages: 0, hasMoreCandidates: false });
+    }
     const category = params.get("category") ?? params.get("cat");
     const subcategory = params.get("subcategory");
     const featured = params.get("featured") === "true";
@@ -138,6 +144,7 @@ export async function GET(req: NextRequest) {
     const candidates = [];
     let skip = 0;
     while (true) {
+      if (suggestionsOnly && skip >= 500) break;
       const batch = await prisma.product.findMany({
         where,
         select: cardSelect,
@@ -148,7 +155,7 @@ export async function GET(req: NextRequest) {
       candidates.push(...batch);
       if (batch.length < 500) break;
       skip += batch.length;
-      if (skip >= 20_000) return apiError("CatÃ¡logo excede o limite seguro de leitura.", 503);
+      if (!suggestionsOnly && skip >= 20_000) return apiError("CatÃ¡logo excede o limite seguro de leitura.", 503);
     }
 
     const eligible = candidates.flatMap((product) => {
@@ -156,6 +163,7 @@ export async function GET(req: NextRequest) {
       const sale = saleReadyProduct(card);
       return sale ? [{ ...card, ...sale }] : [];
     });
+    if (search) eligible.sort((a, b) => catalogSearchRank(a, search) - catalogSearchRank(b, search));
     const total = eligible.length;
     const products = eligible.slice((page - 1) * pageSize, page * pageSize);
 
@@ -165,6 +173,7 @@ export async function GET(req: NextRequest) {
       page,
       pageSize,
       totalPages: Math.ceil(total / pageSize),
+      hasMoreCandidates: suggestionsOnly && candidates.length >= 500,
     });
     response.headers.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=120");
     return response;

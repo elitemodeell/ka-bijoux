@@ -19,6 +19,24 @@ describe("catalog search", () => {
     ]);
   });
 
+  it("understands AC as ar condicionado without weakening the product-type match", () => {
+    const combined = catalogSearchAlternatives("controle AC").at(-1)?.AND;
+    expect(combined).toMatchObject([
+      { OR: expect.arrayContaining([{ name: { startsWith: "controle ", mode: "insensitive" } }]) },
+      { OR: expect.arrayContaining([{ name: { contains: "ar condicionado", mode: "insensitive" } }]) },
+    ]);
+  });
+
+  it("matches unaccented Portuguese queries to accented catalog names", () => {
+    const serialized = JSON.stringify(catalogSearchAlternatives("coracao"));
+    expect(serialized).toContain("coração");
+  });
+
+  it("corrects common typing errors before querying", () => {
+    const serialized = JSON.stringify(catalogSearchAlternatives("carregdor"));
+    expect(serialized).toContain("carregador");
+  });
+
   it("normalizes accented queries for slug matching", () => {
     expect(catalogSearchAlternatives("Óculos")).toContainEqual({
       slug: { contains: "oculos", mode: "insensitive" },

@@ -3,7 +3,7 @@ import { isKaCatalogAsset, isOfficialCatalogPhoto, visibleCatalogPhotos } from "
 import { Prisma, ProductEnrichmentStatus, ProductImportSource, ProductPublicationStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { catalogSearchAlternatives } from "@/lib/catalog-search";
+import { catalogSearchAlternatives, catalogSearchRank } from "@/lib/catalog-search";
 import { catalogPurchaseBlocked, catalogPurchaseModes, validateCatalogOptions } from "@/lib/catalog-purchase-mode";
 import { saleReadyProduct, variationsShareSkuInventory } from "@/lib/catalog-storefront-eligibility";
 import { requireAdmin } from "@/lib/auth";
@@ -39,8 +39,10 @@ const productListSelect = {
   sharedVariationStock: true,
   featured: true,
   isNew: true,
+  brand: true,
   sku: true,
   blingId: true,
+  ean: true,
   category: { select: { name: true, slug: true } },
   subcategory: { select: { name: true, slug: true } },
   images: {
@@ -84,6 +86,10 @@ export async function GET(req: NextRequest) {
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
     const withImage = searchParams.get("withImage") === "true";
+    const suggestionsOnly = searchParams.get("suggestions") === "true";
+    if (suggestionsOnly && (!search || search.trim().length < 3)) {
+      return apiSuccess({ products: [], total: 0, page, pageSize, totalPages: 0, hasMoreCandidates: false });
+    }
     const catalogLine = getRequestedCatalogLine(searchParams, category, subcategory);
     const where: Prisma.ProductWhereInput = { active: true };
     if (category) where.category = { slug: category };
@@ -119,6 +125,7 @@ export async function GET(req: NextRequest) {
       const all = [];
       let skip = 0;
       while (true) {
+        if (suggestionsOnly && skip >= 500) return all;
         const batch = await prisma.product.findMany({
           where,
           select: productListSelect,
@@ -129,7 +136,7 @@ export async function GET(req: NextRequest) {
         all.push(...batch);
         if (batch.length < 500) return all;
         skip += batch.length;
-        if (skip >= 20_000) throw new Error("Catalog exceeds safe query limit");
+        if (!suggestionsOnly && skip >= 20_000) throw new Error("Catalog exceeds safe query limit");
       }
     })(), DB_QUERY_TIMEOUT_MS);
 
@@ -144,6 +151,7 @@ export async function GET(req: NextRequest) {
         return sale ? { ...product, ...sale } : null;
       })
       .filter((product): product is ProductCardProduct => Boolean(product));
+    if (search) dbProducts.sort((a, b) => catalogSearchRank(a, search) - catalogSearchRank(b, search));
     const total = dbProducts.length;
     const products = dbProducts.slice((page - 1) * pageSize, page * pageSize);
 
@@ -153,6 +161,7 @@ export async function GET(req: NextRequest) {
       page,
       pageSize,
       totalPages: Math.ceil(total / pageSize),
+      hasMoreCandidates: suggestionsOnly && candidates.length >= 500,
     });
     response.headers.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=120");
     return response;
@@ -217,6 +226,8 @@ function mapDbProductToCard(product: Prisma.ProductGetPayload<{ select: typeof p
     stock: purchaseReviewRequired ? 0 : product.stock,
     purchaseReviewRequired,
     sku: product.sku,
+    brand: product.brand,
+    ean: product.ean,
     blingId: bling?.blingId ?? product.blingId,
     category,
     subcategory,

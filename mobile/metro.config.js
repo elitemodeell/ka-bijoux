@@ -2,7 +2,11 @@ const { getDefaultConfig } = require("expo/metro-config");
 const path = require("node:path");
 
 const config = getDefaultConfig(__dirname);
-config.watchFolders = [...new Set([...config.watchFolders, path.resolve(__dirname, "../shared")])];
+config.watchFolders = [...new Set([
+  ...config.watchFolders,
+  path.resolve(__dirname, "../shared"),
+  path.resolve(__dirname, "../backend/public/banners"),
+])];
 const defaultResolveRequest = config.resolver.resolveRequest;
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {

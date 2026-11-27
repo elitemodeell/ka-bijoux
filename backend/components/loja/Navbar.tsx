@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -26,17 +26,6 @@ const MENU_LINKS = [
   { label: "Todos os produtos", href: "/produtos" },
   { label: "Carrinho", href: "/carrinho" },
   { label: "🔞 Linha Adulto", href: "/categoria/sex-shop" },
-];
-
-const SEARCH_SUGGESTIONS = [
-  "capinhas",
-  "bijuterias",
-  "maquiagem",
-  "bolsas",
-  "necessaires",
-  "perfume",
-  "utilidades",
-  "brincos",
 ];
 
 const HIDDEN_EMPTY_CATEGORY_SLUGS = new Set([
@@ -83,17 +72,17 @@ export default function Navbar() {
     return subscribeCart((items) => setCartCount(getCartCount(items)));
   }, []);
 
-  function submitSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const value = search.trim();
+  function navigateSearch(value: string) {
+    const normalizedValue = value.trim();
+    setSearch(normalizedValue);
     setMenuOpen(false);
     setMegaOpen(false);
     const isAdultContext = pathname?.startsWith("/categoria/sex-shop");
     router.push(
-      value
+      normalizedValue
         ? isAdultContext
-          ? `/categoria/sex-shop?q=${encodeURIComponent(value)}`
-          : getSearchHref(value)
+          ? `/categoria/sex-shop?q=${encodeURIComponent(normalizedValue)}`
+          : `/produtos?q=${encodeURIComponent(normalizedValue)}`
         : isAdultContext
           ? "/categoria/sex-shop"
           : "/produtos"
@@ -118,21 +107,17 @@ export default function Navbar() {
             <span className="-mt-2 block font-playfair text-[15px] italic text-[#8a4b5d] sm:text-[17px]">Íntima</span>
           </Link>
 
-          <form onSubmit={submitSearch} className="relative min-w-0 flex-1">
-            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a4b5d]/75 sm:left-4 sm:h-5 sm:w-5" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="O que você procura?"
-              list="ka-search-suggestions"
-              className="h-12 w-full rounded-[22px] border border-[#ead4d4] bg-white/62 pl-10 pr-3 text-sm font-medium text-[#6f4352] outline-none shadow-[0_14px_30px_rgba(99,44,63,0.06)] transition focus:border-[#d897ad] focus:bg-white focus:ring-2 focus:ring-[#f5dce6] sm:h-14 sm:rounded-[26px] sm:pl-12 sm:pr-4"
-            />
-            <datalist id="ka-search-suggestions">
-              {SEARCH_SUGGESTIONS.map((suggestion) => (
-                <option key={suggestion} value={suggestion} />
-              ))}
-            </datalist>
-          </form>
+          <AutocompleteSearch
+            value={search}
+            onChange={setSearch}
+            onChoose={navigateSearch}
+            adultMode
+            formClassName="relative z-40 min-w-0 flex-1"
+            inputClassName="h-12 w-full rounded-[22px] border border-[#ead4d4] bg-white/62 pl-10 pr-3 text-sm font-medium text-[#6f4352] outline-none shadow-[0_14px_30px_rgba(99,44,63,0.06)] transition focus:border-[#d897ad] focus:bg-white focus:ring-2 focus:ring-[#f5dce6] sm:h-14 sm:rounded-[26px] sm:pl-12 sm:pr-4"
+            iconClassName="left-3.5 text-[#8a4b5d]/75 sm:left-4"
+            placeholder="O que você procura?"
+            showSubmitButton={false}
+          />
 
           <Link
             href="/carrinho"
@@ -216,28 +201,16 @@ export default function Navbar() {
           <span className="ka-logo-twinkle" style={{ left: "6%", top: "72%", animationDelay: "2.6s" }} />
         </Link>
 
-        <form onSubmit={submitSearch} className="relative z-20 min-w-0 flex-1 md:max-w-md lg:max-w-lg">
-          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-pink-400" />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="O que você procura?"
-            list="ka-search-suggestions"
-            className="h-10 w-full rounded-2xl border border-pink-100 bg-white/88 pl-9 pr-10 text-[13px] font-medium text-gray-700 shadow-[0_8px_24px_rgba(236,72,153,0.06)] outline-none transition focus:border-pink-300 focus:bg-white focus:ring-2 focus:ring-pink-100 sm:h-11 sm:text-sm"
-          />
-          <button
-            type="submit"
-            className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-xl bg-pink-500 text-white transition-colors hover:bg-pink-600 sm:h-8 sm:w-8"
-            aria-label="Buscar"
-          >
-            <SearchIcon className="h-3.5 w-3.5" />
-          </button>
-          <datalist id="ka-search-suggestions">
-            {SEARCH_SUGGESTIONS.map((suggestion) => (
-              <option key={suggestion} value={suggestion} />
-            ))}
-          </datalist>
-        </form>
+        <AutocompleteSearch
+          value={search}
+          onChange={setSearch}
+          onChoose={navigateSearch}
+          formClassName="relative z-40 min-w-0 flex-1 md:max-w-md lg:max-w-lg"
+          inputClassName="h-10 w-full rounded-2xl border border-pink-100 bg-white/88 pl-9 pr-10 text-[13px] font-medium text-gray-700 shadow-[0_8px_24px_rgba(236,72,153,0.06)] outline-none transition focus:border-pink-300 focus:bg-white focus:ring-2 focus:ring-pink-100 sm:h-11 sm:text-sm"
+          iconClassName="left-3 text-pink-400"
+          placeholder="Buscar produtos, categorias e mais..."
+          showSubmitButton
+        />
 
         <nav className="relative z-10 hidden items-center gap-5 xl:flex">
           {FEATURED_LINKS.map(({ label, href }) => (
@@ -359,16 +332,16 @@ export default function Navbar() {
             </div>
 
             <div className="overflow-y-auto px-5 py-5">
-              <form onSubmit={submitSearch} className="relative">
-                <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-pink-400" />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="O que você procura?"
-                  list="ka-search-suggestions"
-                  className="w-full rounded-2xl border border-pink-100 bg-pink-50 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-pink-300 focus:bg-white"
-                />
-              </form>
+              <AutocompleteSearch
+                value={search}
+                onChange={setSearch}
+                onChoose={navigateSearch}
+                formClassName="relative z-40"
+                inputClassName="w-full rounded-2xl border border-pink-100 bg-pink-50 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-pink-300 focus:bg-white"
+                iconClassName="left-4 text-pink-400"
+                placeholder="Buscar produtos, categorias e mais..."
+                showSubmitButton={false}
+              />
 
               <div className="mt-5 grid grid-cols-2 gap-2">
                 {MENU_LINKS.map((item) => (
@@ -416,6 +389,268 @@ export default function Navbar() {
   );
 }
 
+type SearchSuggestionProduct = {
+  id: string;
+  slug?: string;
+  name: string;
+  image?: string | null;
+  price: number;
+  promotionalPrice?: number | null;
+  category?: { name?: string; slug?: string } | null;
+};
+
+type SearchPayload = { products?: SearchSuggestionProduct[] };
+const RECENT_SEARCHES_KEY = "ka-recent-searches-v1";
+const SEARCH_CACHE_TTL_MS = 30_000;
+const searchSuggestionsCache = new Map<string, { expiresAt: number; products: SearchSuggestionProduct[] }>();
+const SEARCH_CORRECTIONS: Record<string, string> = {
+  carregdor: "carregador",
+  carergador: "carregador",
+  carregadore: "carregador",
+};
+const RELATED_SEARCH_TERMS = [
+  { triggers: ["pul", "pulseira", "bracelete"], labels: ["Pulseiras", "Braceletes"] },
+  { triggers: ["cap", "capinha", "capa celular"], labels: ["Capinhas", "Capas para celular"] },
+  { triggers: ["perf", "perfume", "fragrancia"], labels: ["Perfumes", "Fragrâncias"] },
+  { triggers: ["carreg", "fonte", "cabo"], labels: ["Carregadores", "Fontes", "Cabos"] },
+  { triggers: ["fone", "headphone", "headset", "bluetooth"], labels: ["Fones sem fio", "Headphones", "Bluetooth"] },
+];
+
+function readRecentSearches() {
+  try {
+    const value = window.localStorage.getItem(RECENT_SEARCHES_KEY);
+    const parsed: unknown = value ? JSON.parse(value) : [];
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string").slice(0, 8) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentSearch(query: string) {
+  const clean = query.trim().slice(0, 100);
+  if (clean.length < 2) return;
+  const recent = readRecentSearches().filter((item) => normalizeSearchKey(item) !== normalizeSearchKey(clean));
+  try { window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify([clean, ...recent].slice(0, 8))); } catch {}
+}
+
+async function loadSearchSuggestions(query: string, line: "normal" | "adult", signal: AbortSignal) {
+  const cacheKey = `${line}:${normalizeSearchKey(query)}`;
+  const cached = searchSuggestionsCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.products;
+
+  const params = new URLSearchParams({ q: query, page: "1", pageSize: "6", withImage: "true", suggestions: "true", line });
+  const response = await fetch(`/api/products?${params.toString()}`, { signal });
+  if (!response.ok) throw new Error("Search suggestions request failed");
+  const payload = await response.json() as { data?: SearchPayload };
+  const products = payload.data?.products ?? [];
+  if (searchSuggestionsCache.size >= 100) searchSuggestionsCache.delete(searchSuggestionsCache.keys().next().value ?? cacheKey);
+  searchSuggestionsCache.set(cacheKey, { products, expiresAt: Date.now() + SEARCH_CACHE_TTL_MS });
+  return products;
+}
+
+function AutocompleteSearch({
+  value,
+  onChange,
+  onChoose,
+  formClassName,
+  inputClassName,
+  iconClassName,
+  placeholder,
+  showSubmitButton,
+  adultMode = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onChoose: (value: string) => void;
+  formClassName: string;
+  inputClassName: string;
+  iconClassName: string;
+  placeholder: string;
+  showSubmitButton: boolean;
+  adultMode?: boolean;
+}) {
+  const router = useRouter();
+  const [focused, setFocused] = useState(false);
+  const [products, setProducts] = useState<SearchSuggestionProduct[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [recent, setRecent] = useState<string[]>([]);
+  const controller = useRef<AbortController | null>(null);
+  const normalized = value.trim();
+  const searchKey = normalizeSearchKey(normalized);
+  const correction = SEARCH_CORRECTIONS[searchKey];
+  const relatedTerms = RELATED_SEARCH_TERMS.find((group) => group.triggers.some((term) =>
+    searchKey.length >= 2 && (normalizeSearchKey(term).startsWith(searchKey) || searchKey.includes(normalizeSearchKey(term))),
+  ))?.labels ?? [];
+  const categories = groups.flatMap((group) => group.categories).filter((category) => {
+    if (adultMode) return category.slug === "sex-shop";
+    if (category.slug === "sex-shop") return false;
+    const terms = [category.name, category.publicName, category.slug, getPublicCategoryName(category)]
+      .map(normalizeSearchKey).filter(Boolean);
+    return terms.some((term) => term.includes(searchKey) || searchKey.includes(term.slice(0, Math.min(term.length, 3))));
+  }).slice(0, 4);
+
+  useEffect(() => {
+    if (focused && !normalized) setRecent(readRecentSearches());
+  }, [focused, normalized]);
+
+  useEffect(() => {
+    controller.current?.abort();
+    setProducts([]);
+    setLoading(false);
+    if (!focused || searchKey.length < 3) {
+      return;
+    }
+    const request = new AbortController();
+    controller.current = request;
+    const timer = window.setTimeout(() => {
+      setLoading(true);
+      void loadSearchSuggestions(normalized, adultMode ? "adult" : "normal", request.signal)
+        .then((items) => { if (!request.signal.aborted) setProducts(items); })
+        .catch(() => { if (!request.signal.aborted) setProducts([]); })
+        .finally(() => { if (!request.signal.aborted) setLoading(false); });
+    }, 250);
+    return () => {
+      window.clearTimeout(timer);
+      request.abort();
+    };
+  }, [adultMode, focused, normalized, searchKey]);
+
+  useEffect(() => () => controller.current?.abort(), []);
+
+  function chooseSearch(query: string) {
+    saveRecentSearch(query);
+    setFocused(false);
+    onChoose(query);
+  }
+
+  function chooseProduct(product: SearchSuggestionProduct) {
+    saveRecentSearch(normalized);
+    setFocused(false);
+    router.push(`/produto/${encodeURIComponent(product.slug ?? product.id)}`);
+  }
+
+  const showPanel = focused && (searchKey.length === 0 || searchKey.length >= 3);
+  const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+  return (
+    <form
+      onSubmit={(event) => { event.preventDefault(); chooseSearch(normalized); }}
+      className={formClassName}
+      role="search"
+    >
+      <SearchIcon className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 ${iconClassName}`} />
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => window.setTimeout(() => setFocused(false), 160)}
+        placeholder={placeholder}
+        autoComplete="off"
+        aria-label="Buscar produtos e categorias"
+        aria-expanded={showPanel}
+        className={inputClassName}
+      />
+      {showSubmitButton && (
+        <button
+          type="submit"
+          className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-xl bg-pink-500 text-white transition-colors hover:bg-pink-600 sm:h-8 sm:w-8"
+          aria-label="Ver resultados da busca"
+        >
+          <SearchIcon className="h-3.5 w-3.5" />
+        </button>
+      )}
+
+      {showPanel && (
+        <div
+          className="absolute inset-x-0 top-full z-[90] mt-2 max-h-[min(72vh,560px)] overflow-y-auto rounded-2xl border border-pink-100 bg-white p-2 shadow-[0_20px_60px_rgba(105,36,62,0.2)]"
+          onMouseDown={(event) => event.preventDefault()}
+        >
+          {searchKey.length === 0 ? (
+            <>
+              {recent.length > 0 ? (
+                <div className="mb-2">
+                  <div className="flex items-center justify-between px-2 py-1.5">
+                    <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Pesquisas recentes</span>
+                    <button type="button" className="text-xs font-semibold text-pink-600" onClick={() => {
+                      try { window.localStorage.removeItem(RECENT_SEARCHES_KEY); } catch {}
+                      setRecent([]);
+                    }}>Limpar</button>
+                  </div>
+                  {recent.map((item) => (
+                    <button key={item} type="button" onClick={() => chooseSearch(item)} className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm text-gray-700 hover:bg-pink-50">
+                      <span aria-hidden="true">↻</span>{item}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="px-2 py-2 text-xs font-bold uppercase tracking-wide text-gray-500">Explore categorias</p>
+              )}
+              {groups.flatMap((group) => group.categories)
+                .filter((category) => adultMode ? category.slug === "sex-shop" : category.slug !== "sex-shop")
+                .slice(0, 5)
+                .map((category) => (
+                  <Link key={category.slug} href={`/categoria/${category.slug}`} onClick={() => setFocused(false)} className="block rounded-xl px-2 py-2 text-sm font-medium text-gray-700 hover:bg-pink-50">
+                    {getPublicCategoryName(category)}
+                  </Link>
+                ))}
+            </>
+          ) : searchKey.length < 3 ? (
+            <p className="px-2 py-3 text-sm text-gray-500">Digite mais {3 - searchKey.length} caractere{searchKey.length === 1 ? "s" : "s"} para ver sugestões.</p>
+          ) : (
+            <>
+              {correction && (
+                <button type="button" onClick={() => chooseSearch(correction)} className="mb-1 w-full rounded-xl px-2 py-2 text-left text-sm text-gray-700 hover:bg-pink-50">
+                  Você quis dizer <strong className="text-pink-700">{correction}</strong>?
+                </button>
+              )}
+              {relatedTerms.length > 0 && (
+                <div className="mb-1 border-b border-pink-50 pb-1">
+                  <p className="px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">Sugestões de busca</p>
+                  <div className="flex flex-wrap gap-1.5 px-1 pb-1">
+                    {relatedTerms.map((term) => (
+                      <button key={term} type="button" onClick={() => chooseSearch(term)} className="rounded-full border border-pink-100 bg-pink-50/70 px-2.5 py-1.5 text-xs font-semibold text-[#7a3049] hover:bg-pink-100">
+                        {term}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {categories.length > 0 && (
+                <div className="mb-1 border-b border-pink-50 pb-1">
+                  <p className="px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">Categorias</p>
+                  {categories.map((category) => (
+                    <Link key={category.slug} href={`/categoria/${category.slug}`} onClick={() => setFocused(false)} className="block rounded-xl px-2 py-2 text-sm font-medium text-gray-700 hover:bg-pink-50">
+                      {getPublicCategoryName(category)}
+                    </Link>
+                  ))}
+                </div>
+              )}
+              <p className="px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">Produtos</p>
+              {loading && products.length === 0 ? <p className="px-2 py-3 text-sm text-gray-500">Buscando…</p> : null}
+              {products.map((product) => {
+                const price = product.promotionalPrice && product.promotionalPrice < product.price ? product.promotionalPrice : product.price;
+                return (
+                  <button key={product.id} type="button" onClick={() => chooseProduct(product)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-pink-50">
+                    {product.image ? <Image src={product.image} alt="" width={48} height={48} unoptimized className="h-12 w-12 shrink-0 rounded-lg bg-pink-50 object-cover" /> : <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-pink-50 text-pink-400"><SearchIcon className="h-5 w-5" /></span>}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-gray-800">{product.name}</span>
+                      <span className="block text-sm font-bold text-pink-600">{currency.format(price)}</span>
+                    </span>
+                  </button>
+                );
+              })}
+              {!loading && products.length === 0 && categories.length === 0 ? <p className="px-2 py-3 text-sm text-gray-500">Ainda não encontramos produtos para esse termo.</p> : null}
+              <button type="button" onClick={() => chooseSearch(normalized)} className="mt-1 w-full rounded-xl border-t border-pink-50 px-2 py-3 text-left text-sm font-bold text-pink-600 hover:bg-pink-50">
+                Ver todos os resultados para “{normalized}”
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </form>
+  );
+}
+
 function HeaderSparkles() {
   return (
     <div className="pointer-events-none absolute inset-y-0 left-[90px] right-[88px] z-0 overflow-hidden sm:left-[112px] sm:right-[102px] md:left-[158px] md:right-[120px]" aria-hidden="true">
@@ -435,27 +670,6 @@ function normalizeSearchKey(value: string | undefined) {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
-}
-
-function getSearchHref(value: string) {
-  const queryKey = normalizeSearchKey(value);
-  if (queryKey.length < 3) return `/produtos?q=${encodeURIComponent(value)}`;
-
-  const categories = groups.flatMap((group) => group.categories);
-  const matchedCategory = categories.find((category) => {
-    const terms = [
-      category.name,
-      category.publicName,
-      category.slug,
-      getPublicCategoryName(category),
-    ].map(normalizeSearchKey).filter(Boolean);
-
-    return terms.some((term) => term.includes(queryKey) || queryKey.includes(term));
-  });
-
-  return matchedCategory
-    ? `/categoria/${matchedCategory.slug}`
-    : `/produtos?q=${encodeURIComponent(value)}`;
 }
 
 function SearchIcon({ className }: { className?: string }) {

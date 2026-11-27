@@ -6,13 +6,13 @@ import {
   Alert,
   Text as NativeText,
   type TextProps,
-  Easing,
   Linking,
   Modal,
   Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -21,16 +21,17 @@ import { useFonts } from "expo-font";
 import { categoryArtwork, instagramProfile, thumbnail } from "@/components/home/brand";
 import { Image, type ImageSource } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import * as Crypto from "expo-crypto";
 import * as Haptics from "expo-haptics";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Colors, BorderRadius, Shadows } from "@/constants/theme";
-import { homeApi, storeLikesApi } from "@/services/api";
+import { favoritesApi, homeApi, storeLikesApi } from "@/services/api";
 import { useAuthStore } from "@/stores/authStore";
 import { useCartStore } from "@/stores/cartStore";
 import type {
@@ -125,55 +126,36 @@ function isHomePayload(value: unknown): value is MobileHomePayload {
   );
 }
 
-function AnnouncementBar({ messages }: { messages: string[] }) {
-  const translateX = useRef(new Animated.Value(0)).current;
-  const [sequenceWidth, setSequenceWidth] = useState(0);
-  useEffect(() => {
-    if (!sequenceWidth) return;
-    translateX.setValue(0);
-    const animation = Animated.loop(Animated.timing(translateX, {
-      toValue: -sequenceWidth, duration: sequenceWidth * 30,
-      easing: Easing.linear, useNativeDriver: true,
-    }));
-    animation.start();
-    return () => animation.stop();
-  }, [sequenceWidth, translateX]);
-  if (!messages.length) return null;
-  return <LinearGradient colors={['#fff1f6', '#ffffff', '#ffe8f1']} style={styles.announcement}>
-    <Animated.View style={[styles.announcementTrack, { transform: [{ translateX }] }]}>
-      {[0, 1].map(copy => <View key={copy} style={styles.announcementTrack}
-        accessibilityElementsHidden={copy === 1} importantForAccessibility={copy === 1 ? 'no-hide-descendants' : 'auto'}
-        onLayout={copy === 0 ? event => setSequenceWidth(event.nativeEvent.layout.width) : undefined}>
-        {messages.map((message, index) => <View key={index} style={styles.announcementItem}>
-          <Text style={styles.announcementText}>{message}</Text><View style={styles.announcementDot} />
-        </View>)}
-      </View>)}
-    </Animated.View>
-    <LinearGradient pointerEvents="none" colors={['#fff1f6', 'rgba(255,241,246,0)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.announcementFade, styles.announcementFadeLeft]} />
-    <LinearGradient pointerEvents="none" colors={['rgba(255,232,241,0)', '#ffe8f1']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.announcementFade, styles.announcementFadeRight]} />
-  </LinearGradient>;
-}
-
-function Header({ itemCount, onNavigate }: { itemCount: number; onNavigate: (href: string) => void }) {
+function Header({ itemCount, favoriteCount, onNavigate }: { itemCount: number; favoriteCount: number; onNavigate: (href: string) => void }) {
+  const openSearch = () => onNavigate("/(tabs)/busca");
   return (
-    <LinearGradient colors={["#fffafd", "#fff2f7"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
-      <TouchableOpacity style={styles.headerButton} accessibilityLabel="Abrir categorias" onPress={() => onNavigate("/(tabs)/categorias")}>
-        <Ionicons name="menu-outline" size={27} color={Colors.primary} />
-      </TouchableOpacity>
-      <View style={styles.wordmark} accessibilityLabel="KA Bijoux">
-        <Text style={styles.wordmarkKa}>KA</Text><Text style={styles.wordmarkBijoux}>Bijoux</Text>
-      </View>
-      <View style={styles.headerActions}>
-        <TouchableOpacity style={styles.headerButton} accessibilityLabel="Pesquisar produtos" onPress={() => onNavigate("/(tabs)/busca")}>
-          <Ionicons name="search-outline" size={24} color={Colors.primary} />
+    <LinearGradient colors={["#7a002e", "#a60043", "#51001f"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
+      <View style={styles.headerTopRow}>
+        <TouchableOpacity style={styles.headerButton} accessibilityLabel="Abrir categorias" onPress={() => onNavigate("/(tabs)/categorias")}>
+          <Ionicons name="menu-outline" size={27} color="#fff" />
         </TouchableOpacity>
+        <View style={styles.wordmark} accessibilityLabel="KA Bijoux">
+          <Text style={styles.wordmarkKa}>KA</Text><Text style={styles.wordmarkBijoux}>Bijoux</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.headerButton} accessibilityLabel="Pesquisar produtos" onPress={openSearch}>
+            <Ionicons name="search-outline" size={23} color="#fff" />
+          </TouchableOpacity>
         <TouchableOpacity style={styles.headerButton} accessibilityLabel="Abrir favoritos" onPress={() => onNavigate("/favoritos")}>
-          <Ionicons name="heart-outline" size={24} color={Colors.primary} />
+            <Ionicons name="heart-outline" size={23} color="#fff" />
+            {favoriteCount > 0 ? <View style={styles.headerBadge}><Text style={styles.headerBadgeText}>{Math.min(favoriteCount, 99)}</Text></View> : null}
         </TouchableOpacity>
         <TouchableOpacity style={styles.headerButton} accessibilityLabel="Abrir carrinho" onPress={() => onNavigate("/(tabs)/carrinho")}>
-          <Ionicons name="cart-outline" size={24} color={Colors.primary} />
-          {itemCount > 0 ? <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{Math.min(itemCount, 99)}</Text></View> : null}
+            <Ionicons name="cart-outline" size={23} color="#fff" />
+            {itemCount > 0 ? <View style={styles.headerBadge}><Text style={styles.headerBadgeText}>{Math.min(itemCount, 99)}</Text></View> : null}
         </TouchableOpacity>
+        </View>
+      </View>
+      <View style={styles.searchShell}>
+        <Ionicons name="search-outline" size={19} color="#6f5962" />
+        <TextInput editable={false} onPressIn={openSearch} returnKeyType="search"
+          placeholder="Buscar produtos, categorias e mais..." placeholderTextColor="#806d75" style={styles.searchInput}
+          accessibilityLabel="Buscar produtos, categorias e mais" />
       </View>
     </LinearGradient>
   );
@@ -520,23 +502,18 @@ function Stories({ stories, onOpen }: { stories: HomeStory[]; onOpen: (story: Ho
 
 function QuickCategories({ categories, onNavigate }: { categories: HomeQuickCategory[]; onNavigate: (href: string) => void }) {
   if (!categories.length) return null;
-  return <LinearGradient colors={['#fff', '#fffafd', '#fff6fa']} style={styles.quickSection}>
-    <View style={styles.quickFrame}><View style={styles.quickGrid}>
+  const icons: Record<HomeQuickCategory["icon"], keyof typeof Ionicons.glyphMap> = {
+    sparkles: "sparkles-outline", tag: "pricetag-outline", new: "flash-outline",
+    diamond: "diamond-outline", phone: "phone-portrait-outline", grid: "grid-outline",
+  };
+  return <View style={styles.quickSection}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickRow}>
       {categories.map(category => <TouchableOpacity key={category.href} style={styles.quickCard}
         accessibilityLabel={`Abrir categoria ${category.label}. ${category.description}`} onPress={() => onNavigate(category.href)}>
-        <View style={styles.quickIcon}>{category.icon === "grid"
-          ? <Ionicons name="grid-outline" size={27} color={Colors.primary} />
-          : <Image source={categoryArtwork[category.icon]} style={{ width: 31, height: 31 }} contentFit="contain" />}</View>
-        <Text style={styles.quickTitle}>{category.label}</Text>
-        <Ionicons style={styles.quickArrow} name="chevron-forward" size={17} color={Colors.primary} />
+        <Ionicons name={icons[category.icon]} size={19} color={Colors.primary} />
+        <Text numberOfLines={1} style={styles.quickTitle}>{category.label === "Ver categorias" ? "Categorias" : category.label}</Text>
       </TouchableOpacity>)}
-    </View></View>
-  </LinearGradient>;
-}
-
-function SeasonalDivider() {
-  return <View style={styles.seasonalDivider} accessibilityElementsHidden>
-    <View style={styles.seasonalRule} /><Text style={styles.seasonalBranch}>🌿</Text><Text style={styles.seasonalBow}>🎀</Text><Text style={styles.seasonalBranch}>🌿</Text><View style={styles.seasonalRule} />
+    </ScrollView>
   </View>;
 }
 
@@ -553,16 +530,21 @@ function SpecialArea({ category, onNavigate }: { category?: HomeCategory; onNavi
   </TouchableOpacity>;
 }
 
-function ProductSection({ section, onNavigate }: { section: HomeProductSection; onNavigate: (href: string) => void }) {
+function ProductSection({ section, onNavigate, favoriteIds, onFavoriteToggle }: {
+  section: HomeProductSection;
+  onNavigate: (href: string) => void;
+  favoriteIds: Record<string, string>;
+  onFavoriteToggle: (productId: string) => void;
+}) {
   const { width } = useWindowDimensions();
   if (!section.products.length) return null;
   const gridGap = 8;
-  const cardWidth = Math.max(0, (width - 24 - gridGap * 2) / 3);
+  const cardWidth = Math.max(0, (width - 20 - gridGap * 2) / 3);
   return (
     <View style={[styles.productSection, section.background === "subtle" && styles.productSectionSubtle]}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionHeaderCopy}>
-          {section.label ? <Text style={styles.eyebrow}>{section.label.toUpperCase()}</Text> : null}
+          {section.label && section.id !== "achadinhos" ? <Text style={styles.eyebrow}>{section.label.toUpperCase()}</Text> : null}
           <Text style={styles.productSectionTitle}>{section.title}</Text>
           {section.subtitle ? <Text style={styles.productSectionSubtitle}>{section.subtitle}</Text> : null}
         </View>
@@ -570,7 +552,8 @@ function ProductSection({ section, onNavigate }: { section: HomeProductSection; 
       </View>
       <View style={styles.productGrid}>
         {section.products.map((product) => (
-          <View key={product.id} style={[styles.productCell, { width: cardWidth }]}><ProductCard product={product} badgeSeal={section.badgeSeal} compact /></View>
+          <View key={product.id} style={[styles.productCell, { width: cardWidth }]}><ProductCard product={product} badgeSeal={section.badgeSeal} compact showFavorite
+            isFavorite={Boolean(favoriteIds[product.id])} onFavoriteToggle={onFavoriteToggle} /></View>
         ))}
       </View>
       <TouchableOpacity style={styles.allButton} onPress={() => onNavigate(section.route)}>
@@ -685,25 +668,25 @@ type HomeBlock =
   | { key: "special"; type: "special"; category?: HomeCategory }
   | { key: "hero"; type: "hero"; banners: HomeBanner[] }
   | { key: "stories"; type: "stories"; stories: HomeStory[] }
-  | { key: "seasonal-divider"; type: "seasonal-divider" }
   | { key: "quick"; type: "quick"; categories: HomeQuickCategory[] }
   | { key: string; type: "products"; section: HomeProductSection }
   | { key: "benefits"; type: "benefits"; benefits: MobileHomePayload["benefits"] }
   | { key: "reviews"; type: "reviews"; reviews: MobileHomePayload["reviews"] }
   | { key: "final"; type: "final"; cta: MobileHomePayload["finalCta"] };
 
-const HomeBlockView = memo(function HomeBlockView({ block, onNavigate, onOpenStory }: {
+const HomeBlockView = memo(function HomeBlockView({ block, onNavigate, onOpenStory, favoriteIds, onFavoriteToggle }: {
   block: HomeBlock;
   onNavigate: (href: string) => void;
   onOpenStory: (story: HomeStory) => void;
+  favoriteIds: Record<string, string>;
+  onFavoriteToggle: (productId: string) => void;
 }) {
   switch (block.type) {
     case "special": return <SpecialArea category={block.category} onNavigate={onNavigate} />;
     case "hero": return <HeroCarousel banners={block.banners} onNavigate={onNavigate} />;
     case "stories": return <Stories stories={block.stories} onOpen={onOpenStory} />;
-    case "seasonal-divider": return <SeasonalDivider />;
     case "quick": return <QuickCategories categories={block.categories} onNavigate={onNavigate} />;
-    case "products": return <ProductSection section={block.section} onNavigate={onNavigate} />;
+    case "products": return <ProductSection section={block.section} onNavigate={onNavigate} favoriteIds={favoriteIds} onFavoriteToggle={onFavoriteToggle} />;
     case "benefits": return <Benefits benefits={block.benefits} />;
     case "reviews": return <RealReviews reviews={block.reviews} />;
     case "final": return <FinalCta cta={block.cta} onNavigate={onNavigate} />;
@@ -721,6 +704,7 @@ export default function HomeScreen() {
   const itemCount = useCartStore((state) => state.itemCount);
   const fetchCart = useCartStore((state) => state.fetchCart);
   const [home, setHome] = useState<MobileHomePayload | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<Record<string, string>>({});
   const [selectedStory, setSelectedStory] = useState<HomeStory | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -728,6 +712,7 @@ export default function HomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const activeController = useRef<AbortController | null>(null);
   const hasHomeContent = useRef(false);
+  const favoriteLocks = useRef(new Set<string>());
   const allowedCategorySlugs = useMemo(
     () => new Set(home?.categories.map((category) => category.slug) ?? []),
     [home?.categories]
@@ -746,6 +731,50 @@ export default function HomeScreen() {
     }
     router.push(toMobileRoute(href) as never);
   }, [allowedCategorySlugs, router]);
+
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    setFavoriteIds({});
+    if (!customer) return () => { active = false; };
+    void favoritesApi.list().then((response) => {
+      if (!active) return;
+      const rows = response.data?.data ?? [];
+      const next: Record<string, string> = {};
+      for (const row of rows) {
+        if (typeof row?.id === "string" && typeof row?.favoriteId === "string") next[row.id] = row.favoriteId;
+      }
+      setFavoriteIds(next);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [customer]));
+
+  const toggleFavorite = useCallback(async (productId: string) => {
+    if (!customer) {
+      router.push("/(auth)/entrada");
+      return;
+    }
+    if (favoriteLocks.current.has(productId)) return;
+    favoriteLocks.current.add(productId);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+    const existingId = favoriteIds[productId];
+    if (existingId) {
+      setFavoriteIds((current) => { const next = { ...current }; delete next[productId]; return next; });
+      try { await favoritesApi.remove(existingId); }
+      catch { setFavoriteIds((current) => ({ ...current, [productId]: existingId })); Alert.alert("Favoritos", "Não foi possível atualizar seus favoritos."); }
+    } else {
+      setFavoriteIds((current) => ({ ...current, [productId]: `pending:${productId}` }));
+      try {
+        const response = await favoritesApi.create(productId);
+        const createdId = response.data?.data?.id;
+        if (typeof createdId !== "string") throw new Error("Resposta de favorito inválida");
+        setFavoriteIds((current) => ({ ...current, [productId]: createdId }));
+      } catch {
+        setFavoriteIds((current) => { const next = { ...current }; delete next[productId]; return next; });
+        Alert.alert("Favoritos", "Não foi possível salvar este favorito. Tente novamente.");
+      }
+    }
+    favoriteLocks.current.delete(productId);
+  }, [customer, favoriteIds, router]);
 
   const loadHome = useCallback(async (refresh = false) => {
     activeController.current?.abort();
@@ -811,11 +840,20 @@ export default function HomeScreen() {
   const homeBlocks = useMemo<HomeBlock[]>(() => {
     if (!home) return [];
     const special: HomeBlock = { key: "special", type: "special", category: home.categories.find((category) => category.slug === "sex-shop") };
+    const banners = home.theme?.seasonalDecoration && home.banners.length < 3
+      ? [...home.banners, {
+          id: "natal-ka-cheio-de-estilo-local",
+          title: "Brilhe neste Natal",
+          subtitle: "Bijuterias e acessórios especiais para valorizar o seu estilo",
+          cta: "Comprar agora",
+          href: "/produtos",
+          image: require("../../../backend/public/banners/ka-natal-cheio-de-estilo.webp"),
+          mobileImage: require("../../../backend/public/banners/ka-natal-cheio-de-estilo.webp"),
+        }]
+      : home.banners;
     const featured: HomeBlock[] = [
-      { key: "hero", type: "hero", banners: home.banners },
-      { key: "benefits", type: "benefits", benefits: home.benefits },
+      { key: "hero", type: "hero", banners },
       { key: "stories", type: "stories", stories: home.stories },
-      ...(home.theme?.seasonalDecoration ? [{ key: "seasonal-divider" as const, type: "seasonal-divider" as const }] : []),
       { key: "quick", type: "quick", categories: home.quickCategories },
     ];
     const blocks: HomeBlock[] = Platform.OS === "ios" ? [...featured, special] : [special, ...featured];
@@ -832,8 +870,8 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      {home ? <AnnouncementBar messages={home.announcements} /> : null}
-      <Header itemCount={itemCount} onNavigate={navigate} />
+      <StatusBar style="light" backgroundColor="#7a002e" />
+      <Header itemCount={itemCount} favoriteCount={Object.keys(favoriteIds).length} onNavigate={navigate} />
       {offline ? (
         <TouchableOpacity style={styles.offlineBanner} onPress={() => void loadHome(true)}>
           <Ionicons name="cloud-offline-outline" size={16} color="#7f1d1d" />
@@ -846,7 +884,7 @@ export default function HomeScreen() {
         data={home && (fontsLoaded || fontError) ? homeBlocks : []}
         keyExtractor={(item) => item.key}
         renderItem={({ item }) => (
-          <HomeBlockView block={item} onNavigate={navigate} onOpenStory={setSelectedStory} />
+          <HomeBlockView block={item} onNavigate={navigate} onOpenStory={setSelectedStory} favoriteIds={favoriteIds} onFavoriteToggle={toggleFavorite} />
         )}
         initialNumToRender={4}
         maxToRenderPerBatch={2}
@@ -872,63 +910,60 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#FFF7FA" },
+  safe: { flex: 1, backgroundColor: "#7a002e" },
   scroll: { flex: 1 },
-  scrollContent: {},
+  scrollContent: { backgroundColor: "#fff8fb" },
   header: {
-    minHeight: Platform.OS === "ios" ? 60 : 54,
+    paddingHorizontal: 12,
+    paddingTop: 2,
+    paddingBottom: 9,
+    gap: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(255,255,255,0.28)",
+    zIndex: 10,
+  },
+  headerTopRow: {
+    minHeight: Platform.OS === "ios" ? 47 : 45,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 4,
-    paddingHorizontal: Platform.OS === "ios" ? 12 : 10,
-    paddingVertical: Platform.OS === "ios" ? 6 : 5,
-    overflow: "hidden",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#f7cbd7",
-    zIndex: 10,
   },
   wordmark: { flex: 1, flexDirection: "row", alignItems: "baseline", justifyContent: "center", gap: 3 },
-  wordmarkKa: { color: "#f12b70", fontFamily: "PlayfairDisplay", fontSize: 30, fontWeight: "900", fontStyle: "italic", letterSpacing: -2 },
-  wordmarkBijoux: { color: "#b87913", fontFamily: "PlayfairDisplay", fontSize: 21, fontStyle: "italic", letterSpacing: -1 },
+  wordmarkKa: { color: "#fff", fontFamily: "PlayfairDisplay", fontSize: 29, fontWeight: "900", letterSpacing: -2 },
+  wordmarkBijoux: { color: "#f5d277", fontFamily: "PlayfairDisplay", fontSize: 21, letterSpacing: -1 },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 0 },
-  headerButton: { width: Platform.OS === "ios" ? 42 : 38, height: Platform.OS === "ios" ? 42 : 38, alignItems: "center", justifyContent: "center", zIndex: 1 },
-  cartBadge: { position: "absolute", right: 0, top: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
-  cartBadgeText: { color: "#fff", fontSize: 9, fontWeight: "800" },
-  announcement: { height: 32, justifyContent: "center", overflow: "hidden", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#fce7f3" },
-  announcementTrack: { flexDirection: "row", alignItems: "center", flexShrink: 0, alignSelf: "flex-start" },
-  announcementItem: { flexDirection: "row", alignItems: "center", flexShrink: 0 },
-  announcementText: { color: "#db2777", fontSize: 12, fontWeight: "600", paddingHorizontal: 20 },
-  announcementDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#f9a8d4" },
-  announcementFade: { position: "absolute", top: 0, bottom: 0, width: 24 },
-  announcementFadeLeft: { left: 0 },
-  announcementFadeRight: { right: 0 },
+  headerButton: { width: Platform.OS === "ios" ? 38 : 36, height: 38, alignItems: "center", justifyContent: "center", zIndex: 1 },
+  headerBadge: { position: "absolute", right: 0, top: 1, minWidth: 15, height: 15, borderRadius: 8, backgroundColor: "#ed145b", borderWidth: 1, borderColor: "#fff", alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
+  headerBadgeText: { color: "#fff", fontSize: 8, fontWeight: "800" },
+  searchShell: { minHeight: 37, maxHeight: 40, borderRadius: 22, backgroundColor: "#fff", paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 9 },
+  searchInput: { flex: 1, minWidth: 0, height: 38, color: "#34232a", fontFamily: "Inter", fontSize: 12, paddingVertical: 0 },
   offlineBanner: { minHeight: 38, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#fee2e2", flexDirection: "row", gap: 7, alignItems: "center" },
   offlineText: { flex: 1, color: "#7f1d1d", fontSize: 11, fontWeight: "600" },
-  heroWrap: { marginTop: Platform.OS === "ios" ? 0 : 8, marginHorizontal: 10, overflow: "hidden", borderRadius: 18, borderWidth: 1, borderColor: "#f9dce6", ...Shadows.sm },
-  heroSlide: { width: "100%", aspectRatio: 2 / 1, backgroundColor: "#FFF7FA" },
-  dots: { position: "absolute", left: 0, right: 0, bottom: 8, zIndex: 4, flexDirection: "row", justifyContent: "center", gap: 7 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.82)" },
-  dotActive: { width: 18, backgroundColor: "#f12b70" },
-  storiesSection: { marginHorizontal: 10, marginTop: 10, padding: 10, borderRadius: 18, borderWidth: 1, borderColor: '#fce7f3', ...Shadows.sm },
+  heroWrap: { marginTop: 9, marginHorizontal: 10, overflow: "hidden", borderRadius: 17, borderWidth: 1, borderColor: "#f9dce6", ...Shadows.sm },
+  heroSlide: { width: "100%", aspectRatio: 2.15, backgroundColor: "#FFF7FA" },
+  dots: { position: "absolute", left: 0, right: 0, bottom: 6, zIndex: 4, flexDirection: "row", justifyContent: "center", gap: 6 },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.82)" },
+  dotActive: { width: 16, backgroundColor: "#f12b70" },
+  storiesSection: { marginHorizontal: 10, marginTop: 7, paddingHorizontal: 9, paddingTop: 7, paddingBottom: 6, borderRadius: 18, borderWidth: 1, borderColor: '#fce7f3', ...Shadows.sm },
   storyHeadingRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   storyHeadingGroup: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 3 },
-  storyHeading: { fontFamily: 'PlayfairDisplay', fontSize: 20, lineHeight: 28, color: '#151015', fontWeight: "700" },
-  storyHeadingKa: { fontFamily: 'PlayfairDisplay', fontSize: 24, lineHeight: 30, color: Colors.primary, fontWeight: "700", fontStyle: "italic", marginLeft: 1 },
-  storeLove: { minHeight: 40, maxWidth: "58%", flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 22, backgroundColor: "#fceaf1" },
-  storeLoveHeartWrap: { width: 31, alignItems: "center", justifyContent: "center" },
+  storyHeading: { fontFamily: 'PlayfairDisplay', fontSize: 20, lineHeight: 25, color: '#151015', fontWeight: "700" },
+  storyHeadingKa: { fontFamily: 'PlayfairDisplay', fontSize: 23, lineHeight: 26, color: Colors.primary, fontWeight: "700", fontStyle: "italic", marginLeft: 1 },
+  storeLove: { minHeight: 35, maxWidth: "62%", flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 7, paddingVertical: 4, borderRadius: 20, backgroundColor: "#fceaf1" },
+  storeLoveHeartWrap: { width: 25, alignItems: "center", justifyContent: "center" },
   storeLoveCopy: { flexShrink: 1, minWidth: 0, justifyContent: "center" },
-  storeLoveLabel: { color: Colors.primary, fontSize: 12, lineHeight: 15, fontWeight: "800" },
-  storeLoveCountText: { color: "#75495b", fontSize: 9, lineHeight: 12, fontWeight: "600", fontVariant: ["tabular-nums"] },
+  storeLoveLabel: { color: Colors.primary, fontSize: 10, lineHeight: 13, fontWeight: "800" },
+  storeLoveCountText: { color: "#75495b", fontSize: 8, lineHeight: 10, fontWeight: "600", fontVariant: ["tabular-nums"] },
   eyebrow: { color: Colors.primary, fontSize: 10, fontWeight: "900", letterSpacing: 1.5, marginBottom: 4 },
   sectionHeading: { color: "#6e1430", fontSize: 23, lineHeight: 28, fontFamily: "PlayfairDisplay" },
-  storyList: { paddingTop: 10, paddingBottom: 2, flexDirection: "row", justifyContent: "space-between", gap: 4 },
+  storyList: { paddingTop: 7, paddingBottom: 1, flexDirection: "row", justifyContent: "space-between", gap: 4 },
   storyItem: { flex: 1, minWidth: 0, alignItems: "center" },
-  storyRing: { width: 64, height: 64, borderRadius: 32, padding: 3 },
+  storyRing: { width: 58, height: 58, borderRadius: 29, padding: 3 },
   storyInner: { flex: 1, borderRadius: 29, padding: 2, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", overflow: "hidden" },
   storyCover: { width: "100%", height: "100%", borderRadius: 27, backgroundColor: "#fff6fa" },
   storyEmptyIcon: { alignSelf: "center" },
-  storyLabel: { marginTop: 5, color: "#48101f", fontSize: 9, fontWeight: "700", textAlign: "center" },
+  storyLabel: { marginTop: 4, color: "#48101f", fontSize: 9, fontWeight: "700", textAlign: "center" },
   emptyStoryBackdrop: { flex: 1, justifyContent: "center", alignItems: "center", padding: 22, backgroundColor: "rgba(0,0,0,0.68)" },
   emptyStoryCard: { width: "100%", maxWidth: 360, borderRadius: 26, borderWidth: 1, borderColor: "#fce7f3", paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24, alignItems: "center", backgroundColor: "#fff8fb", ...Shadows.md },
   emptyStoryClose: { position: "absolute", right: 12, top: 12, width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" },
@@ -958,32 +993,25 @@ const styles = StyleSheet.create({
   storyNavText: { color: "#fff", fontSize: 12, fontWeight: "700" },
   storyLinkButton: { backgroundColor: Colors.primary, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 10 },
   storyLinkText: { color: "#fff", fontSize: 11, fontWeight: "900" },
-  seasonalDivider: { flexDirection: "row", alignItems: "center", gap: 3, marginHorizontal: 28, marginVertical: 12 },
-  seasonalRule: { flex: 1, height: 1, backgroundColor: "#d9a62e" },
-  seasonalBranch: { fontSize: 18 },
-  seasonalBow: { fontSize: 27, marginHorizontal: -3 },
-  quickSection: { paddingHorizontal: 10, paddingVertical: 9 },
-  quickFrame: { padding: 0 },
-  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: "space-between", gap: 8 },
-  quickCard: { width: "31.5%", minHeight: 58, paddingHorizontal: 5, paddingVertical: 7, borderRadius: 18, borderWidth: 1, borderColor: '#fce7f3', backgroundColor: '#fffafd', flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 3, ...Shadows.sm },
-  quickIcon: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  quickTitle: { flex: 1, color: '#192131', fontSize: 9, fontWeight: '800', textAlign: 'center', lineHeight: 11 },
-  quickArrow: { marginLeft: "auto" },
+  quickSection: { marginTop: 7, marginBottom: 1, paddingVertical: 6, backgroundColor: "#fff", borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: "#f6dce6" },
+  quickRow: { paddingHorizontal: 9, alignItems: "center", gap: 0 },
+  quickCard: { minWidth: 72, maxWidth: 92, height: 48, paddingHorizontal: 7, flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: "#e7bdcc" },
+  quickTitle: { color: '#32242a', fontSize: 8, fontWeight: '700', textAlign: 'center', lineHeight: 10 },
   specialArea: { margin: 10, borderRadius: 28, overflow: 'hidden' },
   specialInner: { padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   specialLabel: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 1 },
   specialTitle: { fontFamily: 'PlayfairDisplay', color: '#fff', fontSize: 24, marginVertical: 4 },
   specialSubtitle: { color: '#ffe4ef', fontSize: 12 },
-  productSection: { paddingHorizontal: 12, paddingVertical: 20, backgroundColor: "#fff" },
+  productSection: { paddingHorizontal: 10, paddingVertical: 10, backgroundColor: "#fff" },
   productSectionSubtle: { backgroundColor: Colors.pinkPale },
-  sectionHeader: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginBottom: 16 },
+  sectionHeader: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginBottom: 8 },
   sectionHeaderCopy: { flex: 1 },
-  productSectionTitle: { color: "#111827", fontSize: 25, lineHeight: 31, fontFamily: "PlayfairDisplay" },
-  productSectionSubtitle: { color: "#826672", fontSize: 11, lineHeight: 16, marginTop: 4 },
+  productSectionTitle: { color: "#171217", fontSize: 20, lineHeight: 25, fontFamily: "PlayfairDisplay" },
+  productSectionSubtitle: { color: "#826672", fontSize: 10, lineHeight: 14, marginTop: 2 },
   more: { color: Colors.primary, fontSize: 11, fontWeight: "800" },
-  productGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "stretch" },
+  productGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "stretch" },
   productCell: { flexGrow: 0, flexShrink: 0, marginBottom: 2 },
-  allButton: { alignSelf: "center", marginTop: 16, minHeight: 46, borderRadius: 23, backgroundColor: Colors.primary, paddingHorizontal: 22, maxWidth: "100%", alignItems: "center", justifyContent: "center" },
+  allButton: { alignSelf: "center", marginTop: 11, minHeight: 38, borderRadius: 20, backgroundColor: Colors.primary, paddingHorizontal: 20, maxWidth: "100%", alignItems: "center", justifyContent: "center" },
   allButtonText: { color: "#fff", fontSize: 12, fontWeight: "900" },
   benefits: { marginHorizontal: 10, marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-around", minHeight: 58, paddingVertical: 8, borderRadius: 18, borderWidth: 1, borderColor: "#fce7f3", backgroundColor: "#fff8fb", ...Shadows.sm },
   benefitItem: { flex: 1, minWidth: 0, minHeight: 34, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingHorizontal: 4, borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: "#edbad0" },
@@ -1017,7 +1045,7 @@ const styles = StyleSheet.create({
   footerCopy: { color: "#806d75", fontSize: 9, marginTop: 16 },
   skeletonWrap: { paddingBottom: 20 },
   skeleton: { backgroundColor: "#f5e6eb", overflow: "hidden" },
-  skeletonHero: { width: "100%", aspectRatio: 2 / 1, marginTop: 10 },
+  skeletonHero: { width: "100%", aspectRatio: 2.15, marginTop: 10 },
   skeletonRow: { flexDirection: "row", gap: 14, padding: 16 },
   skeletonCircle: { width: 64, height: 64, borderRadius: 32 },
   skeletonTitle: { width: 210, height: 26, borderRadius: 8, margin: 16 },

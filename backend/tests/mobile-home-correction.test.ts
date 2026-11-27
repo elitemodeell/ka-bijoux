@@ -129,15 +129,13 @@ describe("correção completa da Home mobile", () => {
     expect(homeRoute).toContain("pickHomeBadge");
   });
 
-  it("mantém a ordem estrutural exata antes das vitrines", () => {
+  it("mantém a ordem compacta da Home antes das vitrines", () => {
     const homeScreen = mobileHome.slice(mobileHome.indexOf("export default function HomeScreen"));
     const blockPlan = homeScreen.slice(homeScreen.indexOf("const homeBlocks"));
     const markers = [
       '{ key: "special"',
       '{ key: "hero"',
-      '{ key: "benefits"',
       '{ key: "stories"',
-      '{ key: "seasonal-divider"',
       '{ key: "quick"',
       'type: "products"',
     ];
