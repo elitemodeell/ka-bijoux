@@ -24,6 +24,7 @@ const resilientProductImage = source(
 );
 const siteStories = source("backend/components/loja/KABijouxStories.tsx");
 const seasonalAudio = source("mobile/components/home/SeasonalAudioControl.tsx");
+const seasonalAudioPlayback = source("mobile/components/home/seasonalAudioPlayback.ts");
 
 describe("correção completa da Home mobile", () => {
   it("abre KA Stories pelo link de Stories e mantém browser e perfil como fallback", () => {
@@ -102,14 +103,15 @@ describe("correção completa da Home mobile", () => {
   });
 
   it("reproduz música ambiente só no tema sazonal, respeita silêncio e pausa em segundo plano", () => {
-    expect(seasonalAudio).toContain("if (!available || enabled === false) return null");
+    expect(seasonalAudio).toContain("if (!available) return null");
+    expect(seasonalAudio).toContain("shouldPlayRef.current = available && enabled === true");
     expect(seasonalAudio).toContain("playsInSilentMode: false");
     expect(seasonalAudio).toContain("shouldPlayInBackground: false");
     expect(seasonalAudio).toContain('interruptionMode: "mixWithOthers"');
     expect(seasonalAudio).toContain("AppState.addEventListener");
     expect(seasonalAudio).toContain('AsyncStorage.setItem(PREFERENCE_KEY, next ? "on" : "off")');
-    expect(seasonalAudio).toContain("Math.min(0.07");
-    expect(seasonalAudio).toContain("player.loop = true");
+    expect(seasonalAudioPlayback).toContain("Math.max(0, Math.min(0.08");
+    expect(seasonalAudioPlayback).toContain("this.player.loop = true");
     expect(source("mobile/assets/audio/LICENSE.txt")).toContain("CC0 1.0");
   });
 

@@ -23,7 +23,7 @@ workflows:
         APP_STORE_APPLE_ID: "6798015933"
         XCODE_WORKSPACE: KABijoux.xcworkspace
         XCODE_SCHEME: KABijoux
-      node: 20.19.4
+      node: 22.12.0
       xcode: latest
       cocoapods: default
     cache:
@@ -320,7 +320,7 @@ workflows:
         APP_STORE_APPLE_ID: "6798015933"
         XCODE_WORKSPACE: KABijoux.xcworkspace
         XCODE_SCHEME: KABijoux
-      node: 20.19.4
+      node: 22.12.0
       xcode: latest
       cocoapods: default
     cache:
