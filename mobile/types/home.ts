@@ -97,7 +97,7 @@ export type MobileHomePayload = {
     logoUrl?: string;
     storyLogoUrl?: string;
     headerColors?: readonly [string, string];
-    ambientMusic?: { enabled: boolean; url: string | null };
+    ambientMusic?: { enabled: boolean; url: string | null; volume?: number };
   };
   announcements: string[];
   banners: HomeBanner[];

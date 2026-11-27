@@ -23,6 +23,7 @@ export const homePresentationSettingsSchema = z.object({
   bannerUrls: z.array(publicAssetUrl).max(3).default([]),
   ambientMusicEnabled: z.boolean().default(true),
   ambientMusicUrl: publicAssetUrl.nullable().default(null),
+  ambientMusicVolume: z.number().min(0).max(0.08).default(0.08),
 });
 
 export type HomePresentationSettingsInput = z.infer<typeof homePresentationSettingsSchema>;

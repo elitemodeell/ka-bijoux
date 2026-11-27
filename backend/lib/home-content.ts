@@ -25,7 +25,7 @@ export type HomePresentation = {
   logoUrl: string;
   storyLogoUrl: string;
   headerColors: readonly [string, string];
-  ambientMusic: { enabled: boolean; url: string | null };
+  ambientMusic: { enabled: boolean; url: string | null; volume: number };
   announcements: readonly string[];
   banners: readonly HomeHeroSlide[];
   campaign: HomeCampaignContent;
@@ -227,6 +227,7 @@ export type HomePresentationSettings = {
   bannerUrls?: readonly string[];
   ambientMusicEnabled?: boolean;
   ambientMusicUrl?: string | null;
+  ambientMusicVolume?: number;
 };
 
 const DEFAULT_HEADER_COLORS = ["#7a002e", "#51001f"] as const;
@@ -278,6 +279,7 @@ export function getHomePresentation(now = new Date(), settings: HomePresentation
     ambientMusic: {
       enabled: christmas && (settings.ambientMusicEnabled ?? true),
       url: settings.ambientMusicUrl || null,
+      volume: Math.min(0.08, Math.max(0, settings.ambientMusicVolume ?? 0.08)),
     },
   };
 }

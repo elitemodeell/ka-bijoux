@@ -33,6 +33,7 @@ type HomePresentationSettings = {
   bannerUrls: string[];
   ambientMusicEnabled: boolean;
   ambientMusicUrl: string | null;
+  ambientMusicVolume: number;
 };
 
 const DEFAULT_HOME_PRESENTATION: HomePresentationSettings = {
@@ -43,6 +44,7 @@ const DEFAULT_HOME_PRESENTATION: HomePresentationSettings = {
   bannerUrls: [],
   ambientMusicEnabled: true,
   ambientMusicUrl: null,
+  ambientMusicVolume: 0.08,
 };
 
 type SettingsWithLegacyContact = Partial<Settings> & {
@@ -55,6 +57,9 @@ export default function ConfiguracoesPage() {
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [previewTheme, setPreviewTheme] = useState(false);
+  const [ambientAudioFile, setAmbientAudioFile] = useState<File | null>(null);
+  const [ambientAudioPreview, setAmbientAudioPreview] = useState<string | null>(null);
+  const [uploadingAmbientAudio, setUploadingAmbientAudio] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/settings")
@@ -65,6 +70,35 @@ export default function ConfiguracoesPage() {
         setSettings({ ...storeSettings, homePresentation: { ...DEFAULT_HOME_PRESENTATION, ...(storeSettings.homePresentation ?? {}), headerColors: Array.isArray(storeSettings.homePresentation?.headerColors) ? storeSettings.homePresentation.headerColors : DEFAULT_HOME_PRESENTATION.headerColors } });
       });
   }, []);
+
+  useEffect(() => {
+    if (!ambientAudioFile) {
+      setAmbientAudioPreview(null);
+      return;
+    }
+    const previewUrl = URL.createObjectURL(ambientAudioFile);
+    setAmbientAudioPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [ambientAudioFile]);
+
+  async function uploadAmbientAudio() {
+    if (!ambientAudioFile) return;
+    setUploadingAmbientAudio(true);
+    try {
+      const form = new FormData();
+      form.set("file", ambientAudioFile);
+      const response = await fetch("/api/admin/settings/ambient-audio", { method: "POST", body: form });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.data?.url) throw new Error(payload?.message ?? "Não foi possível enviar o áudio.");
+      updateHomePresentation("ambientMusicUrl", payload.data.url);
+      setAmbientAudioFile(null);
+      setSaved(false);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Não foi possível enviar o áudio.");
+    } finally {
+      setUploadingAmbientAudio(false);
+    }
+  }
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     const { name, value, type, checked } = event.target;
@@ -245,12 +279,22 @@ export default function ConfiguracoesPage() {
           <div className="rounded-2xl border border-pink-100 bg-pink-50/50 p-4">
             <label className="flex cursor-pointer items-start gap-3">
               <input type="checkbox" checked={settings.homePresentation?.ambientMusicEnabled ?? true} onChange={(event) => updateHomePresentation("ambientMusicEnabled", event.target.checked)} className="mt-1 h-4 w-4 accent-pink-500" />
-              <span><span className="block text-sm font-semibold text-gray-800">Música ambiente sazonal</span><span className="block text-xs text-gray-500">Jingle Bells instrumental em estilo de caixinha de música, CC0; o app reproduz em volume baixo, respeita o modo silencioso e pausa em segundo plano.</span></span>
+              <span><span className="block text-sm font-semibold text-gray-800">Música ambiente sazonal</span><span className="block text-xs text-gray-500">Jingle Bells Music Box — WaveMaster (Pixabay). O aplicativo toca em volume baixo, respeita o modo silencioso e pausa em segundo plano.</span></span>
             </label>
-            <label className="mt-3 block text-sm font-medium text-gray-700">Substituir música (URL HTTPS; vazio usa a faixa CC0 incluída no app)
-              <input value={settings.homePresentation?.ambientMusicUrl ?? ""} onChange={(event) => updateHomePresentation("ambientMusicUrl", event.target.value.trim() || null)} placeholder="https://.../musica-natalina.mp3" className="input-field mt-1" />
+            <label className="mt-3 block text-sm font-medium text-gray-700">Substituir música oficial (arquivo MP3; será salvo no Supabase Storage)
+              <input type="file" accept="audio/mpeg,.mp3" onChange={(event) => setAmbientAudioFile(event.target.files?.[0] ?? null)} className="input-field mt-1" />
             </label>
-            <p className="mt-2 text-xs text-gray-500">Faixa atual: “Jingle Bells” — Mystery Mammal, CC0 1.0. Crédito e comprovante de licença estão registrados em mobile/assets/audio/LICENSE.txt.</p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <button type="button" disabled={!ambientAudioFile || uploadingAmbientAudio} onClick={() => void uploadAmbientAudio()} className="rounded-lg bg-pink-600 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+                {uploadingAmbientAudio ? "Enviando…" : "Enviar música ao Supabase"}
+              </button>
+              {ambientAudioFile ? <span className="text-xs text-gray-600">{ambientAudioFile.name}</span> : null}
+            </div>
+            {ambientAudioPreview || settings.homePresentation?.ambientMusicUrl ? <audio className="mt-3 w-full" controls preload="none" src={ambientAudioPreview ?? settings.homePresentation?.ambientMusicUrl ?? undefined} /> : <p className="mt-2 text-xs text-gray-500">Selecione uma gravação MP3 para ouvir a prévia antes de enviá-la e salvar as configurações.</p>}
+            <label className="mt-3 block text-sm font-medium text-gray-700">Volume máximo: {Math.round((settings.homePresentation?.ambientMusicVolume ?? 0.08) * 100)}%
+              <input type="range" min={0} max={8} step={1} value={Math.round((settings.homePresentation?.ambientMusicVolume ?? 0.08) * 100)} onChange={(event) => updateHomePresentation("ambientMusicVolume", Number(event.target.value) / 100)} className="mt-2 w-full accent-pink-600" />
+            </label>
+            <p className="mt-2 text-xs text-gray-500">Prévia antes de salvar. A faixa substituta ficará associada ao tema sazonal e poderá ser trocada sem novo build. Registro da licença e do Content ID deve ser mantido junto ao arquivo original do Pixabay.</p>
           </div>
 
           {previewTheme && <div className="overflow-hidden rounded-2xl border border-pink-100 shadow-sm">

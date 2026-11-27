@@ -18,7 +18,7 @@ function TabIcon({ name, focused, label, badge }: {
         <Ionicons
           name={focused ? name : (`${name}-outline` as keyof typeof Ionicons.glyphMap)}
           size={Platform.OS === "ios" ? 25 : 22}
-          color={focused ? Colors.primary : Colors.tabInactive}
+          color={focused ? Colors.primary : "#575057"}
         />
         {!!badge && badge > 0 && (
           <View style={styles.badge}>
@@ -45,10 +45,14 @@ export default function TabsLayout() {
         tabBarStyle: [
           styles.tabBar,
           {
-            height: 60 + insets.bottom,
+            position: "absolute",
+            left: 10,
+            right: 10,
+            bottom: 5,
+            height: 60 + Math.max(insets.bottom, 6),
             paddingBottom: Math.max(insets.bottom, 6),
             backgroundColor: Colors.tabBackground,
-            borderTopColor: Colors.border,
+            borderColor: "#f3dce4",
           },
         ],
         tabBarShowLabel: false,
@@ -94,9 +98,15 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: Colors.tabBackground,
-    borderTopColor: Colors.border,
+    borderWidth: 1,
     borderTopWidth: 1,
-    paddingTop: Platform.OS === "ios" ? 8 : 6,
+    borderRadius: 21,
+    paddingTop: Platform.OS === "ios" ? 6 : 5,
+    ...Platform.select({
+      ios: { shadowColor: "#9f1747", shadowOpacity: 0.14, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 8 },
+      default: {},
+    }),
   },
   tabItem: {
     width: '100%',
@@ -117,6 +127,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   badgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
-  tabLabel: { fontSize: Platform.OS === "ios" ? 11 : 10, color: Colors.tabInactive },
-  tabLabelActive: { color: Colors.primary, fontWeight: "600" },
+  tabLabel: { fontSize: Platform.OS === "ios" ? 11 : 10, color: "#575057", fontWeight: "500" },
+  tabLabelActive: { color: Colors.primary, fontWeight: "800" },
 });

@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AppState, TouchableOpacity } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
+import { setAudioModeAsync, useAudioPlayer, type AudioSource } from "expo-audio";
+import { SeasonalAudioPlayback } from "./seasonalAudioPlayback";
 
 const PREFERENCE_KEY = "ka-seasonal-music-enabled-v1";
-const DEFAULT_TRACK = require("../../assets/audio/ka-jingle-bells-cc0.mp3");
+const DEFAULT_TRACK = require("../../assets/audio/jingle-bells-music-box-wavemaster-175881.mp3");
 const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? "https://kabijoux.com.br";
 
 function absoluteAudioUrl(value: string) {
@@ -14,74 +15,102 @@ function absoluteAudioUrl(value: string) {
   return `${API_BASE}/${value}`;
 }
 
-export function SeasonalAudioControl({
+class AudioControlBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
+function SeasonalAudioControlInner({
   available,
   url,
+  volume = 0.08,
 }: {
   available: boolean;
   url?: string | null;
+  volume?: number;
 }) {
   const [enabled, setEnabled] = useState<boolean | null>(null);
-  const source = useMemo(() => {
-    if (!available || enabled === false) return null;
-    return url ? { uri: absoluteAudioUrl(url) } : DEFAULT_TRACK;
-  }, [available, enabled, url]);
-  const player = useAudioPlayer(source, { updateInterval: 1000 });
+  const [audioFailed, setAudioFailed] = useState(false);
+  const enabledRef = useRef<boolean | null>(null);
   const shouldPlayRef = useRef(false);
-  const fadeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mountedRef = useRef(false);
+  const volumeRef = useRef(volume);
+  const preferenceWriteRef = useRef<Promise<void>>(Promise.resolve());
+  volumeRef.current = volume;
 
-  const stop = useCallback(() => {
-    if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
-    fadeTimerRef.current = null;
-    player.volume = 0;
-    player.pause();
-  }, [player]);
+  // Keep useAudioPlayer's source constant. Passing null/track conditionally makes
+  // expo-audio release and recreate its native SharedObject on each toggle.
+  const player = useAudioPlayer(null, { updateInterval: 1000 });
+  const source = useMemo<AudioSource>(
+    () => (url ? { uri: absoluteAudioUrl(url) } : DEFAULT_TRACK),
+    [url],
+  );
+  const sourceKey = useMemo(
+    () => (url ? `remote:${absoluteAudioUrl(url)}` : "bundled:jingle-bells-wavemaster"),
+    [url],
+  );
 
-  const start = useCallback(async () => {
-    if (!shouldPlayRef.current || AppState.currentState !== "active") return;
-    try {
-      await setAudioModeAsync({
+  const playbackRef = useRef<SeasonalAudioPlayback | null>(null);
+  if (!playbackRef.current) {
+    playbackRef.current = new SeasonalAudioPlayback(
+      player,
+      () => setAudioModeAsync({
         playsInSilentMode: false,
         shouldPlayInBackground: false,
         interruptionMode: "mixWithOthers",
-      });
-      player.loop = true;
-      player.volume = 0;
-      player.play();
-      if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
-      let step = 0;
-      fadeTimerRef.current = setInterval(() => {
-        step += 1;
-        player.volume = Math.min(0.07, step * 0.01);
-        if (step >= 7 && fadeTimerRef.current) {
-          clearInterval(fadeTimerRef.current);
-          fadeTimerRef.current = null;
-        }
-      }, 140);
-    } catch {
-      // Audio playback is optional and must never delay or block the storefront.
-      stop();
-    }
-  }, [player, stop]);
+      }),
+      () => AppState.currentState === "active",
+      () => { if (mountedRef.current) setAudioFailed(true); },
+    );
+  }
+  const playback = playbackRef.current;
+
+  const start = useCallback(() => {
+    if (shouldPlayRef.current) void playback.start(sourceKey, source, volumeRef.current);
+  }, [playback, source, sourceKey]);
+  const stop = useCallback(() => playback.stop(), [playback]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      playback.dispose();
+    };
+  }, [playback]);
 
   useEffect(() => {
     let active = true;
     void AsyncStorage.getItem(PREFERENCE_KEY)
-      .then((stored) => { if (active) setEnabled(stored !== "off"); })
-      .catch(() => { if (active) setEnabled(true); });
+      .then((stored) => {
+        if (!active) return;
+        const next = stored !== "off";
+        enabledRef.current = next;
+        setEnabled(next);
+      })
+      .catch(() => {
+        if (!active) return;
+        enabledRef.current = true;
+        setEnabled(true);
+      });
     return () => { active = false; };
   }, []);
 
   useEffect(() => {
     shouldPlayRef.current = available && enabled === true;
-    if (shouldPlayRef.current) void start();
+    if (shouldPlayRef.current) start();
     else stop();
-    return () => stop();
   }, [available, enabled, start, stop]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") void start();
+      if (state === "active" && shouldPlayRef.current) start();
       else stop();
     });
     return () => subscription.remove();
@@ -89,22 +118,41 @@ export function SeasonalAudioControl({
 
   if (!available) return null;
 
-  const toggle = async () => {
-    const next = enabled === false;
+  const toggle = () => {
+    const next = enabledRef.current !== true;
+    enabledRef.current = next;
+    shouldPlayRef.current = available && next;
     setEnabled(next);
-    void AsyncStorage.setItem(PREFERENCE_KEY, next ? "on" : "off").catch(() => undefined);
+    setAudioFailed(false);
+    preferenceWriteRef.current = preferenceWriteRef.current
+      .catch(() => undefined)
+      .then(() => AsyncStorage.setItem(PREFERENCE_KEY, next ? "on" : "off"));
+    void preferenceWriteRef.current.catch(() => undefined);
   };
 
+  const isPlayingEnabled = enabled === true && !audioFailed;
   return (
     <TouchableOpacity
       accessibilityRole="button"
-      accessibilityLabel={enabled ? "Desativar música natalina" : "Ativar música natalina"}
-      accessibilityState={{ checked: enabled === true }}
+      accessibilityLabel={isPlayingEnabled ? "Desativar mÃºsica natalina" : "Ativar mÃºsica natalina"}
+      accessibilityState={{ checked: isPlayingEnabled }}
       hitSlop={6}
-      onPress={() => void toggle()}
+      onPress={toggle}
       style={{ width: 30, height: 38, alignItems: "center", justifyContent: "center" }}
     >
-      <Ionicons name={enabled ? "volume-high-outline" : "volume-mute-outline"} size={18} color="#fff" />
+      <Ionicons name={isPlayingEnabled ? "volume-high-outline" : "volume-mute-outline"} size={18} color="#fff" />
     </TouchableOpacity>
+  );
+}
+
+export function SeasonalAudioControl(props: {
+  available: boolean;
+  url?: string | null;
+  volume?: number;
+}) {
+  return (
+    <AudioControlBoundary>
+      <SeasonalAudioControlInner {...props} />
+    </AudioControlBoundary>
   );
 }

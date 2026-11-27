@@ -135,7 +135,9 @@ function Header({ itemCount, favoriteCount, theme, onNavigate }: {
   onNavigate: (href: string) => void;
 }) {
   const openSearch = () => onNavigate("/(tabs)/busca");
-  const headerColors = theme?.headerColors ?? ["#7a002e", "#51001f"];
+  const headerColors = theme?.seasonalDecoration
+    ? ["#700019", "#700019"] as const
+    : theme?.headerColors ?? ["#7a002e", "#51001f"];
   const logo = theme?.seasonalDecoration
     ? theme.logoUrl && theme.logoUrl !== "/images/brand/ka-bijoux-logo-natal.png"
       ? resolveUrl(theme.logoUrl)
@@ -144,21 +146,21 @@ function Header({ itemCount, favoriteCount, theme, onNavigate }: {
       ? resolveUrl(theme.logoUrl)
       : null;
   return (
-    <LinearGradient colors={[headerColors[0], "#a60043", headerColors[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
+    <LinearGradient colors={[headerColors[0], theme?.seasonalDecoration ? "#880020" : "#a60043", headerColors[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
       <View style={[styles.headerTopRow, theme?.seasonalDecoration && styles.headerTopRowSeasonal]}>
-        <TouchableOpacity style={styles.headerButton} accessibilityLabel="Abrir categorias" onPress={() => onNavigate("/(tabs)/categorias")}>
+        <TouchableOpacity style={[styles.headerButton, styles.headerSideAction]} accessibilityLabel="Abrir categorias" onPress={() => onNavigate("/(tabs)/categorias")}>
           <Ionicons name="menu-outline" size={27} color="#fff" />
         </TouchableOpacity>
-        <View style={styles.wordmark} accessibilityLabel="KA Bijoux">
+        <View pointerEvents="none" style={styles.wordmark} accessibilityLabel="KA Bijoux">
           {logo ? <Image source={logo} style={styles.seasonalLogo} contentFit="contain" cachePolicy="memory-disk" accessibilityLabel="Logomarca natalina KA Bijoux" /> : <>
             <Text style={styles.wordmarkKa}>KA</Text><Text style={styles.wordmarkBijoux}>Bijoux</Text>
           </>}
         </View>
-        <View style={styles.headerActions}>
+        <View style={[styles.headerActions, styles.headerSideAction]}>
           <TouchableOpacity style={styles.headerButton} accessibilityLabel="Pesquisar produtos" onPress={openSearch}>
             <Ionicons name="search-outline" size={23} color="#fff" />
           </TouchableOpacity>
-          {theme?.seasonalDecoration ? <SeasonalAudioControl available={theme.ambientMusic?.enabled === true} url={theme.ambientMusic?.url} /> : null}
+          {theme?.seasonalDecoration ? <SeasonalAudioControl available={theme.ambientMusic?.enabled === true} url={theme.ambientMusic?.url} volume={theme.ambientMusic?.volume} /> : null}
         <TouchableOpacity style={styles.headerButton} accessibilityLabel="Abrir favoritos" onPress={() => onNavigate("/favoritos")}>
             <Ionicons name="heart-outline" size={23} color="#fff" />
             {favoriteCount > 0 ? <View style={styles.headerBadge}><Text style={styles.headerBadgeText}>{Math.min(favoriteCount, 99)}</Text></View> : null}
@@ -259,7 +261,8 @@ function StoreLoveButton() {
 }
 
 function HeroCarousel({ banners, onNavigate }: { banners: HomeBanner[]; onNavigate: (href: string) => void }) {
-  const { width } = useWindowDimensions();
+  const { width: windowWidth } = useWindowDimensions();
+  const width = Math.max(0, windowWidth - 24);
   const [activeIndex, setActiveIndex] = useState(0);
   const carouselRef = useRef<FlatList<HomeBanner>>(null);
   const physicalIndex = useRef(banners.length > 1 ? 1 : 0);
@@ -312,10 +315,11 @@ function HeroCarousel({ banners, onNavigate }: { banners: HomeBanner[]; onNaviga
 
   if (!banners.length) return null;
   return (
-    <View style={styles.heroWrap}>
+    <LinearGradient colors={["#700019", "#a00029", "#dc365e", "#fff7f9"]} locations={[0, 0.48, 0.77, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.heroWrap}>
       <FlatList
         ref={carouselRef}
         data={carouselItems}
+        style={[styles.heroCarousel, { width }]}
         horizontal
         pagingEnabled
         bounces={false}
@@ -341,6 +345,14 @@ function HeroCarousel({ banners, onNavigate }: { banners: HomeBanner[]; onNaviga
           >
             <Image
               source={resolveUrl(banner.mobileImage || banner.image)}
+              style={[StyleSheet.absoluteFill, styles.heroBackdropImage]}
+              contentFit="cover"
+              blurRadius={18}
+              cachePolicy="memory-disk"
+              priority={index <= 2 ? "high" : "normal"}
+            />
+            <Image
+              source={resolveUrl(banner.mobileImage || banner.image)}
               style={StyleSheet.absoluteFill}
               contentFit="contain"
               cachePolicy="memory-disk"
@@ -355,7 +367,7 @@ function HeroCarousel({ banners, onNavigate }: { banners: HomeBanner[]; onNaviga
           <View key={banner.id} style={[styles.dot, index === activeIndex && styles.dotActive]} />
         ))}
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -477,7 +489,7 @@ function Stories({ stories, logoUrl, onOpen }: { stories: HomeStory[]; logoUrl?:
     onOpen({ ...groups[0], id: `story-category-${category.key}`, title: category.label, items });
   };
 
-  return <LinearGradient colors={['#ffffff', '#fff8fb', '#fff2f7']} style={styles.storiesSection}>
+  return <View style={styles.storiesSection}>
     <View style={styles.storyHeadingRow}>
       <View style={styles.storyHeadingGroup}>
         <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.78} style={styles.storyHeading}>Stories da</Text>
@@ -492,7 +504,7 @@ function Stories({ stories, logoUrl, onOpen }: { stories: HomeStory[]; logoUrl?:
         return <TouchableOpacity key={category.key} style={styles.storyItem}
           onPress={() => category.key === "OFFICIAL" ? void openInstagram() : openCategory(category)}
           accessibilityLabel={category.key === "OFFICIAL" ? "Abrir KA Stories no Instagram oficial" : `Abrir ${category.label}`}>
-          <LinearGradient colors={['#e9b43e', '#ffafd1', '#ec4899']} style={styles.storyRing}>
+          <LinearGradient colors={["#ffc34d", "#ff7a37", "#ff0050", "#cc003d"]} locations={[0, 0.34, 0.68, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.storyRing}>
             <View style={styles.storyInner}>
               {cover ? <Image source={thumbnail(resolveUrl(cover), 256)} style={styles.storyCover} contentFit="cover" cachePolicy="memory-disk" />
                 : category.key === "OFFICIAL" ? <Image source={logoUrl === "/images/brand/ka-bijoux-logo-natal-story.png" ? require("../../assets/brand/ka-bijoux-logo-natal-story.png") : logoUrl ? resolveUrl(logoUrl) : resolveUrl('/images/brand/ka-bijoux-logo-story-icon.png')} style={styles.storyCover} contentFit="contain" cachePolicy="memory-disk" />
@@ -515,7 +527,7 @@ function Stories({ stories, logoUrl, onOpen }: { stories: HomeStory[]; logoUrl?:
         </View>
       </View>
     </Modal>
-  </LinearGradient>;
+  </View>;
 }
 
 function QuickCategories({ categories, onNavigate }: { categories: HomeQuickCategory[]; onNavigate: (href: string) => void }) {
@@ -525,8 +537,8 @@ function QuickCategories({ categories, onNavigate }: { categories: HomeQuickCate
     diamond: "diamond-outline", phone: "phone-portrait-outline", grid: "grid-outline",
   };
   return <View style={styles.quickSection}>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickRow}>
-      {categories.map(category => <TouchableOpacity key={category.href} style={styles.quickCard}
+    <ScrollView horizontal scrollEnabled={false} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickRow}>
+      {categories.map((category, index) => <TouchableOpacity key={category.href} style={[styles.quickCard, index < categories.length - 1 && styles.quickCardDivider]}
         accessibilityLabel={`Abrir categoria ${category.label}. ${category.description}`} onPress={() => onNavigate(category.href)}>
         <Ionicons name={icons[category.icon]} size={19} color={Colors.primary} />
         <Text numberOfLines={1} style={styles.quickTitle}>{category.label === "Ver categorias" ? "Categorias" : category.label}</Text>
@@ -570,7 +582,7 @@ function ProductSection({ section, onNavigate, favoriteIds, onFavoriteToggle }: 
       </View>
       <View style={styles.productGrid}>
         {section.products.map((product) => (
-          <View key={product.id} style={[styles.productCell, { width: cardWidth }]}><ProductCard product={product} badgeSeal={section.badgeSeal} compact showFavorite
+          <View key={product.id} style={[styles.productCell, { width: cardWidth }]}><ProductCard product={{ ...product, badge: null }} badgeSeal={false} compact showFavorite
             isFavorite={Boolean(favoriteIds[product.id])} onFavoriteToggle={onFavoriteToggle} /></View>
         ))}
       </View>
@@ -878,7 +890,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      <StatusBar style="light" backgroundColor={home?.theme?.headerColors?.[0] ?? "#7a002e"} />
+      <StatusBar style="light" backgroundColor={home?.theme?.seasonalDecoration ? "#700019" : home?.theme?.headerColors?.[0] ?? "#7a002e"} />
       <Header itemCount={itemCount} favoriteCount={Object.keys(favoriteIds).length} theme={home?.theme} onNavigate={navigate} />
       {offline ? (
         <TouchableOpacity style={styles.offlineBanner} onPress={() => void loadHome(true)}>
@@ -918,16 +930,14 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#7a002e" },
+  safe: { flex: 1, backgroundColor: "#700019" },
   scroll: { flex: 1 },
-  scrollContent: { backgroundColor: "#fff8fb" },
+  scrollContent: { backgroundColor: "#fff7f9" },
   header: {
     paddingHorizontal: 12,
     paddingTop: 2,
-    paddingBottom: 9,
-    gap: 6,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(255,255,255,0.28)",
+    paddingBottom: 6,
+    gap: 5,
     zIndex: 10,
   },
   headerTopRow: {
@@ -937,30 +947,33 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 4,
   },
-  headerTopRowSeasonal: { minHeight: 66 },
-  wordmark: { flex: 1, flexDirection: "row", alignItems: "baseline", justifyContent: "center", gap: 3 },
-  seasonalLogo: { width: 126, height: 80 },
+  headerTopRowSeasonal: { minHeight: 72 },
+  wordmark: { position: "absolute", left: 0, right: 0, top: -3, bottom: -3, flexDirection: "row", alignItems: "center", justifyContent: "center", zIndex: 0 },
+  seasonalLogo: { width: 78, height: 78 },
   wordmarkKa: { color: "#fff", fontFamily: "PlayfairDisplay", fontSize: 29, fontWeight: "900", letterSpacing: -2 },
   wordmarkBijoux: { color: "#f5d277", fontFamily: "PlayfairDisplay", fontSize: 21, letterSpacing: -1 },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 0 },
-  headerButton: { width: Platform.OS === "ios" ? 38 : 36, height: 38, alignItems: "center", justifyContent: "center", zIndex: 1 },
+  headerSideAction: { zIndex: 2 },
+  headerButton: { width: 30, height: 36, alignItems: "center", justifyContent: "center", zIndex: 2 },
   headerBadge: { position: "absolute", right: 0, top: 1, minWidth: 15, height: 15, borderRadius: 8, backgroundColor: "#ed145b", borderWidth: 1, borderColor: "#fff", alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
   headerBadgeText: { color: "#fff", fontSize: 8, fontWeight: "800" },
-  searchShell: { minHeight: 37, maxHeight: 40, borderRadius: 22, backgroundColor: "#fff", paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 9 },
+  searchShell: { minHeight: 37, maxHeight: 40, borderRadius: 22, backgroundColor: "#fff", paddingHorizontal: 13, flexDirection: "row", alignItems: "center", gap: 9, ...Shadows.sm },
   searchInput: { flex: 1, minWidth: 0, height: 38, color: "#34232a", fontFamily: "Inter", fontSize: 12, paddingVertical: 0 },
   offlineBanner: { minHeight: 38, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#fee2e2", flexDirection: "row", gap: 7, alignItems: "center" },
   offlineText: { flex: 1, color: "#7f1d1d", fontSize: 11, fontWeight: "600" },
-  heroWrap: { marginTop: 9, marginHorizontal: 10, overflow: "hidden", borderRadius: 17, borderWidth: 1, borderColor: "#f9dce6", ...Shadows.sm },
-  heroSlide: { width: "100%", aspectRatio: 2.15, backgroundColor: "#FFF7FA" },
-  dots: { position: "absolute", left: 0, right: 0, bottom: 6, zIndex: 4, flexDirection: "row", justifyContent: "center", gap: 6 },
+  heroWrap: { width: "100%", paddingTop: 8, paddingBottom: 24, overflow: "visible" },
+  heroCarousel: { alignSelf: "center", overflow: "hidden", borderRadius: 16, ...Shadows.sm },
+  heroSlide: { aspectRatio: 2.8, backgroundColor: "#a00029", borderRadius: 16, borderWidth: 1, borderColor: "#fff", overflow: "hidden" },
+  heroBackdropImage: { opacity: 0.52 },
+  dots: { position: "absolute", left: 0, right: 0, bottom: 28, zIndex: 4, flexDirection: "row", justifyContent: "center", gap: 6 },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.82)" },
   dotActive: { width: 16, backgroundColor: "#f12b70" },
-  storiesSection: { marginHorizontal: 10, marginTop: 7, paddingHorizontal: 9, paddingTop: 7, paddingBottom: 6, borderRadius: 18, borderWidth: 1, borderColor: '#fce7f3', ...Shadows.sm },
+  storiesSection: { marginHorizontal: 14, marginTop: 1, paddingHorizontal: 0, paddingTop: 0, paddingBottom: 1 },
   storyHeadingRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   storyHeadingGroup: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 3 },
   storyHeading: { fontFamily: 'PlayfairDisplay', fontSize: 20, lineHeight: 25, color: '#151015', fontWeight: "700" },
   storyHeadingKa: { fontFamily: 'PlayfairDisplay', fontSize: 23, lineHeight: 26, color: Colors.primary, fontWeight: "700", fontStyle: "italic", marginLeft: 1 },
-  storeLove: { minHeight: 35, maxWidth: "62%", flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 7, paddingVertical: 4, borderRadius: 20, backgroundColor: "#fceaf1" },
+  storeLove: { minHeight: 36, maxWidth: "64%", flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, backgroundColor: "#fceaf1", borderWidth: 1, borderColor: "#ffd3e0", ...Shadows.sm },
   storeLoveHeartWrap: { width: 25, alignItems: "center", justifyContent: "center" },
   storeLoveCopy: { flexShrink: 1, minWidth: 0, justifyContent: "center" },
   storeLoveLabel: { color: Colors.primary, fontSize: 10, lineHeight: 13, fontWeight: "800" },
@@ -969,11 +982,11 @@ const styles = StyleSheet.create({
   sectionHeading: { color: "#6e1430", fontSize: 23, lineHeight: 28, fontFamily: "PlayfairDisplay" },
   storyList: { paddingTop: 7, paddingBottom: 1, flexDirection: "row", justifyContent: "space-between", gap: 4 },
   storyItem: { flex: 1, minWidth: 0, alignItems: "center" },
-  storyRing: { width: 58, height: 58, borderRadius: 29, padding: 3 },
+  storyRing: { width: 64, height: 64, borderRadius: 32, padding: 3, ...Shadows.sm },
   storyInner: { flex: 1, borderRadius: 29, padding: 2, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", overflow: "hidden" },
   storyCover: { width: "100%", height: "100%", borderRadius: 27, backgroundColor: "#fff6fa" },
   storyEmptyIcon: { alignSelf: "center" },
-  storyLabel: { marginTop: 4, color: "#48101f", fontSize: 9, fontWeight: "700", textAlign: "center" },
+  storyLabel: { marginTop: 4, color: "#25141b", fontSize: 10, fontWeight: "800", textAlign: "center" },
   emptyStoryBackdrop: { flex: 1, justifyContent: "center", alignItems: "center", padding: 22, backgroundColor: "rgba(0,0,0,0.68)" },
   emptyStoryCard: { width: "100%", maxWidth: 360, borderRadius: 26, borderWidth: 1, borderColor: "#fce7f3", paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24, alignItems: "center", backgroundColor: "#fff8fb", ...Shadows.md },
   emptyStoryClose: { position: "absolute", right: 12, top: 12, width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" },
@@ -1003,10 +1016,11 @@ const styles = StyleSheet.create({
   storyNavText: { color: "#fff", fontSize: 12, fontWeight: "700" },
   storyLinkButton: { backgroundColor: Colors.primary, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 10 },
   storyLinkText: { color: "#fff", fontSize: 11, fontWeight: "900" },
-  quickSection: { marginTop: 7, marginBottom: 1, paddingVertical: 6, backgroundColor: "#fff", borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: "#f6dce6" },
-  quickRow: { paddingHorizontal: 9, alignItems: "center", gap: 0 },
-  quickCard: { minWidth: 72, maxWidth: 92, height: 48, paddingHorizontal: 7, flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: "#e7bdcc" },
-  quickTitle: { color: '#32242a', fontSize: 8, fontWeight: '700', textAlign: 'center', lineHeight: 10 },
+  quickSection: { marginHorizontal: 10, marginTop: 7, marginBottom: 2, paddingVertical: 5, borderRadius: 17, borderWidth: 1, borderColor: "#f7d8e2", backgroundColor: "#fff", ...Shadows.sm },
+  quickRow: { width: "100%", flexGrow: 1, paddingHorizontal: 4, alignItems: "center", gap: 0 },
+  quickCard: { flex: 1, minWidth: 0, height: 48, paddingHorizontal: 1, flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2 },
+  quickCardDivider: { borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: "#e7bdcc" },
+  quickTitle: { color: '#21181d', fontSize: 8.5, fontWeight: '800', textAlign: 'center', lineHeight: 10 },
   specialArea: { margin: 10, borderRadius: 28, overflow: 'hidden' },
   specialInner: { padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   specialLabel: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 1 },

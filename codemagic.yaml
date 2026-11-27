@@ -100,6 +100,7 @@ workflows:
           npm --prefix mobile run test:commerce
           npm --prefix mobile run test:privacy-permissions
           npm --prefix mobile run test:cpf-profile
+          node ./mobile/scripts/test-seasonal-audio-controller.cjs
 
       - name: Validate backend, checkout and financial regression tests
         script: |

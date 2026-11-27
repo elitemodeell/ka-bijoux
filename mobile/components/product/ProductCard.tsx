@@ -219,7 +219,10 @@ function ProductCardComponent({ product, badgeSeal = false, compact = false, sho
         >
           {showFavorite && isAvailable ? <LinearGradient pointerEvents="none" colors={["#ff2d76", "#e60055", "#c90048"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addButtonGradient} /> : null}
           <View style={styles.addButtonContent}>{cartAction === "buy" ? <ActivityIndicator size="small" color="#fff" /> : (
-            <Text style={[styles.addButtonText, compact && styles.compactAddButtonText, showFavorite && styles.homeButtonText]}>{product.purchaseReviewRequired ? "Em revisão" : compact ? "Comprar" : "Comprar agora"}</Text>
+            <>
+              {!product.purchaseReviewRequired ? <Ionicons name="cart-outline" size={compact ? 14 : 17} color="#fff" /> : null}
+              <Text style={[styles.addButtonText, compact && styles.compactAddButtonText, showFavorite && styles.homeButtonText]}>{product.purchaseReviewRequired ? "Em revisão" : compact ? "Comprar" : "Comprar agora"}</Text>
+            </>
           )}</View>
         </TouchableOpacity>
       </View>
@@ -239,13 +242,13 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
     flex: 1,
   },
-  compactCard: { borderRadius: 11 },
+  compactCard: { borderRadius: 12 },
   imageContainer: {
     position: "relative",
     aspectRatio: 4 / 5,
     backgroundColor: Colors.pinkPale,
   },
-  compactImageContainer: { aspectRatio: 1 },
+  compactImageContainer: { aspectRatio: 1.32 },
   image: {
     width: "100%",
     height: "100%",
@@ -315,7 +318,7 @@ const styles = StyleSheet.create({
     gap: 8,
     flex: 1,
   },
-  compactInfo: { padding: 6, gap: 5 },
+  compactInfo: { padding: 6, gap: 4 },
   name: {
     fontSize: 13,
     color: Colors.textPrimary,
@@ -323,7 +326,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     minHeight: 36,
   },
-  compactName: { fontSize: 9, lineHeight: 12, minHeight: 24 },
+  compactName: { fontSize: 9.5, lineHeight: 12, minHeight: 24, fontWeight: "600" },
   homeText: { fontFamily: "Inter" },
   colorHint: {
     fontSize: 10,
@@ -346,7 +349,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.textPrimary,
   },
-  compactPrice: { fontSize: 12 },
+  compactPrice: { fontSize: 13, fontWeight: "800" },
   homePrice: { color: Colors.primary, fontFamily: "Inter", fontWeight: "700" },
   pricePromo: { color: Colors.primary },
   addButton: {
@@ -359,10 +362,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  compactAddButton: { minHeight: 30, borderRadius: 16 },
+  compactAddButton: { minHeight: 31, borderRadius: 16 },
   homeAddButton: { backgroundColor: "transparent", position: "relative", overflow: "hidden" },
   addButtonGradient: { ...StyleSheet.absoluteFillObject, borderRadius: 16 },
-  addButtonContent: { zIndex: 1, alignItems: "center", justifyContent: "center" },
+  addButtonContent: { zIndex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4 },
   addButtonText: { color: "#fff", fontSize: 12, fontWeight: "700" },
   compactAddButtonText: { fontSize: 10 },
   homeButtonText: { fontFamily: "Inter", fontWeight: "700" },
