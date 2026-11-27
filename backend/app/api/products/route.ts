@@ -125,13 +125,13 @@ export async function GET(req: NextRequest) {
       const all = [];
       let skip = 0;
       while (true) {
-        if (suggestionsOnly && skip >= 500) return all;
+        if (suggestionsOnly && skip >= 100) return all;
         const batch = await prisma.product.findMany({
           where,
           select: productListSelect,
           orderBy: [orderBy, { createdAt: "desc" }, { id: "asc" }],
           skip,
-          take: 500,
+          take: suggestionsOnly ? 100 : 500,
         });
         all.push(...batch);
         if (batch.length < 500) return all;
@@ -161,7 +161,7 @@ export async function GET(req: NextRequest) {
       page,
       pageSize,
       totalPages: Math.ceil(total / pageSize),
-      hasMoreCandidates: suggestionsOnly && candidates.length >= 500,
+      hasMoreCandidates: suggestionsOnly && candidates.length >= 100,
     });
     response.headers.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=120");
     return response;

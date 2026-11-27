@@ -43,38 +43,26 @@ function matchTerm(term: string): Prisma.ProductWhereInput[] {
   });
 }
 
-const portugueseAccents: Record<string, string[]> = {
-  a: ["á", "à", "â", "ã"], e: ["é", "ê"], i: ["í"],
-  o: ["ó", "ô", "õ"], u: ["ú"], c: ["ç"],
+const commonAccentedWords: Record<string, string> = {
+  coracao: "cora\u00e7\u00e3o", coracoes: "cora\u00e7\u00f5es",
+  fragrancia: "fragr\u00e2ncia", fragrancias: "fragr\u00e2ncias",
+  colonia: "col\u00f4nia", colonias: "col\u00f4nias",
+  oculos: "\u00f3culos", pelicula: "pel\u00edcula", peliculas: "pel\u00edculas",
+  informacao: "informa\u00e7\u00e3o", informacoes: "informa\u00e7\u00f5es",
+  promocao: "promo\u00e7\u00e3o", promocoes: "promo\u00e7\u00f5es",
+  lancamento: "lan\u00e7amento", lancamentos: "lan\u00e7amentos",
+  cartao: "cart\u00e3o", cartoes: "cart\u00f5es", mae: "m\u00e3e", pao: "p\u00e3o",
+  saude: "sa\u00fade", liquido: "l\u00edquido", eletronico: "eletr\u00f4nico",
+  eletronicos: "eletr\u00f4nicos", edicao: "edi\u00e7\u00e3o", edicoes: "edi\u00e7\u00f5es",
 };
-const commonAccentedEndings: Array<[string, string]> = [
-  ["coes", "ções"], ["cao", "ção"], ["oes", "ões"], ["ao", "ão"],
-  ["ancia", "ância"], ["encia", "ência"], ["uncia", "úncia"],
-  ["ario", "ário"], ["aria", "ária"], ["orio", "ório"], ["oria", "ória"],
-  ["avel", "ável"], ["ivel", "ível"], ["eis", "éis"], ["mae", "mãe"],
-];
 
 function searchSpellings(value: string) {
   const normalized = normalize(value);
-  const chars = Array.from(normalized);
   const variants = new Set([value, normalized]);
-  const positions = chars.flatMap((char, index) => portugueseAccents[char]
-    ? [{ index, replacements: portugueseAccents[char] }]
-    : []);
-
-  // Include likely Portuguese diacritics so ASCII queries can match accented
-  // catalog fields while keeping the database OR list bounded.
-  for (const position of positions) {
-    for (const replacement of position.replacements) {
-      const copy = [...chars];
-      copy[position.index] = replacement;
-      variants.add(copy.join(""));
-    }
-  }
-  for (const [plain, accented] of commonAccentedEndings) {
-    if (normalized.endsWith(plain)) variants.add(normalized.slice(0, -plain.length) + accented);
-  }
-  return [...variants].slice(0, 24);
+  const words = normalized.split(" ");
+  const accented = words.map((word) => commonAccentedWords[word] ?? word);
+  if (accented.some((word, index) => word !== words[index])) variants.add(accented.join(" "));
+  return [...variants];
 }
 
 function singularAndPlural(term: string) {
@@ -122,14 +110,8 @@ function searchTermForms(term: string) {
 function matchProductWord(term: string): Prisma.ProductWhereInput[] {
   const mode = "insensitive" as const;
   return [
-    { name: { equals: term, mode } },
-    { name: { startsWith: `${term} `, mode } },
-    { name: { contains: ` ${term} `, mode } },
-    { name: { endsWith: ` ${term}`, mode } },
-    { slug: { equals: term, mode } },
-    { slug: { startsWith: `${term}-`, mode } },
-    { slug: { contains: `-${term}-`, mode } },
-    { slug: { endsWith: `-${term}`, mode } },
+    { name: { contains: term, mode } },
+    { slug: { contains: term.replaceAll(" ", "-"), mode } },
   ];
 }
 
@@ -138,23 +120,49 @@ export function catalogSearchAlternatives(query: string): Prisma.ProductWhereInp
   const normalized = normalizeCatalogSearchQuery(original);
   if (!normalized) return [];
 
+  // Three- and four-character inputs are common prefixes ("cap", "perf").
+  // Use indexed prefix matches instead of broad substring searches across every
+  // relation, which can time out while suggestion cards are being assembled.
+  if (/^[a-z0-9]{3,4}$/.test(normalized)) {
+    const mode = "insensitive" as const;
+    const candidates = new Set(typoVocabulary.filter((word) => word.startsWith(normalized)));
+    for (const [canonical, related] of Object.entries(synonyms)) {
+      for (const term of [canonical, ...related]) {
+        if (term.startsWith(normalized)) candidates.add(term);
+      }
+    }
+    const prefixes = [...candidates];
+    if (!prefixes.length) prefixes.push(normalized);
+    return [{ OR: [
+      { sku: { equals: normalized, mode } },
+      { ean: { equals: normalized, mode } },
+      ...prefixes.flatMap((term) => [
+        { name: { startsWith: term, mode } },
+        { slug: { startsWith: term.replaceAll(" ", "-"), mode } },
+        { category: { name: { startsWith: term, mode } } },
+        { subcategory: { name: { startsWith: term, mode } } },
+      ]),
+    ] }];
+  }
+
   const wirelessHeadphones = /\bfones?\b/.test(normalized) && /\b(sem fio|bluetooth|wireless|tws)\b/.test(normalized);
   const airConditionerRemote = /\bcontroles?\b/.test(normalized) && /\b(ac|ar condic)/.test(normalized);
   const groups = wirelessHeadphones
     ? [["fone", "fones", "headphone", "headphones", "headset", "headsets", "earbud", "earbuds"], ["sem fio", "bluetooth", "wireless", "tws"]]
     : airConditionerRemote
-      ? [["controle", "controles"], ["ar condicionado", "ar-condicionado", "ar condic", "ac"]]
+      ? [["controle", "controles"], ["ar condicionado", "ar-condicionado", "ar condic"]]
       : normalized.split(" ").filter((word) => !stopWords.has(word)).slice(0, 8).map(searchTermForms);
 
   if (wirelessHeadphones || airConditionerRemote) {
     return [{ AND: [
       { OR: groups[0].flatMap(matchProductWord) },
-      { OR: groups[1].flatMap(matchTerm) },
+      { OR: groups[1].flatMap(matchProductWord) },
     ] }];
   }
 
+  const corrected = normalize(original) !== normalized;
   return [
-    ...matchTerm(original),
+    ...matchTerm(corrected ? normalized : original),
     ...(groups.length ? [{ AND: groups.map((group) => ({ OR: group.flatMap(matchTerm) })) }] : []),
   ];
 }
