@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -54,6 +54,13 @@ export default function Navbar() {
   const [megaOpen, setMegaOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [cartCount, setCartCount] = useState(0);
+  const [christmasTheme, setChristmasTheme] = useState(false);
+  const [christmasLogoUrl, setChristmasLogoUrl] = useState("");
+
+  const handlePresentation = useCallback((theme: "christmas" | "default", logoUrl: string) => {
+    setChristmasTheme(theme === "christmas");
+    setChristmasLogoUrl(logoUrl);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -92,20 +99,20 @@ export default function Navbar() {
 
   if (pathname?.startsWith("/categoria/sex-shop")) {
     return (
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-[#ead4d4]/70 bg-[#fff8f7]/88 shadow-[0_12px_32px_rgba(99,44,63,0.06)] backdrop-blur-xl">
+      <header className={`fixed inset-x-0 top-0 z-50 border-b shadow-[0_12px_32px_rgba(99,44,63,0.12)] backdrop-blur-xl ${christmasTheme ? "border-white/15 bg-gradient-to-r from-[#76001f] via-[#920028] to-[#690018]" : "border-[#ead4d4]/70 bg-[#fff8f7]/88"}`}>
         <div className="mx-auto flex h-[84px] max-w-6xl items-center gap-2 px-3 sm:h-[96px] sm:gap-3 sm:px-6">
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[19px] border border-[#ead4d4] bg-white/72 text-[#8a4b5d] shadow-[0_12px_24px_rgba(99,44,63,0.08)] sm:h-14 sm:w-14 sm:rounded-[22px]"
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[19px] border shadow-[0_12px_24px_rgba(99,44,63,0.08)] sm:h-14 sm:w-14 sm:rounded-[22px] ${christmasTheme ? "border-white/25 bg-white/10 text-white" : "border-[#ead4d4] bg-white/72 text-[#8a4b5d]"}`}
             aria-label="Abrir menu"
           >
             <HamburgerIcon />
           </button>
 
           <Link href="/categoria/sex-shop" className="shrink-0 leading-none" aria-label="KA Íntima">
-            <span className="block text-[30px] font-black tracking-tight text-[#e24c86] sm:text-[38px]">KA</span>
-            <span className="-mt-2 block font-playfair text-[15px] italic text-[#8a4b5d] sm:text-[17px]">Íntima</span>
+            <span className={`block text-[30px] font-black tracking-tight sm:text-[38px] ${christmasTheme ? "text-white" : "text-[#e24c86]"}`}>KA</span>
+            <span className={`-mt-2 block font-playfair text-[15px] italic sm:text-[17px] ${christmasTheme ? "text-[#f5cf71]" : "text-[#8a4b5d]"}`}>Íntima</span>
           </Link>
 
           <AutocompleteSearch
@@ -114,7 +121,7 @@ export default function Navbar() {
             onChoose={navigateSearch}
             adultMode
             formClassName="relative z-40 min-w-0 flex-1"
-            inputClassName="h-12 w-full rounded-[22px] border border-[#ead4d4] bg-white/62 pl-10 pr-3 text-sm font-medium text-[#6f4352] outline-none shadow-[0_14px_30px_rgba(99,44,63,0.06)] transition focus:border-[#d897ad] focus:bg-white focus:ring-2 focus:ring-[#f5dce6] sm:h-14 sm:rounded-[26px] sm:pl-12 sm:pr-4"
+            inputClassName={`h-12 w-full rounded-[22px] border bg-white pl-10 pr-3 text-sm font-medium text-[#6f4352] outline-none shadow-[0_14px_30px_rgba(99,44,63,0.06)] transition focus:border-[#d897ad] focus:ring-2 focus:ring-[#f5dce6] sm:h-14 sm:rounded-[26px] sm:pl-12 sm:pr-4 ${christmasTheme ? "border-white/75" : "border-[#ead4d4]"}`}
             iconClassName="left-3.5 text-[#8a4b5d]/75 sm:left-4"
             placeholder="O que você procura?"
             showSubmitButton={false}
@@ -122,7 +129,7 @@ export default function Navbar() {
 
           <Link
             href="/carrinho"
-            className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#ead4d4] bg-white/74 text-[#8a4b5d] shadow-[0_12px_24px_rgba(99,44,63,0.08)] sm:h-14 sm:w-14"
+            className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full border shadow-[0_12px_24px_rgba(99,44,63,0.08)] sm:h-14 sm:w-14 ${christmasTheme ? "border-white/25 bg-white/10 text-white" : "border-[#ead4d4] bg-white/74 text-[#8a4b5d]"}`}
             aria-label={`Carrinho com ${cartCount} itens`}
           >
             <BagIcon className="h-5 w-5" />
@@ -133,10 +140,10 @@ export default function Navbar() {
             )}
           </Link>
 
-          <SeasonalAudioControlWeb />
+          <SeasonalAudioControlWeb onPresentation={handlePresentation} darkHeader={christmasTheme} />
           <Link
             href='/conta'
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#ead4d4] bg-white/74 text-[#8a4b5d] shadow-[0_12px_24px_rgba(99,44,63,0.08)] sm:h-14 sm:w-14"
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border shadow-[0_12px_24px_rgba(99,44,63,0.08)] sm:h-14 sm:w-14 ${christmasTheme ? "border-white/25 bg-white/10 text-white" : "border-[#ead4d4] bg-white/74 text-[#8a4b5d]"}`}
             aria-label='Minha conta'
           >
             <UserIcon className="h-5 w-5" />
@@ -178,11 +185,7 @@ export default function Navbar() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-12 z-40 transition-all duration-300 md:top-0 md:z-50 ${
-        scrolled
-          ? "border-b border-pink-50 bg-white/96 shadow-sm backdrop-blur-md"
-          : "border-b border-pink-50 bg-white/90 backdrop-blur-md md:bg-white/82"
-      }`}
+      className={`fixed inset-x-0 top-12 z-40 transition-all duration-300 md:top-0 md:z-50 ${christmasTheme ? "border-b border-white/15 bg-gradient-to-r from-[#76001f] via-[#920028] to-[#690018] text-white shadow-[0_10px_30px_rgba(73,0,18,0.2)]" : scrolled ? "border-b border-pink-50 bg-white/96 shadow-sm backdrop-blur-md" : "border-b border-pink-50 bg-white/90 backdrop-blur-md md:bg-white/82"}`}
       onMouseLeave={() => setMegaOpen(false)}
     >
       <div className="relative isolate mx-auto flex h-[72px] max-w-7xl items-center gap-2 px-3 sm:gap-3 sm:px-4 md:h-[74px] md:px-5">
@@ -190,14 +193,14 @@ export default function Navbar() {
 
         <Link href="/" className="ka-logo-sparkle-wrap relative z-20 flex shrink-0 items-center" aria-label="KA Bijoux">
           <Image
-            src="/images/brand/ka-bijoux-logo-header-320.png"
+            src={christmasTheme ? christmasLogoUrl || "/images/brand/ka-bijoux-logo-natal.png" : "/images/brand/ka-bijoux-logo-header-320.png"}
             alt="KA Bijoux"
-            width={320}
-            height={294}
-            sizes="(max-width: 767px) 88px, 150px"
+            width={christmasTheme ? 1024 : 320}
+            height={christmasTheme ? 1024 : 294}
+            sizes={christmasTheme ? "56px" : "(max-width: 767px) 88px, 150px"}
             quality={82}
             priority
-            className="h-10 w-auto max-w-[72px] object-contain sm:h-11 sm:max-w-[88px] md:h-12 md:max-w-[150px]"
+            className={christmasTheme ? "h-12 w-12 object-contain sm:h-14 sm:w-14" : "h-10 w-auto max-w-[72px] object-contain sm:h-11 sm:max-w-[88px] md:h-12 md:max-w-[150px]"}
           />
           <span className="ka-logo-twinkle" style={{ left: "72%", top: "10%", animationDelay: "0.4s" }} />
           <span className="ka-logo-twinkle" style={{ left: "6%", top: "72%", animationDelay: "2.6s" }} />
@@ -208,7 +211,7 @@ export default function Navbar() {
           onChange={setSearch}
           onChoose={navigateSearch}
           formClassName="relative z-40 min-w-0 flex-1 md:max-w-md lg:max-w-lg"
-          inputClassName="h-10 w-full rounded-2xl border border-pink-100 bg-white/88 pl-9 pr-10 text-[13px] font-medium text-gray-700 shadow-[0_8px_24px_rgba(236,72,153,0.06)] outline-none transition focus:border-pink-300 focus:bg-white focus:ring-2 focus:ring-pink-100 sm:h-11 sm:text-sm"
+          inputClassName={`h-10 w-full rounded-2xl border bg-white pl-9 pr-10 text-[13px] font-medium text-gray-700 shadow-[0_8px_24px_rgba(236,72,153,0.06)] outline-none transition focus:border-pink-300 focus:ring-2 focus:ring-pink-100 sm:h-11 sm:text-sm ${christmasTheme ? "border-white/70" : "border-pink-100"}`}
           iconClassName="left-3 text-pink-400"
           placeholder="Buscar produtos, categorias e mais..."
           showSubmitButton
@@ -219,7 +222,7 @@ export default function Navbar() {
             <Link
               key={href}
               href={href}
-              className="group relative text-sm font-medium text-gray-600 transition-colors hover:text-pink-500"
+              className={`group relative text-sm font-medium transition-colors ${christmasTheme ? "text-white/90 hover:text-[#ffd36f]" : "text-gray-600 hover:text-pink-500"}`}
             >
               {label}
               <span className="absolute -bottom-0.5 left-0 h-[2px] w-0 rounded-full bg-pink-400 transition-all duration-300 group-hover:w-full" />
@@ -227,7 +230,7 @@ export default function Navbar() {
           ))}
           <Link
             href={ADULT_LINK.href}
-            className="rounded-full border border-purple-200 bg-gradient-to-r from-purple-900/90 to-pink-900/90 px-4 py-2 text-xs font-bold tracking-wide text-pink-200 shadow-sm transition-all hover:from-purple-800 hover:to-pink-800 hover:text-white"
+            className={`rounded-full border px-4 py-2 text-xs font-bold tracking-wide shadow-sm transition-all ${christmasTheme ? "border-white/35 bg-white/10 text-white hover:bg-white/20" : "border-purple-200 bg-gradient-to-r from-purple-900/90 to-pink-900/90 text-pink-200 hover:from-purple-800 hover:to-pink-800 hover:text-white"}`}
           >
             {ADULT_LINK.label}
           </Link>
@@ -235,20 +238,20 @@ export default function Navbar() {
             type="button"
             onClick={() => setMegaOpen((current) => !current)}
             onMouseEnter={() => setMegaOpen(true)}
-            className="rounded-full border border-pink-100 bg-white/80 px-4 py-2 text-sm font-semibold text-pink-500 shadow-sm backdrop-blur transition-colors hover:bg-pink-50"
+            className={`rounded-full border px-4 py-2 text-sm font-semibold shadow-sm backdrop-blur transition-colors ${christmasTheme ? "border-white/25 bg-white/10 text-white hover:bg-white/20" : "border-pink-100 bg-white/80 text-pink-500 hover:bg-pink-50"}`}
           >
             Categorias
           </button>
         </nav>
 
         <div className="relative z-20 flex shrink-0 items-center gap-0.5 self-center">
-          <SeasonalAudioControlWeb />
-          <Link href='/conta' className='group rounded-xl p-2.5 transition-colors hover:bg-pink-50' aria-label='Minha conta'>
-            <UserIcon className='h-[18px] w-[18px] text-gray-500 transition-colors group-hover:text-pink-500' />
+          <SeasonalAudioControlWeb onPresentation={handlePresentation} darkHeader={christmasTheme} />
+          <Link href='/conta' className={`group rounded-xl p-2.5 transition-colors ${christmasTheme ? "text-white hover:bg-white/10" : "hover:bg-pink-50"}`} aria-label='Minha conta'>
+            <UserIcon className={`h-[18px] w-[18px] transition-colors ${christmasTheme ? "text-white" : "text-gray-500 group-hover:text-pink-500"}`} />
           </Link>
 
-          <Link href="/carrinho" className="group relative rounded-xl p-2.5 transition-colors hover:bg-pink-50" aria-label={`Carrinho com ${cartCount} itens`}>
-            <BagIcon className="h-[18px] w-[18px] text-gray-500 transition-colors group-hover:text-pink-500" />
+          <Link href="/carrinho" className={`group relative rounded-xl p-2.5 transition-colors ${christmasTheme ? "text-white hover:bg-white/10" : "hover:bg-pink-50"}`} aria-label={`Carrinho com ${cartCount} itens`}>
+            <BagIcon className={`h-[18px] w-[18px] transition-colors ${christmasTheme ? "text-white" : "text-gray-500 group-hover:text-pink-500"}`} />
             {cartCount > 0 && (
               <span className="absolute -right-0.5 -top-0.5 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-black leading-none text-white shadow-[0_6px_14px_rgba(236,72,153,0.35)]">
                 {cartCount > 99 ? "99+" : cartCount}
@@ -259,7 +262,7 @@ export default function Navbar() {
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            className="rounded-xl p-2.5 text-gray-600 transition-colors hover:bg-pink-50 md:hidden"
+            className={`rounded-xl p-2.5 transition-colors md:hidden ${christmasTheme ? "text-white hover:bg-white/10" : "text-gray-600 hover:bg-pink-50"}`}
             aria-label="Menu"
           >
             <HamburgerIcon />

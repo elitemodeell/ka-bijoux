@@ -15,7 +15,11 @@ export async function GET() {
     );
 
     return NextResponse.json(
-      { ambientMusic: presentation.ambientMusic },
+      {
+        theme: presentation.theme,
+        logoUrl: presentation.logoUrl,
+        ambientMusic: presentation.ambientMusic,
+      },
       { headers: { "Cache-Control": "public, max-age=30, stale-while-revalidate=60" } },
     );
   } catch {

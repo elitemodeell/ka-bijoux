@@ -43,7 +43,7 @@ export default async function HomePage() {
   return (
     <main className="overflow-x-hidden">
 
-      <AnnouncementBar messages={presentation.announcements} />
+      <AnnouncementBar messages={presentation.announcements} theme={presentation.theme} />
 
       <section className="bg-white pt-[72px] md:pt-[26px]">
         <KABijouxStories presentation={presentation} />
