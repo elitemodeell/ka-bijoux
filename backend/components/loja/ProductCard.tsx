@@ -145,10 +145,10 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
   return (
     <div
       ref={cardRef}
-      className={`ka-product-card ka-product-reveal group flex flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${compact ? "ka-home-product-card" : ""}`}
+      className={`ka-product-card ka-product-reveal group flex flex-col overflow-hidden border border-gray-100 bg-white transition-all duration-200 ${compact ? "rounded-lg shadow-[0_1px_4px_rgba(0,0,0,0.06)] hover:shadow-sm" : "rounded-xl shadow-sm hover:-translate-y-0.5 hover:shadow-md"} ${compact ? "ka-home-product-card" : ""}`}
     >
       {/* Image area */}
-      <div className="relative aspect-square overflow-hidden bg-[#FFF5F7]">
+      <div className="relative aspect-square overflow-hidden bg-white">
         {normalized.slug ? (
           <Link
             href={`/produto/${normalized.slug}`}
@@ -166,7 +166,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
                 frameClassName="h-full w-full"
                 imageClassName="object-contain p-1 transition-transform duration-300 group-hover:scale-[1.02]"
                 onError={() => setImgError(true)}
-                sizes="(max-width: 640px) 33vw, (max-width: 1024px) 33vw, 20vw"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                 priority={priority}
               />
             ) : (
@@ -189,7 +189,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
                 frameClassName="h-full w-full"
                 imageClassName="object-contain p-1 transition-transform duration-300 group-hover:scale-[1.02]"
                 onError={() => setImgError(true)}
-                sizes="(max-width: 640px) 33vw, (max-width: 1024px) 33vw, 20vw"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                 priority={priority}
               />
             ) : (
@@ -246,7 +246,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
       </div>
 
       {/* Info area */}
-      <div className={`flex flex-1 flex-col ${compact ? "p-1.5 sm:p-2.5" : "p-2.5"}`}>
+      <div className={`flex flex-1 flex-col ${compact ? "p-2 sm:p-2.5" : "p-2.5"}`}>
         {normalized.purchaseReviewRequired && <p className="mb-1 text-xs font-semibold text-pink-800">Em revisão</p>}
         {product.slug ? (
           <Link
@@ -255,13 +255,13 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
             onClick={rememberListingPosition}
             className="text-left"
           >
-            <h3 className={`${compact ? "line-clamp-2 text-[10px] leading-tight sm:text-[12px]" : "line-clamp-2 text-[12px] leading-snug"} font-semibold text-gray-800 transition-colors hover:text-pink-500`}>
+            <h3 className={`${compact ? "line-clamp-2 text-[11px] leading-tight sm:text-[12px]" : "line-clamp-2 text-[12px] leading-snug"} font-semibold text-gray-800 transition-colors hover:text-pink-500`}>
               {name}
             </h3>
           </Link>
         ) : (
           <button type="button" onClick={openQuickShop} className="text-left">
-            <h3 className={`${compact ? "line-clamp-2 text-[10px] leading-tight sm:text-[12px]" : "line-clamp-2 text-[12px] leading-snug"} font-semibold text-gray-800 transition-colors hover:text-pink-500`}>
+            <h3 className={`${compact ? "line-clamp-2 text-[11px] leading-tight sm:text-[12px]" : "line-clamp-2 text-[12px] leading-snug"} font-semibold text-gray-800 transition-colors hover:text-pink-500`}>
               {name}
             </h3>
           </button>

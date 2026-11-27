@@ -569,7 +569,7 @@ function ProductSection({ section, onNavigate, favoriteIds, onFavoriteToggle }: 
   const { width } = useWindowDimensions();
   if (!section.products.length) return null;
   const gridGap = 8;
-  const cardWidth = Math.max(0, (width - 20 - gridGap * 2) / 3);
+  const cardWidth = Math.max(0, (width - 16 - gridGap) / 2);
   return (
     <View style={[styles.productSection, section.background === "subtle" && styles.productSectionSubtle]}>
       <View style={styles.sectionHeader}>
@@ -679,7 +679,7 @@ function CategoryGrid({ categories, onNavigate }: { categories: HomeCategory[]; 
 function HomeSkeleton() {
   const { width } = useWindowDimensions();
   const gap = 8;
-  const cardWidth = Math.max(0, (width - 24 - gap * 2) / 3);
+  const cardWidth = Math.max(0, (width - 16 - gap) / 2);
   return (
     <View style={styles.skeletonWrap}>
       <View style={[styles.skeleton, styles.skeletonHero]} />
@@ -688,7 +688,7 @@ function HomeSkeleton() {
       </View>
       <View style={[styles.skeleton, styles.skeletonTitle]} />
       <View style={styles.productGrid}>
-        {[0, 1, 2].map((item) => <View key={item} style={[styles.skeleton, styles.skeletonProduct, { width: cardWidth }]} />)}
+        {[0, 1].map((item) => <View key={item} style={[styles.skeleton, styles.skeletonProduct, { width: cardWidth }]} />)}
       </View>
     </View>
   );
@@ -1026,7 +1026,7 @@ const styles = StyleSheet.create({
   specialLabel: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 1 },
   specialTitle: { fontFamily: 'PlayfairDisplay', color: '#fff', fontSize: 24, marginVertical: 4 },
   specialSubtitle: { color: '#ffe4ef', fontSize: 12 },
-  productSection: { paddingHorizontal: 10, paddingVertical: 10, backgroundColor: "#fff" },
+  productSection: { paddingHorizontal: 8, paddingVertical: 10, backgroundColor: "#fff" },
   productSectionSubtle: { backgroundColor: Colors.pinkPale },
   sectionHeader: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginBottom: 8 },
   sectionHeaderCopy: { flex: 1 },

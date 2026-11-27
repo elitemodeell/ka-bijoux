@@ -124,7 +124,7 @@ export default async function SexShopPage(props: { searchParams?: Promise<Search
     <main className="min-h-screen overflow-x-hidden bg-[#fff7f5] pb-28 pt-[112px] text-[#5b2638]">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,#ffe4ec_0,transparent_34%),radial-gradient(circle_at_88%_18%,#efe1ff_0,transparent_32%),linear-gradient(180deg,#fff8f7_0%,#fff4f2_48%,#fffaf8_100%)]" />
 
-      <section className="mx-auto max-w-6xl px-4 sm:px-6">
+      <section className="mx-auto max-w-6xl px-2 sm:px-6">
         <div
           className="relative min-h-[420px] overflow-hidden rounded-[30px] border border-[#ead3d7] bg-[#f8e1df] shadow-[0_22px_60px_rgba(116,62,80,0.16)] sm:min-h-[480px]"
           style={{
@@ -164,7 +164,7 @@ export default async function SexShopPage(props: { searchParams?: Promise<Search
         </div>
       </section>
 
-      <section className="mx-auto mt-8 max-w-6xl px-4 sm:px-6">
+      <section className="mx-auto mt-8 max-w-6xl px-2 sm:px-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-playfair text-2xl font-bold text-[#5d2038]">Explorar por categoria</h2>
           <Link href="/categoria/sex-shop" className="inline-flex items-center gap-2 text-sm font-semibold text-[#6e3b4e]">

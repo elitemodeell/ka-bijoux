@@ -52,7 +52,7 @@ export default async function HomePage() {
       <QuickCategoryBar />
 
       <section className="ka-deferred-section bg-white py-3 sm:py-10">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6">
+        <div className="max-w-7xl mx-auto px-2 sm:px-6">
           <AnimatedSection className="mb-3 flex items-end justify-between sm:mb-8">
             <div>
               <h2 className="font-playfair text-[25px] font-bold text-gray-900 sm:text-4xl">{findsConfig.title}</h2>
@@ -309,7 +309,7 @@ function SectionGrid({
 }: SectionGridProps) {
   return (
     <>
-      <div className={compact ? "grid grid-cols-3 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5" : "grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5"}>
+      <div className={compact ? "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5" : "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5"}>
         {products.map((product, i) => (
           <ProductCard
             key={`${keyPrefix}-${product.id}`}

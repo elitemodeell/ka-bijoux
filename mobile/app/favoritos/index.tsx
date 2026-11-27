@@ -25,7 +25,7 @@ type FavoriteItem = {
 export default function FavoritosScreen() {
   const router = useRouter();
   const { width: viewportWidth } = useWindowDimensions();
-  const productCellWidth = Math.max(0, (viewportWidth - Spacing.base * 2 - 16) / 3);
+  const productCellWidth = Math.max(0, (viewportWidth - 16 - 8) / 2);
   const { customer } = useAuthStore();
   const [favorites, setFavorites]   = useState<FavoriteItem[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -151,7 +151,7 @@ export default function FavoritosScreen() {
         <FlatList
           data={favorites}
           keyExtractor={(item) => item.favoriteId}
-          numColumns={3}
+          numColumns={2}
           columnWrapperStyle={styles.row}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   title:     { fontSize: FontSizes.lg, fontWeight: "800", color: Colors.textPrimary },
   row:       { gap: 8 },
-  list:      { padding: Spacing.base, gap: 8 },
+  list:      { paddingHorizontal: 8, paddingTop: Spacing.base, paddingBottom: Spacing.base, gap: 8 },
   removeBtn: {
     position: "absolute", top: 8, right: 8,
     backgroundColor: "rgba(255,255,255,0.92)",

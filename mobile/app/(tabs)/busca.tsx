@@ -82,7 +82,7 @@ const prices = [
 
 export default function BuscaScreen() {
   const { width: viewportWidth } = useWindowDimensions();
-  const productCellWidth = Math.max(0, (viewportWidth - Spacing.base * 2 - 16) / 3);
+  const productCellWidth = Math.max(0, (viewportWidth - 16 - 8) / 2);
   const router = useRouter();
   const customer = useAuthStore((state) => state.customer);
   const params = useLocalSearchParams<{ q?: string }>();
@@ -421,7 +421,7 @@ export default function BuscaScreen() {
       <FlatList
         data={loading ? [] : results}
         keyExtractor={(item) => item.id}
-        numColumns={3}
+        numColumns={2}
         columnWrapperStyle={styles.row}
         contentContainerStyle={[styles.list, { paddingBottom: tabBarHeight + 16 }, results.length === 0 && styles.emptyList]}
         automaticallyAdjustKeyboardInsets
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: FontSizes.md, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },
   emptyText: { fontSize: FontSizes.sm, color: Colors.textMuted, textAlign: "center", marginTop: 6 },
   row: { gap: 8 },
-  list: { padding: Spacing.base, gap: 8 },
+  list: { paddingHorizontal: 8, paddingTop: Spacing.base, paddingBottom: Spacing.base, gap: 8 },
   productCell: { flexGrow: 0, flexShrink: 0 },
   emptyList: { flexGrow: 1 },
   resultCount: { fontSize: FontSizes.sm, color: Colors.textMuted, marginBottom: 8 },

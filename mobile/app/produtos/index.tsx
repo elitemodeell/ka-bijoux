@@ -29,7 +29,7 @@ export default function ProdutosScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: viewportWidth } = useWindowDimensions();
-  const productCellWidth = Math.max(0, (viewportWidth - Spacing.base * 2 - 16) / 3);
+  const productCellWidth = Math.max(0, (viewportWidth - 16 - 8) / 2);
   const { category, subcategory, title, promo, new: newParam, q, sort: routeSort, ordem, minPrice, maxPrice } = useLocalSearchParams<{
     category?: string;
     subcategory?: string;
@@ -183,7 +183,7 @@ export default function ProdutosScreen() {
         <FlatList
           data={products}
           keyExtractor={(item) => item.id}
-          numColumns={3}
+          numColumns={2}
           columnWrapperStyle={styles.row}
           contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 12) + 16 }]}
           initialNumToRender={6}
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   sortChipText:       { fontSize: FontSizes.sm, color: Colors.textSecondary, fontWeight: "500" },
   sortChipTextActive: { color: Colors.primary, fontWeight: "700" },
   row:  { gap: 8 },
-  list: { padding: Spacing.base, gap: 8 },
+  list: { paddingHorizontal: 8, paddingTop: Spacing.base, paddingBottom: Spacing.base, gap: 8 },
   productCell: { flexGrow: 0, flexShrink: 0 },
   emptyIcon:  { fontSize: 56, marginBottom: 12 },
   emptyTitle: { fontSize: FontSizes.md, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },

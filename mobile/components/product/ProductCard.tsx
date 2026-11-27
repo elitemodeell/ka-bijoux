@@ -53,7 +53,7 @@ function displayProductName(value: string) {
 }
 const PRODUCT_THUMBNAIL_WIDTH = Math.min(
   640,
-  Math.ceil((Dimensions.get("window").width / 3) * PixelRatio.get()),
+  Math.ceil((Dimensions.get("window").width / 2) * PixelRatio.get()),
 );
 
 const SITE = process.env.EXPO_PUBLIC_API_URL ?? "https://kabijoux.com.br";
@@ -242,13 +242,20 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
     flex: 1,
   },
-  compactCard: { borderRadius: 12 },
+  compactCard: {
+    borderRadius: 8,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
   imageContainer: {
     position: "relative",
     aspectRatio: 4 / 5,
-    backgroundColor: Colors.pinkPale,
+    backgroundColor: "#FFFFFF",
   },
-  compactImageContainer: { aspectRatio: 1.32 },
+  compactImageContainer: { aspectRatio: 1 },
   image: {
     width: "100%",
     height: "100%",
@@ -318,7 +325,7 @@ const styles = StyleSheet.create({
     gap: 8,
     flex: 1,
   },
-  compactInfo: { padding: 6, gap: 4 },
+  compactInfo: { padding: 8, gap: 5 },
   name: {
     fontSize: 13,
     color: Colors.textPrimary,
@@ -326,7 +333,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     minHeight: 36,
   },
-  compactName: { fontSize: 9.5, lineHeight: 12, minHeight: 24, fontWeight: "600" },
+  compactName: { fontSize: 11, lineHeight: 14, minHeight: 28, fontWeight: "600" },
   homeText: { fontFamily: "Inter" },
   colorHint: {
     fontSize: 10,
@@ -349,7 +356,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.textPrimary,
   },
-  compactPrice: { fontSize: 13, fontWeight: "800" },
+  compactPrice: { fontSize: 14, fontWeight: "800" },
   homePrice: { color: Colors.primary, fontFamily: "Inter", fontWeight: "700" },
   pricePromo: { color: Colors.primary },
   addButton: {

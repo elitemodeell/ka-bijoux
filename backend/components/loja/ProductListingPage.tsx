@@ -182,7 +182,7 @@ export default async function ProductListingPage({
   return (
     <section className={embedded ? "" : "bg-white pt-28 md:pt-28"}>
       <ListingScrollRestorer />
-      <div className={embedded ? "" : "mx-auto max-w-7xl px-4 pb-16"}>
+      <div className={embedded ? "" : "mx-auto max-w-7xl px-2 pb-16 sm:px-4"}>
         {!embedded &&
           (premiumExperience ? (
             <>
@@ -319,7 +319,7 @@ export default async function ProductListingPage({
             {products.length > 0 ? (
               <div
                 key={productListKey}
-                className="grid animate-[kaProductsFade_260ms_ease-out] grid-cols-3 gap-2 sm:gap-5 sm:grid-cols-3 lg:grid-cols-4"
+                className="grid animate-[kaProductsFade_260ms_ease-out] grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4"
               >
                 {products.map((product, index) => (
                   <ProductCard key={product.id} product={product} revealDelay={index * 70} priority={index < 3} compact />
