@@ -279,7 +279,7 @@ export default function ConfiguracoesPage() {
           <div className="rounded-2xl border border-pink-100 bg-pink-50/50 p-4">
             <label className="flex cursor-pointer items-start gap-3">
               <input type="checkbox" checked={settings.homePresentation?.ambientMusicEnabled ?? true} onChange={(event) => updateHomePresentation("ambientMusicEnabled", event.target.checked)} className="mt-1 h-4 w-4 accent-pink-500" />
-              <span><span className="block text-sm font-semibold text-gray-800">Música ambiente sazonal</span><span className="block text-xs text-gray-500">Jingle Bells Music Box — WaveMaster (Pixabay). O aplicativo toca em volume baixo, respeita o modo silencioso e pausa em segundo plano.</span></span>
+              <span><span className="block text-sm font-semibold text-gray-800">Música ambiente sazonal</span><span className="block text-xs text-gray-500">Jingle Bells Music Box — WaveMaster (Pixabay). O app e o site usam volume ambiente de até 8%; no site, o navegador pode exigir um toque no alto-falante para iniciar.</span></span>
             </label>
             <label className="mt-3 block text-sm font-medium text-gray-700">Substituir música oficial (arquivo MP3; será salvo no Supabase Storage)
               <input type="file" accept="audio/mpeg,.mp3" onChange={(event) => setAmbientAudioFile(event.target.files?.[0] ?? null)} className="input-field mt-1" />
