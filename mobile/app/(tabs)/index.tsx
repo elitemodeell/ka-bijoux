@@ -18,13 +18,14 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFonts } from "expo-font";
-import { categoryArtwork, thumbnail } from "@/components/home/brand";
+import { categoryArtwork, instagramProfile, thumbnail } from "@/components/home/brand";
 import { Image, type ImageSource } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import * as Crypto from "expo-crypto";
+import * as Haptics from "expo-haptics";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { ProductCard } from "@/components/product/ProductCard";
@@ -63,6 +64,19 @@ function resolveUrl(value?: string | number | ImageSource | null) {
   if (typeof value !== "string") return value;
   if (/^https?:\/\//i.test(value)) return value;
   return `${SITE}${value.startsWith("/") ? value : `/${value}`}`;
+}
+
+async function openInstagram() {
+  try {
+    // The HTTPS universal link opens Instagram when installed and the system browser otherwise.
+    await Linking.openURL(instagramProfile);
+  } catch {
+    try {
+      await Linking.openURL("https://www.instagram.com/kabijoux_/");
+    } catch {
+      Alert.alert("Instagram", "Não foi possível abrir o Instagram. Tente novamente.");
+    }
+  }
 }
 
 function isSafeStoreHref(value: string | null | undefined, allowedCategorySlugs: Set<string>) {
@@ -172,6 +186,11 @@ function StoreLoveButton() {
   const [liked, setLiked] = useState(false);
   const [saving, setSaving] = useState(false);
   const scale = useRef(new Animated.Value(1)).current;
+  const countLabel = count === null
+    ? "Carregando…"
+    : count === 1
+      ? "1 pessoa ama a KA"
+      : `${new Intl.NumberFormat("pt-BR").format(count)} pessoas amam a KA`;
 
   useEffect(() => {
     let active = true;
@@ -203,9 +222,10 @@ function StoreLoveButton() {
     setSaving(true);
     setLiked(next);
     setCount(Math.max(0, count + (next ? 1 : -1)));
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
     Animated.sequence([
-      Animated.spring(scale, { toValue: 1.18, useNativeDriver: true, speed: 32 }),
-      Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 25 }),
+      Animated.spring(scale, { toValue: 1.08, useNativeDriver: true, speed: 34 }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 28 }),
     ]).start();
     try {
       const response = await storeLikesApi.set(visitorId, next);
@@ -223,13 +243,17 @@ function StoreLoveButton() {
   return (
     <TouchableOpacity onPress={() => void toggle()} disabled={!visitorId || count === null || saving}
       accessibilityRole="button" accessibilityState={{ selected: liked, disabled: saving || count === null }}
-      accessibilityLabel={liked ? `Retirar curtida. ${count ?? 0} curtidas` : `Curtir a loja. ${count ?? 0} curtidas`}
+      accessibilityLabel={liked ? `Amor enviado! ${countLabel}. Toque para retirar a curtida.` : `Deixe seu amor. ${countLabel}.`}
       style={styles.storeLove}>
-      <Animated.View style={{ transform: [{ scale }] }}>
-        <Ionicons name={liked ? "heart" : "heart-outline"} size={19} color={Colors.primary} />
+      <Animated.View style={styles.storeLoveHeartWrap}>
+        <Animated.View style={{ transform: [{ scale }] }}>
+          <Ionicons name={liked ? "heart" : "heart-outline"} size={25} color={Colors.primary} />
+        </Animated.View>
       </Animated.View>
-      <Text style={styles.storeLoveLabel}>Amor pela KA</Text>
-      <View style={styles.storeLoveCount}><Text style={styles.storeLoveCountText}>{count === null ? "—" : new Intl.NumberFormat("pt-BR").format(count)}</Text></View>
+      <View style={styles.storeLoveCopy}>
+        <Text numberOfLines={1} style={styles.storeLoveLabel}>{liked ? "Amor enviado!" : "Deixe seu amor"}</Text>
+        <Text numberOfLines={1} style={styles.storeLoveCountText}>{countLabel}</Text>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -456,11 +480,8 @@ function Stories({ stories, onOpen }: { stories: HomeStory[]; onOpen: (story: Ho
   return <LinearGradient colors={['#ffffff', '#fff8fb', '#fff2f7']} style={styles.storiesSection}>
     <View style={styles.storyHeadingRow}>
       <View style={styles.storyHeadingGroup}>
-        <Text style={styles.storyHeading}>Stories da</Text>
-        <View style={styles.storyBrandMark}>
-          <Image source={resolveUrl('/images/brand/ka-bijoux-logo-story-icon.png')} style={styles.storyHeadingLogo} contentFit="contain" cachePolicy="memory-disk" />
-          <View style={styles.storyHeadingUnderline} />
-        </View>
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.78} style={styles.storyHeading}>Stories da</Text>
+        <Text numberOfLines={1} style={styles.storyHeadingKa}>KA</Text>
       </View>
       <StoreLoveButton />
     </View>
@@ -468,7 +489,9 @@ function Stories({ stories, onOpen }: { stories: HomeStory[]; onOpen: (story: Ho
       {STORY_CATEGORIES.map((category) => {
         const group = stories.find((story) => (story.category ?? "OFFICIAL") === category.key && story.items.length > 0);
         const cover = group?.cover || group?.coverImageUrl;
-        return <TouchableOpacity key={category.key} style={styles.storyItem} onPress={() => openCategory(category)} accessibilityLabel={`Abrir ${category.label}`}>
+        return <TouchableOpacity key={category.key} style={styles.storyItem}
+          onPress={() => category.key === "OFFICIAL" ? void openInstagram() : openCategory(category)}
+          accessibilityLabel={category.key === "OFFICIAL" ? "Abrir KA Stories no Instagram oficial" : `Abrir ${category.label}`}>
           <LinearGradient colors={['#e9b43e', '#ffafd1', '#ec4899']} style={styles.storyRing}>
             <View style={styles.storyInner}>
               {cover ? <Image source={thumbnail(resolveUrl(cover), 256)} style={styles.storyCover} contentFit="cover" cachePolicy="memory-disk" />
@@ -889,15 +912,14 @@ const styles = StyleSheet.create({
   dotActive: { width: 18, backgroundColor: "#f12b70" },
   storiesSection: { marginHorizontal: 10, marginTop: 10, padding: 10, borderRadius: 18, borderWidth: 1, borderColor: '#fce7f3', ...Shadows.sm },
   storyHeadingRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  storyHeadingGroup: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 4 },
-  storyHeading: { fontFamily: 'PlayfairDisplay', fontSize: 20, color: '#151015', fontWeight: "700" },
-  storyBrandMark: { alignItems: "flex-start", justifyContent: "center" },
-  storyHeadingLogo: { width: 54, height: 28 },
-  storyHeadingUnderline: { width: 30, height: 2, borderRadius: 2, backgroundColor: Colors.primary, marginTop: -2 },
-  storeLove: { minHeight: 34, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 1 },
-  storeLoveLabel: { color: Colors.primary, fontSize: 8, fontWeight: "800" },
-  storeLoveCount: { borderWidth: 1, borderColor: "#f9a8d4", borderRadius: 14, paddingHorizontal: 6, paddingVertical: 4 },
-  storeLoveCountText: { color: Colors.primary, fontSize: 8, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  storyHeadingGroup: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 3 },
+  storyHeading: { fontFamily: 'PlayfairDisplay', fontSize: 20, lineHeight: 28, color: '#151015', fontWeight: "700" },
+  storyHeadingKa: { fontFamily: 'PlayfairDisplay', fontSize: 24, lineHeight: 30, color: Colors.primary, fontWeight: "700", fontStyle: "italic", marginLeft: 1 },
+  storeLove: { minHeight: 40, maxWidth: "58%", flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 22, backgroundColor: "#fceaf1" },
+  storeLoveHeartWrap: { width: 31, alignItems: "center", justifyContent: "center" },
+  storeLoveCopy: { flexShrink: 1, minWidth: 0, justifyContent: "center" },
+  storeLoveLabel: { color: Colors.primary, fontSize: 12, lineHeight: 15, fontWeight: "800" },
+  storeLoveCountText: { color: "#75495b", fontSize: 9, lineHeight: 12, fontWeight: "600", fontVariant: ["tabular-nums"] },
   eyebrow: { color: Colors.primary, fontSize: 10, fontWeight: "900", letterSpacing: 1.5, marginBottom: 4 },
   sectionHeading: { color: "#6e1430", fontSize: 23, lineHeight: 28, fontFamily: "PlayfairDisplay" },
   storyList: { paddingTop: 10, paddingBottom: 2, flexDirection: "row", justifyContent: "space-between", gap: 4 },
