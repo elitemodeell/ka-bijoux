@@ -139,8 +139,6 @@ export function catalogSearchAlternatives(query: string): Prisma.ProductWhereInp
       ...prefixes.flatMap((term) => [
         { name: { startsWith: term, mode } },
         { slug: { startsWith: term.replaceAll(" ", "-"), mode } },
-        { category: { name: { startsWith: term, mode } } },
-        { subcategory: { name: { startsWith: term, mode } } },
       ]),
     ] }];
   }

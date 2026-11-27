@@ -28,10 +28,12 @@ describe("catalog search", () => {
   });
 
   it("uses bounded prefix matches for short category suggestions", () => {
-    const serialized = JSON.stringify(catalogSearchAlternatives("cap"));
+    const alternatives = catalogSearchAlternatives("cap");
+    const serialized = JSON.stringify(alternatives);
     expect(serialized).toContain('"startsWith":"capinha"');
     expect(serialized).toContain('"startsWith":"capa"');
     expect(serialized).not.toContain('"contains":"cap"');
+    expect(serialized).not.toContain('"category"');
   });
 
   it("keeps short SKU searches exact while supporting name prefixes", () => {
