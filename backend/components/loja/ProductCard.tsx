@@ -231,12 +231,12 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
           </div>
         )}
 
-        {/* Floating cart button */}
+        {/* Cart stays as a discreet image overlay; card navigation opens product details. */}
         <button
           type="button"
           onClick={handleAddToCart}
           disabled={normalized.purchaseReviewRequired}
-          className={`absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/80 bg-white/90 text-pink-500 shadow-sm backdrop-blur transition-all hover:bg-pink-500 hover:text-white ${
+          className={`absolute bottom-2 right-2 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/80 bg-pink-500 text-white shadow-sm backdrop-blur transition-all hover:bg-pink-600 ${
             cartAdded ? "bg-pink-500 text-white" : ""
           }`}
           aria-label={normalized.purchaseReviewRequired ? "Produto em revisão" : `Adicionar ${name} ao carrinho`}
@@ -267,37 +267,19 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
           </button>
         )}
 
-        <div className={`${compact ? "mt-1 pt-1 sm:mt-auto sm:pt-2" : "mt-auto pt-2"}`}>
+          <div className={`${compact ? "mt-1 pt-1 sm:mt-auto sm:pt-2" : "mt-auto pt-2"}`}>
           <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
             {promo ? (
               <>
-              <span className={`${compact ? "text-[12px] sm:text-[14px]" : "text-[14px]"} font-bold text-pink-500`}>{fmt(promo)}</span>
+              <span className={`${compact ? "text-[15px] sm:text-[16px]" : "text-[16px]"} font-bold text-pink-600`}>{fmt(promo)}</span>
                 <span className="text-[10px] text-gray-400 line-through">{fmt(price)}</span>
               </>
             ) : (
-              <span className={`${compact ? "text-[12px] sm:text-[14px]" : "text-[14px]"} font-bold text-gray-800`}>{fmt(price)}</span>
+              <span className={`${compact ? "text-[15px] sm:text-[16px]" : "text-[16px]"} font-bold text-gray-900`}>{fmt(price)}</span>
             )}
           </div>
           {installment.eligible && (
             <p className="mt-0.5 text-[10px] text-gray-500">{installment.label}</p>
-          )}
-          {normalized.slug ? (
-            <Link
-              href={`/produto/${normalized.slug}`}
-              prefetch={false}
-              onClick={rememberListingPosition}
-              className={`ka-btn mt-1.5 flex w-full items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-pink-400 ${compact ? "py-1.5 text-[10px] sm:mt-2 sm:rounded-lg sm:py-2 sm:text-[12px]" : "py-2 text-[12px]"} font-bold text-white`}
-            >
-              Comprar
-            </Link>
-          ) : (
-            <button
-              type="button"
-              onClick={openQuickShop}
-              className={`ka-btn mt-1.5 w-full rounded-full bg-gradient-to-r from-pink-500 to-pink-400 ${compact ? "py-1.5 text-[10px] sm:mt-2 sm:rounded-lg sm:py-2 sm:text-[12px]" : "py-2 text-[12px]"} font-bold text-white`}
-            >
-              Comprar
-            </button>
           )}
         </div>
       </div>
@@ -341,10 +323,10 @@ export default memo(ProductCard);
 
 function CartIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <path d="M16 10a4 4 0 0 1-8 0" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="21" r="1" />
+      <circle cx="20" cy="21" r="1" />
+      <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6" />
     </svg>
   );
 }
