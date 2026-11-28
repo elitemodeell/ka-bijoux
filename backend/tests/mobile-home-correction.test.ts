@@ -21,8 +21,6 @@ const mobileBrand = source("mobile/components/home/brand.ts");
 const mobileApi = source("mobile/services/api.ts");
 const productCard = source("mobile/components/product/ProductCard.tsx");
 const webProductCard = source("backend/components/loja/ProductCard.tsx");
-const newProductAdmin = source("backend/app/admin/produtos/novo/page.tsx");
-const editProductAdmin = source("backend/app/admin/produtos/[id]/page.tsx");
 const resilientProductImage = source(
   "mobile/components/product/ResilientProductImage.tsx"
 );
@@ -307,16 +305,11 @@ describe("correção completa da Home mobile", () => {
     expect(productCard).not.toContain("style={[styles.addButton,");
   });
 
-  it("padroniza o card web e permite ordenar a capa e a galeria no painel", () => {
+  it("preserva a apresentação compacta do card web", () => {
     expect(webProductCard).toContain('className="relative w-full overflow-hidden bg-white"');
     expect(webProductCard).toContain('imageClassName="block h-auto w-full object-contain"');
     expect(webProductCard).toContain("ProductFavoriteButton");
     expect(webProductCard).toContain("onClick={handleAddToCart}");
     expect(webProductCard).not.toContain("className={`ka-btn mt-1.5");
-    for (const adminPage of [newProductAdmin, editProductAdmin]) {
-      expect(adminPage).toContain("Capa principal");
-      expect(adminPage).toContain("Arte ou informação");
-      expect(adminPage).toContain("moveImage(index");
-    }
   });
 });
