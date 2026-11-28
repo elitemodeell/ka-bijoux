@@ -1,14 +1,15 @@
 import { goBackOr } from "@/lib/navigation";
 import { useEffect, useState, useCallback } from "react";
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Platform, ScrollView, useWindowDimensions,
+  View, Text, StyleSheet, TouchableOpacity,
+  ActivityIndicator, RefreshControl, Platform, ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { ProductCard } from "@/components/product/ProductCard";
+import { FlashList } from "@shopify/flash-list";
 import { useAuthStore } from "@/stores/authStore";
 import { favoritesApi } from "@/services/api";
 import { Button } from "@/components/ui/Button";
@@ -24,8 +25,6 @@ type FavoriteItem = {
 
 export default function FavoritosScreen() {
   const router = useRouter();
-  const { width: viewportWidth } = useWindowDimensions();
-  const productCellWidth = Math.max(0, (viewportWidth - 16 - 8) / 2);
   const { customer } = useAuthStore();
   const [favorites, setFavorites]   = useState<FavoriteItem[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -148,26 +147,20 @@ export default function FavoritosScreen() {
           </View>
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={favorites}
           keyExtractor={(item) => item.favoriteId}
+          masonry
           numColumns={2}
-          columnWrapperStyle={styles.row}
           contentContainerStyle={styles.list}
+          optimizeItemArrangement={false}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
           }
           renderItem={({ item }) => (
-            <View style={{ width: productCellWidth, position: "relative" }}>
-              <ProductCard product={item} compact />
-              <TouchableOpacity
-                style={styles.removeBtn}
-                onPress={() => removeFavorite(item.favoriteId)}
-                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-              >
-                <Ionicons name="heart" size={15} color={Colors.error} />
-              </TouchableOpacity>
+            <View style={styles.masonryItem}>
+              <ProductCard product={item} compact showFavorite isFavorite onFavoriteToggle={() => void removeFavorite(item.favoriteId)} />
             </View>
           )}
         />
@@ -188,15 +181,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface, alignItems: "center", justifyContent: "center", ...Shadows.sm,
   },
   title:     { fontSize: FontSizes.lg, fontWeight: "800", color: Colors.textPrimary },
-  row:       { gap: 8 },
-  list:      { paddingHorizontal: 8, paddingTop: Spacing.base, paddingBottom: Spacing.base, gap: 8 },
-  removeBtn: {
-    position: "absolute", top: 8, right: 8,
-    backgroundColor: "rgba(255,255,255,0.92)",
-    width: 28, height: 28, borderRadius: 14,
-    alignItems: "center", justifyContent: "center",
-    ...Shadows.sm,
-  },
+  list:      { paddingHorizontal: 4, paddingTop: Spacing.base, paddingBottom: Spacing.base },
+  masonryItem: { width: "100%", paddingHorizontal: 4, paddingBottom: 8 },
   emptyIcon:  { fontSize: 56, marginBottom: 12 },
   emptyTitle: { fontSize: FontSizes.md, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },
   emptyText:  { fontSize: FontSizes.sm, color: Colors.textMuted, textAlign: "center", marginTop: 6 },

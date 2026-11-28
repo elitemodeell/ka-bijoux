@@ -16,6 +16,8 @@ import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/Button";
 import { ProductCard } from "@/components/product/ProductCard";
+import { MasonryColumns } from "@/components/product/MasonryColumns";
+import { useProductFavorites } from "@/hooks/useProductFavorites";
 import { ProductImageGallery } from "@/components/product/ProductImageGallery";
 import { ResilientProductImage } from "@/components/product/ResilientProductImage";
 
@@ -214,7 +216,12 @@ function StarRow({ rating, size = 13 }: { rating: number; size?: number }) {
   );
 }
 
-function RelatedSection({ title, products }: { title: string; products: RelatedProduct[] }) {
+function RelatedSection({ title, products, favoriteIds, onFavoriteToggle }: {
+  title: string;
+  products: RelatedProduct[];
+  favoriteIds: Record<string, string>;
+  onFavoriteToggle: (productId: string) => void;
+}) {
   const router = useRouter();
   if (!products.length) return null;
   return (
@@ -226,13 +233,11 @@ function RelatedSection({ title, products }: { title: string; products: RelatedP
           <Text style={styles.relatedLink}>Ver vitrine →</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.relatedGrid}>
-        {products.map((item) => (
-          <View key={item.id} style={styles.relatedItem}>
-            <ProductCard product={item} />
-          </View>
-        ))}
-      </View>
+      <MasonryColumns
+        data={products}
+        keyExtractor={(item) => item.id}
+        renderItem={(item) => <ProductCard product={item} showFavorite isFavorite={Boolean(favoriteIds[item.id])} onFavoriteToggle={onFavoriteToggle} />}
+      />
     </View>
   );
 }
@@ -249,6 +254,7 @@ export default function ProdutoScreen() {
     previewImage?: string;
   }>();
   const router = useRouter();
+  const { favoriteIds, toggleFavorite: toggleProductFavorite } = useProductFavorites();
   const insets = useSafeAreaInsets();
   const addItem = useCartStore((state) => state.addItem);
   const buyNow = useCartStore((state) => state.buyNow);
@@ -952,8 +958,8 @@ export default function ProdutoScreen() {
         </View>
 
         {/* ── RELACIONADOS ── */}
-        <RelatedSection title="Quem comprou também levou" products={relatedA} />
-        <RelatedSection title="Você também pode gostar" products={relatedB} />
+        <RelatedSection title="Quem comprou também levou" products={relatedA} favoriteIds={favoriteIds} onFavoriteToggle={toggleProductFavorite} />
+        <RelatedSection title="Você também pode gostar" products={relatedB} favoriteIds={favoriteIds} onFavoriteToggle={toggleProductFavorite} />
 
         {/* ── BENEFITS STRIP ── */}
         <View style={styles.cardSection}>

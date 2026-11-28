@@ -32,6 +32,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { ProductCard } from "@/components/product/ProductCard";
+import { MasonryColumns } from "@/components/product/MasonryColumns";
 import { Colors, BorderRadius, Shadows } from "@/constants/theme";
 import { favoritesApi, homeApi, storeLikesApi } from "@/services/api";
 import { useAuthStore } from "@/stores/authStore";
@@ -566,10 +567,7 @@ function ProductSection({ section, onNavigate, favoriteIds, onFavoriteToggle }: 
   favoriteIds: Record<string, string>;
   onFavoriteToggle: (productId: string) => void;
 }) {
-  const { width } = useWindowDimensions();
   if (!section.products.length) return null;
-  const gridGap = 8;
-  const cardWidth = Math.max(0, (width - 16 - gridGap) / 2);
   return (
     <View style={[styles.productSection, section.background === "subtle" && styles.productSectionSubtle]}>
       <View style={styles.sectionHeader}>
@@ -580,12 +578,12 @@ function ProductSection({ section, onNavigate, favoriteIds, onFavoriteToggle }: 
         </View>
         <TouchableOpacity onPress={() => onNavigate(section.route)}><Text style={styles.more}>Ver mais →</Text></TouchableOpacity>
       </View>
-      <View style={styles.productGrid}>
-        {section.products.map((product) => (
-          <View key={product.id} style={[styles.productCell, { width: cardWidth }]}><ProductCard product={{ ...product, badge: null }} badgeSeal={false} compact showFavorite
-            isFavorite={Boolean(favoriteIds[product.id])} onFavoriteToggle={onFavoriteToggle} /></View>
-        ))}
-      </View>
+      <MasonryColumns
+        data={section.products}
+        keyExtractor={(product) => product.id}
+        renderItem={(product) => <ProductCard product={{ ...product, badge: null }} badgeSeal={false} compact showFavorite
+          isFavorite={Boolean(favoriteIds[product.id])} onFavoriteToggle={onFavoriteToggle} />}
+      />
       <TouchableOpacity style={styles.allButton} onPress={() => onNavigate(section.route)}>
         <Text style={styles.allButtonText}>{section.moreLabel} →</Text>
       </TouchableOpacity>
@@ -687,7 +685,7 @@ function HomeSkeleton() {
         {[0, 1, 2, 3].map((item) => <View key={item} style={[styles.skeleton, styles.skeletonCircle]} />)}
       </View>
       <View style={[styles.skeleton, styles.skeletonTitle]} />
-      <View style={styles.productGrid}>
+      <View style={styles.skeletonProductGrid}>
         {[0, 1].map((item) => <View key={item} style={[styles.skeleton, styles.skeletonProduct, { width: cardWidth }]} />)}
       </View>
     </View>
@@ -1032,9 +1030,8 @@ const styles = StyleSheet.create({
   sectionHeaderCopy: { flex: 1 },
   productSectionTitle: { color: "#171217", fontSize: 20, lineHeight: 25, fontFamily: "PlayfairDisplay" },
   productSectionSubtitle: { color: "#826672", fontSize: 10, lineHeight: 14, marginTop: 2 },
+  skeletonProductGrid: { flexDirection: "row", gap: 8, alignItems: "flex-start" },
   more: { color: Colors.primary, fontSize: 11, fontWeight: "800" },
-  productGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "stretch" },
-  productCell: { flexGrow: 0, flexShrink: 0, marginBottom: 2 },
   allButton: { alignSelf: "center", marginTop: 11, minHeight: 38, borderRadius: 20, backgroundColor: Colors.primary, paddingHorizontal: 20, maxWidth: "100%", alignItems: "center", justifyContent: "center" },
   allButtonText: { color: "#fff", fontSize: 12, fontWeight: "900" },
   benefits: { marginHorizontal: 10, marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-around", minHeight: 58, paddingVertical: 8, borderRadius: 18, borderWidth: 1, borderColor: "#fce7f3", backgroundColor: "#fff8fb", ...Shadows.sm },

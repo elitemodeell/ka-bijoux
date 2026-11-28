@@ -34,7 +34,9 @@ assert.ok(product.includes('handleCartAction(action: "add" | "buy")'), "Produto 
 assert.ok(product.includes("cartActionLock.current"), "Produto não bloqueia toque duplo");
 assert.ok(product.includes("Math.min(activeStock, quantity + 1)"), "Quantidade do produto ignora estoque");
 assert.ok(product.includes("Math.max(insets.bottom"), "Produto não respeita safe area inferior");
-assert.ok(productCard.includes('handleCartAction(action: "add" | "buy")'), "Card não separa adicionar e comprar agora");
+assert.ok(productCard.includes("await addItem(product.id, 1)"), "Carrinho circular do card não adiciona o produto selecionado");
+assert.ok(productCard.includes("styles.priceRow") && productCard.includes("styles.floatingCart"), "Carrinho circular precisa ficar junto ao preço");
+assert.ok(!productCard.includes('handleCartAction(action: "add" | "buy")'), "Card do catálogo não deve iniciar checkout direto; Comprar agora permanece na página do produto");
 assert.ok(cartStore.includes("cartApi.previewDirect(selection)"), "Comprar agora precisa usar prévia sem mutação de carrinho");
 assert.ok(api.includes('mode: "DIRECT"'), "Contrato do carrinho não diferencia compra imediata");
 assert.ok(cart.includes("mutatingItemId"), "Carrinho não bloqueia mutações concorrentes");

@@ -2,13 +2,15 @@ import { goBackOr } from "@/lib/navigation";
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl, useWindowDimensions,
+  ActivityIndicator, RefreshControl,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from "@/constants/theme";
 import { ProductCard } from "@/components/product/ProductCard";
+import { FlashList } from "@shopify/flash-list";
+import { useProductFavorites } from "@/hooks/useProductFavorites";
 import { productsApi } from "@/services/api";
 
 type Product = {
@@ -28,8 +30,7 @@ const PAGE_SIZE = 20;
 export default function ProdutosScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width: viewportWidth } = useWindowDimensions();
-  const productCellWidth = Math.max(0, (viewportWidth - 16 - 8) / 2);
+  const { favoriteIds, toggleFavorite } = useProductFavorites();
   const { category, subcategory, title, promo, new: newParam, q, sort: routeSort, ordem, minPrice, maxPrice } = useLocalSearchParams<{
     category?: string;
     subcategory?: string;
@@ -180,17 +181,13 @@ export default function ProdutosScreen() {
           {error ? <TouchableOpacity style={styles.retryButton} onPress={() => fetchProducts(1, sort, true)}><Text style={styles.retryText}>Tentar novamente</Text></TouchableOpacity> : null}
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={products}
           keyExtractor={(item) => item.id}
+          masonry
           numColumns={2}
-          columnWrapperStyle={styles.row}
           contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, 12) + 16 }]}
-          initialNumToRender={6}
-          maxToRenderPerBatch={4}
-          updateCellsBatchingPeriod={50}
-          windowSize={5}
-          removeClippedSubviews
+          optimizeItemArrangement={false}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
@@ -203,8 +200,8 @@ export default function ProdutosScreen() {
               : null
           }
           renderItem={({ item }) => (
-            <View style={[styles.productCell, { width: productCellWidth }]}>
-              <ProductCard product={item} compact />
+            <View style={styles.masonryItem}>
+              <ProductCard product={item} compact showFavorite isFavorite={Boolean(favoriteIds[item.id])} onFavoriteToggle={toggleFavorite} />
             </View>
           )}
         />
@@ -241,9 +238,8 @@ const styles = StyleSheet.create({
   sortChipActive:     { borderColor: Colors.primary, backgroundColor: Colors.pinkSoft },
   sortChipText:       { fontSize: FontSizes.sm, color: Colors.textSecondary, fontWeight: "500" },
   sortChipTextActive: { color: Colors.primary, fontWeight: "700" },
-  row:  { gap: 8 },
-  list: { paddingHorizontal: 8, paddingTop: Spacing.base, paddingBottom: Spacing.base, gap: 8 },
-  productCell: { flexGrow: 0, flexShrink: 0 },
+  list: { paddingHorizontal: 4, paddingTop: Spacing.base, paddingBottom: Spacing.base },
+  masonryItem: { width: "100%", paddingHorizontal: 4, paddingBottom: 8 },
   emptyIcon:  { fontSize: 56, marginBottom: 12 },
   emptyTitle: { fontSize: FontSizes.md, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },
   emptyText:  { fontSize: FontSizes.sm, color: Colors.textMuted, textAlign: "center", marginTop: 6 },

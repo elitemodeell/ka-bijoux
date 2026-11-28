@@ -397,6 +397,7 @@ workflows:
           npm --prefix mobile run test:commerce
           npm --prefix mobile run test:privacy-permissions
           npm --prefix mobile run test:cpf-profile
+          npm --prefix mobile run test:masonry
 
       - name: Validate backend, checkout and financial regression tests
         script: |

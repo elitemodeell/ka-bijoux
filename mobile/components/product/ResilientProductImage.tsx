@@ -11,6 +11,7 @@ type Props = {
   contentFit?: "contain" | "cover";
   compact?: boolean;
   accessibilityLabel?: string;
+  onImageDimensions?: (width: number, height: number) => void;
 };
 
 export function ResilientProductImage({
@@ -19,6 +20,7 @@ export function ResilientProductImage({
   placeholderStyle,
   contentFit = "contain",
   accessibilityLabel,
+  onImageDimensions,
 }: Props) {
   const candidates = useMemo(
     () => [...new Set(sources.filter((source): source is string => Boolean(source?.trim()))
@@ -46,7 +48,11 @@ export function ResilientProductImage({
           cachePolicy="memory-disk"
           transition={160}
           accessibilityLabel={accessibilityLabel}
-          onLoad={() => setLoaded(true)}
+          onLoad={(event) => {
+            setLoaded(true);
+            const { width, height } = event.source;
+            if (width > 0 && height > 0) onImageDimensions?.(width, height);
+          }}
           onError={() => {
             if (candidateIndex + 1 < candidates.length) {
               setCandidateIndex((current) => current + 1);

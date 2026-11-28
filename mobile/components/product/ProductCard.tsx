@@ -4,11 +4,9 @@ import { thumbnail } from "@/components/home/brand";
 import { useRouter } from "expo-router";
 import { Colors, BorderRadius, FontSizes, Shadows } from "@/constants/theme";
 import { useCartStore } from "@/stores/cartStore";
-import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useAuthStore } from "@/stores/authStore";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ResilientProductImage } from "@/components/product/ResilientProductImage";
-import { LinearGradient } from "expo-linear-gradient";
 
 type Variation = {
   id: string;
@@ -30,7 +28,7 @@ interface ProductCardProps {
     stock: number;
     purchaseReviewRequired?: boolean;
     updatedAt?: string | null;
-    images: Array<{ url: string }>;
+    images: { url: string }[];
     isNew?: boolean;
     featured?: boolean;
     badge?: string | null;
@@ -55,6 +53,7 @@ const PRODUCT_THUMBNAIL_WIDTH = Math.min(
   640,
   Math.ceil((Dimensions.get("window").width / 2) * PixelRatio.get()),
 );
+const productImageAspectRatios = new Map<string, number>();
 
 const SITE = process.env.EXPO_PUBLIC_API_URL ?? "https://kabijoux.com.br";
 function resolveUrl(url?: string | null, version?: string | null): string | null {
@@ -67,9 +66,8 @@ function resolveUrl(url?: string | null, version?: string | null): string | null
 function ProductCardComponent({ product, badgeSeal = false, compact = false, showFavorite = false, isFavorite = false, onFavoriteToggle }: ProductCardProps) {
   const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
-  const buyNow = useCartStore((state) => state.buyNow);
   const actionLock = useRef(false);
-  const [cartAction, setCartAction] = useState<"add" | "buy" | null>(null);
+  const [cartAction, setCartAction] = useState<"add" | null>(null);
   const customer = useAuthStore((state) => state.customer);
 
   const variations = product.variations ?? [];
@@ -81,6 +79,22 @@ function ProductCardComponent({ product, badgeSeal = false, compact = false, sho
     resolveUrl(activeVariation?.imageUrl, product.updatedAt) ??
     resolveUrl(product.images[0]?.url, product.updatedAt) ??
     null;
+  const [measuredImage, setMeasuredImage] = useState<{ url: string; ratio: number } | null>(null);
+  const imageAspectRatio = mainImageUrl
+    ? measuredImage?.url === mainImageUrl ? measuredImage.ratio : productImageAspectRatios.get(mainImageUrl) ?? 1
+    : 1;
+  function updateImageDimensions(width: number, height: number) {
+    if (!mainImageUrl || width <= 0 || height <= 0) return;
+    const ratio = width / height;
+    if (!productImageAspectRatios.has(mainImageUrl) && productImageAspectRatios.size >= 500) {
+      const oldestUrl = productImageAspectRatios.keys().next().value;
+      if (oldestUrl) productImageAspectRatios.delete(oldestUrl);
+    }
+    productImageAspectRatios.set(mainImageUrl, ratio);
+    setMeasuredImage((current) => current?.url === mainImageUrl && Math.abs(current.ratio - ratio) < 0.01
+      ? current
+      : { url: mainImageUrl, ratio });
+  }
 
   const isAvailable = !product.purchaseReviewRequired && (hasVariations
     ? variations.some((v) => v.stock > 0)
@@ -110,7 +124,7 @@ function ProductCardComponent({ product, badgeSeal = false, compact = false, sho
     });
   }
 
-  async function handleCartAction(action: "add" | "buy") {
+  async function handleCartAction() {
     if (!isAvailable) return;
     if (actionLock.current) return;
     if (!customer) {
@@ -122,15 +136,9 @@ function ProductCardComponent({ product, badgeSeal = false, compact = false, sho
       return;
     }
     actionLock.current = true;
-    setCartAction(action);
+    setCartAction("add");
     try {
-      if (action === "buy") {
-        const direct = await buyNow(product.id, 1);
-        useCheckoutStore.getState().reset({ preserveAddress: true });
-        router.push({ pathname: "/checkout", params: { direct } });
-      } else {
-        await addItem(product.id, 1);
-      }
+      await addItem(product.id, 1);
     } catch {
       Alert.alert("Não foi possível concluir agora", "Tente novamente.");
     } finally {
@@ -146,12 +154,13 @@ function ProductCardComponent({ product, badgeSeal = false, compact = false, sho
       activeOpacity={0.9}
     >
       {/* Imagem */}
-      <View style={[styles.imageContainer, compact && styles.compactImageContainer]}>
+      <View style={[styles.imageContainer, { aspectRatio: imageAspectRatio }]}>
         <ResilientProductImage
           sources={[mainImageUrl ? thumbnail(mainImageUrl, PRODUCT_THUMBNAIL_WIDTH) : null, mainImageUrl]}
           style={styles.image}
-          contentFit="contain"
+          contentFit="cover"
           accessibilityLabel={`Imagem de ${product.name}`}
+          onImageDimensions={updateImageDimensions}
         />
 
         {/* Badges */}
@@ -170,7 +179,7 @@ function ProductCardComponent({ product, badgeSeal = false, compact = false, sho
 
         {!isAvailable && (
           <View style={styles.unavailableOverlay}>
-            <Text style={styles.unavailableText}>Esgotado</Text>
+            <Text style={styles.unavailableText}>{product.purchaseReviewRequired ? "Em revisão" : "Esgotado"}</Text>
           </View>
         )}
         {showFavorite ? (
@@ -184,24 +193,15 @@ function ProductCardComponent({ product, badgeSeal = false, compact = false, sho
           >
             <Ionicons name={isFavorite ? "heart" : "heart-outline"} size={19} color={Colors.primary} />
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.floatingCart, !isAvailable && styles.addButtonDisabled]}
-            onPress={() => handleCartAction("add")}
-            disabled={!isAvailable || cartAction !== null}
-            accessibilityLabel={`Adicionar ${product.name} ao carrinho`}
-          >
-            <Ionicons name="bag-add-outline" size={17} color={isAvailable ? Colors.primary : "#fff"} />
-          </TouchableOpacity>
-        )}
+        ) : null}
       </View>
 
       {/* Informações */}
       <View style={[styles.info, compact && styles.compactInfo]}>
-        <Text style={[styles.name, compact && styles.compactName, showFavorite && styles.homeText]} numberOfLines={2}>{showFavorite ? displayProductName(product.name) : product.name}</Text>
+        <Text style={[styles.name, compact && styles.compactName, styles.homeText]} numberOfLines={2}>{displayProductName(product.name)}</Text>
 
         <View style={styles.priceRow}>
-          <View>
+          <View style={styles.priceCopy}>
             {hasPromo && (
               <Text style={styles.originalPrice}>{formatCurrency(product.price)}</Text>
             )}
@@ -209,22 +209,16 @@ function ProductCardComponent({ product, badgeSeal = false, compact = false, sho
               {formatCurrency(displayPrice)}
             </Text>
           </View>
-
+          <TouchableOpacity
+            style={[styles.floatingCart, !isAvailable && styles.addButtonDisabled]}
+            onPress={(event) => { event.stopPropagation(); void handleCartAction(); }}
+            disabled={!isAvailable || cartAction !== null}
+            accessibilityRole="button"
+            accessibilityLabel={`Adicionar ${product.name} ao carrinho`}
+          >
+            {cartAction === "add" ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="cart-outline" size={18} color="#fff" />}
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={[styles.addButton, compact && styles.compactAddButton, showFavorite && styles.homeAddButton, !isAvailable && styles.addButtonDisabled]}
-          onPress={() => handleCartAction("buy")}
-          disabled={!isAvailable || cartAction !== null}
-          activeOpacity={0.8}
-        >
-          {showFavorite && isAvailable ? <LinearGradient pointerEvents="none" colors={["#ff2d76", "#e60055", "#c90048"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.addButtonGradient} /> : null}
-          <View style={styles.addButtonContent}>{cartAction === "buy" ? <ActivityIndicator size="small" color="#fff" /> : (
-            <>
-              {!product.purchaseReviewRequired ? <Ionicons name="cart-outline" size={compact ? 14 : 17} color="#fff" /> : null}
-              <Text style={[styles.addButtonText, compact && styles.compactAddButtonText, showFavorite && styles.homeButtonText]}>{product.purchaseReviewRequired ? "Em revisão" : compact ? "Comprar" : "Comprar agora"}</Text>
-            </>
-          )}</View>
-        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -234,10 +228,10 @@ export const ProductCard = memo(ProductCardComponent);
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: "#fff",
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#fce7f3",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#eee7eb",
     overflow: "hidden",
     ...Shadows.sm,
     flex: 1,
@@ -250,12 +244,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
-  imageContainer: {
-    position: "relative",
-    aspectRatio: 4 / 5,
-    backgroundColor: "#FFFFFF",
-  },
-  compactImageContainer: { aspectRatio: 1 },
+  imageContainer: { position: "relative", width: "100%", backgroundColor: "#fff" },
   image: {
     width: "100%",
     height: "100%",
@@ -274,7 +263,7 @@ const styles = StyleSheet.create({
   badgeText: { color: "#fff", fontSize: 9, fontWeight: "700" },
   badgeSeal: { minHeight: 34, maxWidth: 64, borderRadius: 17, justifyContent: "center" },
   badgeSealText: { textAlign: "center", fontSize: 8, fontWeight: "900", textTransform: "uppercase" },
-  floatingCart: { position: "absolute", right: 8, top: 8, width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.8)", backgroundColor: "rgba(255,255,255,0.94)", alignItems: "center", justifyContent: "center", ...Shadows.sm },
+  floatingCart: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center", ...Shadows.sm },
   favoriteButton: { position: "absolute", right: 7, top: 7, width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.85)", backgroundColor: "rgba(255,255,255,0.96)", alignItems: "center", justifyContent: "center", ...Shadows.sm },
   unavailableOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -321,17 +310,17 @@ const styles = StyleSheet.create({
   },
   swatchExtraText: { color: "#fff", fontSize: 8, fontWeight: "700" },
   info: {
-    padding: 12,
-    gap: 8,
+    padding: 10,
+    gap: 6,
     flex: 1,
   },
-  compactInfo: { padding: 8, gap: 5 },
+  compactInfo: { padding: 9, gap: 5 },
   name: {
     fontSize: 13,
     color: Colors.textPrimary,
     fontWeight: "500",
     lineHeight: 18,
-    minHeight: 36,
+    minHeight: 34,
   },
   compactName: { fontSize: 11, lineHeight: 14, minHeight: 28, fontWeight: "600" },
   homeText: { fontFamily: "Inter" },
@@ -342,10 +331,12 @@ const styles = StyleSheet.create({
   },
   priceRow: {
     flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "flex-start",
-    marginTop: 'auto',
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    marginTop: 1,
   },
+  priceCopy: { flex: 1, minWidth: 0 },
   originalPrice: {
     fontSize: 10,
     color: Colors.textMuted,
@@ -354,27 +345,10 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 16,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: Colors.primary,
   },
-  compactPrice: { fontSize: 14, fontWeight: "800" },
+  compactPrice: { fontSize: 17, fontWeight: "800" },
   homePrice: { color: Colors.primary, fontFamily: "Inter", fontWeight: "700" },
   pricePromo: { color: Colors.primary },
-  addButton: {
-    backgroundColor: Colors.primary,
-    width: "100%", minHeight: 44,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    flexDirection: "row",
-    gap: 4,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  compactAddButton: { minHeight: 31, borderRadius: 16 },
-  homeAddButton: { backgroundColor: "transparent", position: "relative", overflow: "hidden" },
-  addButtonGradient: { ...StyleSheet.absoluteFillObject, borderRadius: 16 },
-  addButtonContent: { zIndex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4 },
-  addButtonText: { color: "#fff", fontSize: 12, fontWeight: "700" },
-  compactAddButtonText: { fontSize: 10 },
-  homeButtonText: { fontFamily: "Inter", fontWeight: "700" },
   addButtonDisabled: { backgroundColor: Colors.textLight },
 });

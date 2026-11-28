@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import {
-  View, Text, TextInput, StyleSheet, FlatList,
-  TouchableOpacity, ActivityIndicator, ScrollView, useWindowDimensions,
+  View, Text, TextInput, StyleSheet,
+  TouchableOpacity, ActivityIndicator, ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -11,6 +11,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "expo-image";
 import { Colors, FontSizes, Spacing, BorderRadius } from "@/constants/theme";
 import { ProductCard } from "@/components/product/ProductCard";
+import { FlashList } from "@shopify/flash-list";
+import { useProductFavorites } from "@/hooks/useProductFavorites";
 import { categoriesApi, productsApi } from "@/services/api";
 import { getVisibleMobileCategories, type CatalogCategoryForVisibility } from "@/lib/catalogVisibility";
 import { useAuthStore } from "@/stores/authStore";
@@ -81,12 +83,11 @@ const prices = [
 ];
 
 export default function BuscaScreen() {
-  const { width: viewportWidth } = useWindowDimensions();
-  const productCellWidth = Math.max(0, (viewportWidth - 16 - 8) / 2);
   const router = useRouter();
   const customer = useAuthStore((state) => state.customer);
   const params = useLocalSearchParams<{ q?: string }>();
   const tabBarHeight = useBottomTabBarHeight();
+  const { favoriteIds, toggleFavorite } = useProductFavorites();
   const [query, setQuery] = useState("");
   const [suggestionsVisible, setSuggestionsVisible] = useState(false);
   const [suggestions, setSuggestions] = useState<Product[]>([]);
@@ -418,23 +419,19 @@ export default function BuscaScreen() {
         )}
       </View>
 
-      <FlatList
+      <FlashList
         data={loading ? [] : results}
         keyExtractor={(item) => item.id}
+        masonry
         numColumns={2}
-        columnWrapperStyle={styles.row}
         contentContainerStyle={[styles.list, { paddingBottom: tabBarHeight + 16 }, results.length === 0 && styles.emptyList]}
+        optimizeItemArrangement={false}
         automaticallyAdjustKeyboardInsets
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
-        initialNumToRender={6}
-        maxToRenderPerBatch={4}
-        updateCellsBatchingPeriod={50}
-        windowSize={5}
-        removeClippedSubviews
         renderItem={({ item }) => (
-            <View style={[styles.productCell, { width: productCellWidth }]}>
-              <ProductCard product={item} compact />
+            <View style={styles.masonryItem}>
+              <ProductCard product={item} compact showFavorite isFavorite={Boolean(favoriteIds[item.id])} onFavoriteToggle={toggleFavorite} />
           </View>
         )}
         ListHeaderComponent={
@@ -564,9 +561,8 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyTitle: { fontSize: FontSizes.md, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },
   emptyText: { fontSize: FontSizes.sm, color: Colors.textMuted, textAlign: "center", marginTop: 6 },
-  row: { gap: 8 },
-  list: { paddingHorizontal: 8, paddingTop: Spacing.base, paddingBottom: Spacing.base, gap: 8 },
-  productCell: { flexGrow: 0, flexShrink: 0 },
+  list: { paddingHorizontal: 4, paddingTop: Spacing.base, paddingBottom: Spacing.base },
+  masonryItem: { width: "100%", paddingHorizontal: 4, paddingBottom: 8 },
   emptyList: { flexGrow: 1 },
   resultCount: { fontSize: FontSizes.sm, color: Colors.textMuted, marginBottom: 8 },
 });
