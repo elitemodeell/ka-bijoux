@@ -182,8 +182,8 @@ describe("correção completa da Home mobile", () => {
     const favorites = source("mobile/app/favoritos/index.tsx");
     for (const screen of [searchScreen, productList, favorites]) {
       expect(screen).toContain("useWindowDimensions");
-      expect(screen).toContain("(viewportWidth - Spacing.base * 2 - 16) / 3");
-      expect(screen).toContain("numColumns={3}");
+      expect(screen).toContain("(viewportWidth - 16 - 8) / 2");
+      expect(screen).toContain("numColumns={2}");
       expect(screen).not.toContain('width: "31%"');
     }
   });
