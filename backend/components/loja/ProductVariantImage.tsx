@@ -49,7 +49,7 @@ export default function ProductVariantImage({
 
   return (
     <span
-      className={`relative block overflow-hidden ${frameClassName}`}
+      className={`relative block overflow-hidden ${crop ? "aspect-square" : ""} ${frameClassName}`}
       data-product-color={crop?.color}
     >
       <Image
@@ -60,7 +60,7 @@ export default function ProductVariantImage({
         sizes={sizes}
         priority={priority}
         onError={onError}
-        className={crop ? "absolute max-w-none" : `h-full w-full ${imageClassName}`}
+        className={crop ? "absolute max-w-none" : `${imageClassName.includes("h-auto") ? "" : "h-full"} w-full ${imageClassName}`}
         style={crop ? cropStyle(crop) : undefined}
       />
     </span>

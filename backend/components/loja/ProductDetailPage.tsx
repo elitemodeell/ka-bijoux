@@ -8,6 +8,7 @@ import { catalogReviewMessage } from "@/lib/catalog-purchase-mode";
 import { addCartItem } from "@/lib/client-cart";
 import { getDiscountPercentage, getValidPromotionalPrice } from "@/lib/store-rules";
 import ProductCard from "@/components/loja/ProductCard";
+import MasonryProductGrid from "@/components/loja/MasonryProductGrid";
 import ProductVariantImage from "@/components/loja/ProductVariantImage";
 import { catalogAttributeChoices, catalogOptionLabel, catalogOptionMatrix, catalogSelectionPhoto, chooseCatalogAttribute, resolveCatalogCombination } from "@shared/catalog-options";
 
@@ -606,11 +607,11 @@ function RelatedSection({ title, products, href }: { title: string; products: Re
           Ver vitrine →
         </Link>
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4">
+      <MasonryProductGrid desktopColumns={4}>
         {products.map((p, i) => (
           <ProductCard key={`${title}-${p.id}`} product={p} revealDelay={i * 50} compact />
         ))}
-      </div>
+      </MasonryProductGrid>
     </section>
   );
 }

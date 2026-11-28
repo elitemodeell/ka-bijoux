@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Prisma } from "@prisma/client";
 import ListingScrollRestorer from "@/components/loja/ListingScrollRestorer";
 import ProductCard from "@/components/loja/ProductCard";
+import MasonryProductGrid from "@/components/loja/MasonryProductGrid";
 import { prisma } from "@/lib/prisma";
 import { catalogSearchAlternatives } from "@/lib/catalog-search";
 import {
@@ -317,14 +318,15 @@ export default async function ProductListingPage({
 
           <div>
             {products.length > 0 ? (
-              <div
+              <MasonryProductGrid
                 key={productListKey}
-                className="grid animate-[kaProductsFade_260ms_ease-out] grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4"
+                className="animate-[kaProductsFade_260ms_ease-out]"
+                desktopColumns={4}
               >
                 {products.map((product, index) => (
                   <ProductCard key={product.id} product={product} revealDelay={index * 70} priority={index < 3} compact />
                 ))}
-              </div>
+              </MasonryProductGrid>
             ) : (
               <div className="rounded-[28px] border border-pink-100 bg-pink-50 px-6 py-16 text-center">
                 <p className="font-playfair text-2xl font-bold text-gray-900">

@@ -6,11 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { getPublicCategoryName } from "@/lib/catalog";
 import { findBlingProductForSource, type ProductCardProduct } from "@/lib/bling-catalog";
 import { getProductCatalogLine, matchesCatalogLine } from "@/lib/product-line";
-import { getDiscountPercentage, getInstallmentInfo, getValidPromotionalPrice } from "@/lib/store-rules";
-import ProductVariantImage from "@/components/loja/ProductVariantImage";
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+import ProductCard from "@/components/loja/ProductCard";
+import MasonryProductGrid from "@/components/loja/MasonryProductGrid";
 
 export const metadata: Metadata = {
   title: "Linha Adulto - KA Bijoux",
@@ -221,11 +218,11 @@ export default async function SexShopPage(props: { searchParams?: Promise<Search
             {total} produto(s) <span className="font-medium text-[#7d4b5d]">encontrados</span>
           </p>
 
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <MasonryProductGrid className="mt-4" desktopColumns={4}>
             {products.map((product) => (
-              <AdultProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} compact />
             ))}
-          </div>
+          </MasonryProductGrid>
 
           {totalPages > 1 ? (
             <nav className="mt-7 flex items-center justify-center gap-3" aria-label="Paginacao da Linha Adulto">
@@ -253,69 +250,6 @@ export default async function SexShopPage(props: { searchParams?: Promise<Search
 
       <BottomNav />
     </main>
-  );
-}
-
-function AdultProductCard({ product }: { product: ProductCardProduct }) {
-  const price = Number(product.price);
-  const promotionalPrice = getValidPromotionalPrice(price, product.promo ?? product.promotionalPrice);
-  const currentPrice = promotionalPrice ?? price;
-  const discount = getDiscountPercentage({ originalPrice: price, currentPrice: promotionalPrice });
-  const installment = getInstallmentInfo(currentPrice);
-  const image = product.image || product.images?.[0]?.url || null;
-
-  return (
-    <Link
-      href={product.slug ? `/produto/${product.slug}` : "/produtos"}
-      className="group flex flex-col overflow-hidden rounded-xl border border-[#ead7d7] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-    >
-      <div className="relative aspect-square overflow-hidden bg-[#fff6f7]">
-        {image ? (
-          <ProductVariantImage
-            src={image}
-            alt={product.name}
-            productName={product.name}
-            sku={product.sku}
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            frameClassName="h-full w-full"
-            imageClassName="object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center text-[#d4a7b5]">
-            <span className="text-3xl font-black">KA</span>
-          </div>
-        )}
-        <span className="absolute left-2 top-2 z-10 flex flex-col items-start gap-1">
-          <span className="rounded-md bg-[#df5b8d] px-2 py-0.5 text-[10px] font-bold text-white">Novo</span>
-          {discount ? (
-            <span className="rounded-full bg-gradient-to-r from-pink-700 to-pink-500 px-2 py-0.5 text-[10px] font-bold text-white">
-              -{discount}%
-            </span>
-          ) : null}
-        </span>
-        <span className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#c3a1a2] shadow-sm">
-          <HeartIcon className="h-4 w-4" />
-        </span>
-      </div>
-
-      <div className="flex flex-1 flex-col p-2.5">
-        <h3 className="line-clamp-2 text-[12px] font-semibold leading-snug text-[#4d2938]">{product.name}</h3>
-        <div className="mt-auto pt-2">
-          <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-            <p className="text-[14px] font-bold text-[#df5b8d]">{formatCurrency(currentPrice)}</p>
-            {promotionalPrice ? <p className="text-[10px] font-semibold text-[#aa8b94] line-through">{formatCurrency(price)}</p> : null}
-          </div>
-          <p className="mt-0.5 text-[10px] text-[#8a6671]">
-            {installment.eligible && installment.installmentValue
-              ? `${installment.label} de ${formatCurrency(installment.installmentValue)}`
-              : installment.label}
-          </p>
-          <div className="mt-2 rounded-lg bg-gradient-to-r from-[#df5b8d] to-pink-400 py-2 text-center text-[12px] font-bold text-white">
-            Comprar
-          </div>
-        </div>
-      </div>
-    </Link>
   );
 }
 

@@ -539,6 +539,22 @@ body {
   opacity: 1;
   will-change: auto;
 }
+.ka-product-masonry {
+  column-fill: balance;
+}
+.ka-product-masonry-item {
+  width: 100%;
+  break-inside: avoid-column;
+}
+.ka-product-masonry .ka-product-card {
+  --ka-card-reveal-y: 0px;
+  --ka-card-hover-y: 0px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+.ka-product-masonry .ka-product-card:hover {
+  --ka-card-hover-y: 0px;
+  box-shadow: 0 3px 10px rgba(236, 72, 153, 0.1);
+}
 .ka-product-card .ka-product-img {
   transition: transform 0.5s ease;
 }

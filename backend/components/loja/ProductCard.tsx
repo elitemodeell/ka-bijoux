@@ -5,6 +5,7 @@ import type { MouseEvent } from "react";
 import Link from "next/link";
 import { addCartItem } from "@/lib/client-cart";
 import { getDiscountPercentage, getInstallmentInfo, getValidPromotionalPrice } from "@/lib/store-rules";
+import ProductFavoriteButton from "@/components/loja/ProductFavoriteButton";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -145,16 +146,16 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
   return (
     <div
       ref={cardRef}
-      className={`ka-product-card ka-product-reveal group flex flex-col overflow-hidden border border-gray-100 bg-white transition-all duration-200 ${compact ? "rounded-lg shadow-[0_1px_4px_rgba(0,0,0,0.06)] hover:shadow-sm" : "rounded-xl shadow-sm hover:-translate-y-0.5 hover:shadow-md"} ${compact ? "ka-home-product-card" : ""}`}
+      className={`ka-product-card ka-product-reveal group flex w-full min-w-0 flex-col overflow-hidden border border-gray-100 bg-white transition-all duration-200 ${compact ? "rounded-lg shadow-[0_1px_4px_rgba(0,0,0,0.06)] hover:shadow-sm" : "rounded-xl shadow-sm hover:shadow-md"} ${compact ? "ka-home-product-card" : ""}`}
     >
       {/* Image area */}
-      <div className="relative aspect-square overflow-hidden bg-white">
+      <div className="relative w-full overflow-hidden bg-white">
         {normalized.slug ? (
           <Link
             href={`/produto/${normalized.slug}`}
             prefetch={false}
             onClick={rememberListingPosition}
-            className="block h-full w-full"
+            className="block w-full"
             aria-label={`Ver detalhes de ${name}`}
           >
             {image && !imgError ? (
@@ -163,8 +164,8 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
                 alt={name}
                 productName={name}
                 sku={normalized.sku}
-                frameClassName="h-full w-full"
-                imageClassName="object-contain p-1 transition-transform duration-300 group-hover:scale-[1.02]"
+                frameClassName="w-full"
+                imageClassName="block h-auto w-full object-contain"
                 onError={() => setImgError(true)}
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                 priority={priority}
@@ -177,7 +178,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
           <button
             type="button"
             onClick={openQuickShop}
-            className="block h-full w-full"
+            className="block w-full"
             aria-label={`Ver detalhes de ${name}`}
           >
             {image && !imgError ? (
@@ -186,8 +187,8 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
                 alt={name}
                 productName={name}
                 sku={normalized.sku}
-                frameClassName="h-full w-full"
-                imageClassName="object-contain p-1 transition-transform duration-300 group-hover:scale-[1.02]"
+                frameClassName="w-full"
+                imageClassName="block h-auto w-full object-contain"
                 onError={() => setImgError(true)}
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                 priority={priority}
@@ -231,18 +232,8 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
           </div>
         )}
 
-        {/* Cart stays as a discreet image overlay; card navigation opens product details. */}
-        <button
-          type="button"
-          onClick={handleAddToCart}
-          disabled={normalized.purchaseReviewRequired}
-          className={`absolute bottom-2 right-2 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/80 bg-pink-500 text-white shadow-sm backdrop-blur transition-all hover:bg-pink-600 ${
-            cartAdded ? "bg-pink-500 text-white" : ""
-          }`}
-          aria-label={normalized.purchaseReviewRequired ? "Produto em revisão" : `Adicionar ${name} ao carrinho`}
-        >
-          {cartAdded ? <CheckIcon /> : <CartIcon />}
-        </button>
+        {product.id ? <ProductFavoriteButton productId={product.id} productName={name} /> : null}
+
       </div>
 
       {/* Info area */}
@@ -268,19 +259,28 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
         )}
 
           <div className={`${compact ? "mt-1 pt-1 sm:mt-auto sm:pt-2" : "mt-auto pt-2"}`}>
-          <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-            {promo ? (
-              <>
-              <span className={`${compact ? "text-[15px] sm:text-[16px]" : "text-[16px]"} font-bold text-pink-600`}>{fmt(promo)}</span>
-                <span className="text-[10px] text-gray-400 line-through">{fmt(price)}</span>
-              </>
-            ) : (
-              <span className={`${compact ? "text-[15px] sm:text-[16px]" : "text-[16px]"} font-bold text-gray-900`}>{fmt(price)}</span>
-            )}
+          <div className="flex items-center justify-between gap-1">
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+              {promo ? (
+                <>
+                  <span className={`${compact ? "text-[15px] sm:text-[16px]" : "text-[16px]"} font-bold text-pink-600`}>{fmt(promo)}</span>
+                  <span className="text-[10px] text-gray-400 line-through">{fmt(price)}</span>
+                </>
+              ) : (
+                <span className={`${compact ? "text-[15px] sm:text-[16px]" : "text-[16px]"} font-bold text-pink-600`}>{fmt(price)}</span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={normalized.purchaseReviewRequired}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pink-500 text-white transition-colors hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-50 ${cartAdded ? "bg-pink-600" : ""}`}
+              aria-label={normalized.purchaseReviewRequired ? "Produto em revisão" : `Adicionar ${name} ao carrinho`}
+            >
+              {cartAdded ? <CheckIcon /> : <CartIcon />}
+            </button>
           </div>
-          {installment.eligible && (
-            <p className="mt-0.5 text-[10px] text-gray-500">{installment.label}</p>
-          )}
+          {installment.eligible && <p className="mt-0.5 text-[10px] text-gray-500">{installment.label}</p>}
         </div>
       </div>
     </div>
@@ -289,7 +289,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
 
 function ProductImageFallback() {
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-pink-100">
+    <div className="flex aspect-[4/3] w-full flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-pink-100">
       <span className="mb-1 text-3xl text-pink-300">KA</span>
       <span className="text-[10px] font-medium text-pink-300">KA Bijoux</span>
     </div>

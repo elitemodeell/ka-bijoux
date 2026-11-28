@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 import { connection } from "next/server";
 import AnnouncementBar from "@/components/loja/AnnouncementBar";
 import ProductCard from "@/components/loja/ProductCard";
+import MasonryProductGrid from "@/components/loja/MasonryProductGrid";
 import AnimatedSection from "@/components/loja/AnimatedSection";
 import KABijouxStories from "@/components/loja/KABijouxStories";
 import QuickCategoryBar from "@/components/loja/QuickCategoryBar";
@@ -309,7 +310,7 @@ function SectionGrid({
 }: SectionGridProps) {
   return (
     <>
-      <div className={compact ? "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5" : "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5"}>
+      <MasonryProductGrid desktopColumns={5}>
         {products.map((product, i) => (
           <ProductCard
             key={`${keyPrefix}-${product.id}`}
@@ -322,7 +323,7 @@ function SectionGrid({
             compact={compact}
           />
         ))}
-      </div>
+      </MasonryProductGrid>
 
       <div className="mt-5 flex justify-center sm:mt-8">
         <Link
