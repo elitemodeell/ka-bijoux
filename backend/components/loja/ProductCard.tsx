@@ -90,6 +90,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
   const [cartAdded, setCartAdded] = useState(false);
   const normalized = useMemo(() => normalizeProduct(product), [product]);
   const { name, price, promo, badge, image } = normalized;
+  const displayName = formatProductDisplayName(name);
   const discount = getDiscountPercentage({
     originalPrice: price,
     currentPrice: promo,
@@ -156,12 +157,12 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
             prefetch={false}
             onClick={rememberListingPosition}
             className="block w-full"
-            aria-label={`Ver detalhes de ${name}`}
+            aria-label={`Ver detalhes de ${displayName}`}
           >
             {image && !imgError ? (
               <ProductVariantImage
                 src={image}
-                alt={name}
+                alt={displayName}
                 productName={name}
                 sku={normalized.sku}
                 frameClassName="w-full"
@@ -179,12 +180,12 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
             type="button"
             onClick={openQuickShop}
             className="block w-full"
-            aria-label={`Ver detalhes de ${name}`}
+            aria-label={`Ver detalhes de ${displayName}`}
           >
             {image && !imgError ? (
               <ProductVariantImage
                 src={image}
-                alt={name}
+                alt={displayName}
                 productName={name}
                 sku={normalized.sku}
                 frameClassName="w-full"
@@ -232,7 +233,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
           </div>
         )}
 
-        {product.id ? <ProductFavoriteButton productId={product.id} productName={name} /> : null}
+        {product.id ? <ProductFavoriteButton productId={product.id} productName={displayName} /> : null}
 
       </div>
 
@@ -247,13 +248,13 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
             className="text-left"
           >
             <h3 className={`${compact ? "line-clamp-2 text-[11px] leading-tight sm:text-[12px]" : "line-clamp-2 text-[12px] leading-snug"} font-semibold text-gray-800 transition-colors hover:text-pink-500`}>
-              {name}
+              {displayName}
             </h3>
           </Link>
         ) : (
           <button type="button" onClick={openQuickShop} className="text-left">
             <h3 className={`${compact ? "line-clamp-2 text-[11px] leading-tight sm:text-[12px]" : "line-clamp-2 text-[12px] leading-snug"} font-semibold text-gray-800 transition-colors hover:text-pink-500`}>
-              {name}
+              {displayName}
             </h3>
           </button>
         )}
@@ -275,7 +276,7 @@ function ProductCard({ product, revealDelay = 0, priority = false, badgeSeal = f
               onClick={handleAddToCart}
               disabled={normalized.purchaseReviewRequired}
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pink-500 text-white transition-colors hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-50 ${cartAdded ? "bg-pink-600" : ""}`}
-              aria-label={normalized.purchaseReviewRequired ? "Produto em revisão" : `Adicionar ${name} ao carrinho`}
+              aria-label={normalized.purchaseReviewRequired ? "Produto em revisão" : `Adicionar ${displayName} ao carrinho`}
             >
               {cartAdded ? <CheckIcon /> : <CartIcon />}
             </button>
@@ -317,6 +318,19 @@ function normalizeProduct(product: Product) {
     description: product.description || "Produto selecionado com carinho pela KA Bijoux.",
     stock: product.stock ?? 1,
   };
+}
+
+function formatProductDisplayName(name: string) {
+  if (name !== name.toLocaleUpperCase("pt-BR")) return name;
+  const sentenceCase = name.toLocaleLowerCase("pt-BR").replace(/^\p{L}/u, (letter) => letter.toLocaleUpperCase("pt-BR"));
+  return sentenceCase.replace(/\b(usb(?:\/c|-c)?|iphone|sim|led|bluetooth|wi[ -]?fi)\b/gi, (token) => {
+    const normalized = token.toLocaleLowerCase("pt-BR");
+    if (normalized.startsWith("usb")) return normalized.toLocaleUpperCase("pt-BR");
+    if (normalized === "iphone") return "iPhone";
+    if (normalized === "sim" || normalized === "led") return normalized.toLocaleUpperCase("pt-BR");
+    if (normalized === "wi-fi" || normalized === "wifi") return "Wi-Fi";
+    return "Bluetooth";
+  });
 }
 
 export default memo(ProductCard);
