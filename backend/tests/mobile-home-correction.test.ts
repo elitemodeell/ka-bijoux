@@ -20,6 +20,9 @@ const mobileRootLayout = source("mobile/app/_layout.tsx");
 const mobileBrand = source("mobile/components/home/brand.ts");
 const mobileApi = source("mobile/services/api.ts");
 const productCard = source("mobile/components/product/ProductCard.tsx");
+const webProductCard = source("backend/components/loja/ProductCard.tsx");
+const newProductAdmin = source("backend/app/admin/produtos/novo/page.tsx");
+const editProductAdmin = source("backend/app/admin/produtos/[id]/page.tsx");
 const resilientProductImage = source(
   "mobile/components/product/ResilientProductImage.tsx"
 );
@@ -176,13 +179,13 @@ describe("correção completa da Home mobile", () => {
     expect(mobileHome).toContain("/images/brand/ka-bijoux-logo-story-icon.png");
   });
 
-  it("calcula colunas de produtos sem depender de larguras percentuais aproximadas", () => {
+  it("usa listas virtualizadas em cascata com duas colunas independentes", () => {
     const searchScreen = source("mobile/app/(tabs)/busca.tsx");
     const productList = source("mobile/app/produtos/index.tsx");
     const favorites = source("mobile/app/favoritos/index.tsx");
     for (const screen of [searchScreen, productList, favorites]) {
-      expect(screen).toContain("useWindowDimensions");
-      expect(screen).toContain("(viewportWidth - 16 - 8) / 2");
+      expect(screen).toContain('@shopify/flash-list');
+      expect(screen).toContain("masonry");
       expect(screen).toContain("numColumns={2}");
       expect(screen).not.toContain('width: "31%"');
     }
@@ -288,14 +291,32 @@ describe("correção completa da Home mobile", () => {
     expect(mobileHome).toContain("if (!isSafeStoreHref(href, allowedCategorySlugs)) return");
   });
 
-  it("cards exibem imagem, estoque, preço e ação Comprar", () => {
+  it("cards exibem foto comercial e ação circular de carrinho sem botão largo", () => {
     expect(productCard).toContain("ResilientProductImage");
     expect(resilientProductImage).toContain('cachePolicy="memory-disk"');
     expect(productCard).toContain("Esgotado");
     expect(productCard).toContain("formatCurrency(displayPrice)");
-    expect(productCard).toContain('product.purchaseReviewRequired ? "Em revisão" : compact ? "Comprar" : "Comprar agora"');
     expect(productCard).toContain("disabled={!isAvailable || cartAction !== null}");
-    expect(productCard).toContain('contentFit="contain"');
+    expect(resilientProductImage).toContain('contentFit={contentFit}');
     expect(productCard).toContain("product.badge");
+    expect(productCard).toContain("styles.floatingCart");
+    expect(productCard).toContain("event.stopPropagation(); void handleCartAction();");
+    expect(productCard).toContain("await addItem(product.id, 1)");
+    expect(productCard).toContain("if (hasVariations)");
+    expect(productCard).not.toContain("Comprar agora");
+    expect(productCard).not.toContain("style={[styles.addButton,");
+  });
+
+  it("padroniza o card web e permite ordenar a capa e a galeria no painel", () => {
+    expect(webProductCard).toContain('className="relative w-full overflow-hidden bg-white"');
+    expect(webProductCard).toContain('imageClassName="block h-auto w-full object-contain"');
+    expect(webProductCard).toContain("ProductFavoriteButton");
+    expect(webProductCard).toContain("onClick={handleAddToCart}");
+    expect(webProductCard).not.toContain("className={`ka-btn mt-1.5");
+    for (const adminPage of [newProductAdmin, editProductAdmin]) {
+      expect(adminPage).toContain("Capa principal");
+      expect(adminPage).toContain("Arte ou informação");
+      expect(adminPage).toContain("moveImage(index");
+    }
   });
 });

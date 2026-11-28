@@ -123,7 +123,7 @@ describe("variante Google Play (42 cenários adicionais)", () => {
   const sourceCases: Array<[string, () => void]> = [
     ["[172] tela legada removida", () => expect(existsSync(path.join(repoRoot, "mobile/app/categoria/sex-shop/index.tsx"))).toBe(false)],
     ["[173] prefixo móvel fixo", () => expect(readFileSync(path.join(repoRoot, "mobile/services/api.ts"), "utf8")).toContain('MOBILE_API_PREFIX = "/api/mobile"')],
-    ["[174] versão Android 12", () => expect(JSON.parse(readFileSync(path.join(repoRoot, "mobile/app.json"), "utf8")).expo.android.versionCode).toBe(12)],
+    ["[174] versão Android 13", () => expect(JSON.parse(readFileSync(path.join(repoRoot, "mobile/app.json"), "utf8")).expo.android.versionCode).toBe(13)],
     ["[175] distribuição fixa", () => expect(readFileSync(path.join(repoRoot, "mobile/constants/distribution.ts"), "utf8")).toContain('"GOOGLE_PLAY" as const')],
     ["[176] migração limpa checkout legado", () => expect(readFileSync(path.join(repoRoot, "mobile/lib/googlePlayCatalogMigration.ts"), "utf8")).toContain('"ka-checkout-attempt-v1"')],
     ["[177] navegação raiz sem rota restrita", () => expect(readFileSync(path.join(repoRoot, "mobile/app/_layout.tsx"), "utf8")).not.toContain("categoria/sex-shop")],

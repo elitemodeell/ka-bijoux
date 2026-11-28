@@ -5,7 +5,6 @@ const config = getDefaultConfig(__dirname);
 config.watchFolders = [...new Set([
   ...config.watchFolders,
   path.resolve(__dirname, "../shared"),
-  path.resolve(__dirname, "../backend/public/banners"),
 ])];
 const defaultResolveRequest = config.resolver.resolveRequest;
 
